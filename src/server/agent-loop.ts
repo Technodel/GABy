@@ -14,6 +14,7 @@
 import { streamText, generateText, type CoreMessage, type LanguageModel } from 'ai';
 import { getModelsForMode, isCachingEnabled, getEditFormat } from './agent';
 import { createPowerTools } from './power-tools';
+import { mcpManager } from './mcp-manager';
 import { userClientManager } from './user-client-manager';
 import { isBridgeConnected } from './bridge-manager';
 import { invalidateRepoMap } from './repo-map';
@@ -205,22 +206,36 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
     : systemPrompt + formatSystemAddition);
 
   // Build tools (only if bridge is connected, project is set, and NOT in talk mode)
+  // MCP tools from connected servers are merged automatically
+  const mcpToolsAvailable = mcpManager.availableToolCount > 0;
   const tools = (bridgeConnected && projectPath && !talkMode)
-    ? createPowerTools({
-        userId,
-        projectPath,
-        signal,
-        onToolCall: (name, input) => {
-          toolCallNames.add(name);
-          console.log(`[agent-loop] tool call: ${name}`, input);
-          userClientManager.pushToUser(userId, 'suny:tool_call', { tool: name, input });
-        },
-        onFileChanged: (absPath) => {
-          changedFiles.add(absPath);
-          // Invalidate repo map cache immediately so the next message sees fresh symbols
-          if (projectPath) invalidateRepoMap(userId, projectPath);
-        },
-      })
+    ? (() => {
+        const powerTools = createPowerTools({
+          userId,
+          projectPath,
+          signal,
+          onToolCall: (name, input) => {
+            toolCallNames.add(name);
+            console.log(`[agent-loop] tool call: ${name}`, input);
+            userClientManager.pushToUser(userId, 'suny:tool_call', { tool: name, input });
+          },
+          onFileChanged: (absPath) => {
+            changedFiles.add(absPath);
+            // Invalidate repo map cache immediately so the next message sees fresh symbols
+            if (projectPath) invalidateRepoMap(userId, projectPath);
+          },
+        });
+        // Merge MCP tools if any servers are connected
+        if (mcpToolsAvailable) {
+          const mcpTools = mcpManager.getTools();
+          const merged = { ...powerTools, ...mcpTools };
+          if (Object.keys(mcpTools).length > 0) {
+            console.log(`[agent-loop] Merged ${Object.keys(mcpTools).length} MCP tool(s) into toolset`);
+          }
+          return merged;
+        }
+        return powerTools;
+      })()
     : undefined;
 
   const effectiveTools = textFormat ? undefined : tools;
