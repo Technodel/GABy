@@ -44,6 +44,16 @@ interface ModeStat {
   profit: number;
 }
 
+interface DayStat {
+  day: string;
+  sessions: number;
+  input_tokens: number;
+  output_tokens: number;
+  raw_cost: number;
+  charged: number;
+  profit: number;
+}
+
 interface RecentCall {
   id: number;
   username: string;
@@ -107,7 +117,8 @@ export default function AdminUsageStats() {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [filterMode, setFilterMode] = useState('');
-  const [tab, setTab] = useState<'user' | 'mode' | 'recent'>('user');
+  const [perDay, setPerDay] = useState<DayStat[]>([]);
+  const [tab, setTab] = useState<'user' | 'mode' | 'recent' | 'daily'>('user');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => { load(); }, [from, to, filterMode]);
@@ -125,6 +136,7 @@ export default function AdminUsageStats() {
       setPerUser(data.perUser || []);
       setPerMode(data.perMode || []);
       setRecent(data.recent || []);
+      setPerDay(data.perDay || []);
     }
     setLoading(false);
   }
@@ -209,8 +221,8 @@ export default function AdminUsageStats() {
 
       {/* ── Tabs ────────────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border)', marginBottom: 0 }}>
-        {(['user', 'mode', 'recent'] as const).map((key) => {
-          const labels: Record<string, string> = { user: '👤 By User', mode: '🎛️ By Mode', recent: '🕐 Recent Calls' };
+        {(['user', 'mode', 'recent', 'daily'] as const).map((key) => {
+          const labels: Record<string, string> = { user: '👤 By User', mode: '🎛️ By Mode', recent: '🕐 Recent Calls', daily: '📅 Daily' };
           return (
             <button key={key} onClick={() => setTab(key)} style={{
               padding: '8px 18px',
@@ -383,6 +395,47 @@ export default function AdminUsageStats() {
           {recent.length === 0 && (
             <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
               No usage data for the selected period.
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Daily Trend ─────────────────────────────────────────────────────── */}
+      {tab === 'daily' && (
+        <div className="card" style={{ padding: 0, overflow: 'auto', borderTopLeftRadius: 0, borderTopRightRadius: 0 }}>
+          <table style={{ fontSize: 13, minWidth: 600 }}>
+            <thead>
+              <tr>
+                <th style={{ textAlign: 'left' }}>Date</th>
+                <th>Calls</th>
+                <th>Input Tokens</th>
+                <th>Output Tokens</th>
+                <th>Provider Cost</th>
+                <th>Billed</th>
+                <th style={{ color: 'var(--success, #22c55e)' }}>Profit</th>
+                <th>Margin</th>
+              </tr>
+            </thead>
+            <tbody>
+              {perDay.map(d => (
+                <tr key={d.day}>
+                  <td style={{ fontWeight: 500, whiteSpace: 'nowrap' }}>{d.day}</td>
+                  <td style={{ textAlign: 'center' }}>{d.sessions}</td>
+                  <td style={{ textAlign: 'right' }}>{fmtK(d.input_tokens)}</td>
+                  <td style={{ textAlign: 'right' }}>{fmtK(d.output_tokens)}</td>
+                  <td style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>{fmt$(d.raw_cost)}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 600 }}>{fmt$(d.charged)}</td>
+                  <td style={{ textAlign: 'right', fontWeight: 600, color: d.profit >= 0 ? 'var(--success, #22c55e)' : 'var(--error, #ef4444)' }}>
+                    {fmt$(d.profit)}
+                  </td>
+                  <td style={{ textAlign: 'right', fontSize: 12, color: 'var(--text-muted)' }}>{margin(d.profit, d.charged)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {perDay.length === 0 && (
+            <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+              No daily data for the selected period.
             </div>
           )}
         </div>

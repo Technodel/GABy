@@ -19,7 +19,6 @@ type AuthState = 'loading' | 'user' | 'admin' | 'none';
 function AppRoutes() {
   const [auth, setAuth] = useState<AuthState>('loading');
   const [showSettings, setShowSettings] = useState(false);
-  const [showBridgeSetup, setShowBridgeSetup] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => { checkAuth(); }, []);
@@ -71,15 +70,13 @@ function AppRoutes() {
       <Route path="/" element={
         auth === 'none' ? <Navigate to="/login" /> :
         auth === 'admin' ? <Navigate to="/admin/users" /> :
-        showBridgeSetup
-          ? <BridgeSetup onConnected={() => { setShowBridgeSetup(false); navigate('/'); }} />
-          : showSettings
-            ? <UserSettings onBack={() => setShowSettings(false)} onLogout={handleLogout} />
-            : <Chat
-                onLogout={handleLogout}
-                onOpenSettings={() => setShowSettings(true)}
-                onBridgeOffline={() => setShowBridgeSetup(true)}
-              />
+        showSettings
+          ? <UserSettings onBack={() => setShowSettings(false)} onLogout={handleLogout} />
+          : <Chat
+              onLogout={handleLogout}
+              onOpenSettings={() => setShowSettings(true)}
+              onBridgeOffline={() => { /* handled inline by BridgeStatusBadge */ }}
+            />
       } />
 
       {/* Admin routes */}

@@ -1,15 +1,54 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Plus, Trash2, Settings, LogOut, Square, Eraser, Book, Edit3, RotateCcw } from 'lucide-react';
+import { Send, Plus, Trash2, Settings, LogOut, Square, Eraser, Book, Edit3, RotateCcw, Copy, Check, Pencil, MessageSquare, FileText, X, BarChart2, User } from 'lucide-react';
 import BalanceBadge from '../components/BalanceBadge';
 import BridgeStatusBadge from '../components/BridgeStatusBadge';
 import ModeSelector from '../components/ModeSelector';
 import NarratedMessage, { ThinkingIndicator } from '../components/NarratedMessage';
 import { useWebSocket } from '../hooks/useWebSocket';
 
+// ── Bridge install instructions (shown inline in the tip popover) ─────────────
+function BridgeInstallInstructions() {
+  const [cmd, setCmd] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/bridge-token', { credentials: 'include' })
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data?.token) return;
+        const wsProto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+        const serverUrl = import.meta.env.DEV ? 'ws://localhost:3500' : `${wsProto}://${window.location.host}`;
+        const tgzUrl = `${window.location.protocol}//${window.location.host}/bridge/gaby-bridge.tgz`;
+        setCmd(`npm install -g ${tgzUrl} && gaby-bridge start --token ${data.token} --server ${serverUrl}`);
+      });
+  }, []);
+
+  function copy() {
+    if (!cmd) return;
+    navigator.clipboard.writeText(cmd).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
+  }
+
+  return (
+    <div style={{ position: 'relative', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '10px 40px 10px 12px', fontFamily: 'monospace', fontSize: 12, color: 'var(--text-primary)', wordBreak: 'break-all', lineHeight: 1.6 }}>
+      {cmd || 'Loading...'}
+      {cmd && (
+        <button
+          onClick={copy}
+          style={{ position: 'absolute', top: 8, right: 8, background: 'none', border: 'none', cursor: 'pointer', color: copied ? 'var(--success)' : 'var(--text-muted)', padding: 2 }}
+          title="Copy command"
+        >
+          {copied ? <Check size={14} /> : <Copy size={14} />}
+        </button>
+      )}
+    </div>
+  );
+}
+
 interface Project {
   id: number;
   name: string;
   local_path: string;
+  persona?: string | null;
 }
 
 interface Mode {
@@ -61,6 +100,123 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
   const streamingContentRef = useRef('');
   const [thinkingStatus, setThinkingStatus] = useState('');
   const [bridgeConnected, setBridgeConnected] = useState(false);
+  const [showBridgeTip, setShowBridgeTip] = useState(false);
+
+  // ── Talk / Write mode ────────────────────────────────────────────────────────
+  const [talkMode, setTalkMode] = useState<boolean>(() => {
+    try { return localStorage.getItem('gaby_talk_mode') === '1'; } catch { return false; }
+  });
+  function toggleTalkMode() {
+    setTalkMode(prev => {
+      const next = !prev;
+      try { localStorage.setItem('gaby_talk_mode', next ? '1' : '0'); } catch {}
+      return next;
+    });
+  }
+
+  // ── Project Rules (.gaby-rules) ──────────────────────────────────────────────
+  const [projectRules, setProjectRules] = useState<string | null>(null);
+  const [showRulesEditor, setShowRulesEditor] = useState(false);
+  const [rulesEditorContent, setRulesEditorContent] = useState('');
+
+  async function loadProjectRules(projectId: number) {
+    try {
+      const res = await fetch(`/api/projects/${projectId}/rules`, { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setProjectRules(data.rules);
+      }
+    } catch {}
+  }
+
+  async function saveProjectRulesApi(content: string) {
+    if (!activeProject) return;
+    const res = await fetch(`/api/projects/${activeProject.id}/rules`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content }),
+    });
+    if (res.ok) {
+      setProjectRules(content.trim() || null);
+      setShowRulesEditor(false);
+    }
+  }
+
+  // ── Persona per project ──────────────────────────────────────────
+  const [showPersonaEditor, setShowPersonaEditor] = useState(false);
+  const [personaEditorContent, setPersonaEditorContent] = useState('');
+
+  async function savePersonaApi(content: string) {
+    if (!activeProject) return;
+    const res = await fetch(`/api/projects/${activeProject.id}/persona`, {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ persona: content.trim() || null }),
+    });
+    if (res.ok) {
+      setProjects(ps => ps.map(p => p.id === activeProject.id ? { ...p, persona: content.trim() || null } : p));
+      setActiveProject(prev => prev ? { ...prev, persona: content.trim() || null } : prev);
+      setShowPersonaEditor(false);
+    }
+  }
+
+  // ── Usage stats ──────────────────────────────────────────────────────────
+  interface UsageDay { day: string; input_tokens: number; output_tokens: number; cache_read_tokens: number; charged_cost: number; }
+  interface UsageMode { mode: string; input_tokens: number; output_tokens: number; charged_cost: number; }
+  interface UsageTotals { input_tokens: number; output_tokens: number; cache_read_tokens: number; charged_cost: number; }
+  const [showUsage, setShowUsage] = useState(false);
+  const [usageByDay, setUsageByDay] = useState<UsageDay[]>([]);
+  const [usageByMode, setUsageByMode] = useState<UsageMode[]>([]);
+  const [usageTotals, setUsageTotals] = useState<UsageTotals | null>(null);
+  const [usageDays, setUsageDays] = useState(14);
+
+  async function loadUsageStats(days = usageDays) {
+    try {
+      const res = await fetch(`/api/me/usage?days=${days}`, { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setUsageByDay(data.by_day ?? []);
+        setUsageByMode(data.by_mode ?? []);
+        setUsageTotals(data.totals ?? null);
+      }
+    } catch {}
+  }
+
+  // ── Checkpoints ──────────────────────────────────────────────────────────────
+  interface CheckpointEntry { sha: string; message: string; date: string; }
+  const [checkpoints, setCheckpoints] = useState<CheckpointEntry[]>([]);
+  const [showCheckpoints, setShowCheckpoints] = useState(false);
+  const [rollingBack, setRollingBack] = useState<string | null>(null);
+
+  async function loadCheckpoints(projectId: number) {
+    try {
+      const res = await fetch(`/api/projects/${projectId}/checkpoints`, { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setCheckpoints(data.checkpoints ?? []);
+      }
+    } catch {}
+  }
+
+  async function rollbackToCheckpoint(sha: string) {
+    if (!activeProject) return;
+    setRollingBack(sha);
+    try {
+      const res = await fetch(`/api/projects/${activeProject.id}/checkpoints/rollback`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sha }),
+      });
+      if (res.ok) {
+        await loadCheckpoints(activeProject.id);
+      }
+    } finally {
+      setRollingBack(null);
+    }
+  }
 
   // Client-side timeout: if no response within 90s, auto-cancel
   const thinkingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -89,6 +245,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
   const [showNewProject, setShowNewProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectPath, setNewProjectPath] = useState('');
+  const [newProjectPathError, setNewProjectPathError] = useState('');
   const msgEndRef = useRef<HTMLDivElement>(null);
   const sessionId = useRef('s_' + Date.now() + '_' + Math.random().toString(36).slice(2));
   const [sessUsed, setSessUsed] = useState(0);
@@ -163,6 +320,11 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
   useEffect(() => {
     if (activeProject) {
       setMemories(loadMemories(activeProject.id));
+      loadProjectRules(activeProject.id);
+      loadCheckpoints(activeProject.id);
+    } else {
+      setProjectRules(null);
+      setCheckpoints([]);
     }
   }, [activeProject?.id]);
 
@@ -233,6 +395,17 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         streamingContentRef.current = '';
         if (msg.sess_used !== undefined) setSessUsed(msg.sess_used as number);
         if (msg.sess_limit !== undefined) setSessLimit(msg.sess_limit as number | null);
+        // Refresh checkpoints after agent turn
+        if (activeProject) loadCheckpoints(activeProject.id);
+      } else if (msg.event === 'gaby:lint_running') {
+        setThinkingStatus(`Running ${msg.command ?? 'linter'}...`);
+      } else if (msg.event === 'gaby:lint_errors') {
+        setThinkingStatus(`Found ${msg.errorCount} error(s) — fixing (pass ${msg.attempt})...`);
+      } else if (msg.event === 'gaby:lint_passed') {
+        setThinkingStatus('Lint passed ✓');
+      } else if (msg.event === 'gaby:lint_gave_up') {
+        // After exhausting retries, surface a warning in the chat
+        addMessage('gaby', `⚠️ Completed with ${msg.errorCount} remaining lint error(s). You may want to review the output of \`${msg.command}\`.`);
       } else if (msg.event === 'gaby:balance') {
         setBalance(msg.balance as number);
         if (msg.wallet_balance !== undefined) setWalletBalance(msg.wallet_balance as number);
@@ -280,7 +453,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
 
   async function sendMessage() {
     const text = input.trim();
-    if (!text || !activeProject) return;
+    if (!text) return;
 
     if (balance <= 0 && walletBalance <= 0) {
       addMessage('system', "Looks like you're out of credits! Reach out to us and we'll top you right up 😊");
@@ -291,16 +464,19 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     addMessage('user', text);
     setThinking(true);
 
-    wsSend({
+    const payload: Record<string, unknown> = {
       type: 'chat:message',
       message: text,
-      projectId: activeProject.id,
       mode: selectedMode,
       sessionId: sessionId.current,
+      talkMode,
       history: messages
         .filter(m => m.type === 'user' || m.type === 'gaby')
         .map(m => ({ role: m.type === 'user' ? 'user' : 'assistant', content: m.content })),
-    });
+    };
+    if (activeProject) payload.projectId = activeProject.id;
+
+    wsSend(payload);
   }
 
   async function changeMode(mode: string) {
@@ -315,17 +491,29 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
 
   async function createProject() {
     if (!newProjectName.trim() || !newProjectPath.trim()) return;
+    const trimmedPath = newProjectPath.trim();
+    const isAbsolute = /^[A-Za-z]:[\\//]/.test(trimmedPath) || trimmedPath.startsWith('/');
+    if (!isAbsolute) {
+      setNewProjectPathError('Please enter the full path to your project folder, like D:\\Projects\\MyApp');
+      return;
+    }
+    setNewProjectPathError('');
     const res = await fetch('/api/projects', {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newProjectName.trim(), local_path: newProjectPath.trim() }),
+      body: JSON.stringify({ name: newProjectName.trim(), local_path: trimmedPath }),
     });
     if (res.ok) {
       await loadProjects();
       setShowNewProject(false);
       setNewProjectName('');
       setNewProjectPath('');
+      setNewProjectPathError('');
+    } else {
+      const data = await res.json().catch(() => ({}));
+      const msg = data?.details?.fieldErrors?.local_path?.[0] || data?.error || 'Failed to create project';
+      setNewProjectPathError(msg);
     }
   }
 
@@ -390,8 +578,18 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         {modes.length > 0 && (
           <ModeSelector modes={modes} selected={selectedMode} onChange={changeMode} />
         )}
-        <BridgeStatusBadge connected={bridgeConnected} onClick={!bridgeConnected ? onBridgeOffline : undefined} />
+        <BridgeStatusBadge
+          connected={bridgeConnected}
+          onClick={() => setShowBridgeTip(t => !t)}
+        />
         <BalanceBadge balance={balance} walletBalance={walletBalance} />
+        <button
+          className="btn btn-icon btn-secondary"
+          onClick={() => { setShowUsage(true); loadUsageStats(usageDays); }}
+          title="Usage stats"
+        >
+          <BarChart2 size={15} />
+        </button>
         <button className="btn btn-icon btn-secondary" onClick={onOpenSettings} title="Settings">
           <Settings size={15} />
         </button>
@@ -541,6 +739,104 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
               </div>
             </>
           )}
+
+          {/* Project Rules (.gaby-rules) section */}
+          {activeProject && (
+            <div style={{ borderTop: '1px solid var(--border)', marginTop: 4 }}>
+              <div style={{ padding: '12px 12px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Rules
+                </span>
+                <button
+                  className="btn btn-icon btn-sm"
+                  onClick={() => { setRulesEditorContent(projectRules ?? ''); setShowRulesEditor(true); }}
+                  title="Edit project rules"
+                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', padding: 2, cursor: 'pointer' }}
+                >
+                  <Edit3 size={11} />
+                </button>
+              </div>
+              {projectRules ? (
+                <div style={{ padding: '0 12px 8px', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5, whiteSpace: 'pre-wrap', maxHeight: 100, overflowY: 'auto', opacity: 0.8 }}>
+                  {projectRules.slice(0, 300)}{projectRules.length > 300 ? '…' : ''}
+                </div>
+              ) : (
+                <p style={{ padding: '0 12px 8px', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                  No rules set. Click ✏️ to add coding guidelines for this project.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Persona section */}
+          {activeProject && (
+            <div style={{ borderTop: '1px solid var(--border)', marginTop: 4 }}>
+              <div style={{ padding: '12px 12px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Persona
+                </span>
+                <button
+                  className="btn btn-icon btn-sm"
+                  onClick={() => { setPersonaEditorContent(activeProject.persona ?? ''); setShowPersonaEditor(true); }}
+                  title="Edit AI persona for this project"
+                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', padding: 2, cursor: 'pointer' }}
+                >
+                  <User size={11} />
+                </button>
+              </div>
+              {activeProject.persona ? (
+                <div style={{ padding: '0 12px 8px', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5, whiteSpace: 'pre-wrap', maxHeight: 70, overflowY: 'auto', opacity: 0.8 }}>
+                  {activeProject.persona.slice(0, 200)}{(activeProject.persona?.length ?? 0) > 200 ? '…' : ''}
+                </div>
+              ) : (
+                <p style={{ padding: '0 12px 8px', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                  No persona. Click 👤 to give GABy a role for this project.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Checkpoints section */}
+          {activeProject && checkpoints.length > 0 && (
+            <div style={{ borderTop: '1px solid var(--border)', marginTop: 4 }}>
+              <div style={{ padding: '12px 12px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Checkpoints
+                </span>
+                <button
+                  className="btn btn-icon btn-sm"
+                  onClick={() => loadCheckpoints(activeProject.id)}
+                  title="Refresh checkpoints"
+                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', padding: 2, cursor: 'pointer', fontSize: 10 }}
+                >
+                  ↻
+                </button>
+              </div>
+              <div style={{ overflowY: 'auto', maxHeight: 180 }}>
+                {checkpoints.map(cp => (
+                  <div key={cp.sha} style={{ padding: '6px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ flex: 1, overflow: 'hidden' }}>
+                      <div style={{ fontSize: 11, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {cp.message.replace('GABy checkpoint: ', '')}
+                      </div>
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 2, fontFamily: 'JetBrains Mono, monospace' }}>
+                        {cp.sha.slice(0, 7)}
+                      </div>
+                    </div>
+                    <button
+                      className="btn btn-sm btn-secondary"
+                      onClick={() => rollbackToCheckpoint(cp.sha)}
+                      disabled={rollingBack === cp.sha}
+                      title="Roll back to this checkpoint"
+                      style={{ fontSize: 10, padding: '2px 6px', flexShrink: 0, marginLeft: 6 }}
+                    >
+                      {rollingBack === cp.sha ? '…' : 'Restore'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Chat area */}
@@ -565,7 +861,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
               <div style={{ textAlign: 'center', marginTop: 80, color: 'var(--text-muted)' }}>
                 <p style={{ fontSize: 32, marginBottom: 12 }}>💻</p>
                 <p style={{ fontWeight: 600, marginBottom: 8 }}>Select or create a project</p>
-                <p style={{ fontSize: 13 }}>Pick a project from the sidebar to start coding with GABy.</p>
+                <p style={{ fontSize: 13 }}>Pick a project from the sidebar to get file access, or just start chatting below!</p>
               </div>
             )}
 
@@ -574,6 +870,11 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                 <img src="/GABy.png" alt="GABy" style={{ width: 280, height: 280, borderRadius: '50%', objectFit: 'cover', marginBottom: 20, boxShadow: '0 8px 32px rgba(108,99,255,0.25)' }} />
                 <p style={{ fontWeight: 700, fontSize: 22, marginBottom: 10, color: 'var(--text-primary)' }}>Hi! I'm GABy</p>
                 <p style={{ fontSize: 14 }}>Tell me what you'd like to build or fix. I'll take it from there!</p>
+                {!bridgeConnected && (
+                  <p style={{ fontSize: 12, marginTop: 8, color: 'var(--text-muted)' }}>
+                    🔗 Connect the bridge (top bar) to unlock file editing, shell commands, and more.
+                  </p>
+                )}
               </div>
             )}
 
@@ -601,9 +902,8 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
             <div ref={msgEndRef} />
           </div>
 
-          {/* Input — always visible when a project is active */}
-          {activeProject && (
-            <div style={{
+          {/* Input — always visible */}
+          <div style={{
               padding: '12px 20px 16px',
               borderTop: '1px solid var(--border)',
               display: 'flex',
@@ -628,7 +928,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                   <textarea
                     value={input}
                     onChange={e => setInput(e.target.value)}
-                    placeholder={thinking ? 'GABy is working...' : 'Type your goal here... e.g. Add a dark mode toggle to my app'}
+                    placeholder={thinking ? 'GABy is working...' : activeProject && !bridgeConnected ? 'Bridge offline — I can still reason, explain, and review code! Type your question...' : 'Type your goal here... e.g. Add a dark mode toggle to my app'}
                     rows={2}
                     onKeyDown={e => {
                       if (e.key === 'Enter' && !e.shiftKey && !thinking) { e.preventDefault(); sendMessage(); }
@@ -636,6 +936,22 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                     style={{ flex: 1, resize: 'none', maxHeight: 120 }}
                     disabled={thinking}
                   />
+                  {/* Talk / Write mode toggle */}
+                  <button
+                    className="btn btn-icon btn-secondary"
+                    onClick={toggleTalkMode}
+                    title={talkMode ? 'Talk Mode — no file changes (click to switch to Write Mode)' : 'Write Mode — full file editing (click to switch to Talk Mode)'}
+                    style={{
+                      alignSelf: 'flex-end',
+                      padding: '10px 12px',
+                      background: talkMode ? 'rgba(108,99,255,0.12)' : 'transparent',
+                      border: talkMode ? '1px solid var(--accent)' : '1px solid var(--border)',
+                      color: talkMode ? 'var(--accent)' : 'var(--text-muted)',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {talkMode ? <MessageSquare size={15} /> : <Pencil size={15} />}
+                  </button>
                   {thinking ? (
                     <button
                       className="btn btn-danger"
@@ -655,24 +971,43 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                       <Send size={15} />
                     </button>
                   )}
-                </>
-              )}
+                </>)
+              }
             </div>
-          )}
-          {/* Safety net: input always shows even if activeProject was lost — shows a friendly prompt to reselect */}
-          {!activeProject && projects.length > 0 && (
-            <div style={{
-              padding: '12px 20px 16px',
-              borderTop: '1px solid var(--border)',
-              textAlign: 'center',
-              color: 'var(--text-muted)',
-              fontSize: 13,
-            }}>
-              Select a project from the sidebar to start chatting.
-            </div>
-          )}
         </div>
       </div>
+
+      {/* Bridge tip popover */}
+      {showBridgeTip && (
+        <div className="modal-overlay" onClick={() => setShowBridgeTip(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
+            <h3 className="modal-title">🔗 GABy Bridge</h3>
+            {bridgeConnected ? (
+              <>
+                <p style={{ fontSize: 14, color: 'var(--success)', marginBottom: 12, fontWeight: 600 }}>✓ Bridge is connected!</p>
+                <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  GABy has full access to your project — it can read &amp; write files, run shell commands, execute the linter, and auto-commit to git.
+                </p>
+              </>
+            ) : (
+              <>
+                <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 12 }}>
+                  <strong>Bridge is offline.</strong> You can still use GABy for reasoning, code review, architecture questions, and general chat.
+                  <br /><br />
+                  To unlock <strong>file editing, shell commands, lint self-correction, and git auto-commit</strong>, install and start the bridge on your machine:
+                </p>
+                <BridgeInstallInstructions />
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 12, lineHeight: 1.5 }}>
+                  Once started, this badge turns green automatically — no refresh needed.
+                </p>
+              </>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+              <button className="btn btn-primary" onClick={() => setShowBridgeTip(false)}>Got it</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Recall Memory Modal */}
       {recallingMemory && (
@@ -733,6 +1068,52 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         </div>
       )}
 
+      {/* Project Rules Editor Modal */}
+      {showRulesEditor && activeProject && (
+        <div className="modal-overlay" onClick={() => setShowRulesEditor(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 560 }}>
+            <h3 className="modal-title">
+              <FileText size={16} style={{ marginRight: 8, verticalAlign: 'text-bottom' }} />
+              Project Rules — {activeProject.name}
+            </h3>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.5 }}>
+              These rules are saved to <code style={{ background: 'var(--bg)', padding: '1px 4px', borderRadius: 3 }}>.gaby-rules</code> in your project folder and injected into every conversation for this project.
+              <br />Write coding preferences, forbidden patterns, naming conventions, or anything GABy should always follow.
+            </p>
+            <textarea
+              value={rulesEditorContent}
+              onChange={e => setRulesEditorContent(e.target.value)}
+              placeholder={"# Project Rules\n\n- Use TypeScript strict mode\n- Prefer functional components\n- All API routes must be RESTful\n- Never use console.log in production code"}
+              rows={12}
+              autoFocus
+              style={{ width: '100%', fontFamily: 'JetBrains Mono, monospace', fontSize: 12, resize: 'vertical', boxSizing: 'border-box' }}
+            />
+            <div style={{ display: 'flex', gap: 8, marginTop: 12, justifyContent: 'flex-end' }}>
+              <button className="btn btn-secondary" onClick={() => setShowRulesEditor(false)}>Cancel</button>
+              {projectRules && (
+                <button
+                  className="btn btn-secondary"
+                  style={{ color: 'var(--error)', borderColor: 'var(--error)' }}
+                  onClick={async () => {
+                    await fetch(`/api/projects/${activeProject.id}/rules`, { method: 'DELETE', credentials: 'include' });
+                    setProjectRules(null);
+                    setShowRulesEditor(false);
+                  }}
+                >
+                  <Trash2 size={13} style={{ marginRight: 6 }} />Delete Rules
+                </button>
+              )}
+              <button
+                className="btn btn-primary"
+                onClick={() => saveProjectRulesApi(rulesEditorContent)}
+              >
+                Save Rules
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* New Project Modal */}
       {showNewProject && (
         <div className="modal-overlay" onClick={() => setShowNewProject(false)}>
@@ -753,9 +1134,9 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                 <div style={{ display: 'flex', gap: 8 }}>
                   <input
                     value={newProjectPath}
-                    onChange={e => setNewProjectPath(e.target.value)}
-                    placeholder="e.g. C:\Users\me\projects\my-app"
-                    style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, flex: 1 }}
+                    onChange={e => { setNewProjectPath(e.target.value); setNewProjectPathError(''); }}
+                    placeholder="e.g. C:\\Users\\me\\projects\\my-app"
+                    style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, flex: 1, borderColor: newProjectPathError ? 'var(--color-error, #e74c3c)' : undefined }}
                   />
                   <label className="btn btn-secondary" style={{ cursor: 'pointer', whiteSpace: 'nowrap', marginBottom: 0 }} title="Browse for folder">
                     📁 Browse
@@ -784,6 +1165,11 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                     />
                   </label>
                 </div>
+                {newProjectPathError && (
+                  <div style={{ fontSize: 12, color: 'var(--color-error, #e74c3c)', marginTop: 4 }}>
+                    {newProjectPathError}
+                  </div>
+                )}
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
                   This is the folder on your computer where GABy will work.
                 </div>

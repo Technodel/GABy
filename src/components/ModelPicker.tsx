@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, Lock } from 'lucide-react';
 
 interface ModelInfo {
   id: string;
@@ -9,6 +9,7 @@ interface ModelInfo {
   cacheReadCost: number | null;
   cacheWriteCost: number | null;
   contextTokens: number | null;
+  hasApiKey: boolean;
 }
 
 interface ModelPickerProps {
@@ -103,28 +104,46 @@ export default function ModelPicker({ value, onChange, placeholder }: ModelPicke
             {!loading && !error && filtered.length === 0 && (
               <div style={{ padding: 16, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>No models found</div>
             )}
-            {filtered.slice(0, 150).map(m => (
-              <div
-                key={`${m.provider}/${m.id}`}
-                onClick={() => { onChange(m.id, m); setOpen(false); setSearch(''); }}
-                style={{
-                  padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid var(--border)',
-                  background: value === m.id ? 'var(--accent-dim, rgba(99,102,241,0.1))' : undefined,
-                }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-hover, rgba(255,255,255,0.05))')}
-                onMouseLeave={e => (e.currentTarget.style.background = value === m.id ? 'var(--accent-dim, rgba(99,102,241,0.1))' : '')}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                  <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, fontWeight: 600 }}>{m.id}</span>
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 8 }}>{m.provider}</span>
+            {filtered.slice(0, 150).map(m => {
+              const locked = !m.hasApiKey;
+              return (
+                <div
+                  key={`${m.provider}/${m.id}`}
+                  onClick={() => {
+                    if (locked) return;
+                    onChange(m.id, m); setOpen(false); setSearch('');
+                  }}
+                  title={locked ? `No active API key for ${m.provider} — add one in API Keys` : undefined}
+                  style={{
+                    padding: '8px 12px',
+                    cursor: locked ? 'not-allowed' : 'pointer',
+                    borderBottom: '1px solid var(--border)',
+                    opacity: locked ? 0.45 : 1,
+                    background: value === m.id ? 'var(--accent-dim, rgba(99,102,241,0.1))' : undefined,
+                    display: 'flex', alignItems: 'center', gap: 8,
+                  }}
+                  onMouseEnter={e => {
+                    if (!locked) (e.currentTarget as HTMLDivElement).style.background = 'var(--surface-hover, rgba(255,255,255,0.05))';
+                  }}
+                  onMouseLeave={e => {
+                    (e.currentTarget as HTMLDivElement).style.background = value === m.id ? 'var(--accent-dim, rgba(99,102,241,0.1))' : '';
+                  }}
+                >
+                  {locked && <Lock size={11} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                      <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, fontWeight: 600 }}>{m.id}</span>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 8 }}>{m.provider}</span>
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                      in: {fmt(m.inputCost)} · out: {fmt(m.outputCost)}
+                      {m.contextTokens ? ` · ${(m.contextTokens / 1000).toFixed(0)}k ctx` : ''}
+                      {m.cacheReadCost != null ? ` · cache↓ ${fmt(m.cacheReadCost)}` : ''}
+                    </div>
+                  </div>
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                  in: {fmt(m.inputCost)} · out: {fmt(m.outputCost)}
-                  {m.contextTokens ? ` · ${(m.contextTokens / 1000).toFixed(0)}k ctx` : ''}
-                  {m.cacheReadCost != null ? ` · cache↓ ${fmt(m.cacheReadCost)}` : ''}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

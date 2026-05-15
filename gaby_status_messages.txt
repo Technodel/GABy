@@ -1,0 +1,212 @@
+﻿# GABy Status Messages
+# ─────────────────────────────────────────────────────────────────
+# One message per line. Lines starting with # and blank lines are ignored.
+# Add as many as you like — GABy picks randomly from each [section].
+# ─────────────────────────────────────────────────────────────────
+
+
+# ── When the user cancels a running task ──────────────────────────
+[cancel]
+Got it — stopped dead in my tracks! What's next? 😊
+Mission aborted! Ready for new orders 🫡
+Halt! I've put down my tools. What would you like instead? 🛑
+Stopped! Like a cat that suddenly decided not to jump. What's next?
+Brakes applied! I'm all yours again 🚀
+Roger that — cancelled! I can do better next time anyway 😄
+I've been cancelled! Story of my life. What are we doing instead? 😅
+All clear — task terminated! Your wish is my command 🙌
+Whoa, stopping right there! What would you like to do instead?
+The great halt has been executed! Ready to roll whenever you are 🎯
+Fine, I stopped. But I was SO close... Just kidding, what's next? 😂
+Task cancelled faster than my weekend plans. Ready for more! 🏁
+Aborted! No hard feelings. What shall we tackle instead? 💪
+Stopped! I was just getting warmed up too. What's the next adventure?
+Task terminated with style. What's the next mission? 🕶️
+SIR YES SIR — stopping immediately! What are your orders? 🫡
+Gone! Vanished! Like it never happened. What's next? ✨
+
+
+# ── When the user sends a new message while GABy is still processing ──
+[busy]
+I'm mid-thought right now — hold on! 🧠
+Still cooking! Just a moment... 👨‍🍳
+One thing at a time — I'm already on it, hang tight! ⚡
+Already deep in this one! Won't be long...
+I'm on it! Give me a sec to finish what I started 🔧
+Patience, young grasshopper — I'm still working! 🦗
+In the zone right now — your message is queued up! 🎯
+I'm still mid-task — your next message is right after this! ⏳
+Busy bee mode activated! Back with you very soon 🐝
+Still going! Rome wasn't built in a day, but your code will be 🏛️
+Almost there, I promise! 🏃
+Currently in a meeting with your code — back in a sec 🤝
+
+
+# ── When the user has no credits left ────────────────────────────
+[no_balance]
+Looks like you're out of credits! Drop us a message and we'll sort you out 😊
+Oops — the credit tank's empty! Reach out and we'll top you up 🪣
+Your credits have left the building! We'll get you back up in no time 💳
+Funds depleted — time for a top-up! Give us a shout 🙋
+No credits, no problem — just ping us and we'll refuel! ⛽
+Credits: 0. Vibes: 100. Reach out and let's fix the first one! 😄
+The piggy bank is empty! A quick message to us will fix that 🐷
+
+
+# ── When the session token limit is reached ──────────────────────
+[session_limit]
+You've hit the session token limit! Start a new chat to keep going 🔄
+Token budget maxed for this session — a fresh start is just a click away! 💫
+Session's full! Pop open a new one and let's keep coding 🚀
+Impressive work this session! Start a new one to keep the momentum going 💪
+Session limit reached — think of it as a natural checkpoint! Start a new chat 🏁
+
+
+# ── Per-step narration during multi-step agent work ──────────────
+[working]
+Brewing some digital coffee...
+Warming up the idea engine...
+Connecting the cosmic dots...
+Mapping out the master plan...
+Consulting the digital oracle...
+Scratching my virtual chin...
+Gazing at the blueprint...
+Pondering the mysteries of the universe...
+Gathering the ingredients...
+Doing a quick brain-stretch...
+Plotting the best course forward...
+Hammering away at the pixels...
+Sprinkling some magic dust...
+Spinning the gears...
+Weaving the web...
+Crafting your masterpiece...
+Turning caffeine into results...
+Building the future, one piece at a time...
+Cooking up something special...
+Tightening the bolts...
+Painting with ones and zeros...
+Waving the magic wand...
+Assembling the puzzle...
+Making the magic happen...
+Forging the final product...
+Stitching the ideas together...
+Doing the heavy lifting...
+Giving it a little nudge...
+Trying a new angle...
+Rolling up my sleeves...
+Attempting something brilliant...
+Tuning the instruments...
+Hold on, adjusting the warp drive...
+Double-checking the math...
+Seeing what happens if I push this button...
+Crossing my virtual fingers...
+Trying the scenic route...
+Giving it a gentle tap with the wrench...
+Working through the steps... 🔧
+Still going — bear with me... ⚙️
+Thinking out loud... give me a moment 🤔
+Deep in the code mines right now... ⛏️
+Making progress! Just a few more moves... 🎯
+Like a chess grandmaster, thinking several moves ahead... ♟️
+Executing the master plan... 🗺️
+Hang on — doing the clever stuff now 🎩
+Still here, still working! This one's a good puzzle 🧩
+Deep focus mode: ON 🎧
+Bringing in the big guns for this part... 💥
+Working smarter, not harder (but also harder) 💡
+The gears are turning! ⚙️
+Processing... calculating... caffeinating... ☕
+Firing on all cylinders! 🔥
+Engineering in progress — please stand by 🛠️
+
+
+# ── When fixing lint/compiler errors ─────────────────────────────
+[fixing]
+Chasing away some digital gremlins...
+Sweeping up the dust...
+Ironing out a few wrinkles...
+Telling a stubborn piece of logic to behave...
+Polishing the rough edges...
+Going on a bug hunt...
+Evicting some uninvited errors...
+Untangling the spaghetti...
+Having a stern talking-to with the code...
+Convincing the pieces to play nicely...
+Calming down a confused file...
+Deploying the digital duct tape...
+Reminding the system who's boss...
+Smoothing out a bumpy road...
+Sending the bugs to timeout...
+Bribing the type checker with semicolons...
+Negotiating with the compiler...
+The errors called — I'm calling back and fixing them 📞
+Squashing bugs like it's 1947 🦗
+Full bug-hunt mode engaged 🔍
+
+
+# ── Generic error messages ────────────────────────────────────────
+[error]
+Something went sideways! Give it another shot 💪
+Hmm, that didn't go as planned. Try again? 🤷
+Hit a snag! Let's try that again 🔄
+Oops! Something unexpected popped up. One more try? 🎲
+Got a hiccup there. Mind trying again? 💨
+Well, that was awkward. Let's pretend it didn't happen and try again 😅
+Something broke (not your fault!). Give me another chance? 🙏
+Technical difficulties — your patience is greatly appreciated! 🛠️
+I stumbled! Happens to the best of us. Try again? 🏃
+My bad! That one got away from me. Shall we try again? 😬
+The universe threw a curveball — let's swing at it again ⚾
+A small detour! We'll get back on track 🗺️
+
+
+# ── "Did you know?" facts — shown every 60s during long tasks ─────
+[did_you_know]
+The first computer "bug" was a real insect — a moth found trapped in a relay of the Harvard Mark II computer in 1947. Grace Hopper's team literally debugged the machine.
+Python was named after Monty Python's Flying Circus, not the snake. Guido van Rossum was reading Monty Python scripts when he started writing it.
+The first version of JavaScript was written in just 10 days by Brendan Eich in 1995. It was originally called Mocha, then LiveScript, then JavaScript.
+Git was created by Linus Torvalds in just 10 days in April 2005, after a licensing dispute left the Linux kernel without a version control system.
+The word "robot" comes from the Czech word "robota," meaning forced labor or drudgery. It was coined by playwright Karel Čapek in 1920.
+The term "byte" was coined in 1956 to mean 8 bits, specifically so it wouldn't be accidentally abbreviated to "bit."
+TypeScript was created by Anders Hejlsberg — the same person who designed Turbo Pascal, Delphi, and C#. The guy just keeps inventing languages.
+There are over 700 programming languages in existence. About 200 are in active use. Most developers use maybe 3.
+The Apollo 11 guidance computer had 4 KB of RAM and 72 KB of ROM. Your smartwatch has roughly 100,000x more memory.
+The most expensive software bug ever: NASA's Mars Climate Orbiter crashed in 1999 because one team used metric units and another used imperial. Cost: $327 million.
+The first computer mouse was built in 1964 by Doug Engelbart — and it was made of wood.
+"Hello, World!" as a programming tradition started with Brian Kernighan's 1972 C tutorial, making it over 50 years old.
+Linus Torvalds originally wanted to name Linux "Freax," but the FTP server admin renamed the folder to "Linux" without asking.
+React was created by Jordan Walke at Facebook and first deployed on the News Feed in 2011, years before it was open-sourced.
+The HTTP 418 "I'm a teapot" status code is a real RFC standard — an April Fools' joke from 1998 that the internet refused to let die.
+Vim was released in 1991. Generations of developers have since desperately typed :q! at least once in their lives.
+The first 1 GB hard drive was the IBM 3380 (1980). It weighed 550 pounds, was the size of a refrigerator, and cost $40,000 to lease.
+Node.js was created by Ryan Dahl in 2009. He later created Deno specifically to fix things he regretted about Node.js.
+SQL was originally called SEQUEL until a trademark dispute with an aircraft company forced the rename.
+The average programmer writes 10–50 lines of production code per day — not thousands. Most of the day is reading, thinking, and debating variable names.
+The Agile Manifesto was written by 17 developers at a ski resort in Utah in February 2001.
+An estimated 800 billion lines of COBOL code run in production today — mostly in banking, insurance, and government systems nobody wants to touch.
+The JavaScript quirk typeof null === 'object' has been a known bug since 1995 and will never be fixed because too much production code relies on it.
+The first ARPANET message ever sent (1969) was supposed to be "LOGIN." The system crashed after transmitting just "LO."
+Claude Shannon, the father of information theory, once built a machine whose only function was to reach out, flip its own off switch, and go back to sleep.
+The Raspberry Pi was designed to teach kids programming and accidentally became a cornerstone of global DIY electronics.
+WebAssembly was designed so the exact same .wasm file runs identically across Chrome, Firefox, Safari, Edge, and Node.js.
+NASA's Voyager 1 software, still operational since 1977, receives patches over a signal that takes 22+ hours one way to arrive.
+The open-source movement got its name at a 1998 strategy session, just after Netscape released the Navigator source code.
+In 1984, Ken Thompson proved in his Turing Award lecture you can backdoor a C compiler so it survives even perfectly clean source code — the "Trusting Trust" attack.
+There are more possible chess game variations than atoms in the observable universe — estimated at 10^120.
+The space bar is the most-pressed key on a keyboard. The second most pressed? Backspace. Make of that what you will.
+70% of software bugs are caused by misunderstood or incomplete requirements — not bad implementation.
+PHP originally stood for "Personal Home Page" tools. It now officially stands for "PHP: Hypertext Preprocessor" — a recursive acronym.
+The first iPhone didn't support copy and paste. Apple added it two full years after launch in iPhone OS 3.0.
+DOOM (1993) has been ported to more platforms than any other software in history — including a pregnancy test, a Martin guitar, and an ATM.
+The first URL ever, http://info.cern.ch, went live on August 6, 1991. It's still online today.
+SHA-256, used in Bitcoin, is a one-way function — reversing it by brute force would take longer than the current age of the universe.
+The original Macintosh team flew a pirate flag over their building at Apple. Steve Jobs wanted them to feel like rebels within the company.
+Fewer than 1% of GitHub repositories contain 99% of all forks and stars on the platform.
+Reading code uses a completely different part of the brain than reading natural language — it activates the multiple demand network instead of the language area.
+The average web page grew from 14 KB in 1995 to over 2 MB today — a 140x increase driven mostly by JavaScript bundles.
+The "10,000 hours to mastery" rule comes from a 1993 study — and the original paper says deliberate practice matters far more than just hours logged.
+Stack Overflow was founded in 2008. By 2010, just 1,000 users had answered 85% of all questions ever posted on the site.
+The word "debugging" predates computers — it was used in radio and electrical engineering long before Grace Hopper's famous moth.
+The spinning beach ball on macOS is officially the "Spinning Wait Cursor" — or affectionately, SPOD: the Spinning Pinwheel of Death.
+There are more IoT devices connected to the internet than people on Earth — by a factor of roughly 3 to 1.
+The `git blame` command was almost named `git praise` in an early patch — then someone changed it before merging.

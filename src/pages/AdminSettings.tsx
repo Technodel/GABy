@@ -1,9 +1,12 @@
 ﻿import { useState, useEffect } from 'react';
 
+type EditFormat = 'tool-call' | 'diff' | 'whole' | 'architect';
+
 interface Settings {
   allow_registration: boolean;
   dark_mode: boolean;
   prompt_caching_enabled: boolean;
+  edit_format: EditFormat;
 }
 
 export default function AdminSettings() {
@@ -11,6 +14,7 @@ export default function AdminSettings() {
     allow_registration: false,
     dark_mode: true,
     prompt_caching_enabled: true,
+    edit_format: 'tool-call',
   });
   const [currentPwd, setCurrentPwd] = useState('');
   const [newPwd, setNewPwd] = useState('');
@@ -27,6 +31,7 @@ export default function AdminSettings() {
         allow_registration: raw.allow_registration === 'true',
         dark_mode: raw.dark_mode === 'true',
         prompt_caching_enabled: raw.prompt_caching_enabled !== 'false',
+        edit_format: (['tool-call', 'diff', 'whole', 'architect'].includes(raw.edit_format) ? raw.edit_format : 'tool-call') as EditFormat,
       })));
   }, []);
 
@@ -94,7 +99,40 @@ export default function AdminSettings() {
           </button>
         </div>
       </div>
+      {/* Edit Format */}
+      <div className="card" style={{ marginBottom: 20 }}>
+        <h3 style={{ fontWeight: 600, marginBottom: 4 }}>âœï¸ Edit Format</h3>
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16 }}>
+          Controls how GABy makes changes to your code files. Choose the strategy that best matches your subscription plan and the size of your project.
+        </p>
 
+        {([
+          { value: 'tool-call', label: 'ðŸ"§ Smart Edit (Recommended)', desc: 'GABy reads and edits only the exact parts of files it needs to change. Most accurate, lowest token usage — changes are precise and safe.' },
+          { value: 'diff', label: 'ðŸ"„ Patch Mode', desc: 'GABy describes the exact lines to find and replace in each file. Great for plans with limited tokens — uses slightly fewer tokens than Smart Edit, works well on all plan levels.' },
+          { value: 'whole', label: 'ðŸ"‹ Full Rewrite', desc: 'GABy rewrites the complete file from scratch each time. Simple and straightforward, but uses the most tokens. Best for small files or quick prototypes.' },
+          { value: 'architect', label: 'ðŸ›ï¸ Architect (Best Quality)', desc: 'Two-step process: GABy first thinks through the full plan, then executes every change carefully. Highest quality for large or complex projects — uses roughly 2× tokens per task.' },
+        ] as { value: EditFormat; label: string; desc: string }[]).map(opt => (
+          <div
+            key={opt.value}
+            onClick={() => setSettings(prev => ({ ...prev, edit_format: opt.value }))}
+            style={{
+              padding: '12px 14px', marginBottom: 8, borderRadius: 8, cursor: 'pointer',
+              border: `2px solid ${settings.edit_format === opt.value ? 'var(--accent)' : 'var(--border)'}`,
+              background: settings.edit_format === opt.value ? 'var(--accent-dim, rgba(99,102,241,0.08))' : 'var(--surface)',
+              transition: 'border-color 0.15s',
+            }}
+          >
+            <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 3 }}>{opt.label}</div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{opt.desc}</div>
+          </div>
+        ))}
+
+        <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end' }}>
+          <button className="btn btn-primary" onClick={saveSettings}>
+            {settingsSaved ? 'âœ" Saved!' : 'Save Edit Format'}
+          </button>
+        </div>
+      </div>
       {/* Change Admin Password */}
       <div className="card">
         <h3 style={{ fontWeight: 600, marginBottom: 16 }}>ðŸ” Change Admin Password</h3>

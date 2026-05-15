@@ -1,0 +1,115 @@
+/**
+ * GABy Context Manager — ported from Aider's history.py logic.
+ *
+ * Prevents context-window overflows by trimming the oldest conversation
+ * messages when the estimated token count approaches the model's limit.
+ *
+ * Strategy (same as Aider):
+ *   - Keep the most RECENT messages (they matter most)
+ *   - Drop the OLDEST messages first
+ *   - Never split a message mid-way — only drop whole messages
+ *   - If even the last message is too large, truncate its content
+ *   - Prepend a "[N messages omitted]" note when messages are dropped
+ *   - Always reserve 25% of context for the model's response
+ */
+
+import type { CoreMessage } from 'ai';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Context limits per provider (conservative estimates)
+// ─────────────────────────────────────────────────────────────────────────────
+
+const PROVIDER_CONTEXT: Record<string, number> = {
+  Anthropic: 200_000,
+  OpenAI: 128_000,
+  Groq: 131_072,
+  DeepSeek: 64_000,
+  OpenRouter: 128_000,
+  Gemini: 1_000_000,
+  default: 128_000,
+};
+
+export function getContextLimit(provider: string): number {
+  return PROVIDER_CONTEXT[provider] ?? PROVIDER_CONTEXT.default;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Token estimation — ~3.5 chars per token is a good conservative estimate
+// for mixed English/code content.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function estimateTokens(text: string): number {
+  return Math.ceil(text.length / 3.5);
+}
+
+function messageTokens(msg: CoreMessage): number {
+  const content =
+    typeof msg.content === 'string'
+      ? msg.content
+      : JSON.stringify(msg.content);
+  return estimateTokens(content) + 4; // +4 for role/overhead per message
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main export
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Trim the message history so the full context (system + history + new message)
+ * fits inside 75% of the model's context limit, leaving 25% for the response.
+ *
+ * @param messages     Full history INCLUDING the new user message (last element).
+ * @param systemPrompt The system prompt text (counted against the budget).
+ * @param provider     Provider name (used to look up context limit).
+ */
+export function trimHistory(
+  messages: CoreMessage[],
+  systemPrompt: string,
+  provider: string,
+): CoreMessage[] {
+  if (!messages.length) return messages;
+
+  const limit = getContextLimit(provider);
+  const targetBudget = Math.floor(limit * 0.75); // keep 25% for response
+
+  const sysTokens = estimateTokens(systemPrompt) + 4;
+  let remaining = targetBudget - sysTokens;
+
+  if (remaining <= 0) {
+    // System prompt alone exceeds budget — return only the last message
+    return messages.slice(-1);
+  }
+
+  // Walk backwards: keep the most recent messages first
+  const kept: CoreMessage[] = [];
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const t = messageTokens(messages[i]);
+    if (remaining - t >= 0) {
+      kept.unshift(messages[i]);
+      remaining -= t;
+    } else if (kept.length === 0) {
+      // Must keep at least the last message — truncate its content
+      const msg = messages[i];
+      const raw = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+      const maxChars = Math.max(100, Math.floor(remaining * 3.5));
+      const truncated = raw.slice(0, maxChars) + '\n[...truncated to fit context window...]';
+      kept.unshift({ ...msg, content: truncated });
+      break;
+    } else {
+      // Can't fit this message — stop here (all older messages dropped)
+      break;
+    }
+  }
+
+  // Prepend a summary note if we dropped messages
+  const dropped = messages.length - kept.length;
+  if (dropped > 0) {
+    const note: CoreMessage = {
+      role: 'user',
+      content: `[${dropped} earlier message${dropped !== 1 ? 's' : ''} omitted — context window limit]`,
+    };
+    return [note, ...kept];
+  }
+
+  return kept;
+}
