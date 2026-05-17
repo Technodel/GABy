@@ -13,3 +13,6 @@ Thumbs.db
 src/renderer/dist/
 bridge/dist/
 bridge/node_modules/
+
+# AiderDesk task state files (auto-generated)
+.aider-desk/tasks/
