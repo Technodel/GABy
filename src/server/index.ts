@@ -1738,6 +1738,8 @@ server.listen(PORT, () => {
   try { initializeInteractionPatternsTable(); } catch {}
   // Initialize presence table (best-effort)
   try { initializePresenceTable(); } catch {}
+  // Initialize task queue table (best-effort)
+  try { require('./task-queue').initializeTaskQueueTable(); } catch {}
   // Initialize goal tracker table (best-effort)
   try { require('./goal-tracker').initializeGoalTrackerTable(); } catch {}
   // Initialize confidence scoring table (best-effort)
