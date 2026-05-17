@@ -33,3 +33,6 @@ scripts/
 
 # Prevent secret leaks
 .aider.input.history
+suny-vps.env
+cleanup-*.*
+vps-cleanup*
