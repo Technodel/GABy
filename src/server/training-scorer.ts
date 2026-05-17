@@ -260,6 +260,51 @@ export function recordTrainingScore(entry: {
   );
 }
 
+// ── Phase 2.1: Real-time agent turn scoring ────────────────────────────────────
+
+/**
+ * Score SUNy's output immediately after each major agent loop phase.
+ * Unlike post-turn batch scoring, this runs during the agent loop for
+ * faster feedback. Runs on a best-effort basis — never blocks the user.
+ */
+export async function scoreAgentTurn(
+  userId: number,
+  projectId: number | null,
+  sessionId: string,
+  resolvedMode: string,
+  turnIndex: number,
+  input: TrainingScorerInput,
+): Promise<void> {
+  // Only score if the feature flag is enabled
+  const { isFeatureEnabled } = await import('./feature-flags');
+  if (!isFeatureEnabled('ff_training_scorer')) return;
+
+  // Only score tasks that did actual work (file changes or tool calls)
+  if (input.changedFiles.length === 0 && input.toolCallCount === 0) return;
+
+  try {
+    const scores = await evaluateWithJudge(input, null);
+    if (!scores) return;
+
+    recordTrainingScore({
+      userId,
+      projectId,
+      sessionId,
+      taskMode: resolvedMode,
+      turnIndex,
+      ...scores,
+    });
+
+    console.log(
+      `[training-scorer] Phase-2.1 scored turn #${turnIndex}: ${scores.total}/50 ` +
+      `(correctness=${scores.correctness}, completeness=${scores.completeness}, ` +
+      `style=${scores.style}) — ${scores.category}`,
+    );
+  } catch (err) {
+    console.warn('[training-scorer] Phase-2.1 scoring failed:', (err as Error).message);
+  }
+}
+
 // ── Query training scores ─────────────────────────────────────────────────────
 
 /**

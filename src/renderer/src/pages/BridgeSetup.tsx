@@ -8,7 +8,7 @@ interface BridgeSetupProps {
 export default function BridgeSetup({ onConnected }: BridgeSetupProps) {
   const [copied, setCopied] = useState(false);
   const [waitingTimer, setWaitingTimer] = useState(0);
-  const [token, setToken] = useState('');
+  const [setupCode, setSetupCode] = useState('');
   const autoCopied = useRef(false);
 
   const isDevMode = import.meta.env.DEV;
@@ -16,30 +16,30 @@ export default function BridgeSetup({ onConnected }: BridgeSetupProps) {
     ? 'ws://localhost:3500'
     : `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}`;
   const bridgeTgzUrl = `${window.location.protocol}//${window.location.host}/bridge/suny-bridge.tgz`;
-  const installCmd = token
-    ? `npm install -g ${bridgeTgzUrl} && suny-bridge start --token ${token} --server ${serverUrl}`
+  const installCmd = setupCode
+    ? `npm install -g ${bridgeTgzUrl} && suny-bridge start --code ${setupCode} --server ${serverUrl}`
     : 'Loading…';
 
-  // Fetch bridge token from server (cookie is httpOnly, can't read directly)
+  // Fetch a short-lived setup code from the server (cookie is httpOnly, can't read directly)
   useEffect(() => {
-    fetch('/api/bridge-token', { credentials: 'include' })
+    fetch('/api/bridge/setup-code', { method: 'POST', credentials: 'include' })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (data?.token) {
-          setToken(data.token);
+        if (data?.code) {
+          setSetupCode(data.code);
         }
       });
   }, []);
 
-  // Auto-copy command once token is ready
+  // Auto-copy command once setup code is ready
   useEffect(() => {
-    if (token && !autoCopied.current) {
+    if (setupCode && !autoCopied.current) {
       autoCopied.current = true;
       navigator.clipboard.writeText(installCmd).catch(() => {});
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
-  }, [token, serverUrl]);
+  }, [setupCode, serverUrl]);
 
   useEffect(() => {
     const interval = setInterval(() => {

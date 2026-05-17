@@ -24,6 +24,12 @@ import { runLint } from './lint-runner';
 import { runTests, runFailingTests, buildTestFixPrompt } from './test-runner';
 import { pickRandom } from './personality';
 import {
+  scoreAgentTurn, type TrainingScorerInput,
+} from './training-scorer';
+import {
+  extractMistakeRule,
+} from './behavioral-rules';
+import {
   applyDiffFormat, applyWholeFormat,
   DIFF_FORMAT_INSTRUCTIONS, WHOLE_FORMAT_INSTRUCTIONS,
   ARCHITECT_PLAN_INSTRUCTIONS,
@@ -314,6 +320,26 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
       const deepseekUsage = deepseekMeta?.['usage'] as Record<string, number> | undefined;
       totalCacheRead += deepseekUsage?.prompt_cache_hit_tokens ?? 0;
 
+      // ── Phase 2.1: Real-time self-scoring after main response ─────────────
+      // Score SUNy's intermediate response immediately, not just at end of turn.
+      // This catches drift while the conversation is still fresh.
+      if (fullText && userMessage && projectPath) {
+        const scoreInput: TrainingScorerInput = {
+          userRequest: userMessage,
+          aiResponse: fullText,
+          changedFiles: Array.from(changedFiles),
+          lintPassed: false,
+          testPassed: false,
+          lintErrorsFound: 0,
+          testFailuresFound: 0,
+          durationMs: Date.now() - startedAt,
+          toolCallCount: toolCallNames.size,
+          steps,
+        };
+        scoreAgentTurn(userId, projectId ?? null, sessionId, resolvedMode, steps, scoreInput)
+          .catch(e => console.warn('[agent-loop] main scoring failed:', (e as Error).message));
+      }
+
       // ── Architect mode: plan → execute ───────────────────────────────────
       // First pass (above) was the planning pass. Now run a second pass that
       // actually applies edits using diff format (or tool-call if tools available).
@@ -516,6 +542,20 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
       }
       // ── End lint loop ────────────────────────────────────────────────────
 
+      // ── Phase 2.3: Extract mistake rules from lint failures ───────────────
+      if (lintErrorsFound > 0 && projectPath) {
+        try {
+          await extractMistakeRule(userId, projectId ?? null, 'lint', {
+            errorCount: lintErrorsFound,
+            retriesUsed: lintPass,
+            gaveUp: lintGaveUp,
+            context: userMessage.slice(0, 300),
+          });
+        } catch (e) {
+          console.warn('[agent-loop] mistake extraction (lint) failed:', (e as Error).message);
+        }
+      }
+
       // ── Test self-correction loop ─────────────────────────────────────────
       // After lint is green (or skipped), run the test suite and loop until
       // all tests pass or MAX_TEST_RETRIES is exhausted.
@@ -633,6 +673,20 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
         }
       }
       // ── End test loop ─────────────────────────────────────────────────────
+
+      // ── Phase 2.3: Extract mistake rules from test failures ───────────────
+      if (testFailuresFound > 0 && projectPath) {
+        try {
+          await extractMistakeRule(userId, projectId ?? null, 'test', {
+            errorCount: testFailuresFound,
+            retriesUsed: testRuns,
+            gaveUp: testGaveUp,
+            context: userMessage.slice(0, 300),
+          });
+        } catch (e) {
+          console.warn('[agent-loop] mistake extraction (test) failed:', (e as Error).message);
+        }
+      }
 
       // ── Silent self-reflection pass ───────────────────────────────────────
       // For substantial conversational responses (no file edits made), run a

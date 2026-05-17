@@ -232,3 +232,61 @@ export function getBlueprintSummary(options: {
 
   return `\n[Blueprint memory contains ${total} entries — project design knowledge:\n${lines}]`;
 }
+
+// ── Phase 2.2: Blueprint → Behavioral Rule Pipeline ───────────────────────────
+
+/**
+ * Detect repeated patterns in blueprint memory and auto-generate behavioral rules.
+ * When the same file is changed 3+ times for similar intent categories, extract a
+ * rule that guides SUNy's future behavior with that file.
+ */
+export function generateRulesFromPatterns(options: {
+  userId: number;
+  projectId: number | null;
+}): { generated: number; reason: string } {
+  const db = getDb();
+  const conditions: string[] = ['be.user_id = ?'];
+  const params: unknown[] = [options.userId];
+
+  if (options.projectId !== null) {
+    conditions.push('be.project_id = ?');
+    params.push(options.projectId);
+  }
+
+  // Find files that appear in 3+ blueprint entries
+  const repeatedFiles = db.prepare(`
+    SELECT be.affected_files, be.category, COUNT(*) as cnt
+    FROM blueprint_entries be
+    WHERE ${conditions.join(' AND ')} AND be.affected_files IS NOT NULL
+    GROUP BY be.affected_files
+    HAVING cnt >= 3
+    ORDER BY cnt DESC
+    LIMIT 10
+  `).all(...params) as { affected_files: string; category: string; cnt: number }[];
+
+  let generated = 0;
+
+  for (const row of repeatedFiles) {
+    try {
+      const files: string[] = JSON.parse(row.affected_files);
+      const fileList = files.slice(0, 3).join(', ');
+      const ruleText = `File "${fileList}" has been modified ${row.cnt} times in context of "${row.category}" — verify imports and dependents when touching it`;
+
+      // Check if rule already exists
+      const existing = db.prepare(
+        `SELECT id FROM behavioral_rules WHERE user_id = ? AND rule_text = ?`
+      ).get(options.userId, ruleText) as { id: number } | undefined;
+
+      if (!existing) {
+        db.prepare(
+          `INSERT INTO behavioral_rules (user_id, project_id, category, rule_text, trigger_context, source_score, confidence, application_count)
+           VALUES (?, ?, 'neutral', ?, ?, 6, 0.6, 1)`,
+        ).run(options.userId, options.projectId, ruleText, `when working in this project (pattern detected from ${row.cnt} turns)`);
+        generated++;
+        console.log(`[blueprint→rule] Generated rule: ${ruleText.slice(0, 100)}`);
+      }
+    } catch { /* skip malformed entries */ }
+  }
+
+  return { generated, reason: generated > 0 ? `Generated ${generated} rule(s) from repeated file patterns` : 'No repeated patterns detected' };
+}

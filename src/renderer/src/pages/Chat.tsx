@@ -1579,15 +1579,15 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
   }
 
   async function pickFolderPath(onPicked: (path: string) => void) {
-    try {
-      const promptForPath = () => {
-        const typed = window.prompt('Enter the full folder path for this project:', newProjectPath.trim() || '');
-        const cleaned = typed?.trim() || '';
-        if (!cleaned) return;
-        onPicked(cleaned);
-        setNewProjectPathError('');
-      };
+    const promptForPath = () => {
+      const typed = window.prompt('Enter the full folder path for this project:', newProjectPath.trim() || '');
+      const cleaned = typed?.trim() || '';
+      if (!cleaned) return;
+      onPicked(cleaned);
+      setNewProjectPathError('');
+    };
 
+    try {
       const res = await fetch('/api/pick-folder', { method: 'POST', credentials: 'include' });
       if (!res.ok) {
         promptForPath();

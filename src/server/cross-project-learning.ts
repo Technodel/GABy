@@ -224,3 +224,71 @@ export function formatSharedPatterns(patterns: SharedPattern[]): string {
 
   return result;
 }
+
+// ── Phase 2.4: Cross-Project Persona Memory ────────────────────────────────────
+
+export interface PersonaUpdateInput {
+  userId: number;
+  projectId: number | null;
+  userMessage: string;
+  aiResponse: string;
+}
+
+/**
+ * Detect and store user preferences from conversation patterns so they carry
+ * across projects. Tracks: verbosity, formality, framework preferences.
+ */
+export function updateCrossProjectPersona(input: PersonaUpdateInput): { updated: boolean; reason: string } {
+  const db = getDb();
+
+  // Detect verbosity preference: short user messages = prefs conciseness
+  const userMsgLen = input.userMessage.length;
+  const responseLen = input.aiResponse.length;
+
+  if (userMsgLen < 80 && responseLen > 1500) {
+    // User was brief, AI was verbose — might be a pattern
+    const key = 'verbosity_preference:' + (userMsgLen < 40 ? 'concise' : 'moderate');
+    const existing = db.prepare(
+      `SELECT id FROM shared_patterns WHERE user_id = ? AND pattern_key = ?`
+    ).get(input.userId, key) as { id: number } | undefined;
+
+    if (!existing) {
+      db.prepare(
+        `INSERT INTO shared_patterns (user_id, source_project_id, source_project_name, pattern_type, pattern_key, pattern_summary, pattern_detail, confidence)
+         VALUES (?, ?, 'current', 'user_preference', ?, 'User prefers ' || ?, 'Detected from message patterns', 0.5)`,
+      ).run(input.userId, input.projectId ?? 0, key, key === 'verbosity_preference:concise' ? 'concise responses' : 'moderate detail');
+      return { updated: true, reason: `Detected ${key}` };
+    } else {
+      db.prepare(
+        `UPDATE shared_patterns SET application_count = application_count + 1, confidence = MIN(1.0, confidence + 0.05) WHERE id = ?`,
+      ).run(existing.id);
+      return { updated: true, reason: `Reinforced ${key}` };
+    }
+  }
+
+  // Detect framework mentions in user messages
+  const frameworks = ['react', 'next.js', 'nextjs', 'vue', 'angular', 'svelte', 'express', 'fastify', 'nestjs', 'typescript', 'javascript', 'python', 'rust', 'go'];
+  for (const fw of frameworks) {
+    if (input.userMessage.toLowerCase().includes(fw)) {
+      const key = `framework_pref:${fw}`;
+      const existing = db.prepare(
+        `SELECT id FROM shared_patterns WHERE user_id = ? AND pattern_key = ?`
+      ).get(input.userId, key) as { id: number } | undefined;
+
+      if (!existing) {
+        db.prepare(
+          `INSERT INTO shared_patterns (user_id, source_project_id, source_project_name, pattern_type, pattern_key, pattern_summary, pattern_detail, confidence)
+           VALUES (?, ?, 'current', 'coding_convention', ?, 'User works with ' || ?, 'Detected from message patterns', 0.6)`,
+        ).run(input.userId, input.projectId ?? 0, key, fw);
+        return { updated: true, reason: `Detected framework preference: ${fw}` };
+      } else {
+        db.prepare(
+          `UPDATE shared_patterns SET application_count = application_count + 1, confidence = MIN(1.0, confidence + 0.05) WHERE id = ?`,
+        ).run(existing.id);
+        return { updated: true, reason: `Reinforced framework preference: ${fw}` };
+      }
+    }
+  }
+
+  return { updated: false, reason: 'No persona pattern detected' };
+}

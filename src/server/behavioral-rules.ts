@@ -251,6 +251,71 @@ export function pruneLowConfidenceRules(userId: number): {
   return { totalRemoved: result.changes };
 }
 
+// ── Phase 2.3: Extract mistake rules from lint/test failures ──────────────────
+
+export interface MistakeContext {
+  errorCount: number;
+  retriesUsed: number;
+  gaveUp: boolean;
+  context: string; // user message or task intent (truncated)
+}
+
+/**
+ * Extract a behavioral rule from a lint or test failure pattern.
+ * Stores it with category 'mistake' and elevated initial confidence (0.7)
+ * since lint/test failures represent confirmed errors, not speculation.
+ */
+export function extractMistakeRule(
+  userId: number,
+  projectId: number | null,
+  source: 'lint' | 'test',
+  info: MistakeContext,
+): BehavioralRule | null {
+  const db = getDb();
+
+  // Generate a descriptive rule from the error context
+  const sourceLabel = source === 'lint' ? 'type/lint error' : 'test failure';
+  const retryDesc = info.gaveUp
+    ? `was NOT resolved after ${info.retriesUsed} attempts`
+    : `resolved in ${info.retriesUsed} attempt(s)`;
+
+  const ruleText = info.gaveUp
+    ? `${sourceLabel} pattern (${info.errorCount} error(s), ${retryDesc}) — task: "${info.context}"`
+    : `${sourceLabel} pattern (${info.errorCount} error(s), ${retryDesc}) — task: "${info.context}"`;
+
+  const triggerContext = source === 'lint'
+    ? 'when writing or modifying TypeScript files'
+    : 'when implementing features that affect existing tests';
+
+  const existing = db.prepare(
+    `SELECT id FROM behavioral_rules
+     WHERE user_id = ? AND category = 'mistake' AND rule_text = ?
+     LIMIT 1`,
+  ).get(userId, ruleText) as { id: number } | undefined;
+
+  if (existing) {
+    // Increment application count
+    db.prepare(
+      `UPDATE behavioral_rules
+       SET application_count = application_count + 1,
+           confidence = MIN(1.0, confidence + 0.05),
+           last_applied_at = datetime('now')
+       WHERE id = ?`,
+    ).run(existing.id);
+    return db.prepare('SELECT * FROM behavioral_rules WHERE id = ?').get(existing.id) as BehavioralRule;
+  }
+
+  // New mistake rule — starts at 0.7 confidence (lint/test failures are concrete evidence)
+  const result = db.prepare(
+    `INSERT INTO behavioral_rules (user_id, project_id, category, rule_text, trigger_context, source_score, confidence, application_count)
+     VALUES (?, ?, 'mistake', ?, ?, ?, 0.7, 1)`,
+  ).run(userId, projectId, ruleText, triggerContext, info.errorCount);
+
+  console.log(`[behavioral-rules] Extracted mistake rule #${result.lastInsertRowid}: ${ruleText.slice(0, 80)}...`);
+
+  return db.prepare('SELECT * FROM behavioral_rules WHERE id = ?').get(result.lastInsertRowid) as BehavioralRule;
+}
+
 // ── Get training progress report ──────────────────────────────────────────────
 
 /**
