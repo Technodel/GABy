@@ -35,10 +35,10 @@ export class GabyBridge {
   }
 
   private connect(): void {
-    const url = `${this.server}/bridge?token=${encodeURIComponent(this.token)}`;
+    const url = `${this.server}/bridge`;
 
     try {
-      this.ws = new WebSocket(url);
+      this.ws = new WebSocket(url, [this.token]);
     } catch (err) {
       console.error('[GABy Bridge] Failed to create connection:', err);
       this.scheduleReconnect();

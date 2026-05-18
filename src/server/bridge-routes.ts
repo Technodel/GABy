@@ -12,10 +12,12 @@ export function attachBridgeWebSocket(wss: WebSocketServer): void {
 }
 
 export function handleBridgeUpgrade(ws: WebSocket, req: IncomingMessage): void {
-  // Extract token from query string or Authorization header
+  // Extract token from: (1) Sec-WebSocket-Protocol subprotocol, (2) Authorization header, (3) query string (legacy)
   const url = new URL(req.url || '', 'http://localhost');
-  const token = url.searchParams.get('token') ||
-    (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null);
+  const protocol = req.headers['sec-websocket-protocol'] as string | undefined;
+  const token = protocol?.split(',').map(s => s.trim()).filter(Boolean)[0]
+    || (req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : null)
+    || url.searchParams.get('token');
 
   if (!token) {
     ws.close(4001, 'Missing authentication token');

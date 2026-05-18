@@ -3,8 +3,13 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { getDb } from './db';
 
-const JWT_SECRET = process.env.SUNY_SECRET_JWT || 'suny-dev-secret-k3y-2024';
-const ADMIN_PASSWORD = process.env.SUNY_ADMIN_PASSWORD || '301088';
+const JWT_SECRET = (() => {
+  const secret = process.env.SUNY_SECRET_JWT;
+  if (!secret || secret.length < 16) {
+    throw new Error('SUNY_SECRET_JWT environment variable is required (min 16 characters). Set it in .env before starting the server.');
+  }
+  return secret;
+})();
 
 export interface AuthPayload {
   id: number | 'admin';
@@ -13,7 +18,20 @@ export interface AuthPayload {
 }
 
 export function signToken(payload: AuthPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' });
+}
+
+export function refreshToken(token: string): string | null {
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET, { ignoreExpiration: true }) as AuthPayload;
+    // Only refresh if token is not yet expired beyond a 7-day grace window
+    if ((decoded as unknown as { exp: number }).exp * 1000 < Date.now() - 7 * 24 * 60 * 60 * 1000) {
+      return null;
+    }
+    return signToken({ id: decoded.id, username: decoded.username, role: decoded.role });
+  } catch {
+    return null;
+  }
 }
 
 export function verifyToken(token: string): AuthPayload | null {
@@ -72,21 +90,28 @@ export function adminLogin(req: Request, res: Response): void {
     res.status(401).json({ error: 'Password required' });
     return;
   }
-  // Check env variable first (backward compatible), then stored hash from DB
-  let valid = password === ADMIN_PASSWORD;
-  if (!valid) {
-    try {
-      const db = getDb();
-      const row = db.prepare("SELECT value FROM app_settings WHERE key = 'admin_password_hash'").get() as { value: string } | undefined;
-      if (row) {
-        valid = bcrypt.compareSync(password, row.value);
+  // Use DB-stored hash as single source of truth.
+  // One-time bootstrap: if no hash exists yet, set it from SUNY_ADMIN_PASSWORD env (then it's hashed and stored).
+  try {
+    const db = getDb();
+    let row = db.prepare("SELECT value FROM app_settings WHERE key = 'admin_password_hash'").get() as { value: string } | undefined;
+    if (!row) {
+      const bootstrap = process.env.SUNY_ADMIN_PASSWORD;
+      if (!bootstrap) {
+        res.status(500).json({ error: 'No admin password configured. Set SUNY_ADMIN_PASSWORD in .env on first run.' });
+        return;
       }
-    } catch {
-      // DB not initialized yet — fall through to failure
+      const hash = bcrypt.hashSync(bootstrap, 12);
+      db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('admin_password_hash', ?)").run(hash);
+      console.log('[auth] One-time bootstrap: admin password hashed and stored in DB.');
+      row = { value: hash };
     }
-  }
-  if (!valid) {
-    res.status(401).json({ error: 'Invalid password' });
+    if (!bcrypt.compareSync(password, row.value)) {
+      res.status(401).json({ error: 'Invalid password' });
+      return;
+    }
+  } catch {
+    res.status(500).json({ error: 'Authentication system unavailable' });
     return;
   }
   const token = signToken({ id: 0, username: 'admin', role: 'admin' });
@@ -94,7 +119,7 @@ export function adminLogin(req: Request, res: Response): void {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
-    maxAge: 24 * 60 * 60 * 1000,
+    maxAge: 8 * 60 * 60 * 1000,
   });
   res.json({ success: true });
 }
@@ -120,9 +145,30 @@ export function userLogin(req: Request, res: Response): void {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
-    maxAge: 24 * 60 * 60 * 1000,
+    maxAge: 8 * 60 * 60 * 1000,
   });
   res.json({ success: true, userId: user.id });
+}
+
+export function refreshTokenEndpoint(req: Request, res: Response): void {
+  const token = req.cookies?.suny_token || extractBearerToken(req);
+  if (!token) {
+    res.status(401).json({ error: 'No session to refresh' });
+    return;
+  }
+  const newToken = refreshToken(token);
+  if (!newToken) {
+    res.clearCookie('suny_token');
+    res.status(401).json({ error: 'Session expired. Please log in again.' });
+    return;
+  }
+  res.cookie('suny_token', newToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 8 * 60 * 60 * 1000,
+  });
+  res.json({ success: true, refreshed: true });
 }
 
 export function logout(_req: Request, res: Response): void {
@@ -164,7 +210,7 @@ export function userRegister(req: Request, res: Response): void {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
-    maxAge: 24 * 60 * 60 * 1000,
+    maxAge: 8 * 60 * 60 * 1000,
   });
   res.json({ success: true });
 }

@@ -6,13 +6,12 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import WebSocket, { WebSocketServer } from 'ws';
-import { adminLogin, userLogin, userRegister, logout, requireAuth, requireAdmin } from './auth';
+import { adminLogin, userLogin, userRegister, logout, requireAuth, requireAdmin, refreshTokenEndpoint } from './auth';
 import adminRouter from './admin-routes';
 import userRouter from './user-routes';
 import mcpRouter from './mcp-routes';
 import bridgeOnboardingRouter from './bridge-onboarding';
 import sessionReplayRouter from './session-replay';
-import { authenticateBridgeToken } from './auth';
 import { handleBridgeUpgrade } from './bridge-routes';
 import { userClientManager } from './user-client-manager';
 import { isBridgeConnected, registerPathForUser } from './bridge-manager';
@@ -41,7 +40,7 @@ import { processDesignIntents, getDesignIntentsPrompt, initializeDesignIntentTab
 import { silentCodeReview, formatCodeReviewForPrompt, postMergeValidation, formatValidationForPrompt, analyzeInteractionPatterns, formatPatternAnalysisForPrompt, recordInteraction, initializeInteractionPatternsTable } from './verification-obsession';
 import { getPresenceInjection, updatePresenceProfile, getPresenceProfile, initializePresenceTable } from './presence-engineering';
 import { getSkillSystemPrompt, initSkillSystem } from './skill-loader';
-import { formatGoalContext } from './goal-tracker';
+import { formatGoalContext, getCurrentGoal, addGoalEvidence, incrementGoalAttempt, tryAutoCompleteGoal } from './goal-tracker';
 
 const PORT = parseInt(process.env.SUNY_PORT || process.env.GABY_PORT || '3500', 10);
 const ALLOWED_ORIGIN = process.env.SUNY_ALLOWED_ORIGIN || process.env.GABY_ALLOWED_ORIGIN || 'http://localhost:5173';
@@ -92,19 +91,41 @@ const server = http.createServer(app);
 
 // ── Middleware ─────────────────────────────────────────────────────────────────
 
+// isDev must be defined before any middleware that uses it
+const isDev = process.env.NODE_ENV !== 'production';
+
 app.use(cors({
-  origin: [ALLOWED_ORIGIN, 'http://localhost:5173', 'http://localhost:3000'],
+  origin: isDev
+    ? ['http://localhost:5173', 'http://localhost:3000']
+    : ALLOWED_ORIGIN,
   credentials: true,
 }));
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 
 // Rate limiting on auth routes (relaxed in development)
-const isDev = process.env.NODE_ENV !== 'production';
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: isDev ? 100 : 5,
   message: { error: 'Too many login attempts. Please wait a moment.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Stricter limiter for registration (prevents account creation floods)
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: isDev ? 50 : 3,
+  message: { error: 'Registration rate limit exceeded. Please try again later.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// General API brute-force guard for sensitive admin/user endpoints
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: isDev ? 200 : 30,
+  message: { error: 'Too many requests. Please slow down.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -137,9 +158,10 @@ app.get('/api/feature-flags', (_req, res) => {
 
 app.post('/admin/login', authLimiter, adminLogin);
 app.post('/api/login', authLimiter, userLogin);
-app.post('/api/register', authLimiter, userRegister);
+app.post('/api/register', registerLimiter, userRegister);
 app.post('/api/logout', logout);
 app.post('/admin/logout', logout);
+app.post('/api/token/refresh', refreshTokenEndpoint);
 
 // Lightweight admin session check
 app.get('/admin/me', requireAdmin, (_req, res) => {
@@ -148,7 +170,7 @@ app.get('/admin/me', requireAdmin, (_req, res) => {
 
 // ── Admin API ──────────────────────────────────────────────────────────────────
 
-app.use('/admin/api', adminRouter);
+app.use('/admin/api', apiLimiter, adminRouter);
 
 // ── User API ───────────────────────────────────────────────────────────────────
 
@@ -1472,6 +1494,24 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       } catch (bpErr) {
         // Blueprint extraction is best-effort — never block the main flow
         console.warn('[blueprint] Extraction error:', (bpErr as Error).message);
+      }
+
+      // ── Post-turn: Goal tracker — update active goal with turn evidence ──
+      if (projectId && isFeatureEnabled('ff_goal_tracker') && result.changedFiles?.length) {
+        try {
+          const activeGoal = getCurrentGoal(userId, projectId);
+          if (activeGoal) {
+            const changedSummary = result.changedFiles.slice(0, 5).join(', ');
+            addGoalEvidence(activeGoal.id, `Modified ${result.changedFiles.length} file(s): ${changedSummary}`);
+            incrementGoalAttempt(activeGoal.id);
+            const completed = tryAutoCompleteGoal(activeGoal.id);
+            if (completed) {
+              console.log(`[goal-tracker] Auto-completed goal: ${activeGoal.description.slice(0, 80)}`);
+            }
+          }
+        } catch (gErr) {
+          console.warn('[goal-tracker] Post-turn update error:', (gErr as Error).message);
+        }
       }
 
       // ── Post-turn: Change Guardian drift detection ─────────────────────

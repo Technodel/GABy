@@ -162,12 +162,12 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
 
   function routingIcon(mode: string): string {
     const icons: Record<string, string> = {
-      'free': 'ðŸ’°',
-      'fast': 'âš¡',
-      'smart': 'ðŸš€',
-      'pro': 'â­',
+      'free': '💰',
+      'fast': '⚡',
+      'smart': '🚀',
+      'pro': '⭐',
     };
-    return icons[mode] ?? 'âš™ï¸';
+    return icons[mode] ?? '⚙️';
   }
 
   function normalizeReport(report: unknown): ReportMetrics | undefined {
@@ -396,10 +396,10 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       });
       if (res.ok) {
         await loadCheckpoints(activeProject.id);
-        addMessage('system', `âœ“ Rolled back to checkpoint \`${sha.slice(0, 7)}\`. Your project files have been restored to that state.`);
+        addMessage('system', `✅ Rolled back to checkpoint \`${sha.slice(0, 7)}\`. Your project files have been restored to that state.`);
       } else {
         const data = await res.json().catch(() => ({}));
-        addMessage('system', `âš ï¸ Rollback failed: ${(data as { error?: string }).error ?? 'Unknown error'}`);
+        addMessage('system', `⚠️ Rollback failed: ${(data as { error?: string }).error ?? 'Unknown error'}`);
       }
     } finally {
       setRollingBack(null);
@@ -637,10 +637,10 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     const timeStr = new Date(run.startedAt).toLocaleString();
     const durationMs = run.durationMs ?? ((run.finishedAt ?? Date.now()) - run.startedAt);
     const durationSec = (durationMs / 1000).toFixed(1);
-    const statusEmoji = run.status === 'completed' ? 'âœ…' : run.status === 'failed' ? 'âŒ' : 'ðŸ”„';
+    const statusEmoji = run.status === 'completed' ? '✅' : run.status === 'failed' ? '❌' : '🔄';
     
     let report = `${statusEmoji} SUNy Proof Report\n`;
-    report += `â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”â”\n`;
+    report += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
     report += `Date: ${timeStr}\n`;
     report += `Duration: ${durationSec}s\n`;
     report += `Status: ${run.status.toUpperCase()}\n\n`;
@@ -648,7 +648,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     if (run.toolCalls.length > 0) {
       report += `Tools Used:\n`;
       run.toolCalls.forEach(tool => {
-        report += `  â€¢ ${toolLabel(tool)}\n`;
+        report += `  • ${toolLabel(tool)}\n`;
       });
       report += `\n`;
     }
@@ -656,7 +656,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     if (run.checks.length > 0) {
       report += `Checks Performed:\n`;
       run.checks.forEach(check => {
-        report += `  âœ“ ${check}\n`;
+        report += `  ✅ ${check}\n`;
       });
       report += `\n`;
     }

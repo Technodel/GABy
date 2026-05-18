@@ -40,6 +40,9 @@ import {
   scoreAgentTurn, type TrainingScorerInput,
 } from './training-scorer';
 import {
+  recordConfidence, buildConfidenceAssessmentPrompt,
+} from './confidence-scorer';
+import {
   extractMistakeRule,
 } from './behavioral-rules';
 import {
@@ -202,6 +205,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
   let lintErrorsFound = 0;
   let lintPassed = false;
   let lintGaveUp = false;
+  let lintRetryCount = 0;  // declared here for scope access by mistake extraction below
   let testRuns = 0;
   let testFailuresFound = 0;
   let testPassed = false;
@@ -347,7 +351,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
   // ── Hypothesis Engine: Parallel strategy testing ────────────────────────
   // For complex tasks with tools available, spawn 2-3 mini-agent runs
   // with different strategies and pick the best result to guide the main loop.
-  if (bridgeConnected && projectPath && !talkMode && projectId && userMessage.length > 80 && modelEntries.length > 0) {
+  if (bridgeConnected && projectPath && !talkMode && projectId && userMessage.length > 80 && modelEntries.length > 0 && classifyAutoMode(userMessage) !== 'free' && classifyAutoMode(userMessage) !== 'fast') {
     try {
       const strategies = selectStrategies(userMessage);
       if (strategies.length >= 2) {
@@ -366,7 +370,15 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
           const hypMsgs = [...rawMessages.slice(-4)];
           const result = await gt({ model: primaryModel, system: hypSys, messages: hypMsgs, maxTokens: 800, abortSignal: signal });
           const text = result.text?.trim() || '';
-          const score = text.length > 50 ? Math.min(100, Math.round(text.length / 15)) : 0;
+          // Quality-based scoring: +40 test pass mention, +30 code block, +20 concise, -20 error keywords
+          let score = 0;
+          if (text.length > 50) {
+            if (/tests?\s+(passed|passing|green|succeed)/i.test(text)) score += 40;
+            if (/```[\w]*\n/.test(text)) score += 30;
+            if (text.length < 500) score += 20;
+            if (/(error|failed|fail|couldn't|cannot|unable)/i.test(text)) score -= 20;
+            score = Math.max(0, Math.min(100, score));
+          }
           completeHypothesis({ hypothesisId: hypId, resultSummary: text.slice(0, 500), changedFiles: [], score });
           return { strategy, text, score };
         }));
@@ -488,6 +500,48 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
         };
         scoreAgentTurn(userId, projectId ?? null, sessionId, resolvedMode, steps, scoreInput)
           .catch(e => console.warn('[agent-loop] main scoring failed:', (e as Error).message));
+      }
+
+      // ── Confidence Scorer: self-assessment after main response ──────────
+      // Model self-reports confidence (0-1) and uncertainties; low confidence
+      // is logged for escalation tracking.
+      if (fullText && projectId && !talkMode) {
+        try {
+          const assessmentPrompt = buildConfidenceAssessmentPrompt();
+          const assessResult = await generateText({
+            model: model as LanguageModel,
+            system: 'You are assessing your own work. Be honest and concise.',
+            messages: [
+              { role: 'user', content: `Task: ${userMessage.slice(0, 300)}\n\nYour response:\n${fullText.slice(0, 2000)}\n\n${assessmentPrompt}` },
+            ],
+            maxTokens: 200,
+            abortSignal: signal,
+          });
+          const assessText = assessResult.text?.trim() || '';
+          // Parse confidence: look for a number between 0.0 and 1.0
+          const confMatch = assessText.match(/\b(0(?:\.\d+)?|1\.0)\b/);
+          const confidence = confMatch ? Math.max(0, Math.min(1, parseFloat(confMatch[0]))) : 0.9;
+          // Extract uncertainties (lines with specific concerns)
+          const uncertainties: string[] = assessText
+            .split('\n')
+            .filter(l => /unsure|not certain|might not|maybe|could be|concern|risk|edge case/i.test(l))
+            .map(l => l.trim())
+            .slice(0, 5);
+          recordConfidence({
+            turnIndex: steps || 1,
+            userId,
+            projectId: projectId!,
+            sessionId,
+            confidence,
+            uncertainties,
+            currentMode: resolvedMode,
+          });
+          totalInput += assessResult.usage?.inputTokens ?? 0;
+          totalOutput += assessResult.usage?.outputTokens ?? 0;
+          console.log(`[confidence] Self-assessed: ${(confidence * 100).toFixed(0)}% (${uncertainties.length} uncertainties)`);
+        } catch (cErr) {
+          console.warn('[confidence] Assessment failed:', (cErr as Error).message);
+        }
       }
 
       // ── Architect mode: plan → execute ───────────────────────────────────
@@ -697,6 +751,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
             });
           }
         }
+        lintRetryCount = lintPass;
       }
       // ── End lint loop ────────────────────────────────────────────────────
 
@@ -705,7 +760,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
         try {
           await extractMistakeRule(userId, projectId ?? null, 'lint', {
             errorCount: lintErrorsFound,
-            retriesUsed: lintPass,
+            retriesUsed: lintRetryCount,
             gaveUp: lintGaveUp,
             context: userMessage.slice(0, 300),
           });

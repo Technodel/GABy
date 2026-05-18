@@ -25,14 +25,25 @@ Deploy SUNy to a VPS behind nginx with Docker, TLS, and persistent storage.
 - Ports **80** and **443** open in your firewall
 - Docker and Docker Compose v2 installed on the VPS
 
-### Install Docker (Ubuntu)
+### SSH Access (VPS)
 
 ```bash
-sudo apt update
-sudo apt install -y docker.io docker-compose-v2
-sudo systemctl enable --now docker
-# Add your user to the docker group (re-login after)
-sudo usermod -aG docker $USER
+ssh -p 2222 user@suny.technodel.tech
+```
+
+Default SSH port is **2222** (not 22).
+
+### Install Node.js (Ubuntu)
+
+```bash
+curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+sudo apt install -y nodejs
+```
+
+### Install PM2 globally
+
+```bash
+npm install -y pm2
 ```
 
 ---
@@ -57,8 +68,8 @@ nano .env
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `SUNY_ADMIN_PASSWORD` | Admin login password | `my-strong-p@ss` |
-| `SUNY_SECRET_JWT` | JWT signing secret (min 32 chars) | `a-very-long-random-string-at-least-32-chars` |
+| `SUNY_ADMIN_PASSWORD` | Admin login password (used for one-time bootstrap hash) | `my-strong-p@ss` |
+| `SUNY_SECRET_JWT` | JWT signing secret (min 16 chars) | `a-very-long-random-string-at-least-16-chars` |
 | `SUNY_ALLOWED_ORIGIN` | Your VPS domain | `https://suny.example.com` |
 
 **Optional variables (set to enable features):**
@@ -68,14 +79,33 @@ nano .env
 | `SUNY_GROQ_KEY` | Groq API key (free mode) | `gsk_your_key` |
 | `SUNY_OPENROUTER_KEY` | OpenRouter key (free mode fallback) | `sk-or-your-key` |
 | `SUNY_DEEPSEEK_KEY` | DeepSeek API key (fast/pro modes) | `sk-your-key` |
-| `SUNY_PORT` | Server port (default: 3000) | `3000` |
-| `SUNY_DB_PATH` | DB file path (default: `./data/suny.db`) | `/data/suny.db` |
+| `SUNY_PORT` or `GABY_PORT` | Server port (default: 3500) | `3500` |
+| `SUNY_DB_PATH` or `GABY_DB_PATH` | DB file path (default: `./data/suny.db`) | `/data/suny.db` |
+| `GABY_ALLOWED_ORIGIN` | Alias for `SUNY_ALLOWED_ORIGIN` | `https://suny.example.com` |
 
 ---
 
 ## 3. Deploy via Docker
 
-### Build and start
+### Option A: PM2 + tsx (direct, no Docker)
+
+```bash
+# Install dependencies
+npm install
+cd src/renderer && npm install && npx vite build && cd ../..
+
+# Build bridge
+cd bridge && npm install && npm pack && cd ..
+
+# Start with PM2
+pm2 start ecosystem.config.js
+
+# Save PM2 process list for auto-restart on reboot
+pm2 save
+pm2 startup
+```
+
+### Option B: Docker (containerized)
 
 ```bash
 docker compose build --no-cache
@@ -85,13 +115,22 @@ docker compose up -d
 ### Check status
 
 ```bash
+# PM2
+pm2 status
+pm2 logs --lines=50
+
+# Docker
 docker compose ps
 docker compose logs --tail=50
 ```
 
-### Stop
+### Stop / Restart
 
 ```bash
+# PM2
+pm2 restart suny-server
+
+# Docker
 docker compose down
 ```
 
@@ -99,6 +138,12 @@ docker compose down
 
 ```bash
 git pull
+npm install
+
+# PM2
+pm2 restart suny-server
+
+# Docker
 docker compose build --no-cache
 docker compose up -d
 ```
@@ -130,7 +175,8 @@ sudo certbot renew --dry-run
 
 ### Update nginx.conf
 
-Replace `SUNy.technodel.tech` with your domain in `nginx.conf`:
+Replace `SUNy.technodel.tech` with your domain in `nginx.conf`.  
+The nginx reverse proxy forwards to `http://localhost:3500` (the default SUNy port):
 
 | Line | Change |
 |------|--------|
@@ -321,10 +367,26 @@ SQLite uses WAL mode (set automatically). If you see lock errors:
 
 ```bash
 # Test manually from inside the container
-docker exec suny wget -qO- http://localhost:3000/api/health
+docker exec suny wget -qO- http://localhost:3500/api/health
 ```
 
 If this fails, the server isn't responding. Check:
 - Is the server listening on the right port?
 - Are all env vars correct?
 - Did the database migrate successfully?
+
+### Issue: SSH connection timeout
+
+The VPS SSH port is 2222, not the default 22:
+```bash
+ssh -p 2222 user@suny.technodel.tech
+```
+
+### Issue: PM2 fails with tsx not found
+
+Ensure tsx is installed globally or in the project:
+```bash
+npm install -g tsx
+# or
+npx tsx src/server/index.ts
+```
