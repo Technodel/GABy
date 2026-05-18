@@ -22,8 +22,118 @@ export function getDb(): Database.Database {
   return db;
 }
 
-function runMigrations(db: Database.Database): void {
+// ── Migration helpers ───────────────────────────────────────────────────────
+
+function getSchemaVersion(db: Database.Database): number {
+  const row = db.prepare("SELECT value FROM app_settings WHERE key = 'schema_version'").get() as { value: string } | undefined;
+  return row ? parseInt(row.value, 10) || 0 : 0;
+}
+
+function setSchemaVersion(db: Database.Database, version: number): void {
+  db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('schema_version', ?)").run(String(version));
+}
+
+function columnExists(db: Database.Database, table: string, column: string): boolean {
+  const rows = db.pragma(`table_info('${table}')`) as Array<{ name: string }>;
+  return rows.some(r => r.name === column);
+}
+
+interface Migration {
+  version: number;
+  name: string;
+  up: (db: Database.Database) => void;
+}
+
+const SCHEMA_MIGRATIONS: Migration[] = [
+  // ── Migration 1: Consolidate all legacy try/catch ALTER TABLE ─────────────
+  {
+    version: 1,
+    name: 'Consolidate legacy ALTER TABLE additions',
+    up: (db) => {
+      const alterCols: Array<{ table: string; column: string; sql: string }> = [
+        { table: 'usage_log', column: 'cache_write_tokens', sql: 'ALTER TABLE usage_log ADD COLUMN cache_write_tokens INTEGER DEFAULT 0' },
+        { table: 'usage_log', column: 'cache_read_tokens', sql: 'ALTER TABLE usage_log ADD COLUMN cache_read_tokens INTEGER DEFAULT 0' },
+        { table: 'usage_log', column: 'project_id', sql: 'ALTER TABLE usage_log ADD COLUMN project_id INTEGER DEFAULT NULL' },
+        { table: 'pricing_modes', column: 'model_id', sql: "ALTER TABLE pricing_modes ADD COLUMN model_id TEXT NOT NULL DEFAULT 'claude-3-5-haiku-20241022'" },
+        { table: 'users', column: 'wallet_balance', sql: 'ALTER TABLE users ADD COLUMN wallet_balance REAL DEFAULT 0' },
+        { table: 'users', column: 'wallet_auto_spend', sql: 'ALTER TABLE users ADD COLUMN wallet_auto_spend INTEGER DEFAULT 0' },
+        { table: 'pricing_modes', column: 'description', sql: "ALTER TABLE pricing_modes ADD COLUMN description TEXT DEFAULT ''" },
+        { table: 'api_keys', column: 'priority', sql: 'ALTER TABLE api_keys ADD COLUMN priority INTEGER DEFAULT 1' },
+        { table: 'api_keys', column: 'model_id_override', sql: 'ALTER TABLE api_keys ADD COLUMN model_id_override TEXT' },
+        { table: 'users', column: 'display_name', sql: 'ALTER TABLE users ADD COLUMN display_name TEXT DEFAULT NULL' },
+        { table: 'projects', column: 'persona', sql: 'ALTER TABLE projects ADD COLUMN persona TEXT DEFAULT NULL' },
+      ];
+      for (const { table, column, sql } of alterCols) {
+        if (!columnExists(db, table, column)) {
+          db.exec(sql);
+        }
+      }
+      // Fix NULL wallet_balance rows created before the column existed
+      db.exec('UPDATE users SET wallet_balance = 0 WHERE wallet_balance IS NULL');
+    },
+  },
+
+  // ── Migration 2: Add tables that were missing from schema ─────────────────
+  {
+    version: 2,
+    name: 'Add missing tables: feature_flags, operation_log, project_locks, bridge_setup_codes',
+    up: (db) => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS feature_flags (
+          key TEXT PRIMARY KEY,
+          value TEXT NOT NULL DEFAULT 'off',
+          label TEXT NOT NULL DEFAULT '',
+          description TEXT NOT NULL DEFAULT '',
+          updated_at TEXT DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS operation_log (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          project_id INTEGER,
+          session_id TEXT,
+          operation TEXT NOT NULL,
+          tool_name TEXT,
+          status TEXT NOT NULL DEFAULT 'started',
+          detail TEXT DEFAULT '',
+          duration_ms INTEGER DEFAULT 0,
+          timestamp TEXT DEFAULT (datetime('now')),
+          FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS project_locks (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          project_id INTEGER NOT NULL,
+          user_id INTEGER NOT NULL,
+          session_id TEXT NOT NULL,
+          locked_at TEXT DEFAULT (datetime('now')),
+          expires_at TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS bridge_setup_codes (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          code TEXT NOT NULL UNIQUE,
+          status TEXT NOT NULL DEFAULT 'pending',
+          server_url TEXT NOT NULL,
+          created_at TEXT DEFAULT (datetime('now')),
+          redeemed_at TEXT,
+          FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+      `);
+    },
+  },
+];
+
+// ── Schema foundations (always run — CREATE TABLE IF NOT EXISTS) ────────────
+
+function createFoundationTables(db: Database.Database): void {
   db.exec(`
+    CREATE TABLE IF NOT EXISTS app_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT UNIQUE NOT NULL,
@@ -102,11 +212,6 @@ function runMigrations(db: Database.Database): void {
       FOREIGN KEY(user_id) REFERENCES users(id)
     );
 
-    CREATE TABLE IF NOT EXISTS app_settings (
-      key TEXT PRIMARY KEY,
-      value TEXT NOT NULL
-    );
-
     CREATE TABLE IF NOT EXISTS blueprint_entries (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
@@ -133,24 +238,12 @@ function runMigrations(db: Database.Database): void {
       FOREIGN KEY(project_id) REFERENCES projects(id)
     );
   `);
+}
 
-  // ── Migrations for existing databases ──────────────────────────────────────
-  // Safe: SQLite throws if the column already exists; we ignore that error.
-  try { db.exec('ALTER TABLE usage_log ADD COLUMN cache_write_tokens INTEGER DEFAULT 0'); } catch { /* already exists */ }
-  try { db.exec('ALTER TABLE usage_log ADD COLUMN cache_read_tokens INTEGER DEFAULT 0'); } catch { /* already exists */ }
-  try { db.exec('ALTER TABLE usage_log ADD COLUMN project_id INTEGER DEFAULT NULL'); } catch { /* already exists */ }
-  try { db.exec("ALTER TABLE pricing_modes ADD COLUMN model_id TEXT NOT NULL DEFAULT 'claude-3-5-haiku-20241022'"); } catch { /* already exists */ }
-  try { db.exec('ALTER TABLE users ADD COLUMN wallet_balance REAL DEFAULT 0'); } catch { /* already exists */ }
-  try { db.exec('ALTER TABLE users ADD COLUMN wallet_auto_spend INTEGER DEFAULT 0'); } catch { /* already exists */ }
-  // Fix NULL wallet_balance rows created before the column existed — treat as 0
-  db.exec('UPDATE users SET wallet_balance = 0 WHERE wallet_balance IS NULL');
-  try { db.exec("ALTER TABLE pricing_modes ADD COLUMN description TEXT DEFAULT ''"); } catch { /* already exists */ }
-  try { db.exec('ALTER TABLE api_keys ADD COLUMN priority INTEGER DEFAULT 1'); } catch { /* already exists */ }
-  try { db.exec('ALTER TABLE api_keys ADD COLUMN model_id_override TEXT'); } catch { /* already exists */ }
-  try { db.exec('ALTER TABLE users ADD COLUMN display_name TEXT DEFAULT NULL'); } catch { /* already exists */ }
-  try { db.exec('ALTER TABLE projects ADD COLUMN persona TEXT DEFAULT NULL'); } catch { /* already exists */ }
+// ── Data seeding ────────────────────────────────────────────────────────────
 
-
+function seedData(db: Database.Database): void {
+  // Seed pricing modes if table is empty
   const modeCount = (db.prepare('SELECT COUNT(*) as c FROM pricing_modes').get() as { c: number }).c;
   if (modeCount === 0) {
     db.prepare(`INSERT INTO pricing_modes (mode, display_name, description, markup_formula, input_token_base_cost, output_token_base_cost, model_id) VALUES (?, ?, ?, ?, ?, ?, ?)`)
@@ -161,8 +254,7 @@ function runMigrations(db: Database.Database): void {
       .run('pro', '🧠 Smart Pro', 'Maximum intelligence — HuggingFace Llama Vision for complex analysis and image understanding', 'cost * 3.0', 0.00000055, 0.00000219, 'meta-llama/Llama-3.2-11B-Vision-Instruct');
   }
 
-  // ── Update existing mode configs to current defaults ──────────────────────
-  // Run once per DB identified by the 'modes_v2_seeded' flag
+  // Update existing mode configs to current defaults (modes_v2_seeded flag)
   const modesV2Seeded = db.prepare("SELECT value FROM app_settings WHERE key='modes_v2_seeded'").get();
   if (!modesV2Seeded) {
     db.prepare(`UPDATE pricing_modes SET display_name=?, description=?, model_id=?, input_token_base_cost=?, output_token_base_cost=? WHERE mode='free'`)
@@ -174,7 +266,7 @@ function runMigrations(db: Database.Database): void {
     db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('modes_v2_seeded', 'true')").run();
   }
 
-  // ── Clean mode descriptions: no AI model names ────────────────────────────
+  // Clean mode descriptions (modes_v3_descriptions flag)
   const modesV3 = db.prepare("SELECT value FROM app_settings WHERE key='modes_v3_descriptions'").get();
   if (!modesV3) {
     db.prepare("UPDATE pricing_modes SET description=? WHERE mode='free'")
@@ -186,9 +278,7 @@ function runMigrations(db: Database.Database): void {
     db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('modes_v3_descriptions', 'true')").run();
   }
 
-  // ── Seed default API keys from environment variables ─────────────────────
-  // Set SUNY_GROQ_KEY, SUNY_OPENROUTER_KEY, SUNY_OPENAI_KEY, SUNY_DEEPSEEK_KEY,
-  // SUNY_ANTHROPIC_KEY, SUNY_HUGGINGFACE_KEY, or SUNY_GEMINI_KEY in .env
+  // Seed default API keys from environment variables
   const keysSeeded = db.prepare("SELECT value FROM app_settings WHERE key='default_keys_seeded'").get();
   if (!keysSeeded) {
     db.prepare('DELETE FROM api_keys').run();
@@ -222,7 +312,7 @@ function runMigrations(db: Database.Database): void {
   }
 
   // Seed default app settings
-  const seedSettings = [
+  const seedSettings: Array<[string, string]> = [
     ['allow_registration', 'true'],
     ['auto_approve', 'true'],
     ['dark_mode', 'true'],
@@ -235,4 +325,25 @@ function runMigrations(db: Database.Database): void {
   for (const [key, value] of seedSettings) {
     insertSetting.run(key, value);
   }
+}
+
+// ── Main migration orchestrator ─────────────────────────────────────────────
+
+function runMigrations(db: Database.Database): void {
+  // 1. Foundation tables (always run — CREATE TABLE IF NOT EXISTS)
+  createFoundationTables(db);
+
+  // 2. Versioned schema migrations
+  const currentVersion = getSchemaVersion(db);
+  for (const migration of SCHEMA_MIGRATIONS) {
+    if (migration.version > currentVersion) {
+      console.log(`[db] Running migration v${migration.version}: ${migration.name}`);
+      migration.up(db);
+      setSchemaVersion(db, migration.version);
+      console.log(`[db] Migration v${migration.version} complete`);
+    }
+  }
+
+  // 3. Data seeding (idempotent — uses app_settings flags)
+  seedData(db);
 }

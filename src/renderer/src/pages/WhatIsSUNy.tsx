@@ -25,6 +25,10 @@ const visibleWins = [
   { title: 'Proof Panel', text: 'Every run ends with evidence: changed files, checks executed, outcomes, and fixes applied.' },
   { title: 'Live Execution Timeline', text: 'You can watch each stage happen in real time: plan, edit, test, fix, done.' },
   { title: 'Checkpoint Rollback', text: 'Each turn creates a restore point so you can return to any earlier working version instantly.' },
+  { title: '🎭 Prompt Variants', text: 'Switch AI personas, tones, and strategies on the fly. Senior Engineer, Patient Teacher, Test-First, or create your own custom variant.' },
+  { title: '🌐 Browser Automation', text: 'SUNy navigates web pages, takes screenshots, fills forms, and extracts live data. Perfect for testing and site verification.' },
+  { title: '⏰ Scheduled Agents', text: 'Set it and forget it. Schedule SUNy to run daily code reviews, weekly dependency audits, or hourly health checks automatically.' },
+  { title: '🏪 MCP Marketplace', text: 'Discover and install community MCP servers in one click. Databases, search, Docker, Slack, GitHub — all at your fingertips.' },
 ];
 
 const coreWins = [
@@ -37,6 +41,9 @@ const coreWins = [
   { title: '🛡️ SUNy Code Conscience — Change Guardian', text: 'An intent-aware guardian that snapshots TypeScript signatures before changes and detects semantic drift automatically — catching unintended contract breaks before they ship.' },
   { title: 'Repository Memory Graph', text: 'SUNy keeps long-lived project memory about structure, style, and decisions to reduce re-discovery and drift.' },
   { title: 'Surgical Edit Discipline', text: 'Changes are applied with minimal, precise diffs to reduce regressions and preserve stable behavior.' },
+  { title: '📦 @gaby/sdk Plugin System', text: 'A full TypeScript SDK for building extensions. Custom tools, memory adapters, auth providers, and billing plugins with clean interfaces.' },
+  { title: '📸 Rich Checkpoint Manager', text: 'Every change creates a DB-backed checkpoint with tags, file counts, and metadata. Full timeline UI with one-click rollback that works across projects.' },
+  { title: '🔄 Integrated Scheduler Engine', text: 'Built-in cron scheduler that runs agent tasks at specified intervals. Hourly, daily, weekly, or custom cron expressions with run logs and failure tracking.' },
 ];
 
 export default function WhatIsSUNy() {

@@ -32,6 +32,7 @@ import { classifyTask, getActiveSkills } from './skill-loader';
 import { runLint } from './lint-runner';
 import { runTests, runFailingTests, buildTestFixPrompt } from './test-runner';
 import { pickRandom } from './personality';
+import { narrateMessage } from './narrator';
 import {
   scoreAgentTurn, type TrainingScorerInput,
 } from './training-scorer';
@@ -341,6 +342,8 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
   const effectiveTools = textFormat ? undefined : tools;
 
   // Notify client that streaming is starting
+  // Emit stage event for pipeline phase tracking
+  userClientManager.pushToUser(userId, 'suny:stage', { stage: 'processing', label: 'Planning & executing...' });
   userClientManager.pushToUser(userId, 'suny:stream_start', {});
 
   // Create a git checkpoint BEFORE any file changes so the user can roll back
@@ -391,8 +394,9 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
           totalInput += usage?.inputTokens ?? 0;
           totalOutput += usage?.outputTokens ?? 0;
           if (steps > 1) {
+            userClientManager.pushToUser(userId, 'suny:stage', { stage: 'processing', label: 'Working through the steps...' });
             userClientManager.pushToUser(userId, 'suny:narration', {
-              message: pickRandom('working', 'Working through the steps...'),
+              message: narrateMessage('Working through the steps...', 'thinking'),
             });
           }
         },
@@ -447,8 +451,9 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
       // First pass (above) was the planning pass. Now run a second pass that
       // actually applies edits using diff format (or tool-call if tools available).
       if (editFormat === 'architect' && projectPath && bridgeConnected) {
+        userClientManager.pushToUser(userId, 'suny:stage', { stage: 'executing', label: 'Plan ready — now executing...' });
         userClientManager.pushToUser(userId, 'suny:narration', {
-          message: pickRandom('working', 'Plan ready — now executing...'),
+          message: narrateMessage('Plan ready — now executing...', 'plan'),
         });
 
         const execFormatInstructions = tools ? '' : '\n\n' + DIFF_FORMAT_INSTRUCTIONS;
@@ -480,8 +485,9 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
             steps++;
             totalInput += u?.inputTokens ?? 0;
             totalOutput += u?.outputTokens ?? 0;
+            userClientManager.pushToUser(userId, 'suny:stage', { stage: 'executing', label: 'Executing the plan...' });
             userClientManager.pushToUser(userId, 'suny:narration', {
-              message: pickRandom('working', 'Executing the plan...'),
+              message: narrateMessage('Executing the plan...', 'plan'),
             });
           },
           experimental_telemetry: { isEnabled: false },
@@ -531,6 +537,11 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
         gitAutoCommit(userId, projectPath, Array.from(changedFiles), userMessage).catch(
           (e) => console.warn('[agent-loop] git auto-commit error:', (e as Error).message),
         );
+      }
+
+      // Emit stage transition to linting
+      if (projectPath && changedFiles.size > 0) {
+        userClientManager.pushToUser(userId, 'suny:stage', { stage: 'linting', label: 'Checking code quality...' });
       }
 
       // ── Aider-style lint self-correction loop ────────────────────────────
@@ -606,8 +617,9 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
               steps++;
               totalInput += usage?.inputTokens ?? 0;
               totalOutput += usage?.outputTokens ?? 0;
+              userClientManager.pushToUser(userId, 'suny:stage', { stage: 'lint-fixing', label: 'Fixing lint errors...' });
               userClientManager.pushToUser(userId, 'suny:narration', {
-                message: pickRandom('fixing', 'Fixing the errors...'),
+                message: narrateMessage('Fixing the errors...', 'test_fixing'),
               });
             },
             experimental_telemetry: { isEnabled: false },
@@ -657,6 +669,11 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
         } catch (e) {
           console.warn('[agent-loop] mistake extraction (lint) failed:', (e as Error).message);
         }
+      }
+
+      // Emit stage transition to testing
+      if (projectPath && changedFiles.size > 0 && !talkMode) {
+        userClientManager.pushToUser(userId, 'suny:stage', { stage: 'testing', label: 'Running tests...' });
       }
 
       // ── Test self-correction loop ─────────────────────────────────────────
@@ -717,8 +734,9 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
                 steps++;
                 totalInput += u?.inputTokens ?? 0;
                 totalOutput += u?.outputTokens ?? 0;
+                userClientManager.pushToUser(userId, 'suny:stage', { stage: 'test-fixing', label: `Fixing tests (attempt ${testPass})...` });
                 userClientManager.pushToUser(userId, 'suny:narration', {
-                  message: `Fixing tests (attempt ${testPass})...`,
+                  message: narrateMessage('Fixing tests...', 'test_fixing', { attempt: testPass }),
                 });
               },
               experimental_telemetry: { isEnabled: false },
@@ -829,6 +847,9 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
           // Reflection is best-effort — never block the main response
         }
       }
+      // Emit stage complete
+      userClientManager.pushToUser(userId, 'suny:stage', { stage: 'complete', label: 'Done!' });
+
       // ── End self-reflection ───────────────────────────────────────────────
 
       return {
@@ -861,8 +882,9 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
       const isLast = modelEntries.indexOf(modelEntries.find(m => m.model === model)!) === modelEntries.length - 1;
       if (!isLast) {
         console.warn(`[agent-loop] ${provider} failed, trying fallback: ${lastError.message}`);
+        userClientManager.pushToUser(userId, 'suny:stage', { stage: 'fallback', label: `Provider ${provider} failed, trying fallback...` });
         userClientManager.pushToUser(userId, 'suny:narration', {
-          message: `Provider ${provider} failed, trying fallback...`,
+          message: narrateMessage('Provider failed, trying fallback...', 'error'),
         });
       }
     }

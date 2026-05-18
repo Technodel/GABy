@@ -85,6 +85,28 @@ function EnglishContent() {
         </div>
       </div>
 
+      <div className="card" style={{ marginBottom: 24, borderColor: 'var(--accent)', borderWidth: 2, background: 'rgba(108,99,255,0.06)' }}>
+        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 10 }}>🧪 What&apos;s New in This Version</h2>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.7, marginBottom: 16 }}>
+          Six major new capabilities that take SUNy to the next level.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
+          {[
+            { title: '🎭 Prompt Variants', desc: 'A/B test different AI personas, tones, and strategies. Switch between Senior Engineer, Patient Teacher, or Test-First modes — or create your own custom variant.' },
+            { title: '📸 Checkpoint Timeline', desc: 'Every change is saved as a named checkpoint. Browse your full history with file counts, tags, and one-click rollback to any earlier state.' },
+            { title: '📦 @gaby/sdk', desc: 'The official SDK for building SUNy extensions. Create custom tools, memory adapters, auth providers, and billing plugins with full TypeScript support.' },
+            { title: '⏰ Scheduled Agents', desc: 'Schedule SUNy to run automatically — daily code reviews, weekly dependency audits, hourly health checks. Set it and forget it.' },
+            { title: '🌐 Browser Automation', desc: 'SUNy can navigate web pages, take screenshots, fill forms, and extract data. Perfect for testing, scraping, and live site verification.' },
+            { title: '🏪 MCP Marketplace', desc: 'Discover and install community-contributed MCP servers. Databases, search engines, Docker, Slack, GitHub — all pluggable in one command.' },
+          ].map(f => (
+            <div key={f.title} style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--bg)' }}>
+              <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{f.title}</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.6, margin: 0 }}>{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16 }}>What can SUNy do for you?</h2>
 
       {[
@@ -176,6 +198,28 @@ function ArabicContent() {
             { title: '🛡️ حارس التغيير', desc: 'قبل ان تصل التغييرات الى كودك، يتحقق SUNy مما اذا كانت تنحرف عن نيتك المعلنة. يتم اكتشاف تغييرات العقود غير المقصودة فورا.' },
             { title: '⏳ معرفة متراكمة', desc: 'كل جلسة تجعل SUNy اذكى بشأن مشروعك. ذاكرة التصميم تتراكم مثل دولاب المعرفة — كلما استخدمته اكثر، كلما اصبح افضل.' },
             { title: '🤝 ثنائي الاتجاه', desc: 'انت والذكاء الاصطناعي تستفيدان معا. SUNy يعطيك اجابات واعية بالسياق، وانت تحصل على مساعد يفهم قاعدة اكوادك حقا.' },
+          ].map(f => (
+            <div key={f.title} style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--bg)' }}>
+              <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{f.title}</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.8, margin: 0 }}>{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: 24, borderColor: 'var(--accent)', borderWidth: 2, background: 'rgba(108,99,255,0.06)' }}>
+        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 10 }}>🧪 الجديد في هذه النسخة</h2>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.8, marginBottom: 16 }}>
+          ست قدرات رئيسية جديدة ترتقي بـ SUNy إلى المستوى التالي.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
+          {[
+            { title: '🎭 متغيرات النصوص التوجيهية', desc: 'اختبر شخصيات ونغمات واستراتيجيات مختلفة للذكاء الاصطناعي. بدّل بين المهندس الخبير، المعلم الصبور، أو نهج الاختبار اولا — او انشئ متغيرك الخاص.' },
+            { title: '📸 الجدول الزمني لنقاط الحفظ', desc: 'كل تغيير يتم حفظه كنقطة حفظ مسماة. تصفح تاريخك الكامل مع عدد الملفات والوسوم واستعد اي حالة سابقة بنقرة واحدة.' },
+            { title: '📦 @gaby/sdk', desc: 'مجموعة التطوير الرسمية لبناء إضافات SUNy. اصنع ادوات مخصصة، موصلات ذاكرة، موفري مصادقة، واضافات فوترة مع دعم كامل لـ TypeScript.' },
+            { title: '⏰ الوكلاء المجدولون', desc: 'جدول SUNy للتشغيل التلقائي — مراجعات كود يومية، فحص اعتماديات اسبوعي، فحوصات سلامة كل ساعة. اضبطه وانس امره.' },
+            { title: '🌐 أتمتة المتصفح', desc: 'يستطيع SUNy تصفح صفحات الويب، التقاط لقطات شاشة، ملء النماذج، واستخراج البيانات. مثالي للاختبار والفحص المباشر.' },
+            { title: '🏪 سوق MCP', desc: 'اكتشف وانصب خوادم MCP من المجتمع. قواعد بيانات، محركات بحث، Docker، Slack، GitHub — كلها قابلة للتوصيل بأمر واحد.' },
           ].map(f => (
             <div key={f.title} style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--bg)' }}>
               <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{f.title}</h3>
