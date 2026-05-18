@@ -123,6 +123,49 @@ async function searchSerpApi(
   }
 }
 
+// -- Serper provider (serper.dev) --------------------------------------------
+
+async function searchSerper(
+  query: string,
+  maxResults: number,
+): Promise<SearchResult[] | null> {
+  const key = process.env['SERPER_API_KEY'];
+  if (!key) return null;
+
+  try {
+    const res = await fetch('https://google.serper.dev/search', {
+      method: 'POST',
+      headers: {
+        'X-API-KEY': key,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        q: query,
+        num: Math.min(maxResults, 10),
+      }),
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (!res.ok) return null;
+
+    const data = (await res.json()) as {
+      organic?: Array<{
+        title: string;
+        link: string;
+        snippet: string;
+      }>;
+    };
+
+    return (data.organic || []).map((r) => ({
+      title: r.title || '(no title)',
+      url: r.link,
+      snippet: r.snippet || '(no snippet)',
+    }));
+  } catch {
+    return null;
+  }
+}
+
 // -- DuckDuckGo fallback (no API key needed) ---------------------------------
 
 async function searchDuckDuckGo(
@@ -231,6 +274,7 @@ export function createWebSearchTool() {
         fn: () => Promise<SearchResult[] | null>;
       }> = [
         { name: 'Tavily', fn: () => searchTavily(query, max_results) },
+        { name: 'Serper', fn: () => searchSerper(query, max_results) },
         { name: 'SerpAPI', fn: () => searchSerpApi(query, max_results) },
         {
           name: 'DuckDuckGo',

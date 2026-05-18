@@ -39,8 +39,7 @@ export default function Login({ onLogin }: LoginProps) {
   const [loading, setLoading] = useState(false);
   const [pricing, setPricing] = useState<PricingMode[]>([]);
   const [contact, setContact] = useState<ContactInfo | null>(null);
-  const [showAdminLogin, setShowAdminLogin] = useState(false);
-  const [adminPassword, setAdminPassword] = useState('');
+
 
   useEffect(() => {
     fetch('/api/pricing-public').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setPricing(d); }).catch(() => {});
@@ -83,28 +82,6 @@ export default function Login({ onLogin }: LoginProps) {
       }
     } catch {
       setError('Unable to connect. Please check your connection.');
-    }
-    setLoading(false);
-  }
-
-  async function handleAdminLogin(e: React.FormEvent) {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-    try {
-      const res = await fetch('/admin/login', {
-        method: 'POST', credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: adminPassword }),
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        window.location.href = '/admin/users';
-      } else {
-        setError(data.error || 'Invalid admin password.');
-      }
-    } catch {
-      setError('Unable to connect.');
     }
     setLoading(false);
   }
@@ -270,6 +247,7 @@ export default function Login({ onLogin }: LoginProps) {
                     placeholder="Your password" autoComplete="current-password" required />
                 </div>
               )}
+
               {error && (
                 <div style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'rgba(248,113,113,0.1)',
                   border: '1px solid var(--error)', color: 'var(--error)', fontSize: 13, marginBottom: 16 }}>
@@ -292,24 +270,6 @@ export default function Login({ onLogin }: LoginProps) {
             </div>
           )}
 
-          {/* Admin login toggle */}
-          <div style={{ marginTop: 14, textAlign: 'center' }}>
-            <button onClick={() => { setShowAdminLogin(!showAdminLogin); setError(''); setAdminPassword(''); }}
-              style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer', fontFamily: 'inherit', textDecoration: 'underline', opacity: 0.5 }}>
-              Admin
-            </button>
-            {showAdminLogin && (
-              <form onSubmit={handleAdminLogin} style={{ marginTop: 10 }}>
-                <div style={{ marginBottom: 10 }}>
-                  <input type="password" value={adminPassword} onChange={e => setAdminPassword(e.target.value)}
-                    placeholder="Admin password" style={{ width: '100%', boxSizing: 'border-box' }} autoFocus />
-                </div>
-                <button type="submit" className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }} disabled={loading}>
-                  {loading ? 'Signing in...' : 'Admin Sign In'}
-                </button>
-              </form>
-            )}
-          </div>
         </div>
 
         {/* RIGHT: What is SUNy */}

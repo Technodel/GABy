@@ -98,7 +98,7 @@ router.get('/me', (req: Request, res: Response) => {
   const user = (req as AuthRequest).user;
   const db = getDb();
   const row = db.prepare(`
-    SELECT id, username, display_name, balance, wallet_balance, wallet_auto_spend, selected_mode, max_tokens_per_session, is_active
+    SELECT id, username, display_name, balance, wallet_balance, wallet_auto_spend, selected_mode, max_tokens_per_session, is_active, role
     FROM users WHERE id = ?
   `).get(user.id) as UserRow | undefined;
 
@@ -114,9 +114,14 @@ router.get('/me', (req: Request, res: Response) => {
     return settingsMap[key] ?? fallback;
   };
 
+  // Get role from users table (default 'user' for backward compat)
+  const roleRow = db.prepare("SELECT role FROM users WHERE id = ?").get(user.id) as { role?: string } | undefined;
+  const role = roleRow?.role === 'admin' ? 'admin' : 'user';
+
   res.json({
     id: row.id,
     username: row.username,
+    role,
     display_name: row.display_name ?? null,
     balance: row.balance,
     wallet_balance: row.wallet_balance,

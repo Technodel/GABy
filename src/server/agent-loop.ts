@@ -170,8 +170,10 @@ function classifyAutoMode(message: string): 'free' | 'fast' | 'smart' | 'pro' {
   const t = message.toLowerCase();
   // Pro signals: explicit deep reasoning / architecture / analysis requests
   if (
-    t.length > 150 &&
-    /\b(architect|design pattern|tradeoff|compare|analyze|security|performance|scalab|deep dive|explain why|complex|algorithm|optimize|review|audit)\b/.test(t)
+    (t.length > 150 &&
+     /\b(architect|design pattern|tradeoff|compare|analyze|security|performance|scalab|deep dive|explain why|complex|algorithm|optimize|review|audit)\b/.test(t)) ||
+    // Also route to pro for questions about the system itself, instructions, training, behavior
+    /\b(instructions|system prompt|trained|training|why do you|why don't you|why are you|why aren't you|follow.*instruction|ignore.*instruction)\b/.test(t)
   ) return 'pro';
   // Smart signals: moderate-length tasks with domain-specific or moderate-complexity keywords
   if (

@@ -140,14 +140,18 @@ export function userLogin(req: Request, res: Response): void {
     return;
   }
 
-  const token = signToken({ id: user.id, username: user.username, role: 'user' });
+  // Read role from users table (default 'user' for backward compatibility)
+  const row = db.prepare("SELECT role FROM users WHERE id = ?").get(user.id) as { role: string } | undefined;
+  const role = (row?.role as 'admin' | 'user') || 'user';
+
+  const token = signToken({ id: user.id, username: user.username, role });
   res.cookie('suny_token', token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
     maxAge: 8 * 60 * 60 * 1000,
   });
-  res.json({ success: true, userId: user.id });
+  res.json({ success: true, userId: user.id, role });
 }
 
 export function refreshTokenEndpoint(req: Request, res: Response): void {

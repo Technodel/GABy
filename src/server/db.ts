@@ -276,11 +276,13 @@ function seedData(db: Database.Database): void {
   const modeCount = (db.prepare('SELECT COUNT(*) as c FROM pricing_modes').get() as { c: number }).c;
   if (modeCount === 0) {
     db.prepare(`INSERT INTO pricing_modes (mode, display_name, description, markup_formula, input_token_base_cost, output_token_base_cost, model_id) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-      .run('free', '⚡ AFree', 'Almost free — Groq-powered with OpenRouter fallback', 'cost * 2.0', 0.00000059, 0.00000079, 'llama-3.3-70b-versatile');
+      .run('free', '⚡ Free', 'Groq Llama 3.3 70B — lightning fast for quick tasks', 'cost * 2.0', 0.00000059, 0.00000079, 'llama-3.3-70b-versatile');
     db.prepare(`INSERT INTO pricing_modes (mode, display_name, description, markup_formula, input_token_base_cost, output_token_base_cost, model_id) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-      .run('fast', '🚀 Fast Smart', 'Smart & affordable — OpenRouter Llama Vision, excellent for coding and image analysis', 'cost * 2.5', 0.00000027, 0.0000011, 'meta-llama/llama-3.2-11b-vision-instruct:free');
+      .run('fast', '🚀 Fast', 'DeepSeek V3 — excellent instruction following for everyday coding', 'cost * 2.5', 0.00000027, 0.0000011, 'deepseek-chat');
     db.prepare(`INSERT INTO pricing_modes (mode, display_name, description, markup_formula, input_token_base_cost, output_token_base_cost, model_id) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-      .run('pro', '🧠 Smart Pro', 'Maximum intelligence — HuggingFace Llama Vision for complex analysis and image understanding', 'cost * 3.0', 0.00000055, 0.00000219, 'meta-llama/Llama-3.2-11B-Vision-Instruct');
+      .run('smart', '🧠 Smart', 'DeepSeek Pro — advanced reasoning for complex tasks', 'cost * 2.8', 0.00000040, 0.0000015, 'deepseek-chat');
+    db.prepare(`INSERT INTO pricing_modes (mode, display_name, description, markup_formula, input_token_base_cost, output_token_base_cost, model_id) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+      .run('pro', '💎 Pro', 'DeepSeek Pro — maximum quality for your hardest challenges', 'cost * 3.0', 0.00000055, 0.00000219, 'deepseek-chat');
   }
 
   // Update existing mode configs to current defaults (modes_v2_seeded flag)
@@ -293,6 +295,61 @@ function seedData(db: Database.Database): void {
     db.prepare(`UPDATE pricing_modes SET display_name=?, description=?, model_id=?, input_token_base_cost=?, output_token_base_cost=? WHERE mode='pro'`)
       .run('🧠 Smart Pro', 'Maximum intelligence — HuggingFace Llama Vision for complex analysis and image understanding', 'meta-llama/Llama-3.2-11B-Vision-Instruct', 0.00000055, 0.00000219);
     db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('modes_v2_seeded', 'true')").run();
+  }
+
+  // ── v4: Configure modes per user preference ──────────────────────────
+  // Free  → Groq (llama-3.3-70b-versatile) — fast for simple tasks
+  // Fast  → DeepSeek (deepseek-chat) — reliable coding assistant
+  // Smart → DeepSeek (deepseek-chat) — advanced reasoning
+  // Pro   → DeepSeek (deepseek-chat) — maximum quality
+  const modesV4 = db.prepare("SELECT value FROM app_settings WHERE key='modes_v4_models'").get();
+  if (!modesV4) {
+    // Insert smart mode if it doesn't exist (wasn't in original seed)
+    const smartExists = db.prepare("SELECT COUNT(*) as c FROM pricing_modes WHERE mode = 'smart'").get() as { c: number };
+    if (smartExists.c === 0) {
+      db.prepare(`INSERT INTO pricing_modes (mode, display_name, description, markup_formula, input_token_base_cost, output_token_base_cost, model_id) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+        .run('smart', '🧠 Smart', 'DeepSeek Pro — advanced reasoning for complex tasks', 'cost * 2.8', 0.00000040, 0.0000015, 'deepseek-chat');
+    }
+    // Update pricing_modes model_ids
+    db.prepare(`UPDATE pricing_modes SET model_id = ? WHERE mode = 'free'`).run('llama-3.3-70b-versatile');
+    db.prepare(`UPDATE pricing_modes SET model_id = ? WHERE mode = 'fast'`).run('deepseek-chat');
+    db.prepare(`UPDATE pricing_modes SET model_id = ? WHERE mode = 'smart'`).run('deepseek-chat');
+    db.prepare(`UPDATE pricing_modes SET model_id = ? WHERE mode = 'pro'`).run('deepseek-chat');
+    // Update API key model overrides
+    db.prepare(`UPDATE api_keys SET model_id_override = 'llama-3.3-70b-versatile' WHERE mode = 'free'`).run();
+    db.prepare(`UPDATE api_keys SET model_id_override = 'deepseek-chat' WHERE mode = 'fast'`).run();
+    db.prepare(`UPDATE api_keys SET model_id_override = 'deepseek-chat' WHERE mode = 'smart'`).run();
+    db.prepare(`UPDATE api_keys SET model_id_override = 'deepseek-chat' WHERE mode = 'pro'`).run();
+    // Add DeepSeek as primary provider for fast/smart/pro modes
+    const deepseekKey = process.env.SUNY_DEEPSEEK_KEY;
+    if (deepseekKey) {
+      db.prepare(`INSERT OR REPLACE INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
+        .run('DeepSeek', deepseekKey, 'fast', '🚀 Fast – DeepSeek V3', 1, 'deepseek-chat');
+      db.prepare(`INSERT OR REPLACE INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
+        .run('DeepSeek', deepseekKey, 'smart', '🧠 Smart – DeepSeek Pro', 1, 'deepseek-chat');
+      db.prepare(`INSERT OR REPLACE INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
+        .run('DeepSeek', deepseekKey, 'pro', '💎 Pro – DeepSeek Pro', 1, 'deepseek-chat');
+      // Free mode uses Groq, but also register DeepSeek as fallback
+      db.prepare(`INSERT OR REPLACE INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
+        .run('DeepSeek', deepseekKey, 'free', '⚡ Free – DeepSeek (fallback)', 2, 'deepseek-chat');
+    }
+    // Ensure Groq is the primary provider for free mode
+    const groqKey = process.env.SUNY_GROQ_KEY;
+    if (groqKey) {
+      db.prepare(`INSERT OR REPLACE INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
+        .run('Groq', groqKey, 'free', '⚡ Free – Groq', 1, 'llama-3.3-70b-versatile');
+    }
+    // Update display names and descriptions
+    db.prepare(`UPDATE pricing_modes SET display_name = ?, description = ? WHERE mode = 'free'`)
+      .run('⚡ Free', 'Groq Llama 3.3 70B — lightning fast for quick tasks');
+    db.prepare(`UPDATE pricing_modes SET display_name = ?, description = ? WHERE mode = 'fast'`)
+      .run('🚀 Fast', 'DeepSeek V3 — reliable, excellent instruction following for everyday coding');
+    db.prepare(`UPDATE pricing_modes SET display_name = ?, description = ? WHERE mode = 'smart'`)
+      .run('🧠 Smart', 'DeepSeek Pro — advanced reasoning for complex tasks');
+    db.prepare(`UPDATE pricing_modes SET display_name = ?, description = ? WHERE mode = 'pro'`)
+      .run('💎 Pro', 'DeepSeek Pro — maximum quality for your hardest challenges');
+    db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('modes_v4_models', 'true')").run();
+    console.log('[db] Configured modes: Free=Groq, Fast/Smart/Pro=DeepSeek (v4)');
   }
 
   // Clean mode descriptions (modes_v3_descriptions flag)
@@ -312,21 +369,22 @@ function seedData(db: Database.Database): void {
   if (!keysSeeded) {
     db.prepare('DELETE FROM api_keys').run();
     const groqKey = process.env.SUNY_GROQ_KEY;
-    const openrouterKey = process.env.SUNY_OPENROUTER_KEY;
+    const deepseekKey = process.env.SUNY_DEEPSEEK_KEY;
+    // Free → Groq (primary). Fast/Smart/Pro → DeepSeek.
     if (groqKey) {
       db.prepare(`INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
-        .run('Groq', groqKey, 'free', '⚡ Free Mode – Groq', 1, 'llama-3.3-70b-versatile');
+        .run('Groq', groqKey, 'free', '⚡ Free – Groq (default)', 1, 'llama-3.3-70b-versatile');
     }
-    if (openrouterKey) {
+    if (deepseekKey) {
       db.prepare(`INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
-        .run('OpenRouter', openrouterKey, 'fast', '🚀 Fast Mode – OpenRouter Llama Vision', 1, 'meta-llama/llama-3.2-11b-vision-instruct:free');
+        .run('DeepSeek', deepseekKey, 'fast', '🚀 Fast – DeepSeek V3', 1, 'deepseek-chat');
       db.prepare(`INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
-        .run('OpenRouter', openrouterKey, 'pro', '🧠 Pro Mode – OpenRouter (fallback)', 2, 'meta-llama/llama-3.2-11b-vision-instruct:free');
-    }
-    const huggingfaceKey = process.env.SUNY_HUGGINGFACE_KEY;
-    if (huggingfaceKey) {
+        .run('DeepSeek', deepseekKey, 'smart', '🧠 Smart – DeepSeek Pro', 1, 'deepseek-chat');
       db.prepare(`INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
-        .run('HuggingFace', huggingfaceKey, 'pro', '🧠 Pro Mode – HuggingFace Llama Vision', 1, 'meta-llama/Llama-3.2-11B-Vision-Instruct');
+        .run('DeepSeek', deepseekKey, 'pro', '💎 Pro – DeepSeek Pro', 1, 'deepseek-chat');
+      // DeepSeek as fallback for free in case Groq fails
+      db.prepare(`INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
+        .run('DeepSeek', deepseekKey, 'free', '⚡ Free – DeepSeek (fallback)', 2, 'deepseek-chat');
     }
     db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('default_keys_seeded', 'true')").run();
   }

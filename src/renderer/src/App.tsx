@@ -35,13 +35,14 @@ function AppRoutes() {
   useEffect(() => { checkAuth(); }, []);
 
   async function checkAuth() {
-    // Check user auth
+    // Check user auth — also detects admin via jwt role
     const res = await fetch('/api/me', { credentials: 'include' });
     if (res.ok) {
-      setAuth('user');
+      const data = await res.json().catch(() => ({}));
+      setAuth(data.role === 'admin' ? 'admin' : 'user');
       return;
     }
-    // Check admin auth
+    // Check admin auth (fallback for legacy admin login)
     const adminRes = await fetch('/admin/me', { credentials: 'include' });
     if (adminRes.ok) {
       setAuth('admin');
@@ -73,7 +74,7 @@ function AppRoutes() {
   return (
     <Routes>
       {/* Public */}
-      <Route path="/login" element={auth === 'none' ? <Login onLogin={() => { setAuth('user'); navigate('/'); }} /> : <Navigate to={auth === 'admin' ? '/admin/users' : '/'} />} />
+      <Route path="/login" element={auth === 'none' ? <Login onLogin={() => { checkAuth(); }} /> : <Navigate to={auth === 'admin' ? '/admin/users' : '/'} />} />
       <Route path="/about" element={<About />} />
       <Route path="/what-is-suny" element={<WhatIsSUNy />} />
       <Route path="/contact" element={<ContactUs />} />
