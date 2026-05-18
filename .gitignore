@@ -36,3 +36,7 @@ scripts/
 suny-vps.env
 cleanup-*.*
 vps-cleanup*
+
+# Backup archives (too large for GitHub)
+backups/
+dist.zip
