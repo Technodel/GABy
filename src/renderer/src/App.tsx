@@ -14,6 +14,8 @@ import AdminPricing from './pages/AdminPricing';
 import AdminUsageStats from './pages/AdminUsageStats';
 import AdminSettings from './pages/AdminSettings';
 import AdminContactInfo from './pages/AdminContactInfo';
+import AdminFeatureFlags from './pages/AdminFeatureFlags';
+import PricingPlans from './pages/PricingPlans';
 
 type AuthState = 'loading' | 'user' | 'admin' | 'none';
 
@@ -71,10 +73,12 @@ function AppRoutes() {
   return (
     <Routes>
       {/* Public */}
-      <Route path="/login" element={auth === 'none' ? <Login onLogin={(role) => { setAuth(role as AuthState); navigate(role === 'admin' ? '/admin/users' : '/'); }} /> : <Navigate to={auth === 'admin' ? '/admin/users' : '/'} />} />
+      <Route path="/login" element={auth === 'none' ? <Login onLogin={() => { setAuth('user'); navigate('/'); }} /> : <Navigate to={auth === 'admin' ? '/admin/users' : '/'} />} />
       <Route path="/about" element={<About />} />
       <Route path="/what-is-suny" element={<WhatIsSUNy />} />
       <Route path="/contact" element={<ContactUs />} />
+      <Route path="/pricing" element={<PricingPlans />} />
+      <Route path="/plans" element={<PricingPlans />} />
 
       {/* User routes */}
       <Route path="/" element={
@@ -102,6 +106,7 @@ function AppRoutes() {
         <Route path="usage" element={<AdminUsageStats />} />
         <Route path="settings" element={<AdminSettings />} />
         <Route path="contact" element={<AdminContactInfo />} />
+        <Route path="feature-flags" element={<AdminFeatureFlags />} />
       </Route>
 
       {/* Fallback */}

@@ -1,10 +1,19 @@
 import WebSocket from 'ws';
 import { handleExec } from './executor';
 import { registerPath } from './config';
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
 
 const HEARTBEAT_INTERVAL = 30000;
 const RECONNECT_DELAY = 5000;
 const MAX_RECONNECT_DELAY = 60000;
+/** Seconds between token-refresh poll attempts after expiry */
+const TOKEN_REFRESH_POLL_INTERVAL = 30_000;
+/** How many poll attempts before giving up (30s × 10 = 5 min) */
+const TOKEN_REFRESH_MAX_ATTEMPTS = 10;
+/** File path where a new token can be written for auto-pick-up */
+const TOKEN_REFRESH_FILE = path.join(os.homedir(), '.gaby', 'refresh_token');
 
 export class SunyBridge {
   private ws: WebSocket | null = null;
@@ -14,6 +23,10 @@ export class SunyBridge {
   private reconnectTimer: NodeJS.Timeout | null = null;
   private reconnectDelay = RECONNECT_DELAY;
   private stopped = false;
+  /** Whether we are currently in the "waiting for a new token" recovery phase */
+  private awaitingTokenRefresh = false;
+  private tokenRefreshAttempts = 0;
+  private tokenRefreshTimer: NodeJS.Timeout | null = null;
 
   constructor(token: string, server: string) {
     this.token = token;
@@ -31,6 +44,25 @@ export class SunyBridge {
     if (this.ws) {
       this.ws.close();
       this.ws = null;
+    }
+  }
+
+  /**
+   * Update the token at runtime (e.g. after browser re-auth).
+   * Stops any ongoing token-refresh polling and reconnects with the new token.
+   */
+  updateToken(newToken: string): void {
+    this.token = newToken;
+    this.awaitingTokenRefresh = false;
+    this.tokenRefreshAttempts = 0;
+    if (this.tokenRefreshTimer) {
+      clearTimeout(this.tokenRefreshTimer);
+      this.tokenRefreshTimer = null;
+    }
+    // Reconnect immediately with new token
+    if (!this.stopped) {
+      this.reconnectDelay = RECONNECT_DELAY;
+      this.connect();
     }
   }
 
@@ -58,11 +90,14 @@ export class SunyBridge {
     this.ws.on('close', (code, reason) => {
       this.clearTimers();
       if (code === 4001) {
-        console.error('[SUNy Bridge] Authentication failed. Please check your token.');
-        if (reason.toString().includes('expired')) {
-          this.openBrowserForReauth();
+        const reasonStr = reason.toString();
+        console.error('[SUNy Bridge] Authentication failed (code 4001).');
+        if (reasonStr.includes('expired')) {
+          this.startTokenRefreshFlow();
+        } else {
+          console.error('[SUNy Bridge] Token is invalid. Generate a new token from the admin panel and restart the bridge.');
         }
-        // Don't reconnect on auth failure
+        // Don't schedule normal reconnect — token-refresh flow handles it
         return;
       }
       if (!this.stopped) {
@@ -98,8 +133,8 @@ export class SunyBridge {
     }
 
     if (type === 'bridge:token_expired') {
-      console.log('[SUNy Bridge] Session expired. Please log in again.');
-      this.openBrowserForReauth();
+      console.log('[SUNy Bridge] Session token expired.');
+      this.startTokenRefreshFlow();
       return;
     }
 
@@ -147,6 +182,7 @@ export class SunyBridge {
   private clearTimers(): void {
     if (this.heartbeatTimer) { clearInterval(this.heartbeatTimer); this.heartbeatTimer = null; }
     if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }
+    if (this.tokenRefreshTimer) { clearTimeout(this.tokenRefreshTimer); this.tokenRefreshTimer = null; }
   }
 
   private openBrowserForReauth(): void {
@@ -163,4 +199,89 @@ export class SunyBridge {
       // ignore if browser open fails
     }
   }
-}
+
+  /**
+   * Called when the token is detected as expired.
+   * Opens the browser for re-auth AND starts polling for a new token so the
+   * bridge can resume automatically without requiring a manual restart.
+   *
+   * New token pick-up priority:
+   *  1. `~/.gaby/refresh_token` file content (trimmed)
+   *  2. `SUNY_TOKEN` environment variable (if changed externally)
+   */
+  private startTokenRefreshFlow(): void {
+    if (this.awaitingTokenRefresh) return; // already in progress
+    this.awaitingTokenRefresh = true;
+    this.tokenRefreshAttempts = 0;
+
+    const loginUrl = this.server.replace(/^wss?:\/\//, 'https://').replace('/bridge', '/login');
+    console.log('[SUNy Bridge] ──────────────────────────────────────────');
+    console.log('[SUNy Bridge] Session expired.  To reconnect:');
+    console.log('[SUNy Bridge]');
+    console.log(`[SUNy Bridge]   1. Visit: ${loginUrl}`);
+    console.log('[SUNy Bridge]   2. Log in and copy your bridge token.');
+    console.log(`[SUNy Bridge]   3. Write the new token to: ${TOKEN_REFRESH_FILE}`);
+    console.log('[SUNy Bridge]      e.g.  echo "YOUR_TOKEN" > ~/.gaby/refresh_token');
+    console.log('[SUNy Bridge]      OR restart the bridge with the new token flag.');
+    console.log('[SUNy Bridge]');
+    console.log(`[SUNy Bridge] Checking for new token every ${TOKEN_REFRESH_POLL_INTERVAL / 1000}s ` +
+      `(${TOKEN_REFRESH_MAX_ATTEMPTS} attempts / ~${Math.round(TOKEN_REFRESH_MAX_ATTEMPTS * TOKEN_REFRESH_POLL_INTERVAL / 60000)} min)...`);
+    console.log('[SUNy Bridge] ──────────────────────────────────────────');
+
+    this.openBrowserForReauth();
+    this.scheduleTokenRefreshPoll();
+  }
+
+  private scheduleTokenRefreshPoll(): void {
+    if (this.stopped) return;
+    this.tokenRefreshTimer = setTimeout(() => this.pollForNewToken(), TOKEN_REFRESH_POLL_INTERVAL);
+  }
+
+  private pollForNewToken(): void {
+    if (this.stopped) return;
+    this.tokenRefreshAttempts++;
+
+    // 1. Check token refresh file
+    let candidateToken: string | null = null;
+    try {
+      if (fs.existsSync(TOKEN_REFRESH_FILE)) {
+        const content = fs.readFileSync(TOKEN_REFRESH_FILE, 'utf8').trim();
+        if (content && content !== this.token && content.length > 10) {
+          candidateToken = content;
+          // Remove the file so we don't pick it up again
+          fs.unlinkSync(TOKEN_REFRESH_FILE);
+          console.log(`[SUNy Bridge] New token found in ${TOKEN_REFRESH_FILE} — reconnecting...`);
+        }
+      }
+    } catch { /* ignore fs errors */ }
+
+    // 2. Check SUNY_TOKEN env var (user may have set it externally)
+    if (!candidateToken) {
+      const envToken = process.env.SUNY_TOKEN;
+      if (envToken && envToken !== this.token && envToken.length > 10) {
+        candidateToken = envToken;
+        console.log('[SUNy Bridge] New token found in SUNY_TOKEN env var — reconnecting...');
+      }
+    }
+
+    if (candidateToken) {
+      this.awaitingTokenRefresh = false;
+      this.token = candidateToken;
+      this.reconnectDelay = RECONNECT_DELAY;
+      this.connect();
+      return;
+    }
+
+    if (this.tokenRefreshAttempts >= TOKEN_REFRESH_MAX_ATTEMPTS) {
+      console.error('[SUNy Bridge] Token refresh timed out after ' +
+        `${TOKEN_REFRESH_MAX_ATTEMPTS} attempts. ` +
+        'Please restart the bridge manually with a new token.');
+      this.awaitingTokenRefresh = false;
+      return;
+    }
+
+    // Keep polling
+    const remaining = TOKEN_REFRESH_MAX_ATTEMPTS - this.tokenRefreshAttempts;
+    console.log(`[SUNy Bridge] Waiting for new token... (${remaining} attempts left)`);
+    this.scheduleTokenRefreshPoll();
+  }

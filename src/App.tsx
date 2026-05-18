@@ -63,7 +63,7 @@ function AppRoutes() {
   return (
     <Routes>
       {/* Public */}
-      <Route path="/login" element={auth === 'none' ? <Login onLogin={(role) => { setAuth(role as AuthState); navigate(role === 'admin' ? '/admin/users' : '/'); }} /> : <Navigate to={auth === 'admin' ? '/admin/users' : '/'} />} />
+      <Route path="/login" element={auth === 'none' ? <Login onLogin={(_role) => { setAuth('user'); navigate('/'); }} /> : <Navigate to={auth === 'admin' ? '/admin/users' : '/'} />} />
       <Route path="/about" element={<About />} />
       <Route path="/contact" element={<ContactUs />} />
       <Route path="/pricing" element={<PricingPlans />} />

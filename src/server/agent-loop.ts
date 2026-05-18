@@ -33,6 +33,7 @@ import { runLint } from './lint-runner';
 import { runTests, runFailingTests, buildTestFixPrompt } from './test-runner';
 import { pickRandom } from './personality';
 import { narrateMessage } from './narrator';
+import { LoopDetector } from './loop-detector';
 import {
   selectStrategies, launchHypothesis, completeHypothesis,
 } from './hypothesis-engine';
@@ -103,6 +104,17 @@ function buildAnthropicCachedMessages(
   });
 
   return { messages: [systemMsg, ...tagged], useSystemParam: false };
+}
+
+// Per-user LoopDetector instances — each user gets their own to avoid cross-user contamination
+const loopDetectors = new Map<number, LoopDetector>();
+function getLoopDetector(userId: number): LoopDetector {
+  let detector = loopDetectors.get(userId);
+  if (!detector) {
+    detector = new LoopDetector();
+    loopDetectors.set(userId, detector);
+  }
+  return detector;
 }
 
 const MAX_STEPS = 8;
@@ -176,7 +188,7 @@ function classifyAutoMode(message: string): 'free' | 'fast' | 'smart' | 'pro' {
 }
 
 export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResult> {
-  const { userId, mode, systemPrompt, projectPath, history, userMessage, imageData, sessionId, talkMode, signal, onChunk } = req;
+  const { userId, mode, systemPrompt, projectId, projectPath, history, userMessage, imageData, sessionId, talkMode, signal, onChunk } = req;
   const startedAt = Date.now();
 
   // Resolve AUTO → real mode via keyword classification
@@ -293,11 +305,22 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
         signal,
         onToolCall: (name, input) => {
           toolCallNames.add(name);
+          const loopReport = getLoopDetector(userId).recordToolCall(name, typeof input === 'string' ? { raw: input } : input);
+          if (loopReport?.detected) {
+            console.warn(`[agent-loop] LOOP DETECTED: ${loopReport.message}`);
+            userClientManager.pushToUser(userId, 'suny:narration', {
+              message: narrateMessage(loopReport.message, 'error'),
+            });
+          }
           console.log(`[agent-loop] tool call: ${name}`, input);
           userClientManager.pushToUser(userId, 'suny:tool_call', { tool: name, input });
         },
         onFileChanged: (absPath) => {
           changedFiles.add(absPath);
+          if (projectPath) invalidateRepoMap(userId, projectPath);
+        },
+        onFileDeleted: (absPath) => {
+          changedFiles.delete(absPath);
           if (projectPath) invalidateRepoMap(userId, projectPath);
         },
       });
@@ -355,7 +378,6 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
     try {
       const strategies = selectStrategies(userMessage);
       if (strategies.length >= 2) {
-        const { generateText: gt } = await import('ai');
         const primaryModel = modelEntries[0].model as LanguageModel;
         const strategyPrompts: Record<string, string> = {
           direct_edit: '\n\n<strategy>Use targeted edits to existing files. Make minimal, precise changes.</strategy>',
@@ -368,7 +390,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
           const hypId = launchHypothesis({ userId, projectId: projectId!, problem: userMessage.slice(0, 200), strategy });
           const hypSys = `${fullSystem}${strategyPrompts[strategy] || ''}`;
           const hypMsgs = [...rawMessages.slice(-4)];
-          const result = await gt({ model: primaryModel, system: hypSys, messages: hypMsgs, maxTokens: 800, abortSignal: signal });
+          const result = await generateText({ model: primaryModel, system: hypSys, messages: hypMsgs, maxTokens: 800, abortSignal: signal });
           const text = result.text?.trim() || '';
           // Quality-based scoring: +40 test pass mention, +30 code block, +20 concise, -20 error keywords
           let score = 0;
@@ -466,6 +488,13 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
         if (onChunk) onChunk(delta);
       }
 
+      // ── Loop detection: if AI was stuck in a loop, inject self-correction ──
+      if (getLoopDetector(userId).isLoopReported) {
+        const loopMsg = '\n\n[SYSTEM: You were stuck in a repetitive loop. Step back, stop repeating yourself, and try a completely different approach. If you were reading the same files, stop — you already have the information you need.]\n\n';
+        fullText = loopMsg + fullText;
+        getLoopDetector(userId).rearm();
+      }
+
       // Collect final usage
       const usage = await result.usage;
       totalInput += usage.inputTokens;
@@ -539,6 +568,76 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
           totalInput += assessResult.usage?.inputTokens ?? 0;
           totalOutput += assessResult.usage?.outputTokens ?? 0;
           console.log(`[confidence] Self-assessed: ${(confidence * 100).toFixed(0)}% (${uncertainties.length} uncertainties)`);
+
+          // ── Low-Confidence Self-Revision (PRO mode) ────────────────────
+          // When the model self-reports low confidence, give it one shot to
+          // revise before proceeding to lint/test/architect.  This addresses
+          // the "first draft vs second draft" accuracy gap at minimal cost:
+          // roughly +15-25% tokens for ~20% of PRO requests.
+          if (
+            confidence < 0.8 &&
+            uncertainties.length > 1 &&
+            resolvedMode === 'pro' &&
+            projectPath &&
+            fullText.length > 100
+          ) {
+            try {
+              userClientManager.pushNarration(userId, 'Reviewing for accuracy...');
+
+              const revisionMsg: CoreMessage = {
+                role: 'user',
+                content:
+                  `You flagged uncertainty about: ${uncertainties.join('; ')}.\n\n` +
+                  `Review your own response above — not the question, but what you wrote.\n` +
+                  `Fix any inaccuracies, fill edge-case gaps, and output ONLY the corrected version.\n` +
+                  `Do not re-explain. Do not add fluff. Just the corrected response.`,
+              };
+
+              const revIn: CoreMessage[] = [
+                ...messages,
+                { role: 'assistant' as const, content: fullText },
+                revisionMsg,
+              ];
+
+              const { messages: revMsgs, useSystemParam: revUse } = useAnthropicCache
+                ? buildAnthropicCachedMessages(trimHistory(revIn, fullSystem, provider), fullSystem)
+                : { messages: trimHistory(revIn, fullSystem, provider), useSystemParam: true as const };
+
+              userClientManager.pushToUser(userId, 'suny:stream_start', {});
+
+              const revResult = streamText({
+                model: model as LanguageModel,
+                system: revUse ? fullSystem : undefined,
+                messages: revMsgs,
+                // No tools — this is a pure text refinement pass
+                maxSteps: 1,
+                abortSignal: signal,
+                onStepFinish: ({ usage }) => {
+                  steps++;
+                  totalInput += usage?.inputTokens ?? 0;
+                  totalOutput += usage?.outputTokens ?? 0;
+                },
+                experimental_telemetry: { isEnabled: false },
+              });
+
+              let revText = '';
+              for await (const delta of revResult.textStream) {
+                revText += delta;
+                if (onChunk) onChunk(delta);
+              }
+
+              const revUsage = await revResult.usage;
+              totalInput += revUsage.inputTokens;
+              totalOutput += revUsage.outputTokens;
+
+              if (revText.trim()) {
+                fullText = revText;
+                console.log(`[agent-loop] Self-revision applied (confidence was ${(confidence * 100).toFixed(0)}%, ${uncertainties.length} concerns)`);
+              }
+            } catch (revErr) {
+              console.warn('[agent-loop] Self-revision failed:', (revErr as Error).message);
+            }
+          }
         } catch (cErr) {
           console.warn('[confidence] Assessment failed:', (cErr as Error).message);
         }

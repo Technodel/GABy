@@ -16,8 +16,8 @@ const HOST = 'https://suny.technodel.tech';
 const WS_HOST = 'wss://suny.technodel.tech';
 const USERNAME = 'testbench';
 const PASSWORD = 'testbench123';
-const CONCURRENCY = 3; // max parallel WS connections
-const DELAY_BETWEEN = 1500; // ms between test batches
+const CONCURRENCY = 8; // max parallel WS connections
+const DELAY_BETWEEN = 500; // ms between test batches
 
 // ── Scoring axes ──────────────────────────────────────────────────────────
 const AXES = {
@@ -950,10 +950,17 @@ function buildTests() {
 const TEST_SUITE = buildTests();
 console.log(`Built ${TEST_SUITE.length} tests across 20 categories.`);
 
+// Save partial results — never lose progress on crash
+function savePartialResults(summary_, axisScores_, categoryStats_, testResults_) {
+  fs.writeFileSync('suny-test-results-partial.json', JSON.stringify({
+    summary: summary_, axisScores: axisScores_, categoryStats: categoryStats_, results: testResults_,
+  }, null, 2));
+}
+
 // ── Run Tests ─────────────────────────────────────────────────────────────
 async function runTests() {
   console.log('\n╔══════════════════════════════════════════════════════╗');
-  console.log('║     SUNy Behavioral Test Suite v2 — 500 tests     ║');
+  console.log('║     SUNy Behavioral Test Suite v2 — 575 tests     ║');
   console.log('╚══════════════════════════════════════════════════════╝\n');
 
   // Login
@@ -1028,6 +1035,14 @@ async function runTests() {
       console.log(`${status} [${total}/${TEST_SUITE.length}] ${test.category.padEnd(18)} "${test.prompt.substring(0, 40)}" → ${avgScore.toFixed(1)}/10${details}`);
 
       // Progress every 100 tests
+      // Save partial results every 50 tests
+      if (total % 50 === 0) {
+        savePartialResults(
+          { total, passing, failing, nonAnswers, timeouts, passRate: total > 0 ? (passing/total*100).toFixed(1) : '0' },
+          axisScores, categoryStats, testResults
+        );
+      }
+
       if (total % 100 === 0) {
         const elapsed = ((Date.now() - startTime) / 1000 / 60).toFixed(1);
         console.log(`\n  ── Progress: ${total}/${TEST_SUITE.length} (${(total/TEST_SUITE.length*100).toFixed(0)}%) | ${elapsed}min elapsed | ${passing} passing, ${failing} failing ──\n`);
@@ -1097,7 +1112,21 @@ async function runTests() {
   console.log('\nResults saved to suny-test-results.json');
 }
 
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled rejection:', err);
+  // Don't exit immediately — let the main loop continue if possible
+});
+
 runTests().catch(err => {
   console.error('Fatal error:', err);
+  // Try to save whatever we have before dying
+  try {
+    if (typeof testResults !== 'undefined' && testResults.length > 0) {
+      savePartialResults(
+        { total: testResults.length, passing: 0, failing: testResults.length, nonAnswers: 0, timeouts: 0, passRate: '0' },
+        {}, {}, testResults
+      );
+    }
+  } catch {}
   process.exit(1);
 });

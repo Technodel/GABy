@@ -150,9 +150,13 @@ router.post('/activate', (req: Request, res: Response) => {
     "UPDATE bridge_setup_codes SET status = 'redeemed', redeemed_at = datetime('now') WHERE id = ?",
   ).run(record.id);
 
+  // Look up username for the token payload
+  const userRecord = db.prepare('SELECT username FROM users WHERE id = ?').get(record.user_id) as { username: string } | undefined;
+  const username = userRecord?.username || 'unknown';
+
   // Generate a scoped bridge token (valid for 30 days)
   const bridgeToken = signToken(
-    { id: record.user_id, role: 'user' },
+    { id: record.user_id, username, role: 'user' },
     '30d',
   );
 

@@ -62,10 +62,12 @@ export interface PowerToolContext {
   onToolCall?: (name: string, input: unknown) => void;
   /** Called with the absolute path whenever a file is written or edited. */
   onFileChanged?: (absolutePath: string) => void;
+  /** Called with the absolute path whenever a file is deleted. */
+  onFileDeleted?: (absolutePath: string) => void;
 }
 
 export function createPowerTools(ctx: PowerToolContext): ToolSet {
-  const { userId, projectPath, signal, onToolCall, onFileChanged } = ctx;
+  const { userId, projectPath, signal, onToolCall, onFileChanged, onFileDeleted } = ctx;
 
   const notify = (name: string, input: unknown) => onToolCall?.(name, input);
 
@@ -250,6 +252,25 @@ Modes: 'create_only' (fail if exists), 'overwrite' (replace or create), 'append'
     },
   });
 
+  // file_delete
+  const fileDeleteTool = tool({
+    description: 'Delete a file or empty directory. Use with extreme caution — this is irreversible.',
+    inputSchema: z.object({
+      filePath: z.string().describe('Path to the file or directory to delete (relative to WorkingDirectory or absolute).'),
+    }),
+    execute: async (input) => {
+      notify('file_delete', input);
+      const abs = resolvePath(input.filePath, projectPath);
+      try {
+        await sendToBridge(userId, 'exec:delete_file', { path: abs }, 30000);
+        onFileDeleted?.(abs);
+        return `Successfully deleted '${input.filePath}'.`;
+      } catch (e) {
+        return `Error deleting '${input.filePath}': ${e instanceof Error ? e.message : String(e)}`;
+      }
+    },
+  });
+
   // glob -- list files matching a pattern
   const globTool = tool({
     description: 'Find files matching a glob pattern (e.g. src/**/*.ts, *.md).',
@@ -337,7 +358,7 @@ console.log(JSON.stringify(results));`.replace(/\n/g, ' ');
     },
   });
 
-  return { file_read: fileReadTool, file_edit: fileEditTool, file_write: fileWriteTool,
+  return { file_read: fileReadTool, file_edit: fileEditTool, file_write: fileWriteTool, file_delete: fileDeleteTool,
     list_dir: listDirTool, mkdir: mkdirTool, path_exists: pathExistsTool,
     bash: bashTool, glob: globTool, grep: grepTool };
 }

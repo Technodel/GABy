@@ -1,7 +1,7 @@
 ﻿import { useState, useEffect } from 'react';
 
 interface LoginProps {
-  onLogin: (role: 'admin' | 'user') => void;
+  onLogin: (role: 'user') => void;
 }
 
 interface PricingMode {
@@ -28,7 +28,7 @@ function fmtCost(cost: number): string {
 }
 
 export default function Login({ onLogin }: LoginProps) {
-  const [tab, setTab] = useState<'user' | 'admin' | 'signup'>('user');
+  const [tab, setTab] = useState<'user' | 'signup'>('user');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [signupUsername, setSignupUsername] = useState('');
@@ -66,8 +66,8 @@ export default function Login({ onLogin }: LoginProps) {
       return;
     }
 
-    const endpoint = tab === 'admin' ? '/admin/login' : '/api/login';
-    const body = tab === 'admin' ? { password } : { username, password };
+    const endpoint = '/api/login';
+    const body = { username, password };
     try {
       const res = await fetch(endpoint, {
         method: 'POST', credentials: 'include',
@@ -76,7 +76,7 @@ export default function Login({ onLogin }: LoginProps) {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        onLogin(tab === 'admin' ? 'admin' : 'user');
+        onLogin('user');
       } else {
         setError(data.error || 'Something went wrong. Please try again.');
       }
@@ -149,14 +149,14 @@ export default function Login({ onLogin }: LoginProps) {
         <div style={{ width: 360, flexShrink: 0 }}>
           <div className="card">
             <div style={{ display: 'flex', marginBottom: 20, borderBottom: '1px solid var(--border)' }}>
-              {(['user', 'signup', 'admin'] as const).map(t => (
+              {(['user', 'signup'] as const).map(t => (
                 <button key={t} onClick={() => { setTab(t); setError(''); }}
                   style={{ flex: 1, padding: '8px 0', background: 'none', border: 'none',
                     borderBottom: `2px solid ${tab === t ? 'var(--accent)' : 'transparent'}`,
                     color: tab === t ? 'var(--accent)' : 'var(--text-muted)',
                     fontWeight: 500, cursor: 'pointer', fontSize: 13, fontFamily: 'inherit',
                     transition: 'all 0.15s', marginBottom: -1 }}>
-                  {t === 'user' ? 'Sign In' : t === 'signup' ? 'Sign Up' : 'Admin'}
+                  {t === 'user' ? 'Sign In' : 'Sign Up'}
                 </button>
               ))}
             </div>
@@ -190,11 +190,11 @@ export default function Login({ onLogin }: LoginProps) {
                     placeholder="Your username" autoComplete="username" required />
                 </div>
               )}
-              {(tab === 'user' || tab === 'admin') && (
+              {tab === 'user' && (
                 <div style={{ marginBottom: 20 }}>
                   <label style={{ display: 'block', marginBottom: 6, fontSize: 13, color: 'var(--text-secondary)' }}>Password</label>
                   <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-                    placeholder={tab === 'admin' ? 'Admin password' : 'Your password'} autoComplete="current-password" required />
+                    placeholder="Your password" autoComplete="current-password" required />
                 </div>
               )}
               {error && (

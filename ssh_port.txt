@@ -1,0 +1,10 @@
+LISTEN 0      511                *:4242             *:*    users:(("node",pid=1330,fd=26))                                                   
+LISTEN 0      511                *:3500             *:*    users:(("node",pid=935618,fd=31))                                                 
+LISTEN 0      511                *:3006             *:*    users:(("node /var/www/g",pid=193079,fd=19))                                      
+LISTEN 0      511                *:3005             *:*    users:(("node /var/www/g",pid=1368,fd=20))                                        
+---
+import 'dotenv/config';
+import express, { type NextFunction, type Request, type Response } from 'express';
+import http from 'http';
+import path from 'path';
+import cookieParser from 'cookie-parser';

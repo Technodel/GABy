@@ -1,0 +1,47 @@
+server {
+    server_name technodel.net www.technodel.net;
+    root /var/www/technodel.net/public_html;
+    index index.php index.html index.htm;
+
+    # Serve existing uploads normally; fallback to a valid local image if missing.
+    location ^~ /wp-content/uploads/ {
+        try_files $uri /wp-content/uploads/2023/10/logo-mobile-01.png;
+        expires 1h;
+        add_header Cache-Control "public";
+    }
+
+    location / {
+        try_files $uri $uri/ /index.php?$args;
+    }
+
+    location ~ \.php$ {
+        include snippets/fastcgi-php.conf;
+        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+
+    location ~ /\.ht {
+        deny all;
+    }
+
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/technodel.net/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/technodel.net/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+}
+
+server {
+    if ($host = www.technodel.net) {
+        return 301 https://$host$request_uri;
+    }
+
+    if ($host = technodel.net) {
+        return 301 https://$host$request_uri;
+    }
+
+    listen 80;
+    server_name technodel.net www.technodel.net;
+    return 404; # managed by Certbot
+}

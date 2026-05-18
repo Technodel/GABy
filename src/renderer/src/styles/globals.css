@@ -315,9 +315,32 @@ h1, h2, h3, h4, h5, h6 {
 /* RTL support */
 [dir="rtl"] { font-family: 'Noto Sans Arabic', 'Inter', sans-serif; }
 
-/* ── Mobile responsive ────────────────────────────────────────────────────── */
+/* ── Responsive layout ────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .modal {
+    max-width: calc(100vw - 24px);
+  }
+
+  .btn {
+    text-transform: none;
+  }
+}
+
 @media (max-width: 768px) {
-  /* ── Sidebar collapses to overlay drawer ── */
+  /* General */
+  body {
+    font-size: 13.5px;
+  }
+
+  .card {
+    padding: 12px !important;
+  }
+
+  .btn {
+    min-height: 38px;
+  }
+
+  /* Sidebar collapses to overlay drawer */
   .sidebar {
     position: fixed !important;
     left: -100% !important;
@@ -329,11 +352,11 @@ h1, h2, h3, h4, h5, h6 {
     transition: left 0.25s ease;
     box-shadow: 4px 0 24px rgba(0,0,0,0.4);
   }
+
   .sidebar.sidebar-open {
     left: 0 !important;
   }
 
-  /* Sidebar overlay backdrop */
   .sidebar-overlay {
     display: block !important;
     position: fixed;
@@ -342,79 +365,103 @@ h1, h2, h3, h4, h5, h6 {
     z-index: 199;
   }
 
-  /* ── Hamburger button visible on mobile ── */
   .sidebar-toggle-btn {
     display: inline-flex !important;
   }
 
-  /* ── Main chat area takes full width ── */
+  /* Chat shell */
   .chat-root {
-    flex-direction: column !important;
+    height: 100dvh !important;
   }
+
   .chat-main {
-    width: 100vw !important;
     min-width: 0 !important;
   }
 
-  /* ── Chat message area reduced padding ── */
   .chat-messages-area {
-    padding: 8px 10px !important;
+    padding: 10px 10px 8px !important;
   }
 
-  /* ── Top bar compact ── */
-  .topbar {
-    padding: 0 6px !important;
-    gap: 4px !important;
-    height: 48px !important;
+  .chat-input-area {
+    padding: 8px !important;
+    gap: 8px !important;
+    flex-wrap: wrap;
+    align-items: stretch !important;
   }
+
+  .chat-input-area textarea {
+    min-height: 78px;
+    font-size: 16px !important;
+  }
+
+  /* Top bar */
+  .topbar {
+    min-height: 48px !important;
+    height: auto !important;
+    padding: 6px 8px !important;
+    gap: 6px !important;
+    flex-wrap: wrap;
+    align-items: center !important;
+  }
+
+  .topbar > div:nth-child(1) {
+    min-width: 0;
+    flex: 1 1 auto !important;
+  }
+
+  .topbar > div:nth-child(2) {
+    order: 3;
+    position: static !important;
+    left: auto !important;
+    transform: none !important;
+    width: 100%;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .topbar > div:nth-child(3) {
+    flex: 0 0 auto !important;
+    max-width: 56%;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: thin;
+  }
+
+  .topbar > div:nth-child(3) > * {
+    flex-shrink: 0;
+  }
+
   .topbar .suny-logo {
     font-size: 14px !important;
   }
-  /* Hide non-essential topbar items on very small screens */
-  .topbar .topbar-tagline {
-    display: none !important;
-  }
+
+  .topbar .topbar-tagline,
   .topbar .topbar-username {
     display: none !important;
   }
 
-  /* ── Input area compact ── */
-  .chat-input-area {
-    padding: 6px !important;
-  }
-  .chat-input-area textarea {
-    font-size: 16px !important; /* prevent iOS zoom */
+  /* Modals as bottom sheets */
+  .modal-overlay {
+    align-items: flex-end !important;
+    padding: 0 !important;
   }
 
-  /* ── Modals full-screen bottom sheet on mobile ── */
   .modal-overlay .modal {
     width: 100vw !important;
     max-width: 100vw !important;
-    min-height: 50dvh;
-    border-radius: 16px 16px 0 0 !important;
+    min-height: 46dvh;
+    border-radius: 14px 14px 0 0 !important;
     position: fixed !important;
     bottom: 0 !important;
     left: 0 !important;
     top: auto !important;
-    transform: none !important;
     margin: 0 !important;
-  }
-  .modal-overlay {
-    align-items: flex-end !important;
+    padding: 18px 14px !important;
   }
 
-  /* ── Messages readable on small screens ── */
-  .message-content {
-    font-size: 13px !important;
-    line-height: 1.6 !important;
-  }
-  pre, code {
-    font-size: 11px !important;
-  }
-
-  /* ── Admin panel responsive ── */
-  .admin-layout .admin-sidebar,
-  .admin-layout > div:first-of-type {
+  /* Admin panel */
+  .admin-layout .admin-sidebar {
     position: fixed !important;
     left: -100% !important;
     top: 0;
@@ -423,41 +470,47 @@ h1, h2, h3, h4, h5, h6 {
     max-width: 280px;
     z-index: 200;
     transition: left 0.25s ease;
+    background: var(--bg);
   }
+
   .admin-layout .admin-sidebar.admin-sidebar-open {
     left: 0 !important;
   }
+
   .admin-layout .admin-content {
-    padding: 16px !important;
+    padding: 14px !important;
     margin-left: 0 !important;
   }
+
   .admin-layout .admin-hamburger {
     display: inline-flex !important;
   }
 
-  /* ── Tables: scroll horizontally ── */
+  /* Tables */
   .table-responsive {
-    overflow-x: auto;
+    overflow-x: auto !important;
     -webkit-overflow-scrolling: touch;
   }
+
   .table-responsive table {
-    min-width: 500px;
+    min-width: 560px;
   }
 
-  /* ── Cards use less padding ── */
-  .card {
-    padding: 12px !important;
+  /* Login and plans helpers */
+  .login-hero-logo {
+    width: 170px !important;
+    height: 170px !important;
   }
 
-  /* ── Landing/Login page ── */
-  .landing-hero h1 {
-    font-size: 32px !important;
-  }
-  .landing-hero .hero-subtitle {
-    font-size: 16px !important;
+  .pricing-hero h1 {
+    font-size: 30px !important;
   }
 
-  /* ── Hide balance badge text on tiny screens ── */
+  .pricing-plan-card {
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+
   .balance-badge-text {
     display: none !important;
   }

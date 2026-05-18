@@ -123,6 +123,35 @@ const SCHEMA_MIGRATIONS: Migration[] = [
       `);
     },
   },
+
+  // ── Migration 3: Agent turn metrics table ─────────────────────────────────
+  {
+    version: 3,
+    name: 'Add agent_turn_metrics table for production monitoring',
+    up: (db) => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS agent_turn_metrics (
+          id             INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id        INTEGER NOT NULL,
+          session_id     TEXT    NOT NULL,
+          project_id     INTEGER DEFAULT NULL,
+          mode           TEXT    NOT NULL DEFAULT 'fast',
+          tool_calls     INTEGER NOT NULL DEFAULT 0,
+          input_tokens   INTEGER NOT NULL DEFAULT 0,
+          output_tokens  INTEGER NOT NULL DEFAULT 0,
+          cost_usd       REAL    NOT NULL DEFAULT 0,
+          success        INTEGER NOT NULL DEFAULT 0,
+          error_category TEXT    DEFAULT NULL,
+          duration_ms    INTEGER NOT NULL DEFAULT 0,
+          ts             TEXT    DEFAULT (datetime('now')),
+          FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_atm_ts      ON agent_turn_metrics(ts);
+        CREATE INDEX IF NOT EXISTS idx_atm_user_id ON agent_turn_metrics(user_id);
+        CREATE INDEX IF NOT EXISTS idx_atm_success ON agent_turn_metrics(success);
+      `);
+    },
+  },
 ];
 
 // ── Schema foundations (always run — CREATE TABLE IF NOT EXISTS) ────────────

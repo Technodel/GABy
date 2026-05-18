@@ -72,13 +72,9 @@ export function trimHistory(
   const limit = getContextLimit(provider);
   const targetBudget = Math.floor(limit * 0.75); // keep 25% for response
 
-  const sysTokens = estimateTokens(systemPrompt) + 4;
-  let remaining = targetBudget - sysTokens;
-
-  if (remaining <= 0) {
-    // System prompt alone exceeds budget — return only the last message
-    return messages.slice(-1);
-  }
+  // System prompt is passed separately to streamText (not in messages array),
+  // so it does not consume the conversation budget. Skip deducting it.
+  let remaining = targetBudget;
 
   // Walk backwards: keep the most recent messages first
   const kept: CoreMessage[] = [];

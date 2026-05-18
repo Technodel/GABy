@@ -36,6 +36,8 @@ const USERNAME = 'testbench';
 const PASSWORD = 'testbench123';
 const CONCURRENCY = 2;   // file tasks need isolation — 2 at a time
 const TASK_TIMEOUT = 120000; // 2 min per task
+const NON_ANSWER_RETRY_DELAY = 4000; // ms before retrying a non-answer
+const MAX_NON_ANSWER_RETRIES = 1;    // max retries per task on non-answer
 const PROJECT_DIR = path.join(__dirname, 'task-exec-test');
 const TEMP_DIR = path.join(__dirname, 'task-exec-temp');
 
@@ -102,6 +104,158 @@ function fileExists(p) {
   }
 }
 
+// ── Preflight: server health + model availability ─────────────────────────
+
+function httpsGet(urlStr) {
+  return new Promise((resolve, reject) => {
+    const url = new URL(urlStr);
+    const opts = {
+      hostname: url.hostname,
+      path: url.pathname + url.search,
+      method: 'GET',
+      rejectUnauthorized: false,
+    };
+    const req = https.request(opts, (res) => {
+      let body = '';
+      res.on('data', c => body += c);
+      res.on('end', () => resolve({ status: res.statusCode, body }));
+    });
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+function httpsPost(urlStr, jsonBody, cookies) {
+  return new Promise((resolve, reject) => {
+    const data = JSON.stringify(jsonBody);
+    const url = new URL(urlStr);
+    const req = https.request({
+      hostname: url.hostname,
+      path: url.pathname,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(data),
+        ...(cookies ? { Cookie: cookies } : {}),
+      },
+      rejectUnauthorized: false,
+    }, (res) => {
+      let body = '';
+      res.on('data', c => body += c);
+      res.on('end', () => resolve({ status: res.statusCode, body, headers: res.headers }));
+    });
+    req.on('error', reject);
+    req.write(data);
+    req.end();
+  });
+}
+
+async function preflight() {
+  const result = { ok: true, warnings: [], errors: [] };
+
+  // 1. Server health
+  try {
+    const r = await httpsGet(`${HOST}/api/health`);
+    const health = JSON.parse(r.body);
+    if (r.status !== 200 || health.status !== 'ok') {
+      result.errors.push(`Health check failed: HTTP ${r.status} — ${r.body.slice(0, 100)}`);
+      result.ok = false;
+    } else {
+      log(`${GREEN}  ✅ Server healthy (uptime ${Math.round(health.uptime)}s, db: ${health.db})${RESET}`);
+    }
+  } catch (e) {
+    result.errors.push(`Server unreachable: ${e.message}`);
+    result.ok = false;
+  }
+
+  // 2. API keys configured (feature-flags endpoint)
+  try {
+    const r = await httpsGet(`${HOST}/api/feature-flags`);
+    if (r.status === 200) {
+      log(`${GREEN}  ✅ Feature flags endpoint reachable${RESET}`);
+    }
+  } catch {
+    result.warnings.push('Could not reach feature-flags endpoint');
+  }
+
+  return result;
+}
+
+/**
+ * Create or fetch the test project on the server pointing to TEMP_DIR.
+ * Returns { projectId } or null on failure.
+ */
+async function registerProject(token) {
+  const cookieHeader = `suny_token=${token}`;
+  try {
+    // List existing projects
+    const listRes = await new Promise((resolve, reject) => {
+      const req = https.request({
+        hostname: new URL(HOST).hostname,
+        path: '/api/projects',
+        method: 'GET',
+        headers: { Cookie: cookieHeader },
+        rejectUnauthorized: false,
+      }, (res) => {
+        let body = '';
+        res.on('data', c => body += c);
+        res.on('end', () => resolve({ status: res.statusCode, body }));
+      });
+      req.on('error', reject);
+      req.end();
+    });
+
+    const projects = JSON.parse(listRes.body);
+    const existing = Array.isArray(projects)
+      ? projects.find(p => p.local_path === TEMP_DIR || p.name === 'task-exec-test')
+      : null;
+
+    if (existing) {
+      // Update the path to point to current TEMP_DIR
+      await new Promise((resolve, reject) => {
+        const data = JSON.stringify({ local_path: TEMP_DIR });
+        const req = https.request({
+          hostname: new URL(HOST).hostname,
+          path: `/api/projects/${existing.id}`,
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data), Cookie: cookieHeader },
+          rejectUnauthorized: false,
+        }, (res) => { res.resume(); resolve(null); });
+        req.on('error', resolve);
+        req.write(data);
+        req.end();
+      });
+      return { projectId: existing.id };
+    }
+
+    // Create new project
+    const createRes = await new Promise((resolve, reject) => {
+      const data = JSON.stringify({ name: 'task-exec-test', local_path: TEMP_DIR });
+      const req = https.request({
+        hostname: new URL(HOST).hostname,
+        path: '/api/projects',
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data), Cookie: cookieHeader },
+        rejectUnauthorized: false,
+      }, (res) => {
+        let body = '';
+        res.on('data', c => body += c);
+        res.on('end', () => resolve({ status: res.statusCode, body }));
+      });
+      req.on('error', reject);
+      req.write(data);
+      req.end();
+    });
+
+    const created = JSON.parse(createRes.body);
+    if (created.id) return { projectId: created.id };
+    return null;
+  } catch (e) {
+    log(`${YELLOW}  ⚠️ Project registration failed: ${e.message} — running without project${RESET}`);
+    return null;
+  }
+}
+
 function login() {
   return new Promise((resolve, reject) => {
     const data = JSON.stringify({ username: USERNAME, password: PASSWORD });
@@ -132,8 +286,23 @@ function login() {
 
 /**
  * Send a prompt to SUNy and collect the streaming response.
+ * Automatically retries once on non-answer with a short delay.
  */
-function sendToSUNy(token, prompt) {
+function sendToSUNy(token, prompt, projectId) {
+  return sendToSUNyOnce(token, prompt, projectId).then(async (result) => {
+    if (result.nonAnswer && MAX_NON_ANSWER_RETRIES > 0) {
+      log(`${YELLOW}  ↻ Non-answer detected — retrying in ${NON_ANSWER_RETRY_DELAY / 1000}s...${RESET}`);
+      await new Promise(r => setTimeout(r, NON_ANSWER_RETRY_DELAY));
+      const retry = await sendToSUNyOnce(token, prompt, projectId);
+      retry.retried = true;
+      retry.firstNonAnswer = result.response;
+      return retry;
+    }
+    return result;
+  });
+}
+
+function sendToSUNyOnce(token, prompt, projectId) {
   return new Promise((resolve) => {
     const wsUrl = `${WS_HOST}/ws?token=${encodeURIComponent(token)}`;
     const ws = new WebSocket(wsUrl, { rejectUnauthorized: false });
@@ -143,22 +312,27 @@ function sendToSUNy(token, prompt) {
     let finished = false;
     let toolCalls = 0;
     let toolResults = [];
+    // Categorize the failure for diagnostics
+    let errorCategory = null; // 'server_error' | 'no_tools' | 'timeout' | 'ws_error' | null
 
     const timeout = setTimeout(() => {
       timedOut = true;
+      errorCategory = 'timeout';
       if (!finished) {
         ws.close();
-        resolve({ response: response || '[TIMEOUT]', timedOut: true, nonAnswer: false, toolCalls, toolResults });
+        resolve({ response: response || '[TIMEOUT]', timedOut: true, nonAnswer: false, toolCalls, toolResults, errorCategory });
       }
     }, TASK_TIMEOUT);
 
     ws.on('open', () => {
-      ws.send(JSON.stringify({
+      const msg = {
         type: 'chat:message',
         message: prompt,
         sessionId: `task_test_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
         mode: 'fast',
-      }));
+      };
+      if (projectId) msg.projectId = projectId;
+      ws.send(JSON.stringify(msg));
     });
 
     ws.on('message', (raw) => {
@@ -185,17 +359,25 @@ function sendToSUNy(token, prompt) {
           const lower = (response || msg.content || '').toLowerCase();
           nonAnswerDetected = NON_ANSWER_PATTERNS.some(p => lower.includes(p.toLowerCase()));
 
+          // Categorize failure type
+          if (nonAnswerDetected) {
+            errorCategory = toolCalls === 0 ? 'server_error' : 'no_tools';
+          } else if (toolCalls === 0) {
+            errorCategory = 'no_tools';
+          }
+
           ws.close();
-          resolve({ response: response || '[EMPTY]', timedOut: false, nonAnswer: nonAnswerDetected, toolCalls, toolResults });
+          resolve({ response: response || '[EMPTY]', timedOut: false, nonAnswer: nonAnswerDetected, toolCalls, toolResults, errorCategory });
         }
       } catch { /* non-JSON */ }
     });
 
     ws.on('error', () => {
       clearTimeout(timeout);
+      errorCategory = 'ws_error';
       if (!finished) {
         ws.close();
-        resolve({ response: response || '[WS_ERROR]', timedOut: true, nonAnswer: false, toolCalls, toolResults });
+        resolve({ response: response || '[WS_ERROR]', timedOut: true, nonAnswer: false, toolCalls, toolResults, errorCategory });
       }
     });
 
@@ -568,14 +750,14 @@ function buildTasks() {
 
 // ── Main Test Runner ─────────────────────────────────────────────────────
 
-async function runTask(auth, task, tempDir) {
+async function runTask(auth, task, tempDir, projectId) {
   log(`${YELLOW}▶ ${task.title}${RESET}`);
   
   // Run setup (restore file state)
   if (task.setup) task.setup();
 
-  // Send prompt to SUNy
-  const result = await sendToSUNy(auth.token, task.prompt);
+  // Send prompt to SUNy (with project context if available)
+  const result = await sendToSUNy(auth.token, task.prompt, projectId);
   
   // Store response for verification
   task.response = result.response;
@@ -595,6 +777,8 @@ async function runTask(auth, task, tempDir) {
     task.toolCalls = result.toolCalls;
     task.nonAnswer = result.nonAnswer;
     task.timedOut = result.timedOut;
+    task.errorCategory = result.errorCategory || null;
+    task.retried = result.retried || false;
   }
 
   // Display result
@@ -602,21 +786,34 @@ async function runTask(auth, task, tempDir) {
   const color = task.pass ? GREEN : task.score >= 0.5 ? YELLOW : RED;
   log(`${color}${icon} [${task.pass ? 'PASS' : task.score >= 0.5 ? 'PARTIAL' : 'FAIL'}] ${task.title} — ${task.details}${RESET}`);
   if (task.toolCalls > 0) log(`  ${CYAN}🛠 ${task.toolCalls} tool calls${RESET}`);
+  if (task.errorCategory) log(`  ${YELLOW}⚠ Error category: ${task.errorCategory}${RESET}`);
+  if (task.retried) log(`  ${YELLOW}↻ Was retried${RESET}`);
 
   return task;
 }
 
 async function main() {
   console.log(`\n${BOLD}${MAGENTA}══════════════════════════════════════════════════${RESET}`);
-  console.log(`${BOLD}${MAGENTA}  SUNy Task Execution Test Suite v1${RESET}`);
+  console.log(`${BOLD}${MAGENTA}  SUNy Task Execution Test Suite v2${RESET}`);
   console.log(`${BOLD}${MAGENTA}══════════════════════════════════════════════════${RESET}\n`);
   log(`${CYAN}Host: ${HOST}${RESET}`);
   log(`${CYAN}User: ${USERNAME}${RESET}`);
   log(`${CYAN}Project: ${PROJECT_DIR}${RESET}`);
   log(`${CYAN}Temp: ${TEMP_DIR}${RESET}\n`);
 
+  // Step 0: Preflight — verify server is healthy before wasting 25 tasks
+  log(`${BOLD}[0] Preflight diagnostics...${RESET}`);
+  const preflight_result = await preflight();
+  if (!preflight_result.ok) {
+    for (const err of preflight_result.errors) log(`${RED}  ✗ ${err}${RESET}`);
+    log(`${RED}❌ Server not healthy — aborting tests.${RESET}`);
+    process.exit(1);
+  }
+  for (const w of preflight_result.warnings) log(`${YELLOW}  ⚠ ${w}${RESET}`);
+  log('');
+
   // Step 1: Login
-  log(`${BOLD}Logging in...${RESET}`);
+  log(`${BOLD}[1] Logging in...${RESET}`);
   let auth;
   try {
     auth = await login();
@@ -627,15 +824,25 @@ async function main() {
   }
 
   // Step 2: Create fresh temp copy of test project
-  log(`${BOLD}Preparing test project...${RESET}`);
+  log(`${BOLD}[2] Preparing test project...${RESET}`);
   copyDir(PROJECT_DIR, TEMP_DIR);
   log(`${GREEN}✅ Test project ready at ${TEMP_DIR}${RESET}\n`);
 
+  // Step 2b: Register project with server so file tools are available
+  log(`${BOLD}[3] Registering test project with server...${RESET}`);
+  const projectInfo = await registerProject(auth.token);
+  if (projectInfo) {
+    log(`${GREEN}✅ Project registered (id=${projectInfo.projectId}) — file tools will be active${RESET}\n`);
+  } else {
+    log(`${YELLOW}⚠️ Could not register project — tasks requiring file edits will be limited${RESET}\n`);
+  }
+  const projectId = projectInfo?.projectId ?? null;
+
   // Step 3: Build and run tasks
   const allTasks = buildTasks();
-  log(`${BOLD}Running ${allTasks.length} tasks...${RESET}\n`);
+  log(`${BOLD}[4] Running ${allTasks.length} tasks...${RESET}\n`);
 
-  const results = { tasks: [], summary: {} };
+  const results = { tasks: [], summary: {}, projectId, preflightWarnings: preflight_result.warnings };
   const startTime = Date.now();
 
   // Run sequentially (file isolation)
@@ -643,12 +850,13 @@ async function main() {
     const task = allTasks[i];
     log(`${CYAN}[${i + 1}/${allTasks.length}]${RESET} `);
     try {
-      await runTask(auth, task, TEMP_DIR);
+      await runTask(auth, task, TEMP_DIR, projectId);
     } catch (e) {
       log(`${RED}❌ Task crashed: ${e.message}${RESET}`);
       task.pass = false;
       task.details = `Crash: ${e.message}`;
       task.score = 0;
+      task.errorCategory = 'crash';
     }
     results.tasks.push(task);
     
@@ -671,7 +879,7 @@ async function main() {
   log(`${GREEN}💾 Results saved to suny-task-results.json${RESET}\n`);
 
   // Step 5: Display final report
-  printReport(summary, elapsed);
+  printReport(summary, elapsed, results.tasks);
 
   // Cleanup temp
   try {
@@ -709,7 +917,7 @@ function summarize(tasks) {
   };
 }
 
-function printReport(summary, elapsed) {
+function printReport(summary, elapsed, tasks) {
   const barLen = 30;
   const pct = parseFloat(summary.weightedScore) / 100;
   const filled = Math.round(barLen * pct);
@@ -727,6 +935,28 @@ function printReport(summary, elapsed) {
   console.log(`  ${BOLD}  Pass Rate:${RESET} ${summary.passRate}%`);
   console.log(`  ${BOLD}  Weighted Score:${RESET} ${summary.weightedScore}%`);
   console.log(`  ${BOLD}  Bar:${RESET} [${bar}] ${summary.weightedScore}%\n`);
+
+  // Error category breakdown (helps diagnose root cause)
+  if (tasks && tasks.length > 0) {
+    const cats = { server_error: 0, no_tools: 0, timeout: 0, ws_error: 0, crash: 0 };
+    for (const t of tasks) {
+      if (!t.pass && t.errorCategory) {
+        cats[t.errorCategory] = (cats[t.errorCategory] || 0) + 1;
+      }
+    }
+    const retriedCount = tasks.filter(t => t.retried).length;
+    const anyErrors = Object.values(cats).some(v => v > 0);
+    if (anyErrors || retriedCount > 0) {
+      console.log(`  ${BOLD}Failure Diagnostics:${RESET}`);
+      if (cats.server_error > 0) console.log(`    ${RED}  server_error: ${cats.server_error} (agent loop threw, 0 tool calls — check API keys / provider health)${RESET}`);
+      if (cats.no_tools > 0)    console.log(`    ${YELLOW}  no_tools: ${cats.no_tools} (agent ran but made no tool calls — project not registered?)${RESET}`);
+      if (cats.timeout > 0)    console.log(`    ${YELLOW}  timeout: ${cats.timeout} (agent timed out — task too complex or slow provider)${RESET}`);
+      if (cats.ws_error > 0)   console.log(`    ${RED}  ws_error: ${cats.ws_error} (WebSocket connection failed — server down?)${RESET}`);
+      if (cats.crash > 0)      console.log(`    ${RED}  crash: ${cats.crash} (test harness crashed)${RESET}`);
+      if (retriedCount > 0)    console.log(`    ${CYAN}  retried: ${retriedCount} tasks were auto-retried on non-answer${RESET}`);
+      console.log('');
+    }
+  }
 
   console.log(`  ${BOLD}By Category:${RESET}`);
   for (const [cat, stats] of Object.entries(summary.byCategory)) {

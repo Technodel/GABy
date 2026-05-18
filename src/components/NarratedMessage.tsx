@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import GabyAvatar from './GabyAvatar';
+import SunyAvatar from './SunyAvatar';
 
 interface NarratedMessageProps {
   message: string;
@@ -40,7 +40,7 @@ function SystemMessage({ message }: { message: string }) {
 function GabyMessage({ message }: { message: string }) {
   return (
     <div className="message-appear" style={gabyContainerStyle}>
-      <GabyAvatar size={28} />
+      <SunyAvatar size={28} />
       <div style={gabyBubbleStyle}>
         <FormattedContent content={message} />
       </div>
@@ -306,7 +306,7 @@ export function ThinkingIndicator({ statusText }: { statusText?: string }) {
 
   return (
     <div style={thinkingContainerStyle}>
-      <GabyAvatar size={28} />
+      <SunyAvatar size={28} />
       <div style={thinkingBubbleStyle}>
         <span style={dotContainerStyle}>
           {[1, 2, 3].map(i => (

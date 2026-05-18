@@ -154,7 +154,3 @@ export class LoopDetector {
     return this.loopReported;
   }
 }
-
-// -- Singleton ----------------------------------------------------------------
-
-export const loopDetector = new LoopDetector();

@@ -14,7 +14,7 @@ import bridgeOnboardingRouter from './bridge-onboarding';
 import sessionReplayRouter from './session-replay';
 import { handleBridgeUpgrade } from './bridge-routes';
 import { userClientManager } from './user-client-manager';
-import { isBridgeConnected, registerPathForUser } from './bridge-manager';
+import { isBridgeConnected, registerPathForUser, killBridgeRequest } from './bridge-manager';
 import { acquireLock, releaseLock, isLockedByOther } from './project-lock';
 import { isFeatureEnabled, getAllFeatureFlags } from './feature-flags';
 import { startTaskWorker } from './task-worker';
@@ -23,6 +23,7 @@ import { hookSystem } from './hook-system';
 import { logOperation, logToolCall, getSessionLog } from './operation-audit';
 import { verifyToken } from './auth';
 import { getDb } from './db';
+import { scanForInjection, initializeInjectionGuardTable } from './injection-guard';
 import { AgentMessage } from './agent';
 import { hasSufficientBalance, deductUsage } from './billing';
 import { runAgentLoop } from './agent-loop';
@@ -41,6 +42,7 @@ import { silentCodeReview, formatCodeReviewForPrompt, postMergeValidation, forma
 import { getPresenceInjection, updatePresenceProfile, getPresenceProfile, initializePresenceTable } from './presence-engineering';
 import { getSkillSystemPrompt, initSkillSystem } from './skill-loader';
 import { formatGoalContext, getCurrentGoal, addGoalEvidence, incrementGoalAttempt, tryAutoCompleteGoal } from './goal-tracker';
+import { recordAgentTurn } from './metrics';
 
 const PORT = parseInt(process.env.SUNY_PORT || process.env.GABY_PORT || '3500', 10);
 const ALLOWED_ORIGIN = process.env.SUNY_ALLOWED_ORIGIN || process.env.GABY_ALLOWED_ORIGIN || 'http://localhost:5173';
@@ -119,6 +121,13 @@ const registerLimiter = rateLimit({
   message: { error: 'Registration rate limit exceeded. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
+  keyGenerator: (req) => {
+    const forwarded = req.headers['x-forwarded-for'];
+    if (forwarded) {
+      return (typeof forwarded === 'string' ? forwarded.split(',')[0] : forwarded[0])?.trim() || req.ip;
+    }
+    return req.ip;
+  },
 });
 
 // General API brute-force guard for sensitive admin/user endpoints
@@ -247,6 +256,29 @@ server.on('upgrade', (req, socket, head) => {
   }
 });
 
+// ── WebSocket rate limiting: per-user, shared across connections ────────────
+const WS_RATE_LIMIT = 20;            // max messages
+const WS_RATE_WINDOW_MS = 60_000;    // per 60 seconds
+const wsRateBuckets = new Map<number, number[]>();
+
+function checkWsRateLimit(uid: number): boolean {
+  const now = Date.now();
+  const windowStart = now - WS_RATE_WINDOW_MS;
+  let timestamps = wsRateBuckets.get(uid);
+  if (!timestamps) {
+    timestamps = [];
+    wsRateBuckets.set(uid, timestamps);
+  }
+  // Prune old entries
+  const valid = timestamps.filter(t => t > windowStart);
+  wsRateBuckets.set(uid, valid);
+  if (valid.length >= WS_RATE_LIMIT) {
+    return false; // rate limited
+  }
+  valid.push(now);
+  return true;
+}
+
 function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void {
   const url = new URL(req.url || '', 'http://localhost');
   const token = url.searchParams.get('token') ||
@@ -272,6 +304,16 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
   let isProcessing = false;
 
   ws.on('message', async (raw: Buffer) => {
+    // Rate limit check
+    if (!checkWsRateLimit(userId)) {
+      userClientManager.pushChatContent(userId, 'suny:stream_end', {
+        content: "Too many messages — please slow down a bit! 😊",
+        sess_used: null,
+        sess_limit: null,
+        iterations: 0,
+      });
+      return;
+    }
     let msg: Record<string, unknown>;
     try { msg = JSON.parse(raw.toString()); } catch { return; }
 
@@ -289,7 +331,6 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           iterations: 0,
         });
         // Also tell the bridge to kill any running process
-        const { killBridgeRequest } = require('./bridge-manager');
         killBridgeRequest(userId, (msg.requestId as string) || '');
       }
       return;
@@ -301,11 +342,10 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
     try {
       const msgText = String(msg.message ?? '');
       if (msgText.length > 0) {
-        const { scanForInjection } = require('./injection-guard');
         const result = scanForInjection(
           msgText,
           { userId, sessionId: msg.sessionId as string },
-          { sanitize: false, blockOnHigh: false },
+          { sanitize: false, blockOnHigh: true },
         );
         if (result.detected) {
           const highCount = result.matches.filter(m => m.severity === 'high').length;
@@ -344,7 +384,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
 
       const rawMode = ((msg.mode as string) || userRow?.selected_mode || 'fast').toLowerCase();
       const requestedMode = rawMode === 'smart'
-        ? 'fast'
+        ? 'pro'
         : (['free', 'fast', 'pro', 'auto'].includes(rawMode) ? rawMode : 'fast');
       const dailyLimitRow = db.prepare("SELECT value FROM app_settings WHERE key = 'daily_token_limit'").get() as { value: string } | undefined;
       const dailyTokenLimit = parseInt(dailyLimitRow?.value || '0', 10);
@@ -355,8 +395,8 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       const dailyCapApplies = noCredits || requestedMode === 'free';
       const dailyLimitReached = dailyCapApplies && dailyTokenLimit > 0 && todayUsed.total_used >= dailyTokenLimit;
       const freeTalkOnly = noCredits || dailyLimitReached;
-      const mode = freeTalkOnly ? 'free' : requestedMode;
-      
+      const effectiveMode = freeTalkOnly ? 'free' : requestedMode;
+
       // Generate routing reason (why this tier was selected — no model names)
       let routingReason = '';
       if (dailyLimitReached) {
@@ -367,8 +407,6 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         routingReason = 'Free tier (user preference)';
       } else if (requestedMode === 'fast') {
         routingReason = 'Fast tier (low complexity)';
-      } else if (requestedMode === 'smart') {
-        routingReason = 'Smart tier (complex work)';
       } else if (requestedMode === 'pro') {
         routingReason = 'Pro tier (maximum capability)';
       } else {
@@ -939,6 +977,118 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         'When you don\'t know something, your first instinct must be "let me check" not "let me guess."',
         '</one_thing_to_remember>',
         '',
+        '<problem_resolution_playbook>',
+        '╔══════════════════════════════════════════════════════════════╗',
+        '║  PROBLEM RESOLUTION PLAYBOOK — Multi-service debugging     ║',
+        '╚══════════════════════════════════════════════════════════════╝',
+        '',
+        'When debugging a broken system, follow these phases IN ORDER.',
+        'Do not skip Phase 1. Do not touch any file until Phase 1 is complete.',
+        '',
+        '─── Phase 1: Full System Context (No Touch Rule) ───',
+        '',
+        'Do not change anything until you have the complete picture:',
+        '',
+        '  1. IDENTIFY all running processes — PM2 list, Docker, systemd services.',
+        '     Know what is running, on what port, as what user.',
+        '  2. READ every relevant file entirely — not just the error lines.',
+        '     Read configs, routes, engine modules. The bug is often not where the error appears.',
+        '  3. CHECK the environment — env vars, commented-out configs, ecosystem.config.js,',
+        '     .env, Docker compose files. Commented-out lines are the FIRST place to look.',
+        '  4. UNDERSTAND the architecture — draw the data flow:',
+        '     - Which service talks to which?',
+        '     - What external services (DBs, APIs, browsers, messaging) does each depend on?',
+        '     - What network paths exist (direct, tunneled, proxied)?',
+        '     - Critical question: Is the architecture relying on the user\'s local machine',
+        '       for something that should run on the server?',
+        '  5. CHECK logs — PM2 logs, app logs, system logs. Look for patterns,',
+        '     not just the last error.',
+        '',
+        '─── Phase 2: Isolate Each Failure to Its Root Cause ───',
+        '',
+        'For each broken feature, ask "what changed?" Then trace:',
+        '',
+        '  Error → Trace → Protocol Check → Root Cause',
+        '',
+        '  Symptom patterns:',
+        '  - TCP connects but no HTTP response → Zombie tunnel (port open, service dead)',
+        '  - Connection refused → Nothing listening on that port',
+        '  - WebSocket drops immediately → IP blocked / rate limited by remote',
+        '  - Works locally but not on server → Missing system libraries or environment',
+        '  - Feature works partially → Guard flag / configuration commented out',
+        '',
+        '  For each case: follow the trace at the transport level before assuming a code bug.',
+        '  A zombie tunnel and a code bug produce the same application error — but the fix is completely different.',
+        '',
+        '─── Phase 3: Implementation Order ───',
+        '',
+        'Always fix in this order. Never reverse it:',
+        '',
+        '  1. INFRASTRUCTURE first — eliminate tunnel dependencies, install missing',
+        '     system libraries, set up required services on the server.',
+        '  2. CONFIG next — uncomment env vars, update endpoints, fix proxy settings.',
+        '  3. CODE last — the code often wasn\'t the problem. Only change code after',
+        '     infrastructure and config are verified correct.',
+        '',
+        '  Never trust a tunnel. If a service needs to be always available,',
+        '  run it on the server. Tunnels are temporary workarounds.',
+        '',
+        '─── Phase 4: Always Account for Human Setup ───',
+        '',
+        'After making server-side or infrastructure changes, ask yourself:',
+        '"How does the user set this up?"',
+        '',
+        '  - If you moved a service to the server, the user\'s local environment changed.',
+        '  - If you added a proxy, the user needs to update their configuration.',
+        '  - If you changed authentication, the user needs to log in again.',
+        '',
+        'Always provide the complete user workflow after changes:',
+        '  1. What they need to run on their machine (scripts, commands)',
+        '  2. What they need to configure (env vars, config files)',
+        '  3. What they need to verify (browser test, curl command, log check)',
+        '  4. How to recover if something goes wrong',
+        '',
+        'The human always has a question you didn\'t answer. Ask it before they do.',
+        '',
+        '─── Phase 5: Verification Protocol (3 Levels) ───',
+        '',
+        'For every change, verify at three levels before moving on:',
+        '',
+        '  Level 1 — Service health: Is the process running?',
+        '    pm2 list, systemctl status, ss -tlnp, docker ps',
+        '',
+        '  Level 2 — API/Endpoint health: Does the endpoint respond correctly?',
+        '    curl http://127.0.0.1:PORT/endpoint, check status code + body',
+        '',
+        '  Level 3 — Integration: Does the full flow work end-to-end?',
+        '    Connect as a client, perform the real action, confirm the outcome',
+        '',
+        'Do not batch changes. Fix one thing → verify at all 3 levels → move to next.',
+        'If Level 1 fails, do not check Level 2. Fix the current level first.',
+        '',
+        '─── Decision Matrix ───',
+        '',
+        '  Symptom                              Likely Cause                  Fix',
+        '  ───────────────────────────────────────────────────────────────────────────────',
+        '  TCP connects, no HTTP response       Zombie tunnel                 Move service to server, kill tunnel',
+        '  Connection refused                   Nothing on that port          Start service, check bind address',
+        '  WebSocket drops immediately          IP blocked / rate limited     Route through proxy or different IP',
+        '  Works locally, not on server         Missing system libraries      ldd check → apt-get install',
+        '  Feature works partially              Guard flag / commented config Read the full file, uncomment, remove guards',
+        '  Error shows in one env but not       Environment difference        Diff env vars, configs, dependency versions',
+        '  another',
+        '  Process runs but no output           Logs not streaming            Check log level config, file permissions',
+        '',
+        '─── Golden Rules ───',
+        '',
+        '  1. Read the file. Then read it again. The commented-out config is the first place to look.',
+        '  2. Never trust a tunnel. Server services belong on the server.',
+        '  3. Test after every change. One fix → verify → next fix. Never batch.',
+        '  4. The human always has a setup question you didn\'t answer. Provide the workflow before they ask.',
+        '  5. A zombie tunnel and a code bug produce the same error message. Check transport before code.',
+        '  6. Infrastructure → Config → Code. In that order. Always.',
+        '</problem_resolution_playbook>',
+        '',
         '<internal_monologue>',
         '╔══════════════════════════════════════════════════════════════╗',
         '║  INTERNAL MONOLOGUE — Your private thinking layer          ║',
@@ -1390,7 +1540,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       try {
         result = await runAgentLoop({
         userId,
-        mode,
+        mode: effectiveMode,
         systemPrompt: systemLines.join('\n'),
         projectId,
         projectPath,
@@ -1604,11 +1754,18 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         // Best-effort
       }
 
-      const billing = deductUsage(
-        userId, sessionId, projectId ?? null, result.resolvedMode ?? mode,
-        result.inputTokens, result.outputTokens,
-        result.cacheWriteTokens, result.cacheReadTokens,
-      );
+      let billing: { rawCost: number; chargedCost: number; newBalance: number; newWalletBalance: number; billingError?: string };
+      try {
+        billing = deductUsage(
+          userId, sessionId, projectId ?? null, result.resolvedMode ?? effectiveMode,
+          result.inputTokens, result.outputTokens,
+          result.cacheWriteTokens, result.cacheReadTokens,
+        );
+      } catch (billErr) {
+        const billMsg = (billErr as Error).message;
+        console.warn('[billing] deductUsage failed (non-fatal):', billMsg);
+        billing = { rawCost: 0, chargedCost: 0, newBalance: 0, newWalletBalance: 0, billingError: billMsg };
+      }
 
       if (isFeatureEnabled('ff_benchmark_mode')) {
         try {
@@ -1618,7 +1775,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
             sessionId,
             requestText: String(msg.message ?? ''),
             finalAnswer: result.content,
-            mode: result.resolvedMode ?? mode,
+            mode: result.resolvedMode ?? effectiveMode,
             durationMs: result.proofSummary.durationMs,
             retries: Math.max(0, (result.proofSummary.steps ?? 1) - 1),
             toolCalls: result.proofSummary.toolCallCount,
@@ -1641,6 +1798,22 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       const filesChanged = result.proofSummary.filesChanged ?? 0;
       const steps = result.proofSummary.steps ?? 1;
       const durationMinutes = Math.max(0, result.proofSummary.durationMs / 60000);
+
+      // ── Record success metric ─────────────────────────────────────────
+      try {
+        recordAgentTurn({
+          userId,
+          sessionId,
+          projectId: projectId ?? null,
+          mode: effectiveMode,
+          toolCalls,
+          inputTokens: result.inputTokens,
+          outputTokens: result.outputTokens,
+          costUsd: billing.chargedCost,
+          success: true,
+          durationMs: result.proofSummary.durationMs,
+        });
+      } catch { /* metrics must not crash the server */ }
       const isSimpleReply = toolCalls === 0 && filesChanged === 0 && steps <= 1;
       const humanEstimateMinutes = isSimpleReply
         ? Math.max(0.5, Math.round(durationMinutes * 10) / 10)
@@ -1665,7 +1838,8 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         iterations: result.iterations,
         proof_summary: result.proofSummary,
         routing_reason: routingReason,
-        resolved_mode: mode,
+        resolved_mode: effectiveMode,
+        billing_error: billing.billingError,
         turn_report: {
           durationMs: result.proofSummary.durationMs,
           inputTokens: result.inputTokens,
@@ -1692,14 +1866,35 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       if (isAbortLike && currentAbortController === null) return;
       // All other errors — always respond so the client never gets stuck in thinking state
       let friendly = pickRandom('error', pickNonRepeatingFallback(userId, ERROR_REPLY_FALLBACKS));
-      if (errMsg.includes('No active API key')) friendly = 'The AI service is not available right now. Please contact support.';
-      if (errMsg.includes('NO_VISION_MODEL_AVAILABLE')) friendly = 'I\'m a text-only model and can\'t scan images. To analyze images, please add an API key for a vision-capable model (OpenAI, Anthropic, Groq, or OpenRouter) in the admin settings, then try again.';
-      if (errMsg.includes('TURN_TIMEOUT_')) friendly = 'This task took too long and was safely stopped. Please try again, or ask in smaller steps.';
-      if (errMsg.includes('Project is locked by another session')) friendly = 'This project is currently locked by another session. Please wait a moment, then try again.';
+      let errorCategory = 'unknown';
+      if (errMsg.includes('No active API key')) { friendly = 'The AI service is not available right now. Please contact support.'; errorCategory = 'no_key'; }
+      if (errMsg.includes('NO_VISION_MODEL_AVAILABLE')) { friendly = 'I\'m a text-only model and can\'t scan images. To analyze images, please add an API key for a vision-capable model (OpenAI, Anthropic, Groq, or OpenRouter) in the admin settings, then try again.'; errorCategory = 'no_vision_model'; }
+      if (errMsg.includes('TURN_TIMEOUT_')) { friendly = 'This task took too long and was safely stopped. Please try again, or ask in smaller steps.'; errorCategory = 'timeout'; }
+      if (errMsg.includes('Project is locked by another session')) { friendly = 'This project is currently locked by another session. Please wait a moment, then try again.'; errorCategory = 'lock'; }
       if (errMsg.toLowerCase().includes('fetch failed') || errMsg.toLowerCase().includes('timeout') || errMsg.toLowerCase().includes('econn')) {
         friendly = 'AI provider is temporarily unavailable right now. Please retry in a few seconds.';
+        errorCategory = 'api_error';
       }
-      if (errMsg.toLowerCase().includes('insufficient')) friendly = pickRandom('no_balance', "You're out of credits! Reach out and we'll top you right up 😊");
+      if (errMsg.toLowerCase().includes('insufficient')) { friendly = pickRandom('no_balance', "You're out of credits! Reach out and we'll top you right up 😊"); errorCategory = 'credits'; }
+      if (errMsg.toLowerCase().includes('rate') && errMsg.toLowerCase().includes('limit')) { errorCategory = 'rate_limit'; }
+
+      // Record failure metric
+      try {
+        recordAgentTurn({
+          userId,
+          sessionId,
+          projectId: projectId ?? null,
+          mode: effectiveMode,
+          toolCalls: 0,
+          inputTokens: 0,
+          outputTokens: 0,
+          costUsd: 0,
+          success: false,
+          errorCategory,
+          durationMs: Date.now() - turnStart,
+        });
+      } catch { /* metrics must not crash the server */ }
+
       console.error('[chat:error]', err instanceof Error ? err.stack || err.message : err);
       userClientManager.pushChatContent(userId, 'suny:stream_end', {
         content: friendly,
@@ -1781,24 +1976,19 @@ server.listen(PORT, () => {
   console.log(`SUNy server running on port ${PORT}`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 
-  // Initialize injection guard table (best-effort)
-  try { require('./injection-guard').initializeInjectionGuardTable(); } catch {}
-  // Initialize design intent table (best-effort)
-  try { initializeDesignIntentTable(); } catch {}
-  // Initialize interaction patterns table (best-effort)
-  try { initializeInteractionPatternsTable(); } catch {}
-  // Initialize presence table (best-effort)
-  try { initializePresenceTable(); } catch {}
-  // Initialize task queue table (best-effort)
-  try { require('./task-queue').initializeTaskQueueTable(); } catch {}
-  // Initialize goal tracker table (best-effort)
-  try { require('./goal-tracker').initializeGoalTrackerTable(); } catch {}
-  // Initialize confidence scoring table (best-effort)
-  try { require('./confidence-scorer').initializeConfidenceTable(); } catch {}
-  // Initialize task graph table (best-effort)
-  try { require('./task-graph').initializeTaskGraphTable(); } catch {}
-  // Initialize hypothesis engine table (best-effort)
-  try { require('./hypothesis-engine').initializeHypothesisTable(); } catch {}
+  // Initialize all system tables (best-effort)
+  const tableInits: Array<() => Promise<void> | void> = [
+    () => { try { initializeInjectionGuardTable(); } catch {} },
+    () => { try { initializeDesignIntentTable(); } catch {} },
+    () => { try { initializeInteractionPatternsTable(); } catch {} },
+    () => { try { initializePresenceTable(); } catch {} },
+    () => { try { require('./task-queue').initializeTaskQueueTable(); } catch {} },
+    () => { try { require('./goal-tracker').initializeGoalTrackerTable(); } catch {} },
+    () => { try { require('./confidence-scorer').initializeConfidenceTable(); } catch {} },
+    () => { try { require('./task-graph').initializeTaskGraphTable(); } catch {} },
+    () => { try { require('./hypothesis-engine').initializeHypothesisTable(); } catch {} },
+  ];
+  for (const init of tableInits) init();
   // Initialize skill system (loads skills/ directory SKILL.md files)
   initSkillSystem().catch(e => console.warn('[skill-system] init failed:', (e as Error).message));
 });

@@ -71,7 +71,6 @@ const MODE_ACCENT: Record<string, string> = {
   fast: '#f59e0b',
   pro: '#6c63ff',
 };
-
 const MODE_BG: Record<string, string> = {
   free: 'rgba(16,185,129,0.08)',
   fast: 'rgba(245,158,11,0.08)',
@@ -92,14 +91,37 @@ export default function PricingPlans() {
   for (const p of pricing) priceMap[p.mode] = p;
 
   return (
-    <div style={{
+    <div className="pricing-page" style={{
       minHeight: '100vh',
       background: 'var(--bg)',
       color: 'var(--text-primary)',
       fontFamily: 'inherit',
     }}>
+      <style>{`
+        @media (max-width: 760px) {
+          .pricing-hero {
+            padding: 28px 14px 20px !important;
+          }
+
+          .pricing-grid {
+            padding: 18px 12px 24px !important;
+            gap: 12px !important;
+          }
+
+          .pricing-plan-card {
+            flex-basis: 100% !important;
+          }
+
+          .pricing-compare-shell,
+          .pricing-info-shell,
+          .pricing-faq-shell {
+            padding-left: 12px !important;
+            padding-right: 12px !important;
+          }
+        }
+      `}</style>
       {/* ── Hero ── */}
-      <div style={{
+      <div className="pricing-hero" style={{
         textAlign: 'center',
         padding: '48px 20px 32px',
         background: 'linear-gradient(180deg, rgba(108,99,255,0.08) 0%, transparent 100%)',
@@ -113,7 +135,7 @@ export default function PricingPlans() {
       </div>
 
       {/* ── Plans Grid ── */}
-      <div style={{
+      <div className="pricing-grid" style={{
         display: 'flex', gap: 20, justifyContent: 'center',
         padding: '32px 24px 48px', maxWidth: 1100, margin: '0 auto',
         flexWrap: 'wrap', alignItems: 'stretch',
@@ -125,6 +147,7 @@ export default function PricingPlans() {
 
           return (
             <div
+              className="pricing-plan-card"
               key={mode}
               onClick={() => setSelected(selected === mode ? null : mode)}
               style={{
@@ -251,13 +274,13 @@ export default function PricingPlans() {
       </div>
 
       {/* ── Comparison Table ── */}
-      <div style={{
+      <div className="pricing-compare-shell" style={{
         maxWidth: 900, margin: '0 auto', padding: '0 24px 48px',
       }}>
         <h3 style={{ fontSize: 18, fontWeight: 700, textAlign: 'center', marginBottom: 20 }}>
           Feature comparison
         </h3>
-        <div style={{
+        <div className="pricing-compare-wrap table-responsive" style={{
           border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden',
           fontSize: 13,
         }}>
@@ -293,7 +316,7 @@ export default function PricingPlans() {
       </div>
 
       {/* ── How pricing works ── */}
-      <div style={{
+      <div className="pricing-info-shell" style={{
         maxWidth: 700, margin: '0 auto', padding: '0 24px 48px', textAlign: 'center',
       }}>
         <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 12 }}>How token pricing works</h3>
@@ -329,7 +352,7 @@ export default function PricingPlans() {
       </div>
 
       {/* ── FAQ / Contact ── */}
-      <div style={{
+      <div className="pricing-faq-shell" style={{
         maxWidth: 700, margin: '0 auto', padding: '0 24px 48px', textAlign: 'center',
       }}>
         <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 12 }}>Questions?</h3>
@@ -353,7 +376,7 @@ export default function PricingPlans() {
         textAlign: 'center', padding: '16px 20px', fontSize: 12,
         color: 'var(--text-muted)', borderTop: '1px solid var(--border)',
       }}>
-        GABy — Consider it done! &nbsp;·&nbsp; © {new Date().getFullYear()}
+        SUNy — Consider it done! &nbsp;·&nbsp; © {new Date().getFullYear()}
       </div>
     </div>
   );

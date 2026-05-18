@@ -3,6 +3,8 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { requireAdmin } from './auth';
 import { getDb } from './db';
+import { getAllFeatureFlags, setFeatureFlag } from './feature-flags';
+import { getAgentMetricsSummary, getRecentTurns } from './metrics';
 
 const router = Router();
 
@@ -445,6 +447,53 @@ router.get('/models', async (_req: Request, res: Response) => {
   } catch (err) {
     res.status(502).json({ error: 'Failed to fetch model list from models.dev' });
   }
+});
+
+// ── Feature Flags ─────────────────────────────────────────────────────────────
+
+const FeatureFlagSchema = z.object({
+  value: z.enum(['on', 'off']),
+});
+
+router.get('/feature-flags', (_req: Request, res: Response) => {
+  const flags = getAllFeatureFlags();
+  res.json(flags);
+});
+
+router.patch('/feature-flags/:key', (req: Request, res: Response) => {
+  const { key } = req.params;
+  if (!key.startsWith('ff_')) {
+    res.status(400).json({ error: 'Feature flag keys must start with ff_' });
+    return;
+  }
+  const parsed = FeatureFlagSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
+    return;
+  }
+  setFeatureFlag(key, parsed.data.value);
+  res.json({ success: true, key, value: parsed.data.value });
+});
+
+// ── Agent Metrics ──────────────────────────────────────────────────────────────
+
+/**
+ * GET /api/admin/metrics?days=7
+ * Returns aggregated agent turn success rates, tool call averages, cost trends.
+ */
+router.get('/metrics', (req: Request, res: Response) => {
+  const days = Math.min(Math.max(parseInt((req.query.days as string) || '7', 10), 1), 90);
+  const summary = getAgentMetricsSummary(days);
+  res.json(summary);
+});
+
+/**
+ * GET /api/admin/metrics/recent?limit=100
+ * Returns individual recent turns for live monitoring.
+ */
+router.get('/metrics/recent', (req: Request, res: Response) => {
+  const limit = Math.min(Math.max(parseInt((req.query.limit as string) || '100', 10), 1), 500);
+  res.json(getRecentTurns(limit));
 });
 
 export default router;

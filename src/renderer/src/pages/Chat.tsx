@@ -1,130 +1,20 @@
 ﻿import { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Plus, Trash2, Settings, LogOut, Square, Eraser, Book, Edit3, RotateCcw, Copy, Check, Pencil, MessageSquare, FileText, X, BarChart2, User, HelpCircle, Folder, FolderOpen, Play, ChevronRight, ChevronDown, Sparkles, Home, Phone, Download, Image } from 'lucide-react';
-import BalanceBadge from '../components/BalanceBadge';
-import BridgeStatusBadge from '../components/BridgeStatusBadge';
-import ModeSelector from '../components/ModeSelector';
+import { Send, Plus, Trash2, Settings, LogOut, Square, Edit3, RotateCcw, Copy, X, BarChart2, User, HelpCircle, Sparkles, Image, Home, Eraser, Phone, ChevronRight, ChevronDown, FolderOpen, Folder, Play, MessageSquare, Pencil, FileText } from 'lucide-react';
 import NarratedMessage, { ThinkingIndicator } from '../components/NarratedMessage';
 import ReportBadgeButton, { ReportMetrics } from '../components/ReportBadgeButton';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useNavigate } from 'react-router-dom';
-
+import BalanceBadge from '../components/BalanceBadge';
+import ModeSelector from '../components/ModeSelector';
 import BridgeInstallInstructions from '../components/BridgeInstallInstructions';
-
-interface Project {
-  id: number;
-  name: string;
-  local_path: string;
-  persona?: string | null;
-}
-
-interface ProjectSpend {
-  project_id: number;
-  name: string;
-  total_tokens: number;
-  total_cost: number;
-}
-
-interface Mode {
-  mode: string;
-  display_name: string;
-  session_limit_label: string;
-}
-
-interface UserData {
-  id: number;
-  username: string;
-  balance: number;
-  wallet_balance: number;
-  wallet_auto_spend: boolean;
-  selected_mode: string;
-  max_tokens_per_session?: number | null;
-  cross_device_memory_enabled?: boolean;
-  chat_show_technical_details?: boolean;
-  bridge_connected: boolean;
-  modes: Mode[];
-}
-
-interface Message {
-  type: 'user' | 'suny' | 'system';
-  content: string;
-  id: number;
-  timestamp: number;
-  report?: ReportMetrics;
-}
-
-interface Memory {
-  id: string;
-  projectId: number;
-  title: string;
-  summary: string;
-  createdAt: number;
-  updatedAt: number;
-}
-
-interface ProofRun {
-  id: number;
-  startedAt: number;
-  finishedAt?: number;
-  status: 'running' | 'completed' | 'failed';
-  toolCalls: string[];
-  checks: string[];
-  durationMs?: number;
-  toolCallCount?: number;
-  filesChanged?: number;
-  steps?: number;
-}
-
-interface ChatProps {
-  onLogout: () => void;
-  onOpenSettings: (section?: 'general' | 'wallet', notice?: string) => void;
-  onBridgeOffline: () => void;
-}
+import BridgeStatusBadge from '../components/BridgeStatusBadge';
+import TopBar from '../components/TopBar';
+import SidebarContent from '../components/SidebarContent';
+import ChatMessages from '../components/ChatMessages';
+import ChatInput from '../components/ChatInput';
+import type { Project, ProjectSpend, Mode, UserData, Message, Memory, ProofRun, ChatProps } from '../types';
 
 // â”€â”€ File browser tree node â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-interface FileNode { name: string; path: string; isDir: boolean; children?: FileNode[]; }
-
-function FileTreeNode({ node, expandedDirs, onToggle, onFileClick }: {
-  node: FileNode;
-  expandedDirs: Set<string>;
-  onToggle: (path: string) => void;
-  onFileClick: (node: FileNode) => void;
-}) {
-  const expanded = expandedDirs.has(node.path);
-  return (
-    <div>
-      <div
-        onClick={() => node.isDir ? onToggle(node.path) : onFileClick(node)}
-        style={{
-          padding: '3px 12px 3px 12px',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 5,
-          color: node.isDir ? 'var(--text)' : 'var(--text-muted)',
-          fontSize: 11,
-        }}
-        onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover)')}
-        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-      >
-        {node.isDir
-          ? (expanded ? <ChevronDown size={10} /> : <ChevronRight size={10} />)
-          : <span style={{ width: 10 }} />}
-        {node.isDir
-          ? (expanded ? <FolderOpen size={11} style={{ color: 'var(--accent)' }} /> : <Folder size={11} style={{ color: 'var(--accent)' }} />)
-          : <FileText size={10} />}
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{node.name}</span>
-      </div>
-      {node.isDir && expanded && node.children && (
-        <div style={{ paddingLeft: 12 }}>
-          {node.children.map(child => (
-            <FileTreeNode key={child.path} node={child} expandedDirs={expandedDirs} onToggle={onToggle} onFileClick={onFileClick} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: ChatProps) {
   const navigate = useNavigate();
   const [userData, setUserData] = useState<UserData | null>(null);

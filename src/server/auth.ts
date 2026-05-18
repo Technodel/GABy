@@ -17,8 +17,8 @@ export interface AuthPayload {
   role: 'admin' | 'user';
 }
 
-export function signToken(payload: AuthPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' });
+export function signToken(payload: AuthPayload, expiresIn?: string): string {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: expiresIn || '8h' });
 }
 
 export function refreshToken(token: string): string | null {
