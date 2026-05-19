@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  typecheck-server:
+    name: Type-check Server
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - run: npm ci
+      - run: npx tsc --noEmit --tsBuildInfoFile /dev/null
+        working-directory: .
+
+  test-server:
+    name: Run Server Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - run: npm ci
+      - run: npx vitest run
+        working-directory: .
+
+  build-renderer:
+    name: Build Renderer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: src/renderer/package-lock.json
+      - run: npm ci
+        working-directory: src/renderer
+      - run: npx vite build
+        working-directory: src/renderer
