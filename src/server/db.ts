@@ -152,6 +152,42 @@ const SCHEMA_MIGRATIONS: Migration[] = [
       `);
     },
   },
+
+  // ── Migration 4: Add role column + create default admin user ─────────────
+  {
+    version: 4,
+    name: 'Add role column to users, create default admin user, clean test users',
+    up: (db) => {
+      // Add role column if missing
+      if (!columnExists(db, 'users', 'role')) {
+        db.exec("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'");
+        console.log('[db] Migration 4: Added role column to users table');
+      }
+
+      // Remove test users with fake password_hash "hash"
+      // Disable FK temporarily — these users may have orphaned refs in various tables
+      db.pragma('foreign_keys = OFF');
+      const result = db.prepare("DELETE FROM users WHERE password_hash = 'hash'").run();
+      db.pragma('foreign_keys = ON');
+      if (result.changes > 0) {
+        console.log(`[db] Migration 4: Removed ${result.changes} test user(s) with invalid password hashes`);
+      }
+
+      // Create default admin user 'galaxy' if not exists
+      const galaxy = db.prepare("SELECT id FROM users WHERE username = 'galaxy'").get();
+      if (!galaxy) {
+        const bcrypt = require('bcryptjs');
+        const hash = bcrypt.hashSync('301088', 12);
+        db.prepare(
+          "INSERT INTO users (username, password_hash, balance, is_active, role, display_name) VALUES (?, ?, ?, 1, 'admin', ?)"
+        ).run('galaxy', hash, 1000, 'Galaxy Admin');
+        console.log('[db] Migration 4: Created default admin user "galaxy"');
+      } else {
+        // Ensure existing galaxy user has admin role
+        db.prepare("UPDATE users SET role = 'admin' WHERE username = 'galaxy' AND (role IS NULL OR role = 'user')").run();
+      }
+    },
+  },
 ];
 
 // ── Schema foundations (always run — CREATE TABLE IF NOT EXISTS) ────────────
@@ -171,6 +207,7 @@ function createFoundationTables(db: Database.Database): void {
       wallet_balance REAL DEFAULT 0,
       wallet_auto_spend INTEGER DEFAULT 0,
       is_active INTEGER DEFAULT 1,
+      role TEXT DEFAULT 'user',
       selected_mode TEXT DEFAULT 'fast',
       created_at TEXT DEFAULT (datetime('now')),
       max_tokens_per_session INTEGER DEFAULT NULL

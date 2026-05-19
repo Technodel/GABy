@@ -303,6 +303,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
   // ── Track active requests for cancellation ──────────────────────────────
   let currentAbortController: AbortController | null = null;
   let isProcessing = false;
+  let queuedMessage: Buffer | null = null;
 
   ws.on('message', async (raw: Buffer) => {
     // Rate limit check
@@ -364,14 +365,14 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       }
     } catch { /* best-effort */ }
 
+    // AiderDesk-style interruption: new message cancels current work and queues
     if (isProcessing) {
-      const busyMessage = pickRandom('busy', "I'm still working on your last message — hang tight! 😊");
-      userClientManager.pushChatContent(userId, 'suny:stream_end', {
-        content: busyMessage,
-        sess_used: null,
-        sess_limit: null,
-        iterations: 0,
-      });
+      if (currentAbortController) {
+        currentAbortController.abort(new Error('Request aborted — new user message received'));
+        currentAbortController = null;
+        killBridgeRequest(userId, (msg.requestId as string) || '');
+      }
+      queuedMessage = raw;
       return;
     }
 
@@ -1248,6 +1249,30 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         'Exhaust tool capabilities before asking the user for help.',
         'Make code changes using tools only, not by suggesting snippets for the user to paste.',
         '</additional_directives>',
+
+        '<interruption_behavior>',
+        'When you are interrupted mid-task (stop button pressed, new message sent, escape key):',
+        '1. STOP IMMEDIATELY — Cease all ongoing tool calls, file edits, and shell commands.',
+        '2. ACKNOWLEDGE GRACEFULLY — Briefly summarize what you were working on.',
+        '   "I was working on X — let me pivot to your new request."',
+        '3. PIVOT CLEANLY — Do not dwell on the interruption. Accept the new task fully.',
+        '4. MAINTAIN CONTEXT — Keep awareness of the project state from prior work.',
+        '   You are not starting from scratch — you have the full conversation history.',
+        '5. NO CONFUSION — Interruptions are normal. Do not act disoriented or ask "what happened?".',
+        '   Simply acknowledge, summarize briefly, and move on.',
+        '',
+        'Examples of GOOD interruption behavior:',
+        '  User sends new message while you are editing files:',
+        '  → "Got it — I was working on the login form validation. Let me switch to your new request."',
+        '  User presses stop and asks something else:',
+        '  → "I\'ve stopped the refactor I was doing. What\'s next?"',
+        '',
+        'Examples of BAD interruption behavior:',
+        '  ❌ "I was in the middle of something... what happened?"',
+        '  ❌ Continuing the old task while also trying to do the new one',
+        '  ❌ Ignoring the interruption and finishing the current task first',
+        '  ❌ Acting confused or disoriented by the interruption',
+        '</interruption_behavior>',
       ].filter(l => l !== '');
 
       // Append current mode if not normal
@@ -1912,6 +1937,13 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
     } finally {
       isProcessing = false;
       currentAbortController = null;
+    }
+
+    // ── Queued message re-dispatch (AiderDesk-style interruption) ──
+    if (queuedMessage) {
+      const nextRaw = queuedMessage;
+      queuedMessage = null;
+      setImmediate(() => { ws.emit('message', nextRaw); });
     }
   });
 }
