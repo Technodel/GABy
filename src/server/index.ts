@@ -365,8 +365,21 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       }
     } catch { /* best-effort */ }
 
-    // AiderDesk-style interruption: new message cancels current work and queues
+    // ── Task interruption behavior: read user preference ──────────────
     if (isProcessing) {
+      let behavior = 'interrupt';
+      try {
+        const rawSetting = getDb().prepare("SELECT value FROM app_settings WHERE key = ?").get(`user_${userId}_task_interruption_behavior`) as { value: string } | undefined;
+        if (rawSetting) behavior = rawSetting.value;
+      } catch { /* best-effort */ }
+
+      if (behavior === 'queue') {
+        // Queue behind current task — don't abort, just enqueue
+        queuedMessage = raw;
+        return;
+      }
+
+      // Interrupt: cancel current work and queue the new message
       if (currentAbortController) {
         currentAbortController.abort(new Error('Request aborted — new user message received'));
         currentAbortController = null;
@@ -456,6 +469,19 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       // Load plan info once — used in system prompt
       interface PricingMode { mode: string; display_name: string; description: string; }
       const pricingModes = db.prepare('SELECT mode, display_name, description FROM pricing_modes ORDER BY id').all() as PricingMode[];
+
+      // Resolve project path + persona if a project is active (must be before systemLines
+      // construction because the training loader IIFE below references projectPath)
+      const projectId = msg.projectId as number | undefined;
+      const projectNames = msg.projectNames as string[] | undefined;
+      let projectPath: string | undefined;
+      let projectPersona: string | null = null;
+      if (projectId) {
+        const proj = db.prepare('SELECT local_path, persona FROM projects WHERE id = ? AND user_id = ?')
+          .get(projectId, userId) as { local_path: string; persona: string | null } | undefined;
+        projectPath = proj?.local_path;
+        projectPersona = proj?.persona ?? null;
+      }
 
       const systemLines = [
         '<role>',
@@ -1325,17 +1351,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       userClientManager.pushToUser(userId, 'suny:thinking', {});
       userClientManager.pushToUser(userId, 'suny:preparation_step', { step: 'Preparing context...' });
 
-      // Resolve project path + persona if a project is active
-      const projectId = msg.projectId as number | undefined;
-      const projectNames = msg.projectNames as string[] | undefined;
-      let projectPath: string | undefined;
-      let projectPersona: string | null = null;
-      if (projectId) {
-        const proj = db.prepare('SELECT local_path, persona FROM projects WHERE id = ? AND user_id = ?')
-          .get(projectId, userId) as { local_path: string; persona: string | null } | undefined;
-        projectPath = proj?.local_path;
-        projectPersona = proj?.persona ?? null;
-      }
+      // (projectPath/projectId/projectPersona are resolved above — before systemLines construction)
 
       // Inject custom persona if set for this project
       if (projectPersona) {

@@ -11,6 +11,7 @@ interface UserData {
   display_name: string | null;
   cross_device_memory_enabled?: boolean;
   chat_show_technical_details?: boolean;
+  task_interruption_behavior?: string;
 }
 
 interface PricingMode {
@@ -32,6 +33,7 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
   const [memoryEnabled, setMemoryEnabled] = useState(true);
   const [crossDeviceMemoryEnabled, setCrossDeviceMemoryEnabled] = useState(false);
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
+  const [taskInterruptionBehavior, setTaskInterruptionBehavior] = useState<'interrupt' | 'queue'>('interrupt');
   const [maxTokens, setMaxTokens] = useState<string>('');
   const [displayName, setDisplayName] = useState('');
   const [saved, setSaved] = useState(false);
@@ -67,6 +69,7 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
         setAutoApprove(data.auto_approve ?? true);
         setCrossDeviceMemoryEnabled(Boolean(data.cross_device_memory_enabled));
         setShowTechnicalDetails(Boolean(data.chat_show_technical_details));
+        setTaskInterruptionBehavior(data.task_interruption_behavior === 'queue' ? 'queue' : 'interrupt');
         setSelectedMode(data.selected_mode ?? 'fast');
         setBalance(data.balance ?? 0);
         setWalletBalance(data.wallet_balance ?? 0);
@@ -120,6 +123,7 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
         cross_device_memory_enabled: crossDeviceMemoryEnabled,
         chat_show_technical_details: showTechnicalDetails,
         max_tokens_per_session: !isNaN(parsed) && parsed > 0 ? parsed : null,
+        task_interruption_behavior: taskInterruptionBehavior,
       }),
     });
     if (!settingsRes.ok) return;
@@ -386,6 +390,43 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
           <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
             OFF = beginner-friendly responses. ON = full technical visibility.
           </div>
+        </div>
+
+        <div className="card" style={{ marginBottom: 14 }}>
+          <h3 style={{ fontWeight: 600, marginBottom: 10 }}>🔄 Task Interruption Behavior</h3>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 12 }}>
+            When you send a new prompt while SUNy is already working on a task, what should happen?
+          </p>
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12, cursor: 'pointer' }}>
+            <input
+              type="radio"
+              name="task_interruption"
+              checked={taskInterruptionBehavior === 'interrupt'}
+              onChange={() => setTaskInterruptionBehavior('interrupt')}
+              style={{ marginTop: 3 }}
+            />
+            <div>
+              <div style={{ fontWeight: 500, fontSize: 14 }}>⚡ Interrupt current task</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                SUNy stops what it's doing and picks up your new request immediately. The interrupted task is lost.
+              </div>
+            </div>
+          </label>
+          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
+            <input
+              type="radio"
+              name="task_interruption"
+              checked={taskInterruptionBehavior === 'queue'}
+              onChange={() => setTaskInterruptionBehavior('queue')}
+              style={{ marginTop: 3 }}
+            />
+            <div>
+              <div style={{ fontWeight: 500, fontSize: 14 }}>📋 Queue after current task</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+                SUNy finishes what it's doing first, then processes your new request right after.
+              </div>
+            </div>
+          </label>
         </div>
 
         <div

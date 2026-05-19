@@ -134,6 +134,7 @@ router.get('/me', (req: Request, res: Response) => {
     memory_enabled: getUserSetting('memory_enabled', 'true') === 'true',
     cross_device_memory_enabled: getUserSetting('cross_device_memory_enabled', 'false') === 'true',
     chat_show_technical_details: getUserSetting('chat_show_technical_details', 'false') === 'true',
+    task_interruption_behavior: getUserSetting('task_interruption_behavior', 'interrupt'),
     modes: (() => {
       const list = (pricing as PricingRow[]).map(p => {
         const keyCount = (db.prepare('SELECT COUNT(*) as cnt FROM api_keys WHERE mode = ? AND is_active = 1').get(p.mode) as { cnt: number }).cnt;
@@ -301,6 +302,7 @@ const UserSettingsSchema = z.object({
   auto_backup_trigger: z.enum(['task', 'tokens', 'minutes']).optional(),
   auto_backup_interval: z.number().int().min(1).optional(),
   max_tokens_per_session: z.number().int().positive().nullable().optional(),
+  task_interruption_behavior: z.enum(['interrupt', 'queue']).optional(),
 });
 
 router.patch('/settings', (req: Request, res: Response) => {

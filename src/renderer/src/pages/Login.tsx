@@ -152,7 +152,7 @@ export default function Login({ onLogin }: LoginProps) {
 
       {/* Hero */}
       <div className="login-hero" style={{ textAlign: 'center', padding: '48px 20px 36px', background: 'linear-gradient(180deg, rgba(41,255,122,0.08) 0%, transparent 100%)' }}>
-        <img className="login-hero-logo" src="/SUNy.png" alt="SUNy" style={{ width: 400, height: 400, borderRadius: '50%', objectFit: 'contain', background: 'var(--bg)', margin: '0 auto 24px', display: 'block', boxShadow: '0 8px 40px rgba(41,255,122,0.35)' }} />
+        <img className="login-hero-logo" src="/SLOGO.png" alt="SUNy" style={{ width: 400, height: 400, borderRadius: '50%', objectFit: 'cover', background: 'var(--bg)', margin: '0 auto 24px', display: 'block', boxShadow: '0 8px 40px rgba(41,255,122,0.35)' }} />
         <h1 className="login-hero-title" style={{ fontSize: 52, fontWeight: 800, marginBottom: 10, letterSpacing: '-1px' }}>SUNy</h1>
         <p className="login-hero-subtitle" style={{ fontSize: 24, fontWeight: 600, color: 'var(--accent)', marginBottom: 14 }}>Smart Unstoppable Navigator</p>
         <p className="login-hero-copy" style={{ fontSize: 16, color: 'var(--text-secondary)', maxWidth: 620, margin: '0 auto', lineHeight: 1.75 }}>
