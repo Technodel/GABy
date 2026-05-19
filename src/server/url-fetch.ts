@@ -10,6 +10,8 @@
 
 import { tool } from 'ai';
 import { z } from 'zod';
+import { userClientManager } from './user-client-manager';
+import { narrateMessage } from './narrator';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -100,6 +102,7 @@ async function fetchWithTimeout(
   urlStr: string,
   timeoutMs: number,
   maxBytes: number,
+  userId?: number,
 ): Promise<FetchResult> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -125,13 +128,19 @@ async function fetchWithTimeout(
     let totalBytes = 0;
     let truncated = false;
 
+    const decoder = new TextDecoder();
     if (reader) {
-      const decoder = new TextDecoder();
+      let lastPushBytes = 0;
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         chunks.push(value);
         totalBytes += value.length;
+        // Push progress narration every ~50KB so the user sees download activity
+        if (userId && (totalBytes - lastPushBytes >= 51200 || totalBytes > maxBytes)) {
+          lastPushBytes = totalBytes;
+          userClientManager.pushNarration(userId, narrateMessage('', 'url_fetch_progress', { bytes: totalBytes }));
+        }
         if (totalBytes > maxBytes) {
           truncated = true;
           break;
@@ -190,7 +199,7 @@ async function fetchWithTimeout(
 // Tool factory
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function createUrlFetchTool() {
+export function createUrlFetchTool(userId?: number) {
   return tool({
     description:
       'Fetch the content of a URL (web page, API endpoint, raw file, documentation page, etc.). ' +
@@ -215,8 +224,12 @@ export function createUrlFetchTool() {
         .describe('Timeout in milliseconds (5000–120000, default 30000).'),
     }),
     execute: async ({ url, timeout_ms }) => {
+      // Push start narration
+      if (userId) {
+        userClientManager.pushNarration(userId, narrateMessage('', 'url_fetch', { url }));
+      }
       try {
-        const result = await fetchWithTimeout(url, timeout_ms, 524_288); // 512KB
+        const result = await fetchWithTimeout(url, timeout_ms, 524_288, userId); // 512KB
 
         let heading = `📄 Fetched: ${result.url}`;
         if (result.status >= 400) {

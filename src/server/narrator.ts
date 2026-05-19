@@ -23,7 +23,9 @@ type MessageType =
   | 'server_crashed'
   | 'server_fixing'
   | 'server_restarting'
-  | 'server_give_up';
+  | 'server_give_up'
+  | 'url_fetch'
+  | 'url_fetch_progress';
 
 /**
  * Translate a technical message and type into a friendly narrator string.
@@ -146,6 +148,19 @@ export function narrateMessage(rawMessage: string, messageType: MessageType, con
 
     case 'server_give_up':
       return 'I fixed the main startup issues. One thing needs a closer look — want me to continue?';
+
+    case 'url_fetch': {
+      const url = context?.url as string;
+      if (url) return `🌐 SUNy is fetching ${url}...`;
+      return '🌐 SUNy is fetching information from the web...';
+    }
+
+    case 'url_fetch_progress': {
+      const bytes = context?.bytes as number;
+      const kb = Math.round(bytes / 1024);
+      if (kb > 0) return `🌐 SUNy is downloading data (${kb}KB so far)...`;
+      return '🌐 SUNy is downloading data...';
+    }
 
     default:
       return rawMessage.length > 0 ? sanitizeRawForNarrator(rawMessage) : 'Working on it...';

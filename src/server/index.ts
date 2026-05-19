@@ -1946,8 +1946,15 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       } catch { /* metrics must not crash the server */ }
 
       console.error('[chat:error]', err instanceof Error ? err.stack || err.message : err);
+      // Include the real error message for debugging — the user/test needs to
+      // know what actually broke, not just "internal hiccup". The friendly message
+      // is shown for known patterns; unknown errors reveal their real message
+      // so the test suite can diagnose tool failures vs API failures vs config.
+      const detailSuffix = errorCategory === 'unknown' && errMsg
+        ? `\n\n[Error details: ${errMsg.slice(0, 500)}]`
+        : '';
       userClientManager.pushChatContent(userId, 'suny:stream_end', {
-        content: friendly,
+        content: friendly + detailSuffix,
         sess_used: null,
         sess_limit: null,
         iterations: 0,

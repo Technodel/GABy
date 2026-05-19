@@ -425,7 +425,12 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
     return alwaysTools;
   })();
 
-  const effectiveTools = textFormat ? undefined : tools;
+  // Always pass tools to streamText — even in text-format modes (diff/whole).
+  // Previously this was set to `undefined` for text formats, which meant the AI
+  // had zero tool access — couldn't even use web_search or url_fetch. The format
+  // instructions in the system prompt guide the AI toward text-based edits, but
+  // tools must still be available for reading files, searching, web access, etc.
+  const effectiveTools = tools;
 
   // ── Hypothesis Engine: Parallel strategy testing ────────────────────────
   // For complex tasks with tools available, spawn 2-3 mini-agent runs
@@ -520,7 +525,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
         system: useSystemParam ? fullSystem : undefined,
         messages: finalMessages,
         tools: effectiveTools,
-        maxSteps: textFormat ? 1 : MAX_STEPS, // text formats do 1 pass, tool-call does multi-step
+        maxSteps: MAX_STEPS, // always allow multi-step — tools need result cycles even in text-format modes
         abortSignal: signal,
         onStepFinish: ({ usage }) => {
           steps++;
@@ -544,6 +549,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
       // Use sentence-boundary flushing at 30 chars for low latency on short responses.
       const SENTENCE_BOUNDARY = /[.!?\n]\s*$/;
       let toolDescBuffer = '';
+      let suppressingTechnical = false;
       const TECHNICAL_PATTERNS = [
         /^writing\s+web\s+request/i,
         /^writing\s+request\s+stream/i,
@@ -555,9 +561,28 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
 
         toolDescBuffer += delta;
 
+        // When currently suppressing technical output, keep discarding
+        // deltas until we hit a clear end of sentence (continuation text like
+        // "(Number of bytes written: 17284409)" often arrives as separate
+        // deltas that don't match the leading-anchored TECHNICAL_PATTERNS).
+        if (suppressingTechnical) {
+          // Check if this feels like more technical chatter (continuation text)
+          const trimmed = toolDescBuffer.trim();
+          const isContinuation = /^[(\-–—]/.test(trimmed) || /bytes\s+written/i.test(trimmed) || /request\s+stream/i.test(trimmed);
+          if (isContinuation) {
+            // Still inside the technical output — keep suppressing
+            toolDescBuffer = '';
+            continue;
+          }
+          // We've moved past technical output — clear the flag and let
+          // the text flow normally through the buffer/flush logic below
+          suppressingTechnical = false;
+        }
+
         // Check if accumulated buffer matches a known technical tool-description pattern
         const match = TECHNICAL_PATTERNS.find(p => p.test(toolDescBuffer.trim()));
         if (match) {
+          suppressingTechnical = true;
           // Suppress this technical output — push friendlier narration
           if (/bytes\s+written/i.test(toolDescBuffer) && userId) {
             const bytesMatch = toolDescBuffer.match(/Number of bytes written:\s*(\d+)/i);

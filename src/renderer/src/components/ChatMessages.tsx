@@ -118,7 +118,7 @@ export default function ChatMessages(props: ChatMessagesProps) {
       {/* Empty state: global */}
       {!activeProject && messages.length === 0 && !thinking && (
         <div style={{ textAlign: 'center', marginTop: 48, color: 'var(--text-muted)', padding: '0 24px' }}>
-          <img src="/SLOGO.png" alt="SUNy" style={{ width: 200, height: 200, borderRadius: '50%', objectFit: 'cover', marginBottom: 14, boxShadow: '0 4px 20px rgba(108,99,255,0.2)' }} />
+          <img src="/SLOGO.png" alt="SUNy" style={{ width: 220, height: 220, borderRadius: '50%', objectFit: 'cover', marginBottom: 14, boxShadow: '0 4px 20px rgba(108,99,255,0.2)' }} />
           <p style={{ fontWeight: 700, fontSize: 22, color: 'var(--text-primary)', marginBottom: 4 }}>SUNy</p>
           <p style={{ fontSize: 13, fontStyle: 'italic', color: 'var(--accent)', marginBottom: 20, opacity: 0.9 }}>Consider it done.</p>
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 24, lineHeight: 1.6 }}>

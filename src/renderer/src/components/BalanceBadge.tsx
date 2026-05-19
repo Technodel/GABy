@@ -9,7 +9,7 @@ interface BalanceBadgeProps {
 }
 
 /**
- * Format a dollar amount in cents-granularity like Aider.
+ * Format a dollar amount with cents-granularity.
  * Shows 4 decimal places for small amounts (e.g., $0.0042), 2 for larger ones.
  */
 function formatCents(amount: number): string {

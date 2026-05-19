@@ -73,24 +73,42 @@ export default function ChatInput(props: ChatInputProps) {
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/*,.pdf,.html,.htm,.js,.ts,.tsx,.py,.java,.rb,.go,.rs,.c,.cpp,.cs,.swift,.kt,.php,.css,.scss,.less,.json,.xml,.yaml,.yml,.toml,.md,.txt,.csv,.sql,.sh,.bash,.zsh,.env,.gitignore,.dockerfile"
           style={{ display: 'none' }}
           onChange={e => {
             const file = e.target.files?.[0];
             if (!file) return;
-            if (selectedMode === 'free') {
-              addMessage('system', '📷 Image analysis requires 🚀 Fast or 🧠 Pro mode. Switch to a higher tier to analyze images.');
+            // Handle image files
+            if (file.type.startsWith('image/')) {
+              if (selectedMode === 'free') {
+                addMessage('system', '📷 Image analysis requires 🚀 Fast or 🧠 Pro mode. Switch to a higher tier to analyze images.');
+                e.target.value = '';
+                return;
+              }
+              if (file.size > 10 * 1024 * 1024) {
+                addMessage('system', '⚠️ Image is too large (max 10 MB). Please resize and try again.');
+                e.target.value = '';
+                return;
+              }
+              const reader = new FileReader();
+              reader.onload = () => setImagePreview(reader.result as string);
+              reader.readAsDataURL(file);
               e.target.value = '';
               return;
             }
-            if (file.size > 10 * 1024 * 1024) {
-              addMessage('system', '⚠️ Image is too large (max 10 MB). Please resize and try again.');
+            // Handle text/data files — read content and insert as code block
+            if (file.size > 5 * 1024 * 1024) {
+              addMessage('system', '⚠️ File is too large (max 5 MB). Please choose a smaller file.');
               e.target.value = '';
               return;
             }
             const reader = new FileReader();
-            reader.onload = () => setImagePreview(reader.result as string);
-            reader.readAsDataURL(file);
+            reader.onload = () => {
+              const content = reader.result as string;
+              const ext = file.name.split('.').pop() || '';
+              setInput(prev => prev + `\n\`\`\`${ext}\n${content.slice(0, 50000)}\n\`\`\`\n`);
+            };
+            reader.readAsText(file);
             e.target.value = '';
           }}
         />
@@ -124,6 +142,25 @@ export default function ChatInput(props: ChatInputProps) {
                 const reader = new FileReader();
                 reader.onload = () => setImagePreview(reader.result as string);
                 reader.readAsDataURL(file);
+                break;
+              }
+              // Handle text file paste (files from clipboard)
+              if (item.kind === 'file') {
+                e.preventDefault();
+                const file = item.getAsFile();
+                if (!file) continue;
+                if (file.size > 5 * 1024 * 1024) {
+                  addMessage('system', '⚠️ File is too large (max 5 MB). Please choose a smaller file.');
+                  continue;
+                }
+                const reader = new FileReader();
+                reader.onload = () => {
+                  const content = reader.result as string;
+                  // For text files, append content as a code block in the input
+                  const ext = file.name.split('.').pop() || '';
+                  setInput(prev => prev + `\n\`\`\`${ext}\n${content.slice(0, 50000)}\n\`\`\`\n`);
+                };
+                reader.readAsText(file);
                 break;
               }
             }
@@ -172,9 +209,8 @@ export default function ChatInput(props: ChatInputProps) {
           <Image size={15} />
         </button>
 
-        {/* Talk/Write mode toggle */}
-        {!noBalance && (
-          <button
+        {/* Talk/Write mode toggle — always visible regardless of balance */}
+        <button
             className="btn btn-icon btn-secondary"
             onClick={toggleTalkMode}
             title={talkMode ? 'Talk Mode — no file changes (click to switch to Write Mode)' : 'Write Mode — full file editing (click to switch to Talk Mode)'}
@@ -188,7 +224,6 @@ export default function ChatInput(props: ChatInputProps) {
           >
             {talkMode ? <MessageSquare size={15} /> : <Pencil size={15} />}
           </button>
-        )}
 
         {thinking ? (
           <button

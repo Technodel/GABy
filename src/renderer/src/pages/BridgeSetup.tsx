@@ -17,7 +17,10 @@ export default function BridgeSetup({ onConnected }: BridgeSetupProps) {
     : `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}`;
   const bridgeTgzUrl = `${window.location.protocol}//${window.location.host}/bridge/suny-bridge.tgz`;
   const installCmd = setupCode
-    ? `npm install -g ${bridgeTgzUrl} && suny-bridge start --code ${setupCode} --server ${serverUrl}`
+    ? `npm install -g ${bridgeTgzUrl} && suny-bridge start --silent --code ${setupCode} --server ${serverUrl}`
+    : 'Loading…';
+  const startCmd = setupCode
+    ? `suny-bridge start --silent --code ${setupCode} --server ${serverUrl}`
     : 'Loading…';
 
   // Fetch a short-lived setup code from the server (cookie is httpOnly, can't read directly)
@@ -31,15 +34,15 @@ export default function BridgeSetup({ onConnected }: BridgeSetupProps) {
       });
   }, []);
 
-  // Auto-copy command once setup code is ready
+  // Auto-copy command once setup code is ready (use startCmd since install is one-time)
   useEffect(() => {
     if (setupCode && !autoCopied.current) {
       autoCopied.current = true;
-      navigator.clipboard.writeText(installCmd).catch(() => {});
+      navigator.clipboard.writeText(startCmd).catch(() => {});
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
-  }, [setupCode, serverUrl]);
+  }, [setupCode, serverUrl, startCmd]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -95,7 +98,7 @@ export default function BridgeSetup({ onConnected }: BridgeSetupProps) {
           </p>
 
           <div style={{ marginBottom: 8, fontSize: 13, color: 'var(--text-secondary)' }}>
-            Open your terminal and run:
+            <strong>First time only</strong> — open your terminal and run:
           </div>
           <div style={{
             background: '#0a0b0f',
@@ -124,6 +127,31 @@ export default function BridgeSetup({ onConnected }: BridgeSetupProps) {
             >
               {copied ? <CheckCircle size={14} color="var(--success)" /> : <Copy size={14} />}
             </button>
+          </div>
+
+          <div style={{ marginBottom: 6, fontSize: 13, color: 'var(--text-secondary)' }}>
+            <strong>Already installed?</strong> Just start the bridge (no re-install):
+          </div>
+          <div style={{
+            background: '#0a0b0f',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-sm)',
+            padding: '12px 14px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 12,
+            marginBottom: 20,
+          }}>
+            <code style={{
+              fontFamily: 'JetBrains Mono, monospace',
+              fontSize: 12,
+              color: 'var(--accent)',
+              wordBreak: 'break-all',
+              flex: 1,
+            }}>
+              {startCmd}
+            </code>
           </div>
 
           <div style={{

@@ -130,11 +130,11 @@ function EnglishContent() {
       ))}
 
       <div className="card" style={{ marginTop: 24 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16 }}>What Makes SUNy Different From Just Using ChatGPT?</h2>
+        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16 }}>What Makes SUNy Different From Regular AI Chat?</h2>
         <table>
           <thead>
             <tr>
-              <th>ChatGPT / Regular AI</th>
+              <th>Regular AI Chat</th>
               <th>SUNy</th>
             </tr>
           </thead>
@@ -252,11 +252,11 @@ function ArabicContent() {
       ))}
 
       <div className="card" style={{ marginTop: 24 }}>
-        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16 }}>ما الذي يجعل SUNy مختلفا عن ChatGPT العادي؟</h2>
+        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16 }}>ما الذي يجعل SUNy مختلفا عن الذكاء الاصطناعي العادي؟</h2>
         <table>
           <thead>
             <tr>
-              <th>ChatGPT / الذكاء الاصطناعي العادي</th>
+              <th>الذكاء الاصطناعي العادي</th>
               <th>SUNy</th>
             </tr>
           </thead>

@@ -19,6 +19,7 @@ bridge/node_modules/
 
 # Temp and scratch files
 temp_*
+tmp_*
 _temp_*
 _*.cjs
 _*.mjs
@@ -51,3 +52,18 @@ vps-cleanup*
 # Backup archives (too large for GitHub)
 backups/
 dist.zip
+
+# ── Task execution test files (contain credentials) ──────────────────────────
+suny-task-test.js
+suny-task-results*.json
+suny-test-results*.json
+suny-test-suite.js
+
+# ── SSH debug logs (contain server IPs and auth info) ────────────────────────
+ssh_*.txt
+
+# ── One-off debug scripts ────────────────────────────────────────────────────
+fix_db.py
+test_suny.py
+test_ws.py
+tmp_deploy/
