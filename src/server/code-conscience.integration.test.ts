@@ -4,7 +4,7 @@
  * Spins up the Express server on a test port with an isolated SQLite database
  * and tests the blueprint memory and change guardian modules in context.
  */
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
