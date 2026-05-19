@@ -934,7 +934,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     }
   }, [messages, memories, activeProject?.id, projectStateReady, crossDeviceMemoryEnabled]);
 
-  const { send: wsSend } = useWebSocket({
+  const { send: wsSend, isConnected, pendingCount, clearPending } = useWebSocket({
     onMessage: (msg) => {
       if (msg.event === 'suny:narration') {
         lastNarrationRef.current = msg.message as string;
@@ -1563,6 +1563,26 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
               </span>
             </div>
           )}
+          {/* Connection status */}
+          <div
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              padding: '2px 6px', borderRadius: 4,
+              fontSize: 10, fontWeight: 600,
+              color: isConnected ? 'var(--accent)' : 'var(--danger)',
+              opacity: 0.7,
+            }}
+            title={isConnected ? 'Connected' : `Disconnected (${pendingCount} pending)`}
+          >
+            <span style={{
+              width: 6, height: 6, borderRadius: '50%',
+              background: isConnected ? 'var(--accent)' : 'var(--danger)',
+              display: 'inline-block',
+            }} />
+            {!isConnected && pendingCount > 0 && (
+              <span>{pendingCount}</span>
+            )}
+          </div>
         </div>
 
         {/* RIGHT: action buttons */}
