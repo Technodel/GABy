@@ -88,7 +88,7 @@ export function createSelfHealTool(ctx: () => HealContext) {
       'a build error occurs, or you encounter any unexpected problem. ' +
       'Pass the exact error message and relevant context (file content, command output, etc.). ' +
       'The tool returns a root cause analysis and the minimal fix needed.',
-    parameters: z.object({
+    inputSchema: z.object({
       error: z
         .string()
         .min(5)

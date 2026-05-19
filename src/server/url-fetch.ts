@@ -207,7 +207,7 @@ export function createUrlFetchTool(userId?: number) {
       'JSON responses are pretty-printed. Use this when you need to read documentation, check API ' +
       'responses, download configuration files, or access any online resource. ' +
       'Maximum response size: 512KB (content beyond that is truncated with a notice).',
-    parameters: z.object({
+    inputSchema: z.object({
       url: z
         .string()
         .url()

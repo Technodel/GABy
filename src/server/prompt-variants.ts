@@ -263,7 +263,7 @@ export function createPromptVariantTool(ctx: PromptVariantContext) {
         .map(([key, v]) => `"${key}" — ${v.label} (${v.type})`)
         .join(', ') +
       '. Custom variants can also be created.',
-    parameters: z.object({
+    inputSchema: z.object({
       action: z.enum(['list', 'get', 'assign', 'unassign', 'create']).describe('Action to perform'),
       variantKey: z.string().optional().describe('The variant key (e.g. "persona:senior-engineer")'),
       label: z.string().optional().describe('Label for new custom variants'),

@@ -206,7 +206,7 @@ export function createSymbolReaderTool(ctx: { userId: number; projectPath: strin
       'without reading the full content. Returns symbol names, kinds, export status, and line numbers. ' +
       'Use this to understand a file\'s structure before editing — saves tokens vs reading the whole file. ' +
       'Supports JS/TS, Python, Go, Rust, Java, and others.',
-    parameters: z.object({
+    inputSchema: z.object({
       filePath: z.string().describe('Path to the file (relative to WorkingDirectory, or absolute).'),
     }),
     execute: async ({ filePath }) => {

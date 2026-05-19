@@ -134,7 +134,7 @@ export function createFileDiscoveryTool(ctx: FileDiscoveryContext) {
       'Use this when you need to find files related to a feature, component, or API — ' +
       'especially when the repo map alone is not enough. ' +
       'Returns a list of files with relevance scores and explanations.',
-    parameters: z.object({
+    inputSchema: z.object({
       description: z
         .string()
         .min(3)

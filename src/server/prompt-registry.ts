@@ -202,7 +202,7 @@ export function createPromptRegistryTool(ctx: PromptRegistryContext) {
       '. ' +
       'Use this to switch between different modes (architect, debug, refactor, explain, security, api). ' +
       'Custom templates can be created by the user via /prompt command.',
-    parameters: z.object({
+    inputSchema: z.object({
       key: z
         .enum(Object.keys(TEMPLATE_CONTEXTS) as [string, ...string[]])
         .describe('The template context key'),

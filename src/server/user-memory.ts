@@ -36,7 +36,7 @@ export function createMemoryTools(ctx: MemoryToolContext) {
   const saveMemoryTool = tool({
     description:
       'Save a fact or piece of information to long-term memory. Use this when the user tells you something they want you to remember (preferences, important context, decisions, personal details). The fact will persist across conversations.',
-    parameters: z.object({
+    inputSchema: z.object({
       fact: z
         .string()
         .min(1)
@@ -67,7 +67,7 @@ export function createMemoryTools(ctx: MemoryToolContext) {
   const recallMemoriesTool = tool({
     description:
       'Recall saved facts from memory. Returns all stored facts for this user/project. Use this at the start of a conversation or when you need to remember user preferences.',
-    parameters: z.object({
+    inputSchema: z.object({
       category: z
         .string()
         .max(100)
@@ -113,7 +113,7 @@ export function createMemoryTools(ctx: MemoryToolContext) {
   const deleteMemoryTool = tool({
     description:
       'Delete a specific memory by its ID number. Use recall_memories first to find the ID.',
-    parameters: z.object({
+    inputSchema: z.object({
       id: z.number().int().positive().describe('The ID of the memory to delete.'),
     }),
     execute: async ({ id }) => {

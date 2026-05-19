@@ -249,7 +249,7 @@ export function createBrowserTools(userId: number) {
   return {
     browser_navigate: tool({
       description: 'Navigate to a URL and extract the page text content. Use this to read web pages, documentation, or any online resource.',
-      parameters: z.object({
+      inputSchema: z.object({
         url: z.string().url().describe('The full URL to navigate to'),
         waitMs: z.number().optional().describe('Milliseconds to wait for page load (default: 2000)'),
         extractText: z.boolean().optional().describe('Extract readable text from the page (default: true)'),
@@ -264,7 +264,7 @@ export function createBrowserTools(userId: number) {
 
     browser_screenshot: tool({
       description: 'Take a screenshot of a web page. Returns a base64-encoded image that can be analyzed.',
-      parameters: z.object({
+      inputSchema: z.object({
         url: z.string().url().describe('The full URL to screenshot'),
         fullPage: z.boolean().optional().describe('Capture the full page height (default: false)'),
       }),
@@ -277,7 +277,7 @@ export function createBrowserTools(userId: number) {
 
     browser_interact: tool({
       description: 'Interact with a web page — click buttons, fill forms, select options. Provide a list of actions to perform sequentially.',
-      parameters: z.object({
+      inputSchema: z.object({
         url: z.string().url().describe('The URL to interact with'),
         actions: z.array(z.object({
           type: z.enum(['click', 'fill', 'select', 'hover', 'wait']).describe('The type of action'),

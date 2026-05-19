@@ -252,7 +252,7 @@ export function createWebSearchTool() {
   return tool({
     description:
       'Search the web for current information. Use this when you need up-to-date data, documentation, news, API references, or any information the model was not trained on. Supports Tavily (best), SerpAPI, or DuckDuckGo fallback — no configuration needed for basic usage.',
-    parameters: z.object({
+    inputSchema: z.object({
       query: z
         .string()
         .min(1)

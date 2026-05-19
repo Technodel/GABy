@@ -193,7 +193,7 @@ export function createSubtaskDelegatorTool(ctx: DelegatorContext) {
       'context without cluttering the main conversation. ' +
       'The sub-agent will read files, make changes, and report back what it did. ' +
       'PASS the EXACT task description, file list, and success criteria — precision matters.',
-    parameters: z.object({
+    inputSchema: z.object({
       task: z
         .string()
         .min(10)

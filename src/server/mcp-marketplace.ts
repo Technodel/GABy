@@ -446,7 +446,7 @@ export function createMarketplaceTools(userId: number) {
   return {
     mcp_marketplace_search: tool({
       description: 'Search the MCP Marketplace for available servers. Filter by category or search term.',
-      parameters: z.object({
+      inputSchema: z.object({
         search: z.string().optional().describe('Search term to filter servers'),
         category: z.string().optional().describe('Category to filter by (database, search, filesystem, api, devops, communication, analytics, media, ai, utility, other)'),
         limit: z.number().optional().describe('Maximum results to return (default: 10)'),
@@ -465,7 +465,7 @@ export function createMarketplaceTools(userId: number) {
 
     mcp_marketplace_install: tool({
       description: 'Install an MCP server from the marketplace by its ID.',
-      parameters: z.object({
+      inputSchema: z.object({
         marketplaceId: z.number().describe('The marketplace entry ID to install'),
       }),
       execute: async ({ marketplaceId }) => {
@@ -486,7 +486,7 @@ export function createMarketplaceTools(userId: number) {
 
     mcp_marketplace_list_installed: tool({
       description: 'List all MCP servers currently installed for your user.',
-      parameters: z.object({}),
+      inputSchema: z.object({}),
       execute: async () => {
         const installed = listUserInstalledMcp(userId);
         if (installed.length === 0) return 'No MCP servers installed. Browse the marketplace with `mcp_marketplace_search`.';
@@ -500,7 +500,7 @@ export function createMarketplaceTools(userId: number) {
 
     mcp_marketplace_uninstall: tool({
       description: 'Uninstall an installed MCP server by its name.',
-      parameters: z.object({
+      inputSchema: z.object({
         name: z.string().describe('The name of the installed MCP server to uninstall'),
       }),
       execute: async ({ name }) => {

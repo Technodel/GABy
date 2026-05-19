@@ -305,7 +305,7 @@ class McpManager {
         const originalToolName = reg.name.replace(`${instance.config.name}_`, '');
         toolSet[reg.name] = tool({
           description: `${reg.description} (MCP: ${instance.config.name})`,
-          parameters: reg.schema as any,
+          inputSchema: reg.schema as any,
           execute: async (args: Record<string, unknown>) => {
             try {
               const result = await client.request(
