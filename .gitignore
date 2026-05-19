@@ -20,6 +20,15 @@ bridge/node_modules/
 # Temp and scratch files
 temp_*
 _temp_*
+_*.cjs
+_*.mjs
+_*.ps1
+_vps_*
+_count_*
+_dbcheck*
+_dump_*
+server_out.txt
+server_err.txt
 *.pyc
 __pycache__/
 *.tgz
@@ -27,9 +36,11 @@ __pycache__/
 
 # Backup directories
 SUNy-14B-Agent-Demo_bak/
+comparison/
 
-# Scripts directory (DB setup helpers)
-scripts/
+# Scripts directory — build.js is required for Docker build
+scripts/*
+!scripts/build.js
 
 # Prevent secret leaks
 .aider.input.history

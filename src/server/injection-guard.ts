@@ -121,7 +121,7 @@ export function scanForInjection(
   }
 
   const hasHigh = matches.some(m => m.severity === 'high');
-  const blocked = options.blockOnHigh && hasHigh;
+  const blocked = !!(options.blockOnHigh && hasHigh);
 
   // Log to audit DB
   if (matches.length > 0) {

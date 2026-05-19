@@ -96,8 +96,10 @@ const PHASE_TO_SKILL: Record<TaskPhase, string | null> = {
 // ── YAML frontmatter parser ────────────────────────────────────────────────
 
 function parseYamlFrontmatter(raw: string): { frontmatter: Record<string, string>; body: string } | null {
+  // Normalize CRLF → LF (Windows line endings break the regex)
+  const normalized = raw.replace(/\r\n/g, '\n');
   // Match --- frontmatter ---
-  const match = raw.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+  const match = normalized.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
   if (!match) return null;
 
   const yamlBlock = match[1];

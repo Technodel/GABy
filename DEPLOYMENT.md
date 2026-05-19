@@ -76,9 +76,10 @@ nano .env
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `SUNY_GROQ_KEY` | Groq API key (free mode) | `gsk_your_key` |
-| `SUNY_OPENROUTER_KEY` | OpenRouter key (free mode fallback) | `sk-or-your-key` |
-| `SUNY_DEEPSEEK_KEY` | DeepSeek API key (fast/pro modes) | `sk-your-key` |
+| `GROQ_API_KEY` | Groq API key (free mode, supports legacy `SUNY_GROQ_KEY` too) | `gsk_your_key` |
+| `OPENROUTER_API_KEY` | OpenRouter key (free mode fallback, supports legacy `SUNY_OPENROUTER_KEY`) | `sk-or-your-key` |
+| `DEEPSEEK_API_KEY` | DeepSeek API key (fast/smart/pro modes, supports legacy `SUNY_DEEPSEEK_KEY`) | `sk-your-key` |
+| `GEMINI_API_KEY` | Gemini API key (additional provider) | `your-gemini-key` |
 | `SUNY_PORT` or `GABY_PORT` | Server port (default: 3500) | `3500` |
 | `SUNY_DB_PATH` or `GABY_DB_PATH` | DB file path (default: `./data/suny.db`) | `/data/suny.db` |
 | `GABY_ALLOWED_ORIGIN` | Alias for `SUNY_ALLOWED_ORIGIN` | `https://suny.example.com` |

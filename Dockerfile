@@ -5,6 +5,7 @@ COPY package.json ./
 RUN npm install
 COPY tsconfig.json ./
 COPY src/server ./src/server
+COPY scripts/build.js ./scripts/build.js
 RUN npm run build
 
 

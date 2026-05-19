@@ -16,6 +16,14 @@ services:
       - SUNY_SECRET_JWT=${SUNY_SECRET_JWT}
       - SUNY_ADMIN_PASSWORD=${SUNY_ADMIN_PASSWORD}
       - SUNY_ALLOWED_ORIGIN=${SUNY_ALLOWED_ORIGIN}
+      # ── AI / LLM API Keys ──────────────────────────────────────────────
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      # ── Web Search API Keys ─────────────────────────────────────────────
+      - SERPAPI_API_KEY=${SERPAPI_API_KEY}
+      - SERPER_API_KEY=${SERPER_API_KEY}
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
       interval: 30s

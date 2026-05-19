@@ -41,6 +41,7 @@ import { processDesignIntents, getDesignIntentsPrompt, initializeDesignIntentTab
 import { silentCodeReview, formatCodeReviewForPrompt, postMergeValidation, formatValidationForPrompt, analyzeInteractionPatterns, formatPatternAnalysisForPrompt, recordInteraction, initializeInteractionPatternsTable } from './verification-obsession';
 import { getPresenceInjection, updatePresenceProfile, getPresenceProfile, initializePresenceTable } from './presence-engineering';
 import { getSkillSystemPrompt, initSkillSystem } from './skill-loader';
+import { loadTrainingAndRules } from './training-loader';
 import { formatGoalContext, getCurrentGoal, addGoalEvidence, incrementGoalAttempt, tryAutoCompleteGoal } from './goal-tracker';
 import { recordAgentTurn } from './metrics';
 
@@ -383,9 +384,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         .get(userId) as { selected_mode: string; max_tokens_per_session: number | null; display_name: string | null } | undefined;
 
       const rawMode = ((msg.mode as string) || userRow?.selected_mode || 'fast').toLowerCase();
-      const requestedMode = rawMode === 'smart'
-        ? 'pro'
-        : (['free', 'fast', 'pro', 'auto'].includes(rawMode) ? rawMode : 'fast');
+      const requestedMode = ['free', 'fast', 'smart', 'pro', 'auto'].includes(rawMode) ? rawMode : 'fast';
       const dailyLimitRow = db.prepare("SELECT value FROM app_settings WHERE key = 'daily_token_limit'").get() as { value: string } | undefined;
       const dailyTokenLimit = parseInt(dailyLimitRow?.value || '0', 10);
       const todayUsed = db.prepare(
@@ -905,6 +904,14 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         '',
         // ── Skill system: engineering workflow skills ─────────────────────
         ...getSkillSystemPrompt().split('\n').filter(l => l !== ''),
+        // ── Training loader: injection files + behavioral rules ──────────
+        ...(() => {
+          const tl = loadTrainingAndRules({ userId, projectRoot: projectPath });
+          const blocks: string[] = [];
+          if (tl.injectionBlocks.length > 0) blocks.push(...tl.injectionBlocks);
+          if (tl.behavioralBlock) blocks.push('', tl.behavioralBlock);
+          return blocks;
+        })(),
         '',
         '<pre_task_validation>',
         'Before starting any task:',

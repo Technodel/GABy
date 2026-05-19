@@ -321,7 +321,7 @@ function seedData(db: Database.Database): void {
     db.prepare(`UPDATE api_keys SET model_id_override = 'deepseek-chat' WHERE mode = 'smart'`).run();
     db.prepare(`UPDATE api_keys SET model_id_override = 'deepseek-chat' WHERE mode = 'pro'`).run();
     // Add DeepSeek as primary provider for fast/smart/pro modes
-    const deepseekKey = process.env.SUNY_DEEPSEEK_KEY;
+    const deepseekKey = process.env.DEEPSEEK_API_KEY || process.env.SUNY_DEEPSEEK_KEY;
     if (deepseekKey) {
       db.prepare(`INSERT OR REPLACE INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
         .run('DeepSeek', deepseekKey, 'fast', '🚀 Fast – DeepSeek V3', 1, 'deepseek-chat');
@@ -334,7 +334,7 @@ function seedData(db: Database.Database): void {
         .run('DeepSeek', deepseekKey, 'free', '⚡ Free – DeepSeek (fallback)', 2, 'deepseek-chat');
     }
     // Ensure Groq is the primary provider for free mode
-    const groqKey = process.env.SUNY_GROQ_KEY;
+    const groqKey = process.env.GROQ_API_KEY || process.env.SUNY_GROQ_KEY;
     if (groqKey) {
       db.prepare(`INSERT OR REPLACE INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
         .run('Groq', groqKey, 'free', '⚡ Free – Groq', 1, 'llama-3.3-70b-versatile');
@@ -368,8 +368,8 @@ function seedData(db: Database.Database): void {
   const keysSeeded = db.prepare("SELECT value FROM app_settings WHERE key='default_keys_seeded'").get();
   if (!keysSeeded) {
     db.prepare('DELETE FROM api_keys').run();
-    const groqKey = process.env.SUNY_GROQ_KEY;
-    const deepseekKey = process.env.SUNY_DEEPSEEK_KEY;
+    const groqKey = process.env.GROQ_API_KEY || process.env.SUNY_GROQ_KEY;
+    const deepseekKey = process.env.DEEPSEEK_API_KEY || process.env.SUNY_DEEPSEEK_KEY;
     // Free → Groq (primary). Fast/Smart/Pro → DeepSeek.
     if (groqKey) {
       db.prepare(`INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
@@ -411,6 +411,25 @@ function seedData(db: Database.Database): void {
   const insertSetting = db.prepare('INSERT OR IGNORE INTO app_settings (key, value) VALUES (?, ?)');
   for (const [key, value] of seedSettings) {
     insertSetting.run(key, value);
+  }
+
+  // ── Seed feature flags: ON by default for launch-ready capabilities ──
+  const featureFlagDefaults: Array<[string, string, string, string]> = [
+    ['ff_behavioral_rules',    'on',  'Behavioral Rules',   'Learn from past tasks and inject rules into future prompts'],
+    ['ff_training_scorer',     'on',  'Training Scorer',    'LLM-as-Judge scoring of SUNy outputs after each task'],
+    ['ff_training_loader',     'on',  'Training Loader',    'Auto-load injection files and behavioral rules into system prompt'],
+    ['ff_goal_tracker',        'on',  'Goal Tracker',       'Persistent multi-horizon goal tracking across sessions'],
+    ['ff_code_index',          'on',  'Code Index',         'Semantic code index for intelligent code search'],
+    ['ff_confidence_scoring',  'on',  'Confidence Scoring', 'Self-reported uncertainty tracking with escalation'],
+    ['ff_failure_memory',      'on',  'Failure Memory',     'Remember and avoid repeating past mistakes'],
+    ['ff_multi_agent_review',  'on',  'Multi-Agent Review', 'Silent code review after every task'],
+    ['ff_test_generator',      'on',  'Test Generator',     'Auto-generate tests after feature implementation'],
+    ['ff_operation_audit',     'on',  'Operation Audit',    'Detailed operation logging for debugging'],
+    ['ff_project_lock',        'on',  'Project Lock',       'Prevent concurrent edits to the same project'],
+  ];
+  const insertFlag = db.prepare('INSERT OR IGNORE INTO feature_flags (key, value, label, description) VALUES (?, ?, ?, ?)');
+  for (const [key, value, label, desc] of featureFlagDefaults) {
+    insertFlag.run(key, value, label, desc);
   }
 }
 

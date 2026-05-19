@@ -45,7 +45,7 @@ export const CONFIDENCE_THRESHOLDS = {
   /** Below this confidence → also flag for human review */
   FLAG_FOR_REVIEW: 0.3,
   /** Mode escalation ladder */
-  ESCALATION_LADDER: ['free', 'fast', 'pro'] as const,
+  ESCALATION_LADDER: ['free', 'fast', 'smart', 'pro'] as const,
 };
 
 // ── DB initialization ─────────────────────────────────────────────────────────

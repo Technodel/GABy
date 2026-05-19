@@ -164,28 +164,82 @@ export interface AgentLoopResult {
 
 /**
  * Classify a user message into the most appropriate billing mode for AUTO routing.
- * Uses keyword heuristics — no extra API call needed.
+ * Uses weighted scoring across multiple signal categories to make intelligent
+ * routing decisions without an extra API call.
+ *
+ * Signals considered:
+ *   - Coding intent (fix, build, refactor, etc.)
+ *   - Creation intent (make a game, create an app, etc.)
+ *   - Reasoning depth needed (analyze, architect, explain, etc.)
+ *   - Message length (longer = more complex)
+ *   - System introspection (questions about SUNy's own behavior/instructions)
  */
-function classifyAutoMode(message: string): 'free' | 'fast' | 'smart' | 'pro' {
+export function classifyAutoMode(message: string): 'free' | 'fast' | 'smart' | 'pro' {
   const t = message.toLowerCase();
-  // Pro signals: explicit deep reasoning / architecture / analysis requests
-  if (
-    (t.length > 150 &&
-     /\b(architect|design pattern|tradeoff|compare|analyze|security|performance|scalab|deep dive|explain why|complex|algorithm|optimize|review|audit)\b/.test(t)) ||
-    // Also route to pro for questions about the system itself, instructions, training, behavior
-    /\b(instructions|system prompt|trained|training|why do you|why don't you|why are you|why aren't you|follow.*instruction|ignore.*instruction)\b/.test(t)
-  ) return 'pro';
-  // Smart signals: moderate-length tasks with domain-specific or moderate-complexity keywords
-  if (
-    t.length > 80 &&
-    /\b(refactor|migrate|restructure|integrate|configur|deploy|optimize|schema|query|pipeline|workflow|component|module|service|middleware|hook|custom|layout|responsive|accessibility|state|context|reducer|selector|thunk|saga|observable|subscription)\b/.test(t)
-  ) return 'smart';
-  // Free signals: very short casual messages with no coding keywords
-  if (
-    t.length < 80 &&
-    !/\b(fix|error|bug|implement|create|refactor|add|write|function|class|api|test|deploy|code|file|build|run|install|import|export|async|await|type|interface)\b/.test(t)
-  ) return 'free';
-  // Default: fast — handles most coding tasks well
+
+  // ── Signal detection patterns ──────────────────────────────────────────────
+
+  // Strong coding task verbs — the user wants ACTION on code
+  const codingIntentRx = /\b(fix|error|bug|implement|refactor|add|write|function|class|method|variable|api|test|deploy|code|file|build|run|install|import|export|async|await|type|interface|configur|schema|query|pipeline|workflow|component|module|service|middleware|hook|custom|layout|responsive|state|context|reducer|selector|migrate|restructure|integrate|scaffold|generate|delete|rename|edit|change|update|upgrade|downgrade|lint|compile)\b/i;
+
+  // Creation/build signals — building something NEW (not just asking a question)
+  const creationRx = /\b((make|create|build|write|generate|start|scaffold|develop)\s+(a|an|the|me|this|that|my|new|simple|basic|small|fun|quick))|((new|another)\s+(project|app|application|game|website|tool|utility|script|function|module|component|feature|page|form))|game\b/i;
+
+  // Deep reasoning signals — the user wants analysis, not just action
+  const depthRx = /\b(architect|design pattern|tradeoff|compare|analyze|security|performance|scalab|deep dive|explain why|explain how|complex|algorithm|optimize|review|audit|architecture|decision|strategy|approach|pros and cons|trade.?off|migration|comparison|evaluate|assess)\b/i;
+
+  // System introspection — user asking about SUNy itself
+  const introspectionRx = /\b(instructions|system prompt|trained|training|why do you|why don't you|why are you|why aren't you|follow.*instruction|ignore.*instruction|behavior|personality|who are you|what are you)\b/i;
+
+  // ── Score calculation ───────────────────────────────────────────────────────
+
+  let codingScore = 0;
+  let creationScore = 0;
+  let depthScore = 0;
+  let introspectionScore = 0;
+
+  // Count coding intent matches (cap at 5 to avoid runaway)
+  const cMatches = t.match(codingIntentRx);
+  if (cMatches) codingScore = Math.min(cMatches.length, 5);
+
+  // Count creation signals — each is worth 2 to ensure these route to smart+
+  const crMatches = t.match(creationRx);
+  if (crMatches) creationScore = Math.min(crMatches.length, 3) * 2;
+
+  // Count depth signals
+  const dMatches = t.match(depthRx);
+  if (dMatches) depthScore = Math.min(dMatches.length, 4);
+
+  // Count introspection signals
+  const iMatches = t.match(introspectionRx);
+  if (iMatches) introspectionScore = Math.min(iMatches.length, 2);
+
+  // Length contributes to implied complexity
+  const lengthScore = t.length > 200 ? 3 : t.length > 100 ? 2 : t.length > 50 ? 1 : 0;
+
+  // ── Classification ──────────────────────────────────────────────────────────
+
+  // PRO: Deep reasoning tasks or system introspection
+  if (introspectionScore >= 1) return 'pro';
+  if (depthScore >= 2 && lengthScore >= 1) return 'pro';
+  if (depthScore >= 1 && codingScore >= 2 && lengthScore >= 2) return 'pro';
+  if (depthScore >= 3) return 'pro';
+
+  // SMART: Creation/building tasks, moderate coding complexity
+  if (creationScore >= 1) return 'smart';        // "make a game", "create an app"
+  if (codingScore >= 3) return 'smart';           // multi-intent coding requests
+  if (codingScore >= 1 && depthScore >= 1) return 'smart';  // reasoned coding
+  if (codingScore >= 1 && lengthScore >= 2) return 'smart';  // long coding request
+  if (depthScore >= 1 && lengthScore >= 2) return 'smart';   // long analysis
+  if (depthScore >= 2) return 'smart';            // short but significant depth
+
+  // FREE: Genuinely casual — no coding intent, short, no depth
+  if (codingScore === 0 && creationScore === 0 && depthScore === 0 && introspectionScore === 0 && t.length < 40) return 'free';
+
+  // FAST: Default for anything with coding intent, or longer messages
+  if (codingScore > 0 || lengthScore > 0) return 'fast';
+
+  // Default fallback
   return 'fast';
 }
 
