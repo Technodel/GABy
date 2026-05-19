@@ -49,10 +49,10 @@ const PORT = parseInt(process.env.SUNY_PORT || process.env.GABY_PORT || '3500', 
 const ALLOWED_ORIGIN = process.env.SUNY_ALLOWED_ORIGIN || process.env.GABY_ALLOWED_ORIGIN || 'http://localhost:5173';
 
 const EMPTY_FINAL_REPLY_FALLBACKS = [
-  "I completed the task but the final text didn't come through. Send it once more and I'll answer immediately.",
-  "I finished processing, but the last reply text was empty on my side. Please resend your message and I'll respond right away.",
-  "I got to the end of processing, but I didn't receive the final output text. Retry the same prompt and I'll handle it instantly.",
-  "Processing is complete, but the final response payload was missing. Send that again and I'll reply normally.",
+  "Done.",
+  "All set \u2014 check your project for the changes.",
+  "Finished. Take a look at the results above.",
+  "Task complete.",
 ];
 
 const ERROR_REPLY_FALLBACKS = [
@@ -80,8 +80,10 @@ function normalizeFinalContent(userId: number, rawContent: unknown): string {
     return pickNonRepeatingFallback(userId, EMPTY_FINAL_REPLY_FALLBACKS);
   }
 
-  // Guard against repetitive low-signal fallback text from upstream providers.
-  const looksLikeMissingFinalText = /didn't receive a final reply text|please send that again/i.test(content);
+  // Guard against model-generated meta-commentary about missing output.
+  // These patterns indicate the model is talking about its own response
+  // instead of producing actual content.
+  const looksLikeMissingFinalText = /didn't receive a final reply text|please send that again|final text didn't come through|was empty on my side/i.test(content);
   if (looksLikeMissingFinalText) {
     return pickNonRepeatingFallback(userId, EMPTY_FINAL_REPLY_FALLBACKS);
   }

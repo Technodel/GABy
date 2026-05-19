@@ -15,6 +15,10 @@ const TOKEN_REFRESH_MAX_ATTEMPTS = 10;
 /** File path where a new token can be written for auto-pick-up */
 const TOKEN_REFRESH_FILE = path.join(os.homedir(), '.gaby', 'refresh_token');
 
+interface BridgeOptions {
+  silent?: boolean;
+}
+
 export class SunyBridge {
   private ws: WebSocket | null = null;
   private token: string;
@@ -27,10 +31,14 @@ export class SunyBridge {
   private awaitingTokenRefresh = false;
   private tokenRefreshAttempts = 0;
   private tokenRefreshTimer: NodeJS.Timeout | null = null;
+  private silent: boolean;
+  private log: (...args: unknown[]) => void;
 
-  constructor(token: string, server: string) {
+  constructor(token: string, server: string, options: BridgeOptions = {}) {
     this.token = token;
     this.server = server;
+    this.silent = options.silent ?? false;
+    this.log = this.silent ? () => {} : console.log;
   }
 
   start(): void {
@@ -72,13 +80,13 @@ export class SunyBridge {
     try {
       this.ws = new WebSocket(url);
     } catch (err) {
-      console.error('[SUNy Bridge] Failed to create connection:', err);
+      this.log('[SUNy Bridge] Failed to create connection:', err);
       this.scheduleReconnect();
       return;
     }
 
     this.ws.on('open', () => {
-      console.log('[SUNy Bridge] Connected to SUNy server ✓');
+      this.log('[SUNy Bridge] Connected to SUNy server ✓');
       this.reconnectDelay = RECONNECT_DELAY;
       this.startHeartbeat();
     });
@@ -91,23 +99,23 @@ export class SunyBridge {
       this.clearTimers();
       if (code === 4001) {
         const reasonStr = reason.toString();
-        console.error('[SUNy Bridge] Authentication failed (code 4001).');
+        this.log('[SUNy Bridge] Authentication failed (code 4001).');
         if (reasonStr.includes('expired')) {
           this.startTokenRefreshFlow();
         } else {
-          console.error('[SUNy Bridge] Token is invalid. Generate a new token from the admin panel and restart the bridge.');
+          this.log('[SUNy Bridge] Token is invalid. Generate a new token from the admin panel and restart the bridge.');
         }
         // Don't schedule normal reconnect — token-refresh flow handles it
         return;
       }
       if (!this.stopped) {
-        console.log(`[SUNy Bridge] Disconnected (code ${code}). Reconnecting in ${this.reconnectDelay / 1000}s...`);
+        this.log(`[SUNy Bridge] Disconnected (code ${code}). Reconnecting in ${this.reconnectDelay / 1000}s...`);
         this.scheduleReconnect();
       }
     });
 
     this.ws.on('error', (err) => {
-      console.error('[SUNy Bridge] Connection error:', err.message);
+      this.log('[SUNy Bridge] Connection error:', err.message);
     });
   }
 
@@ -126,14 +134,14 @@ export class SunyBridge {
     };
 
     if (type === 'bridge:disconnect') {
-      console.log('[SUNy Bridge] Server requested disconnect:', (payload as { reason?: string })?.reason);
+      this.log('[SUNy Bridge] Server requested disconnect:', (payload as { reason?: string })?.reason);
       this.stopped = true;
       this.ws?.close();
       return;
     }
 
     if (type === 'bridge:token_expired') {
-      console.log('[SUNy Bridge] Session token expired.');
+      this.log('[SUNy Bridge] Session token expired.');
       this.startTokenRefreshFlow();
       return;
     }
@@ -147,7 +155,7 @@ export class SunyBridge {
     if (type === 'bridge:register_path' && payload?.path) {
       const targetPath = payload.path as string;
       registerPath(targetPath);
-      console.log(`[SUNy Bridge] Registered project path: ${targetPath}`);
+      this.log(`[SUNy Bridge] Registered project path: ${targetPath}`);
       if (id) {
         this.send({ type: 'bridge:ack', id, payload: { success: true } });
       }
@@ -188,7 +196,7 @@ export class SunyBridge {
   private openBrowserForReauth(): void {
     const { server } = this;
     const loginUrl = server.replace(/^wss?:\/\//, 'https://').replace('/bridge', '/login');
-    console.log(`[SUNy Bridge] Open this URL to log in again: ${loginUrl}`);
+    this.log(`[SUNy Bridge] Open this URL to log in again: ${loginUrl}`);
     // Try to open browser
     try {
       const { exec } = require('child_process');
@@ -215,18 +223,18 @@ export class SunyBridge {
     this.tokenRefreshAttempts = 0;
 
     const loginUrl = this.server.replace(/^wss?:\/\//, 'https://').replace('/bridge', '/login');
-    console.log('[SUNy Bridge] ──────────────────────────────────────────');
-    console.log('[SUNy Bridge] Session expired.  To reconnect:');
-    console.log('[SUNy Bridge]');
-    console.log(`[SUNy Bridge]   1. Visit: ${loginUrl}`);
-    console.log('[SUNy Bridge]   2. Log in and copy your bridge token.');
-    console.log(`[SUNy Bridge]   3. Write the new token to: ${TOKEN_REFRESH_FILE}`);
-    console.log('[SUNy Bridge]      e.g.  echo "YOUR_TOKEN" > ~/.gaby/refresh_token');
-    console.log('[SUNy Bridge]      OR restart the bridge with the new token flag.');
-    console.log('[SUNy Bridge]');
-    console.log(`[SUNy Bridge] Checking for new token every ${TOKEN_REFRESH_POLL_INTERVAL / 1000}s ` +
+    this.log('[SUNy Bridge] ──────────────────────────────────────────');
+    this.log('[SUNy Bridge] Session expired.  To reconnect:');
+    this.log('[SUNy Bridge]');
+    this.log(`[SUNy Bridge]   1. Visit: ${loginUrl}`);
+    this.log('[SUNy Bridge]   2. Log in and copy your bridge token.');
+    this.log(`[SUNy Bridge]   3. Write the new token to: ${TOKEN_REFRESH_FILE}`);
+    this.log('[SUNy Bridge]      e.g.  echo "YOUR_TOKEN" > ~/.gaby/refresh_token');
+    this.log('[SUNy Bridge]      OR restart the bridge with the new token flag.');
+    this.log('[SUNy Bridge]');
+    this.log(`[SUNy Bridge] Checking for new token every ${TOKEN_REFRESH_POLL_INTERVAL / 1000}s ` +
       `(${TOKEN_REFRESH_MAX_ATTEMPTS} attempts / ~${Math.round(TOKEN_REFRESH_MAX_ATTEMPTS * TOKEN_REFRESH_POLL_INTERVAL / 60000)} min)...`);
-    console.log('[SUNy Bridge] ──────────────────────────────────────────');
+    this.log('[SUNy Bridge] ──────────────────────────────────────────');
 
     this.openBrowserForReauth();
     this.scheduleTokenRefreshPoll();
@@ -250,7 +258,7 @@ export class SunyBridge {
           candidateToken = content;
           // Remove the file so we don't pick it up again
           fs.unlinkSync(TOKEN_REFRESH_FILE);
-          console.log(`[SUNy Bridge] New token found in ${TOKEN_REFRESH_FILE} — reconnecting...`);
+          this.log(`[SUNy Bridge] New token found in ${TOKEN_REFRESH_FILE} — reconnecting...`);
         }
       }
     } catch { /* ignore fs errors */ }
@@ -260,7 +268,7 @@ export class SunyBridge {
       const envToken = process.env.SUNY_TOKEN;
       if (envToken && envToken !== this.token && envToken.length > 10) {
         candidateToken = envToken;
-        console.log('[SUNy Bridge] New token found in SUNY_TOKEN env var — reconnecting...');
+        this.log('[SUNy Bridge] New token found in SUNY_TOKEN env var — reconnecting...');
       }
     }
 
@@ -273,7 +281,7 @@ export class SunyBridge {
     }
 
     if (this.tokenRefreshAttempts >= TOKEN_REFRESH_MAX_ATTEMPTS) {
-      console.error('[SUNy Bridge] Token refresh timed out after ' +
+      this.log('[SUNy Bridge] Token refresh timed out after ' +
         `${TOKEN_REFRESH_MAX_ATTEMPTS} attempts. ` +
         'Please restart the bridge manually with a new token.');
       this.awaitingTokenRefresh = false;
@@ -282,6 +290,7 @@ export class SunyBridge {
 
     // Keep polling
     const remaining = TOKEN_REFRESH_MAX_ATTEMPTS - this.tokenRefreshAttempts;
-    console.log(`[SUNy Bridge] Waiting for new token... (${remaining} attempts left)`);
+    this.log(`[SUNy Bridge] Waiting for new token... (${remaining} attempts left)`);
     this.scheduleTokenRefreshPoll();
   }
+}

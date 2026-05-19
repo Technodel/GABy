@@ -349,7 +349,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
 
   // ── Web tools (always available — server-side, no bridge needed) ────────
   const webSearch = createWebSearchTool();
-  const urlFetch = createUrlFetchTool();
+  const urlFetch = createUrlFetchTool(userId);
   const alwaysTools: Record<string, any> = { web_search: webSearch, url_fetch: urlFetch };
 
   const mcpToolsAvailable = mcpManager.availableToolCount > 0;
@@ -538,10 +538,52 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
 
       let fullText = '';
 
-      // Stream text chunks to frontend
+      // Stream text chunks to frontend — with filtering for model-generated
+      // tool-description technical output (e.g. "Writing web request", "Writing request stream...")
+      // These are produced by some AI models as verbal chatter before tool calls.
+      // Use sentence-boundary flushing at 30 chars for low latency on short responses.
+      const SENTENCE_BOUNDARY = /[.!?\n]\s*$/;
+      let toolDescBuffer = '';
+      const TECHNICAL_PATTERNS = [
+        /^writing\s+web\s+request/i,
+        /^writing\s+request\s+stream/i,
+        /^number\s+of\s+bytes\s+written/i,
+      ];
       for await (const delta of result.textStream) {
-        fullText += delta;
-        if (onChunk) onChunk(delta);
+        // Skip pure whitespace-only deltas (model often emits blank tool-call framing)
+        if (/^\s*$/.test(delta)) continue;
+
+        toolDescBuffer += delta;
+
+        // Check if accumulated buffer matches a known technical tool-description pattern
+        const match = TECHNICAL_PATTERNS.find(p => p.test(toolDescBuffer.trim()));
+        if (match) {
+          // Suppress this technical output — push friendlier narration
+          if (/bytes\s+written/i.test(toolDescBuffer) && userId) {
+            const bytesMatch = toolDescBuffer.match(/Number of bytes written:\s*(\d+)/i);
+            if (bytesMatch) {
+              userClientManager.pushNarration(userId, narrateMessage('', 'url_fetch_progress', { bytes: parseInt(bytesMatch[1], 10) }));
+            }
+          }
+          // Check for "Writing request stream..." to push progress narration
+          if (/writing\s+request\s+stream/i.test(toolDescBuffer) && userId) {
+            userClientManager.pushNarration(userId, narrateMessage('', 'url_fetch_progress', { bytes: 0 }));
+          }
+          toolDescBuffer = '';
+          continue;
+        }
+
+        // Flush on sentence boundaries or at 30-character minimum for low latency
+        if (toolDescBuffer.length >= 30 || SENTENCE_BOUNDARY.test(toolDescBuffer)) {
+          fullText += toolDescBuffer;
+          if (onChunk) onChunk(toolDescBuffer);
+          toolDescBuffer = '';
+        }
+      }
+      // Flush any remaining buffer content
+      if (toolDescBuffer.length > 0) {
+        fullText += toolDescBuffer;
+        if (onChunk) onChunk(toolDescBuffer);
       }
 
       // ── Loop detection: if AI was stuck in a loop, inject self-correction ──

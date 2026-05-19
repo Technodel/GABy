@@ -2,15 +2,16 @@
 import { SunyBridge } from './bridge';
 import { readConfig, updateConfig } from './config';
 
-function parseArgs(): { token?: string; code?: string; server?: string; register?: string } {
+function parseArgs(): { token?: string; code?: string; server?: string; register?: string; silent?: boolean } {
   const args = process.argv.slice(2);
-  const result: { token?: string; code?: string; server?: string; register?: string } = {};
+  const result: { token?: string; code?: string; server?: string; register?: string; silent?: boolean } = {};
 
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--token' && args[i + 1]) result.token = args[++i];
     else if (args[i] === '--code' && args[i + 1]) result.code = args[++i];
     else if (args[i] === '--server' && args[i + 1]) result.server = args[++i];
     else if (args[i] === '--register' && args[i + 1]) result.register = args[++i];
+    else if (args[i] === '--silent' || args[i] === '--background' || args[i] === '-s') result.silent = true;
   }
 
   return result;
@@ -52,7 +53,7 @@ async function main(): Promise<void> {
   if (args.register) {
     const { registerPath } = require('./config');
     registerPath(args.register);
-    console.log(`[SUNy Bridge] Registered project directory: ${args.register}`);
+    if (!args.silent) console.log(`[SUNy Bridge] Registered project directory: ${args.register}`);
     return;
   }
 
@@ -64,21 +65,23 @@ async function main(): Promise<void> {
   const server = args.server || config.server || 'wss://suny.technodel.tech';
 
   if (!token && args.code) {
-    console.log('[SUNy Bridge] Redeeming setup code...');
+    if (!args.silent) console.log('[SUNy Bridge] Redeeming setup code...');
     token = await redeemSetupCode(server, args.code);
     updateConfig({ token, server });
   }
 
   if (!token) {
-    console.error('[SUNy Bridge] No token provided. Run with --token <JWT> or --code <SETUP_CODE>');
-    console.error('  Example: suny-bridge start --code SUNY-XXXXX-XXXXX --server wss://suny.technodel.tech');
+    if (!args.silent) {
+      console.error('[SUNy Bridge] No token provided. Run with --token <JWT> or --code <SETUP_CODE>');
+      console.error('  Example: suny-bridge start --code SUNY-XXXXX-XXXXX --server wss://suny.technodel.tech');
+    }
     process.exit(1);
   }
 
-  const bridge = new SunyBridge(token, server);
+  const bridge = new SunyBridge(token, server, { silent: args.silent });
 
   process.on('SIGINT', () => {
-    console.log('\n[SUNy Bridge] Shutting down...');
+    if (!args.silent) console.log('\n[SUNy Bridge] Shutting down...');
     bridge.stop();
     process.exit(0);
   });
@@ -88,7 +91,7 @@ async function main(): Promise<void> {
     process.exit(0);
   });
 
-  console.log(`[SUNy Bridge] Starting — connecting to ${server}`);
+  if (!args.silent) console.log(`[SUNy Bridge] Starting — connecting to ${server}`);
   bridge.start();
 }
 
