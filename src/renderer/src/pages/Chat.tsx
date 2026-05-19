@@ -1,6 +1,6 @@
-﻿import { useState, useEffect, useRef, useCallback } from 'react';
-import { Send, Plus, Trash2, Settings, LogOut, Square, Edit3, RotateCcw, Copy, X, BarChart2, User, HelpCircle, Sparkles, Image, Home, Eraser, Phone, ChevronRight, ChevronDown, FolderOpen, Folder, Play, MessageSquare, Pencil, FileText } from 'lucide-react';
-import NarratedMessage, { ThinkingIndicator } from '../components/NarratedMessage';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Plus, Trash2, Settings, LogOut, Edit3, RotateCcw, X, BarChart2, User, HelpCircle, Sparkles, Home, Eraser, Phone, ChevronRight, ChevronDown, FolderOpen, Folder, Play, FileText } from 'lucide-react';
+
 import ReportBadgeButton, { ReportMetrics } from '../components/ReportBadgeButton';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useNavigate } from 'react-router-dom';
@@ -12,9 +12,10 @@ import TopBar from '../components/TopBar';
 import SidebarContent from '../components/SidebarContent';
 import ChatMessages from '../components/ChatMessages';
 import ChatInput from '../components/ChatInput';
+import FileTreeNode from '../components/FileTreeNode';
 import type { Project, ProjectSpend, Mode, UserData, Message, Memory, ProofRun, ChatProps } from '../types';
 
-// â”€â”€ File browser tree node â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── File browser tree node ──────────────────────────────────────────────────
 export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: ChatProps) {
   const navigate = useNavigate();
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -34,7 +35,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
   const [projectStateReady, setProjectStateReady] = useState(false);
   const [globalIntroLine, setGlobalIntroLine] = useState('');
 
-  // â”€â”€ Talk / Write mode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Talk / Write mode ────────────────────────────────────────────────────────
   const [talkMode, setTalkMode] = useState<boolean>(() => {
     try { return localStorage.getItem('suny_talk_mode') === '1'; } catch { return false; }
   });
@@ -46,18 +47,18 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     });
   }
 
-  // â”€â”€ Adaptive routing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Adaptive routing ─────────────────────────────────────────────────────
   const [routingReason, setRoutingReason] = useState<string | null>(null);
   const [resolvedMode, setResolvedMode] = useState<string>('fast');
 
   function routingIcon(mode: string): string {
     const icons: Record<string, string> = {
-      'free': '💰',
-      'fast': '⚡',
-      'smart': '🚀',
-      'pro': '⭐',
+      'free': '??',
+      'fast': '?',
+      'smart': '??',
+      'pro': '?',
     };
-    return icons[mode] ?? '⚙️';
+    return icons[mode] ?? '??';
   }
 
   function normalizeReport(report: unknown): ReportMetrics | undefined {
@@ -92,13 +93,13 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     };
   }
 
-  // â”€â”€ Sound effects â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Sound effects ─────────────────────────────────────────────────────────
   // Read soundsEnabled from localStorage on each call so Settings changes take effect immediately
   function soundsEnabled(): boolean {
     try { return localStorage.getItem('suny_sounds_enabled') !== 'false'; } catch { return true; }
   }
 
-  // Shared AudioContext — persisted via useRef so it survives re-renders.
+  // Shared AudioContext � persisted via useRef so it survives re-renders.
   // Browser autoplay policy suspends new AudioContexts not created from user gestures.
   // We resume on first user interaction (keydown/mousedown) so sounds from WebSocket
   // events (not user gestures) still play.
@@ -182,11 +183,11 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
           osc.start(now); osc.stop(now + 0.18);
           break;
       }
-      // Don't close the shared context — let the oscillators finish naturally
+      // Don't close the shared context � let the oscillators finish naturally
     } catch { /* AudioContext may be unavailable */ }
   }
 
-  // â”€â”€ Project Rules (.suny-rules) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Project Rules (.suny-rules) ──────────────────────────────────────────────
   const [projectRules, setProjectRules] = useState<string | null>(null);
   const [showRulesEditor, setShowRulesEditor] = useState(false);
   const [rulesEditorContent, setRulesEditorContent] = useState('');
@@ -215,7 +216,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     }
   }
 
-  // â”€â”€ Persona per project â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Persona per project ──────────────────────────────────────────
   const [showPersonaEditor, setShowPersonaEditor] = useState(false);
   const [personaEditorContent, setPersonaEditorContent] = useState('');
 
@@ -234,7 +235,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     }
   }
 
-  // â”€â”€ Usage stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Usage stats ──────────────────────────────────────────────────────────
   interface UsageDay { day: string; input_tokens: number; output_tokens: number; cache_read_tokens: number; charged_cost: number; }
   interface UsageMode { mode: string; input_tokens: number; output_tokens: number; charged_cost: number; }
   interface UsageTotals { input_tokens: number; output_tokens: number; cache_read_tokens: number; charged_cost: number; }
@@ -256,7 +257,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     } catch {}
   }
 
-  // â”€â”€ Checkpoints â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Checkpoints ──────────────────────────────────────────────────────────────
   interface CheckpointEntry { sha: string; message: string; date: string; filesChanged?: number; }
   const [checkpoints, setCheckpoints] = useState<CheckpointEntry[]>([]);
   const [showCheckpoints, setShowCheckpoints] = useState(false);
@@ -286,17 +287,17 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       });
       if (res.ok) {
         await loadCheckpoints(activeProject.id);
-        addMessage('system', `✅ Rolled back to checkpoint \`${sha.slice(0, 7)}\`. Your project files have been restored to that state.`);
+        addMessage('system', `? Rolled back to checkpoint \`${sha.slice(0, 7)}\`. Your project files have been restored to that state.`);
       } else {
         const data = await res.json().catch(() => ({}));
-        addMessage('system', `⚠️ Rollback failed: ${(data as { error?: string }).error ?? 'Unknown error'}`);
+        addMessage('system', `?? Rollback failed: ${(data as { error?: string }).error ?? 'Unknown error'}`);
       }
     } finally {
       setRollingBack(null);
     }
   }
 
-  // â”€â”€ Blueprint Memory Graph â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Blueprint Memory Graph ────────────────────────────────────────────────
   interface BlueprintEntry {
     id: number;
     category: string;
@@ -337,7 +338,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     return map[cat] ?? 'var(--text-muted)';
   }
 
-  // â”€â”€ End Blueprint Memory Graph â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── End Blueprint Memory Graph ──────────────────────────────────────────
   const thinkingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastResponseEvent = useRef(Date.now());
   const requestStartedAtRef = useRef<number | null>(null);
@@ -370,7 +371,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     lastResponseEvent.current = Date.now();
     if (!requestStartedAtRef.current) requestStartedAtRef.current = Date.now();
     thinkingTimeoutRef.current = setTimeout(() => {
-      // No response for 90s — cancel and notify
+      // No response for 90s � cancel and notify
       setThinking(false);
       setStreamingContent('');
       const durationMs = requestStartedAtRef.current ? Math.max(0, Date.now() - requestStartedAtRef.current) : 90_000;
@@ -400,17 +401,17 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
   const [newProjectPath, setNewProjectPath] = useState('');
   const [newProjectPathError, setNewProjectPathError] = useState('');
 
-  // â”€â”€ Create-from-scratch mode â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Create-from-scratch mode ─────────────────────────────────────────────
   const [newProjectMode, setNewProjectMode] = useState<'link' | 'scratch'>('link');
   const [scratchDescription, setScratchDescription] = useState('');
 
-  // â”€â”€ Onboarding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  // â”€â”€ Mobile sidebar toggle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Onboarding ───────────────────────────────────────────────────────────
+  // ── Mobile sidebar toggle ──────────────────────────────────────────────
   const [sidebarOpen, setSidebarOpen] = useState(false);
   function toggleSidebar() { setSidebarOpen(s => !s); }
   function closeSidebar() { setSidebarOpen(false); }
 
-  // â”€â”€ Onboarding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Onboarding ───────────────────────────────────────────────────────────
   const [showOnboarding, setShowOnboarding] = useState<boolean>(() => {
     try { return localStorage.getItem('suny_onboarded') !== '1'; } catch { return true; }
   });
@@ -419,7 +420,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     setShowOnboarding(false);
   }
 
-  // â”€â”€ File browser â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── File browser ─────────────────────────────────────────────────────────
   interface FileNode { name: string; path: string; isDir: boolean; children?: FileNode[]; }
   const [fileBrowser, setFileBrowser] = useState<FileNode[]>([]);
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set());
@@ -432,7 +433,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     } catch {}
   }
 
-  // â”€â”€ Live server â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Live server ───────────────────────────────────────────────────────────
   const [devServerUrl, setDevServerUrl] = useState<string | null>(null);
   const [devServerRunning, setDevServerRunning] = useState(false);
   const [devServerLoading, setDevServerLoading] = useState(false);
@@ -464,7 +465,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     } finally { setDevServerLoading(false); }
   }
 
-  // â”€â”€ Bridge keyboard shortcut help â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Bridge keyboard shortcut help ────────────────────────────────────────────
   const [showHelp, setShowHelp] = useState(false);
 
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
@@ -516,7 +517,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
 
   function nextId() { return ++msgId.current; }
 
-  // â”€â”€ Proof run persistence â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Proof run persistence ────────────────────────────────────────────────
   const proofHistoryKey = `suny_proof_runs_${activeProject?.id ?? 'global'}`;
 
   function saveProofRuns(runs: ProofRun[]) {
@@ -527,10 +528,10 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     const timeStr = new Date(run.startedAt).toLocaleString();
     const durationMs = run.durationMs ?? ((run.finishedAt ?? Date.now()) - run.startedAt);
     const durationSec = (durationMs / 1000).toFixed(1);
-    const statusEmoji = run.status === 'completed' ? '✅' : run.status === 'failed' ? '❌' : '🔄';
+    const statusEmoji = run.status === 'completed' ? '?' : run.status === 'failed' ? '?' : '??';
     
     let report = `${statusEmoji} SUNy Proof Report\n`;
-    report += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    report += `????????????????????????????????????\n`;
     report += `Date: ${timeStr}\n`;
     report += `Duration: ${durationSec}s\n`;
     report += `Status: ${run.status.toUpperCase()}\n\n`;
@@ -538,7 +539,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     if (run.toolCalls.length > 0) {
       report += `Tools Used:\n`;
       run.toolCalls.forEach(tool => {
-        report += `  • ${toolLabel(tool)}\n`;
+        report += `  � ${toolLabel(tool)}\n`;
       });
       report += `\n`;
     }
@@ -546,7 +547,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     if (run.checks.length > 0) {
       report += `Checks Performed:\n`;
       run.checks.forEach(check => {
-        report += `  ✅ ${check}\n`;
+        report += `  ? ${check}\n`;
       });
       report += `\n`;
     }
@@ -561,10 +562,10 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     navigator.clipboard.writeText(report).then(
       () => {
         // Show toast or brief notification
-        addMessage('system', 'âœ“ Proof report copied to clipboard!');
+        addMessage('system', '✓ Proof report copied to clipboard!');
       },
       () => {
-        addMessage('system', '⚠️ Could not copy to clipboard');
+        addMessage('system', '?? Could not copy to clipboard');
       }
     );
   }
@@ -661,7 +662,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     return labels[name] ?? name;
   }
 
-  // â”€â”€ Memory state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Memory state ─────────────────────────────────────────────────────────────
   const [memories, setMemories] = useState<Memory[]>([]);
   const [editingMemory, setEditingMemory] = useState<Memory | null>(null);
   const [editTitle, setEditTitle] = useState('');
@@ -756,7 +757,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     // Insert memory context as a system message, then start fresh
     setMessages([{
       type: 'system',
-      content: `📝 Recalled memory: "${mem.title}"\n${mem.summary}`,
+      content: `?? Recalled memory: "${mem.title}"\n${mem.summary}`,
       id: nextId(),
       timestamp: Date.now(),
     }]);
@@ -808,11 +809,11 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     return () => { cancelled = true; };
   }, [activeProject?.id, crossDeviceMemoryEnabled]);
 
-  // â”€â”€ localStorage persistence â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── localStorage persistence ──────────────────────────────────────────────────
   const globalChatKey = 'suny_chat_global';
   function storageKey(projectId: number) { return `suny_chat_${projectId}`; }
 
-  // â”€â”€ Multiple global chat tabs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Multiple global chat tabs ─────────────────────────────────────────────
   interface GlobalTab { id: string; name: string; }
 
   const [globalTabs, setGlobalTabs] = useState<GlobalTab[]>(() => {
@@ -939,7 +940,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       if (msg.event === 'suny:narration') {
         lastNarrationRef.current = msg.message as string;
         if (thinking) {
-          // New iteration starting — wipe the previous iteration's streamed text so
+          // New iteration starting � wipe the previous iteration's streamed text so
           // intermediate tool-call narration doesn't accumulate in the display bubble.
           setStreamingContent('');
           streamingContentRef.current = '';
@@ -958,17 +959,17 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         resetThinkingTimeout();
       } else if (msg.event === 'suny:preparation_step') {
         setThinkingStatus(pickStatusVariant('prep', [
-          'Getting everything ready…',
-          'Setting up the best approach…',
-          'Preparing your answer now…',
-          'Organizing the next steps…',
-          'Lining up what needs to happen…',
-          'Getting this ready for you…',
-          'Starting with the essentials…',
-          'Putting the plan in motion…',
-          'Collecting what I need first…',
-          'Preparing a clean run…',
-        ], 'Preparing your answer…'));
+          'Getting everything ready�',
+          'Setting up the best approach�',
+          'Preparing your answer now�',
+          'Organizing the next steps�',
+          'Lining up what needs to happen�',
+          'Getting this ready for you�',
+          'Starting with the essentials�',
+          'Putting the plan in motion�',
+          'Collecting what I need first�',
+          'Preparing a clean run�',
+        ], 'Preparing your answer�'));
       } else if (msg.event === 'suny:done') {
         clearThinkingTimeout();
         setThinking(false);
@@ -1080,33 +1081,33 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       } else if (msg.event === 'suny:lint_running') {
         pushCheckToProof('Lint check started');
         setThinkingStatus(pickStatusVariant('lint_running', [
-          'Doing a quick quality check…',
-          'Scanning for small issues…',
-          'Checking for fixable problems…',
-          'Running a code quality pass…',
-          'Looking for anything to clean up…',
-          'Reviewing for warnings and errors…',
-          'Making sure everything is neat…',
-        ], 'Checking for issues…'));
+          'Doing a quick quality check�',
+          'Scanning for small issues�',
+          'Checking for fixable problems�',
+          'Running a code quality pass�',
+          'Looking for anything to clean up�',
+          'Reviewing for warnings and errors�',
+          'Making sure everything is neat�',
+        ], 'Checking for issues�'));
       } else if (msg.event === 'suny:lint_errors') {
         pushCheckToProof(`Lint found ${msg.errorCount as number} error(s) on pass ${msg.attempt as number}`);
         const lintErrorStatus = pickStatusVariant('lint_errors', [
-          'I found {count} issue(s). Fixing them now (round {attempt})…',
-          '{count} issue(s) spotted. Cleaning this up (round {attempt})…',
-          'Found {count} thing(s) to fix. Working on it (round {attempt})…',
-          'A few issues showed up ({count}). Repairing now (round {attempt})…',
-        ], 'I found {count} issue(s). Fixing now (round {attempt})…');
+          'I found {count} issue(s). Fixing them now (round {attempt})�',
+          '{count} issue(s) spotted. Cleaning this up (round {attempt})�',
+          'Found {count} thing(s) to fix. Working on it (round {attempt})�',
+          'A few issues showed up ({count}). Repairing now (round {attempt})�',
+        ], 'I found {count} issue(s). Fixing now (round {attempt})�');
         setThinkingStatus(lintErrorStatus
           .replace('{count}', String(msg.errorCount as number))
           .replace('{attempt}', String(msg.attempt as number)));
       } else if (msg.event === 'suny:lint_passed') {
         pushCheckToProof('Lint passed');
         setThinkingStatus(pickStatusVariant('lint_passed', [
-          'Great news — quality checks passed âœ“',
-          'Looks clean now âœ“',
-          'All quality checks are clear âœ“',
-          'Nice — no remaining quality issues âœ“',
-        ], 'Quality checks passed âœ“'));
+          'Great news � quality checks passed ✓',
+          'Looks clean now ✓',
+          'All quality checks are clear ✓',
+          'Nice � no remaining quality issues ✓',
+        ], 'Quality checks passed ✓'));
         playSound('success');
       } else if (msg.event === 'suny:test_running') {
         pushCheckToProof(
@@ -1116,24 +1117,24 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         );
         setThinkingStatus((msg.attempt as number) === 0
           ? pickStatusVariant('test_running', [
-              'Running checks to confirm everything works…',
-              'Testing the latest changes…',
-              'Validating behavior now…',
-              'Checking that everything still works…',
-              'Running reliability checks…',
-            ], 'Running checks…')
+              'Running checks to confirm everything works�',
+              'Testing the latest changes�',
+              'Validating behavior now�',
+              'Checking that everything still works�',
+              'Running reliability checks�',
+            ], 'Running checks�')
           : pickStatusVariant('test_rerun', [
-              `Trying the checks again (round ${(msg.attempt as number) + 1})…`,
-              `Re-checking after fixes (round ${(msg.attempt as number) + 1})…`,
-              `Running another validation pass (round ${(msg.attempt as number) + 1})…`,
-            ], `Running checks again (round ${(msg.attempt as number) + 1})…`));
+              `Trying the checks again (round ${(msg.attempt as number) + 1})�`,
+              `Re-checking after fixes (round ${(msg.attempt as number) + 1})�`,
+              `Running another validation pass (round ${(msg.attempt as number) + 1})�`,
+            ], `Running checks again (round ${(msg.attempt as number) + 1})�`));
       } else if (msg.event === 'suny:test_errors') {
         pushCheckToProof(`Tests found ${msg.failCount as number} failure(s) on attempt ${msg.attempt as number}`);
         const testErrorStatus = pickStatusVariant('test_errors', [
-          '{count} check(s) failed. Fixing now (round {attempt})…',
-          'I found {count} failing check(s). Repairing them (round {attempt})…',
-          '{count} issue(s) remain in validation. Working through them (round {attempt})…',
-        ], '{count} check(s) failed. Fixing now (round {attempt})…');
+          '{count} check(s) failed. Fixing now (round {attempt})�',
+          'I found {count} failing check(s). Repairing them (round {attempt})�',
+          '{count} issue(s) remain in validation. Working through them (round {attempt})�',
+        ], '{count} check(s) failed. Fixing now (round {attempt})�');
         setThinkingStatus(testErrorStatus
           .replace('{count}', String(msg.failCount as number))
           .replace('{attempt}', String(msg.attempt as number)));
@@ -1141,25 +1142,25 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         pushCheckToProof('Tests passed');
         setThinkingStatus((msg.attempt as number) === 0
           ? pickStatusVariant('test_passed', [
-              'Everything checked out âœ“',
-              'All validations passed âœ“',
-              'Looks good — checks are green âœ“',
-              'Done — all checks passed âœ“',
-            ], 'All checks passed âœ“')
+              'Everything checked out ✓',
+              'All validations passed ✓',
+              'Looks good � checks are green ✓',
+              'Done � all checks passed ✓',
+            ], 'All checks passed ✓')
           : pickStatusVariant('test_passed_retry', [
-              `All checks are passing now âœ“ (fixed in ${msg.attempt as number} round(s))`,
-              `Great, it passes after ${msg.attempt as number} fix round(s) âœ“`,
-              `Resolved and verified âœ“ (${msg.attempt as number} correction round(s))`,
-            ], `All checks are passing now âœ“ (${msg.attempt as number} rounds)`));
+              `All checks are passing now ✓ (fixed in ${msg.attempt as number} round(s))`,
+              `Great, it passes after ${msg.attempt as number} fix round(s) ✓`,
+              `Resolved and verified ✓ (${msg.attempt as number} correction round(s))`,
+            ], `All checks are passing now ✓ (${msg.attempt as number} rounds)`));
       } else if (msg.event === 'suny:test_gave_up') {
         pushCheckToProof('Tests still failing after retries');
         finishActiveProof('failed');
         setThinkingStatus('');
-        addMessage('system', `⚠️ Tests still failing after multiple attempts. SUNy couldn't automatically fix all test failures.\n\n💡 **Tip:** Try asking SUNy to explain the failing tests, or check if your test setup requires any environment variables or mocked dependencies.`);
+        addMessage('system', `?? Tests still failing after multiple attempts. SUNy couldn't automatically fix all test failures.\n\n?? **Tip:** Try asking SUNy to explain the failing tests, or check if your test setup requires any environment variables or mocked dependencies.`);
       } else if (msg.event === 'suny:lint_gave_up') {
         pushCheckToProof(`Lint still failing after retries (${msg.errorCount as number} error(s))`);
         finishActiveProof('failed');
-        addMessage('system', `⚠️ ${msg.errorCount} lint error(s) remain after ${3} fix attempts using \`${msg.command}\`.\n\n💡 **Tip:** You can ask SUNy: *"Fix the remaining lint errors"* or run \`${msg.command}\` in your terminal to see the full output.`);
+        addMessage('system', `?? ${msg.errorCount} lint error(s) remain after ${3} fix attempts using \`${msg.command}\`.\n\n?? **Tip:** You can ask SUNy: *"Fix the remaining lint errors"* or run \`${msg.command}\` in your terminal to see the full output.`);
       } else if (msg.event === 'suny:balance') {
         setBalance(msg.balance as number);
         if (msg.wallet_balance !== undefined) setWalletBalance(msg.wallet_balance as number);
@@ -1171,7 +1172,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       }
     },
     onConnect: () => {
-      // Reset stale state on reconnect — avoids forever-spinning thinking indicator
+      // Reset stale state on reconnect � avoids forever-spinning thinking indicator
       clearThinkingTimeout();
       setThinking(false);
       setThinkingStatus('');
@@ -1455,9 +1456,9 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     if (activeProject && messages.length > 0) {
       const userMsgs = messages.filter(m => m.type === 'user').map(m => m.content);
       const lastUserMsg = userMsgs[userMsgs.length - 1] || '';
-      const title = lastUserMsg.length > 60 ? lastUserMsg.slice(0, 57) + '…' : (lastUserMsg || 'Chat session');
+      const title = lastUserMsg.length > 60 ? lastUserMsg.slice(0, 57) + '�' : (lastUserMsg || 'Chat session');
       // Build a compact summary: last user message + count of messages
-      const summary = `${messages.length} messages Â· Last asked: "${lastUserMsg.slice(0, 120)}"`;
+      const summary = `${messages.length} messages · Last asked: "${lastUserMsg.slice(0, 120)}"`;
       addMemory(title, summary);
     }
     setMessages([]);
@@ -1506,7 +1507,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       }}>
         {/* LEFT: brand + username + active project */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
-          {/* Hamburger — visible only on mobile via CSS */}
+          {/* Hamburger � visible only on mobile via CSS */}
           <button
             className="sidebar-toggle-btn"
             onClick={toggleSidebar}
@@ -1535,10 +1536,10 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
             </span>
           )}
           {activeProject && (
-            <span style={{ color: 'var(--text-secondary)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Â· {activeProject.name}</span>
+            <span style={{ color: 'var(--text-secondary)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>· {activeProject.name}</span>
           )}
           {activeSpend && (
-            <span style={{ color: 'var(--text-muted)', fontSize: 11, whiteSpace: 'nowrap', display: 'none' }}>Â· {formatSpend(activeSpend.total_cost)}</span>
+            <span style={{ color: 'var(--text-muted)', fontSize: 11, whiteSpace: 'nowrap', display: 'none' }}>· {formatSpend(activeSpend.total_cost)}</span>
           )}
         </div>
 
@@ -1595,7 +1596,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                 setActiveProject(null);
                 setMessages([]);
               }}
-              title="Home — back to global chat"
+              title="Home � back to global chat"
             >
               <Home size={15} />
             </button>
@@ -1637,9 +1638,9 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         </div>
       </div>
 
-      {/* Body */}
+      {/* Body: sidebar + chat area */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
-        {/* Sidebar overlay backdrop — only shown on mobile when sidebar is open */}
+        {/* Sidebar overlay backdrop � only shown on mobile when sidebar is open */}
         {sidebarOpen && (
           <div className="sidebar-overlay" onClick={closeSidebar} style={{ display: 'none' }} />
         )}
@@ -1668,7 +1669,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                     if (!bridgeConnected) { setShowBridgeTip(true); return; }
                     setShowFileBrowser(v => { const next = !v; if (!v && activeProject) loadFileBrowser(activeProject.id); return next; });
                   }}
-                  title={showFileBrowser ? 'Hide file browser' : (bridgeConnected ? 'Show file browser' : 'Bridge required — click to connect')}
+                  title={showFileBrowser ? 'Hide file browser' : (bridgeConnected ? 'Show file browser' : 'Bridge required � click to connect')}
                 >
                   {showFileBrowser ? <FolderOpen size={12} /> : <Folder size={12} />}
                 </button>
@@ -1762,13 +1763,13 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                         onClick={() => { if (activeProject) { setMemories([]); saveMemories(activeProject.id, []); } setConfirmClearMemories(false); }}
                         title="Confirm clear"
                         style={{ background: 'none', border: 'none', color: 'var(--error)', padding: 2, cursor: 'pointer', fontWeight: 700, fontSize: 12 }}
-                      >âœ“</button>
+                      >✓</button>
                       <button
                         className="btn btn-icon btn-sm"
                         onClick={() => setConfirmClearMemories(false)}
                         title="Cancel"
                         style={{ background: 'none', border: 'none', color: 'var(--text-muted)', padding: 2, cursor: 'pointer', fontSize: 12 }}
-                      >âœ—</button>
+                      >✗</button>
                     </div>
                   ) : (
                     <button
@@ -1861,11 +1862,11 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
               </div>
               {!collapsedSections.rules && (projectRules ? (
                 <div style={{ padding: '0 12px 8px', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5, whiteSpace: 'pre-wrap', maxHeight: 100, overflowY: 'auto', opacity: 0.8 }}>
-                  {projectRules.slice(0, 300)}{projectRules.length > 300 ? '…' : ''}
+                  {projectRules.slice(0, 300)}{projectRules.length > 300 ? '�' : ''}
                 </div>
               ) : (
                 <p style={{ padding: '0 12px 8px', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                  No rules set. Click ✏️ to add coding guidelines for this project.
+                  No rules set. Click ?? to add coding guidelines for this project.
                 </p>
               ))}
             </div>
@@ -1893,11 +1894,11 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
               </div>
               {!collapsedSections.persona && (activeProject.persona ? (
                 <div style={{ padding: '0 12px 8px', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5, whiteSpace: 'pre-wrap', maxHeight: 70, overflowY: 'auto', opacity: 0.8 }}>
-                  {activeProject.persona.slice(0, 200)}{(activeProject.persona?.length ?? 0) > 200 ? '…' : ''}
+                  {activeProject.persona.slice(0, 200)}{(activeProject.persona?.length ?? 0) > 200 ? '�' : ''}
                 </div>
               ) : (
                 <p style={{ padding: '0 12px 8px', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                  No persona. Click 👤 to give SUNy a role for this project.
+                  No persona. Click ?? to give SUNy a role for this project.
                 </p>
               ))}
             </div>
@@ -1920,7 +1921,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                   title="Refresh blueprint"
                   style={{ background: 'none', border: 'none', color: 'var(--text-muted)', padding: 2, cursor: 'pointer', fontSize: 10 }}
                 >
-                  â†»
+                  ↻
                 </button>
               </div>
               {collapsedSections['blueprint'] === false && (
@@ -1945,7 +1946,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                       </div>
                       {e.intent && (
                         <div style={{ fontSize: 10, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginTop: 1 }} title={e.intent}>
-                          â†³ {e.intent}
+                          ↳ {e.intent}
                         </div>
                       )}
                     </div>
@@ -1968,7 +1969,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                   title="Refresh file list"
                   style={{ background: 'none', border: 'none', color: 'var(--text-muted)', padding: 2, cursor: 'pointer' }}
                 >
-                  â†»
+                  ↻
                 </button>
               </div>
               <div style={{ maxHeight: 200, overflowY: 'auto', fontSize: 11 }}>
@@ -2022,7 +2023,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                       onClick={stopDevServer}
                       disabled={devServerLoading}
                     >
-                      {devServerLoading ? '…' : 'Stop'}
+                      {devServerLoading ? '�' : 'Stop'}
                     </button>
                     <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4 }}>
                       Dev server ON means your app is running live for preview/testing. Turning it OFF only stops preview, not SUNy file access.
@@ -2061,7 +2062,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                   title="Refresh checkpoints"
                   style={{ background: 'none', border: 'none', color: 'var(--text-muted)', padding: 2, cursor: 'pointer', fontSize: 10 }}
                 >
-                  â†»
+                  ↻
                 </button>
               </div>
               <div style={{ overflowY: 'auto', maxHeight: 180 }}>
@@ -2095,7 +2096,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                             disabled={rollingBack === cp.sha}
                             style={{ fontSize: 10, padding: '2px 5px', background: 'var(--error)', color: '#fff', border: 'none', borderRadius: 3, cursor: 'pointer' }}
                           >
-                            {rollingBack === cp.sha ? '…' : 'Yes'}
+                            {rollingBack === cp.sha ? '�' : 'Yes'}
                           </button>
                           <button
                             className="btn btn-sm"
@@ -2126,562 +2127,59 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
 
         {/* Chat area */}
         <div className="chat-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minHeight: 0 }}>
-          {/* Messages */}
-          <div className="chat-messages-area" style={{ flex: 1, overflow: 'auto', padding: '20px 24px' }}>
-        {messages.length > 0 && (
-          <button
-            className="btn btn-icon btn-secondary btn-sm"
-            onClick={clearChat}
-            title="Clear chat"
-            style={{
-              position: 'sticky', top: 0, float: 'right', zIndex: 10,
-              margin: '0 0 8px 0', opacity: 0.55,
-            }}
-          >
-            <Eraser size={13} />
-          </button>
-        )}
-
-            {/* Global chat: tab bar */}
-            {!activeProject && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 16, flexWrap: 'wrap', position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg)', paddingTop: 4, paddingBottom: 4 }}>
-                {globalTabs.map(tab => (
-                  <div
-                    key={tab.id}
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: 4,
-                      padding: '4px 10px 4px 12px',
-                      borderRadius: 20,
-                      border: `1px solid ${activeTabId === tab.id ? 'var(--accent)' : 'var(--border)'}`,
-                      background: activeTabId === tab.id ? 'rgba(41,255,122,0.08)' : 'var(--surface)',
-                      cursor: 'pointer',
-                      fontSize: 12,
-                      color: activeTabId === tab.id ? 'var(--accent)' : 'var(--text-secondary)',
-                      transition: 'all 0.15s',
-                      position: 'relative',
-                    }}
-                    onClick={() => switchGlobalTab(tab.id)}
-                    onDoubleClick={() => { setRenamingTabId(tab.id); setRenamingTabValue(tab.name); }}
-                  >
-                    {renamingTabId === tab.id ? (
-                      <input
-                        value={renamingTabValue}
-                        onChange={e => setRenamingTabValue(e.target.value)}
-                        onBlur={() => {
-                          if (renamingTabValue.trim()) {
-                            const updated = globalTabs.map(t => t.id === tab.id ? { ...t, name: renamingTabValue.trim() } : t);
-                            setGlobalTabs(updated);
-                            saveGlobalTabs(updated);
-                          }
-                          setRenamingTabId(null);
-                        }}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter') (e.target as HTMLInputElement).blur();
-                          if (e.key === 'Escape') { setRenamingTabId(null); }
-                        }}
-                        autoFocus
-                        style={{ width: 80, fontSize: 12, padding: '0 2px', background: 'transparent', border: 'none', outline: 'none', color: 'inherit' }}
-                        onClick={e => e.stopPropagation()}
-                      />
-                    ) : (
-                      <span>{tab.name}</span>
-                    )}
-                    {deleteConfirmTabId === tab.id ? (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        <span style={{ fontSize: 10, color: 'var(--error)', whiteSpace: 'nowrap' }}>Delete?</span>
-                        <button
-                          onClick={e => { e.stopPropagation(); closeGlobalTab(tab.id); setDeleteConfirmTabId(null); }}
-                          style={{ background: 'var(--error)', border: 'none', cursor: 'pointer', color: '#fff', padding: '1px 5px', borderRadius: 3, fontSize: 10, lineHeight: 1 }}
-                          title="Confirm delete"
-                        >✓</button>
-                        <button
-                          onClick={e => { e.stopPropagation(); setDeleteConfirmTabId(null); }}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '1px 4px', fontSize: 10, lineHeight: 1 }}
-                          title="Cancel"
-                        >✕</button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={e => { e.stopPropagation(); setDeleteConfirmTabId(tab.id); }}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0, display: 'flex', alignItems: 'center', fontSize: 10, lineHeight: 1 }}
-                        title="Delete tab"
-                      >
-                        <Trash2 size={10} />
-                      </button>
-                    )}
-                  </div>
-                ))}
-                <button
-                  onClick={addGlobalTab}
-                  style={{
-                    width: 24, height: 24, borderRadius: '50%',
-                    border: '1px solid var(--border)', background: 'var(--surface)',
-                    color: 'var(--text-muted)', cursor: 'pointer', display: 'flex',
-                    alignItems: 'center', justifyContent: 'center',
-                    fontSize: 14, lineHeight: 1,
-                  }}
-                  title="New chat tab"
-                >+</button>
-              </div>
-            )}
-            {!activeProject && messages.length === 0 && !thinking && (
-              <div style={{ textAlign: 'center', marginTop: 48, color: 'var(--text-muted)', padding: '0 24px' }}>
-                <img src="/SLOGO.png" alt="SUNy" style={{ width: 220, height: 220, borderRadius: '50%', objectFit: 'cover', marginBottom: 14, boxShadow: '0 4px 20px rgba(108,99,255,0.2)' }} />
-                <p style={{ fontWeight: 700, fontSize: 22, color: 'var(--text-primary)', marginBottom: 4 }}>SUNy</p>
-                <p style={{ fontSize: 14, fontStyle: 'italic', color: 'var(--accent)', marginBottom: 20, opacity: 0.9 }}>Consider it done.</p>
-                <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 24, lineHeight: 1.6 }}>
-                  {globalIntroLine || 'Pick a project from the sidebar to start coding.'}
-                </p>
-                {projects.length > 0 && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginBottom: 24 }}>
-                    {projects.map(p => (
-                      <button
-                        key={p.id}
-                        className="btn btn-secondary btn-sm"
-                        style={{ fontSize: 12, padding: '5px 12px', borderRadius: 20, display: 'flex', alignItems: 'center', gap: 6 }}
-                        onClick={() => {
-                          openProject(p);
-                        }}
-                      >
-                        <FolderOpen size={12} />
-                        {p.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                {!bridgeConnected && (
-                  <p style={{ fontSize: 12, color: 'var(--text-muted)', opacity: 0.7 }}>
-                    <button
-                      onClick={() => setShowBridgeTip(true)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', fontSize: 12, padding: 0, textDecoration: 'underline' }}
-                    >
-                      🔌 Connect the Bridge
-                    </button>{' '}to unlock file editing & shell commands.
-                  </p>
-                )}
-              </div>
-            )}
-
-            {activeProject && messages.length === 0 && !thinking && (
-              <div style={{ textAlign: 'center', marginTop: 40, color: 'var(--text-muted)' }}>
-                <img src="/SLOGO.png" alt="SUNy" style={{ width: 'clamp(260px, 46vw, 560px)', height: 'clamp(260px, 46vw, 560px)', borderRadius: '50%', objectFit: 'cover', marginBottom: 20, boxShadow: '0 8px 32px rgba(108,99,255,0.25)' }} />
-                <p style={{ fontWeight: 700, fontSize: 22, marginBottom: 6, color: 'var(--text-primary)' }}>Hi! I'm SUNy</p>
-                <p style={{ fontSize: 13, fontStyle: 'italic', color: 'var(--accent)', marginBottom: 10, opacity: 0.9 }}>Consider it done.</p>
-                <p style={{ fontSize: 14 }}>Tell me what you'd like to build or fix. I'll take it from there!</p>
-                {!bridgeConnected && (
-                  <p style={{ fontSize: 12, marginTop: 12, color: 'var(--text-muted)', opacity: 0.7 }}>
-                    <button
-                      onClick={() => setShowBridgeTip(true)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', fontSize: 12, padding: 0, textDecoration: 'underline' }}
-                    >
-                      🔌 Connect the Bridge
-                    </button>{' '}to unlock file editing & shell commands.
-                  </p>
-                )}
-              </div>
-            )}
-
-            {proofRuns.length > 0 && (
-              <div
-                style={{
-                  marginBottom: 12,
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'var(--surface)',
-                  padding: '0',
-                  overflow: 'hidden',
-                }}
-              >
-                {/* Proof Panel Header */}
-                <div style={{
-                  padding: '10px 12px',
-                  borderBottom: proofRuns.length > 1 ? '1px solid var(--border)' : 'none',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: 10,
-                }}>
-                  <strong style={{ fontSize: 12, color: 'var(--text-primary)' }}>
-                    Proof Panel {proofRuns.length > 1 ? `(${proofRuns.length})` : ''}
-                  </strong>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                    {proofRuns[0].status === 'running' ? '🔄 In progress' : proofRuns[0].status === 'completed' ? '✅ Completed' : '⚠️ Needs attention'}
-                  </div>
-                </div>
-
-                {/* Active Run (always shown) */}
-                <div style={{
-                  padding: '8px 12px',
-                  borderBottom: proofRuns.length > 1 ? '1px solid var(--border)' : 'none',
-                  background: 'rgba(108,99,255,0.05)',
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                    <strong style={{ fontSize: 11, color: 'var(--accent)' }}>Active Run</strong>
-                    {proofRuns[0].status === 'completed' && (
-                      <button
-                        onClick={() => copyProofReportToClipboard(proofRuns[0])}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          color: 'var(--accent)',
-                          fontSize: 11,
-                          padding: '2px 6px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 4,
-                        }}
-                        title="Copy proof report"
-                      >
-                        <Copy size={11} /> Copy
-                      </button>
-                    )}
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-                    <strong style={{ color: 'var(--text-primary)' }}>Tools:</strong>{' '}
-                    {proofRuns[0].toolCalls.length > 0
-                      ? proofRuns[0].toolCalls.map(toolLabel).join(' â†’ ')
-                      : 'None yet'}
-                  </div>
-                  {proofRuns[0].checks.length > 0 && (
-                    <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2 }}>
-                      <strong style={{ color: 'var(--text-primary)' }}>Last checks:</strong> {proofRuns[0].checks.slice(-2).join(' | ')}
-                    </div>
-                  )}
-                </div>
-
-                {/* Run History (collapsible) */}
-                {proofRuns.length > 1 && (
-                  <div style={{ borderTop: '1px solid var(--border)' }}>
-                    <div
-                      onClick={() => setExpandedRunIds(prev => {
-                        const next = new Set(prev);
-                        if (next.has(-1)) next.delete(-1);
-                        else next.add(-1);
-                        return next;
-                      })}
-                      style={{
-                        padding: '6px 12px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 6,
-                        fontSize: 11,
-                        color: 'var(--text-muted)',
-                        userSelect: 'none',
-                      }}
-                    >
-                      {expandedRunIds.has(-1) ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                      <span>Earlier runs ({proofRuns.length - 1})</span>
-                    </div>
-
-                    {expandedRunIds.has(-1) && (
-                      <div style={{ maxHeight: 300, overflowY: 'auto' }}>
-                        {proofRuns.slice(1).map((run, idx) => {
-                          const isExpanded = expandedRunIds.has(run.id);
-                          const duration = run.durationMs ?? ((run.finishedAt ?? Date.now()) - run.startedAt);
-                          const durationSec = (duration / 1000).toFixed(1);
-                          return (
-                            <div key={run.id} style={{ borderTop: '1px solid var(--border)', padding: 0 }}>
-                              <div
-                                onClick={() => setExpandedRunIds(prev => {
-                                  const next = new Set(prev);
-                                  if (next.has(run.id)) next.delete(run.id);
-                                  else next.add(run.id);
-                                  return next;
-                                })}
-                                style={{
-                                  padding: '6px 12px',
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 6,
-                                  fontSize: 10,
-                                  color: 'var(--text-secondary)',
-                                  userSelect: 'none',
-                                }}
-                              >
-                                {isExpanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
-                                <span style={{
-                                  color: run.status === 'completed' ? 'var(--success)' : run.status === 'failed' ? 'var(--error)' : 'var(--warning)',
-                                  fontWeight: 600,
-                                }}>
-                                  {run.status === 'completed' ? 'âœ“' : run.status === 'failed' ? 'âœ—' : 'â—‹'}
-                                </span>
-                                <span>{new Date(run.startedAt).toLocaleTimeString()}</span>
-                                <span>Â· {durationSec}s</span>
-                                <span>Â· {run.toolCalls.length} tools</span>
-                              </div>
-
-                              {isExpanded && (
-                                <div style={{
-                                  padding: '6px 12px 8px 24px',
-                                  fontSize: 10,
-                                  background: 'rgba(0,0,0,0.15)',
-                                  borderTop: '1px solid var(--border)',
-                                }}>
-                                  {run.toolCalls.length > 0 && (
-                                    <div style={{ marginBottom: 4, color: 'var(--text-secondary)' }}>
-                                      <strong>Tools:</strong> {run.toolCalls.map(toolLabel).join(', ')}
-                                    </div>
-                                  )}
-                                  {run.filesChanged !== undefined && (
-                                    <div style={{ marginBottom: 4, color: 'var(--text-secondary)' }}>
-                                      <strong>Files:</strong> {run.filesChanged} changed
-                                    </div>
-                                  )}
-                                  {run.steps !== undefined && (
-                                    <div style={{ marginBottom: 4, color: 'var(--text-secondary)' }}>
-                                      <strong>Steps:</strong> {run.steps}
-                                    </div>
-                                  )}
-                                  {run.status === 'completed' && (
-                                    <button
-                                      onClick={() => copyProofReportToClipboard(run)}
-                                      style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        color: 'var(--accent)',
-                                        fontSize: 10,
-                                        padding: 0,
-                                        marginTop: 4,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 3,
-                                      }}
-                                      title="Copy proof report"
-                                    >
-                                      <Copy size={9} /> Copy report
-                                    </button>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {messages.map(m => (
-              <NarratedMessage key={m.id} message={m.content} type={m.type} timestamp={m.timestamp} report={m.report} />
-            ))}
-            {thinking && streamingContent && (
-              <>
-                <NarratedMessage message={streamingContent} type="suny" isActive={true} timestamp={Date.now()} />
-                {thinkingStatus && (
-                  <div style={{
-                    display: 'flex', gap: 8, marginLeft: 38, marginBottom: 12,
-                    alignItems: 'center', fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic',
-                  }}>
-                    <span style={{
-                      display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
-                      background: 'var(--accent)', opacity: 0.7, flexShrink: 0,
-                    }} />
-                    {thinkingStatus}
-                  </div>
-                )}
-              </>
-            )}
-            {thinking && !streamingContent && <ThinkingIndicator statusText={thinkingStatus} />}
-            <div ref={msgEndRef} />
-          </div>
-
-          {/* Input — always visible */}
-            <div className="chat-input-area" style={{
-              padding: '12px 20px 16px',
-              borderTop: '1px solid var(--border)',
-              display: 'flex',
-              gap: 10,
-              alignItems: 'flex-end',
-            }}>
-              <>
-                {balance <= 0 && walletBalance <= 0 && !thinking && (
-                  <div style={{
-                    flex: 1,
-                    padding: '8px 12px',
-                    borderRadius: 'var(--radius-sm)',
-                    background: 'rgba(255,107,107,0.10)',
-                    border: '1px solid rgba(255,107,107,0.55)',
-                    color: 'rgba(255,107,107,0.95)',
-                    fontSize: 12,
-                    textAlign: 'center',
-                    marginBottom: 6,
-                    boxShadow: '0 0 0 1px rgba(255,107,107,0.08) inset',
-                  }}>
-                    Main credits are empty. Free talk mode stays on, and paid modes are locked until you top up.
-                  </div>
-                )}
-                  {/* Image preview above textarea */}
-                  {imagePreview && (
-                    <div style={{
-                      position: 'relative', display: 'inline-block',
-                      marginBottom: 6, borderRadius: 8, overflow: 'hidden',
-                      border: '1px solid var(--border)',
-                    }}>
-                      <img src={imagePreview} alt="Preview" style={{ maxHeight: 100, maxWidth: 200, display: 'block' }} />
-                      <button
-                        onClick={() => setImagePreview(null)}
-                        style={{
-                          position: 'absolute', top: 2, right: 2,
-                          background: 'rgba(0,0,0,0.6)', border: 'none',
-                          borderRadius: '50%', width: 20, height: 20,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          cursor: 'pointer', color: '#fff', fontSize: 12, lineHeight: 1,
-                        }}
-                        title="Remove image"
-                      >Ã—</button>
-                    </div>
-                  )}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    style={{ display: 'none' }}
-                    onChange={e => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      if (selectedMode === 'free') {
-                        addMessage('system', '📷 Image analysis requires 🚀 Fast or 🧠 Pro mode. Switch to a higher tier to analyze images.');
-                        e.target.value = '';
-                        return;
-                      }
-                      if (file.size > 10 * 1024 * 1024) {
-                        addMessage('system', '⚠️ Image is too large (max 10 MB). Please resize and try again.');
-                        e.target.value = '';
-                        return;
-                      }
-                      const reader = new FileReader();
-                      reader.onload = () => {
-                        setImagePreview(reader.result as string);
-                      };
-                      reader.readAsDataURL(file);
-                      // Reset so same file can be selected again
-                      e.target.value = '';
-                    }}
-                  />
-                  <textarea
-                    ref={inputRef}
-                    value={input}
-                    onChange={e => { setInput(e.target.value); inputHistoryIndex.current = -1; }}
-                    placeholder={thinking ? 'SUNy is working...' : activeProject && !bridgeConnected ? 'Bridge offline — I can still reason, explain, and review code! Type your question...' : 'Type your goal here... e.g. Add a dark mode toggle to my app'}
-                    rows={2}
-                    spellCheck={false}
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    onPaste={e => {
-                      const items = e.clipboardData?.items;
-                      if (!items) return;
-                      for (const item of Array.from(items)) {
-                        if (item.type.startsWith('image/')) {
-                          if (selectedMode === 'free') {
-                            e.preventDefault();
-                            addMessage('system', '📷 Image analysis requires 🚀 Fast or 🧠 Pro mode. Switch to a higher tier to analyze images.');
-                            break;
-                          }
-                          e.preventDefault();
-                          const file = item.getAsFile();
-                          if (!file) continue;
-                          if (file.size > 10 * 1024 * 1024) {
-                            addMessage('system', '⚠️ Image is too large (max 10 MB). Please resize and try again.');
-                            continue;
-                          }
-                          const reader = new FileReader();
-                          reader.onload = () => {
-                            setImagePreview(reader.result as string);
-                          };
-                          reader.readAsDataURL(file);
-                          break;
-                        }
-                      }
-                    }}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter' && !e.shiftKey && !thinking) { e.preventDefault(); sendMessage(); return; }
-                      if (e.key === 'ArrowUp' && !e.shiftKey && !thinking) {
-                        const userMsgs = messages.filter(m => m.type === 'user').map(m => m.content);
-                        if (userMsgs.length === 0) return;
-                        // Only intercept if cursor is on the first line (or field is empty)
-                        const ta = e.currentTarget;
-                        const onFirstLine = ta.selectionStart === 0 || !ta.value.slice(0, ta.selectionStart).includes('\n');
-                        if (!onFirstLine) return;
-                        e.preventDefault();
-                        const next = Math.min(inputHistoryIndex.current + 1, userMsgs.length - 1);
-                        inputHistoryIndex.current = next;
-                        setInput(userMsgs[userMsgs.length - 1 - next]);
-                        return;
-                      }
-                      if (e.key === 'ArrowDown' && !e.shiftKey && !thinking && inputHistoryIndex.current >= 0) {
-                        const userMsgs = messages.filter(m => m.type === 'user').map(m => m.content);
-                        e.preventDefault();
-                        const next = inputHistoryIndex.current - 1;
-                        if (next < 0) { inputHistoryIndex.current = -1; setInput(''); }
-                        else { inputHistoryIndex.current = next; setInput(userMsgs[userMsgs.length - 1 - next]); }
-                        return;
-                      }
-                    }}
-                    style={{ flex: 1, resize: 'none', maxHeight: 120 }}
-                    disabled={thinking}
-                  />
-                  {/* Image upload button */}
-                  <button
-                    className="btn btn-icon btn-secondary"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={thinking || selectedMode === 'free'}
-                    title={selectedMode === 'free' ? 'Image analysis requires Fast or Pro mode' : 'Attach an image for analysis'}
-                    style={{
-                      alignSelf: 'flex-end',
-                      padding: '10px 12px',
-                      background: imagePreview ? 'rgba(108,99,255,0.12)' : 'transparent',
-                      border: imagePreview ? '1px solid var(--accent)' : '1px solid var(--border)',
-                      color: imagePreview ? 'var(--accent)' : 'var(--text-muted)',
-                      transition: 'all 0.15s',
-                    }}
-                  >
-                    <Image size={15} />
-                  </button>
-                  {/* Talk / Write mode toggle — hidden when free plan enforced by no balance */}
-                  {!noBalance && (
-                    <button
-                      className="btn btn-icon btn-secondary"
-                      onClick={toggleTalkMode}
-                      title={talkMode ? 'Talk Mode - no file changes (click to switch to Write Mode)' : 'Write Mode - full file editing (click to switch to Talk Mode)'}
-                      style={{
-                        alignSelf: 'flex-end',
-                        padding: '10px 12px',
-                        background: talkMode ? 'rgba(108,99,255,0.12)' : 'transparent',
-                        border: talkMode ? '1px solid var(--accent)' : '1px solid var(--border)',
-                        color: talkMode ? 'var(--accent)' : 'var(--text-muted)',
-                        transition: 'all 0.15s',
-                      }}
-                    >
-                      {talkMode ? <MessageSquare size={15} /> : <Pencil size={15} />}
-                    </button>
-                  )}
-                  {thinking ? (
-                    <button
-                      className="btn btn-danger"
-                      onClick={() => wsSend({ type: 'chat:cancel', requestId: '' })}
-                      style={{ padding: '10px 16px', alignSelf: 'flex-end' }}
-                      title="Stop responding"
-                    >
-                      <Square size={15} />
-                    </button>
-                  ) : (
-                    <button
-                      className="btn btn-primary"
-                      onClick={sendMessage}
-                      disabled={!input.trim()}
-                      style={{ padding: '10px 16px', alignSelf: 'flex-end' }}
-                    >
-                      <Send size={15} />
-                    </button>
-                  )}
-                </>
-            </div>
+          <ChatMessages
+            messages={messages}
+            activeProject={activeProject}
+            thinking={thinking}
+            streamingContent={streamingContent}
+            thinkingStatus={thinkingStatus}
+            proofRuns={proofRuns}
+            globalTabs={globalTabs}
+            activeTabId={activeTabId}
+            renamingTabId={renamingTabId}
+            renamingTabValue={renamingTabValue}
+            deleteConfirmTabId={deleteConfirmTabId}
+            projectStateReady={projectStateReady}
+            globalIntroLine={globalIntroLine}
+            projects={projects}
+            bridgeConnected={bridgeConnected}
+            expandedRunIds={expandedRunIds}
+            msgEndRef={msgEndRef}
+            clearChat={clearChat}
+            setRenamingTabId={setRenamingTabId}
+            setRenamingTabValue={setRenamingTabValue}
+            setDeleteConfirmTabId={setDeleteConfirmTabId}
+            switchGlobalTab={switchGlobalTab}
+            closeGlobalTab={closeGlobalTab}
+            addGlobalTab={addGlobalTab}
+            setShowBridgeTip={setShowBridgeTip}
+            openProject={openProject}
+            copyProofReportToClipboard={copyProofReportToClipboard}
+            setExpandedRunIds={setExpandedRunIds}
+            toolLabel={toolLabel}
+          />
+          <ChatInput
+            input={input}
+            setInput={setInput}
+            balance={balance}
+            walletBalance={walletBalance}
+            thinking={thinking}
+            selectedMode={selectedMode}
+            activeProject={activeProject}
+            bridgeConnected={bridgeConnected}
+            talkMode={talkMode}
+            noBalance={noBalance}
+            imagePreview={imagePreview}
+            setImagePreview={setImagePreview}
+            fileInputRef={fileInputRef}
+            inputRef={inputRef}
+            inputHistoryIndex={inputHistoryIndex}
+            messages={messages}
+            sendMessage={sendMessage}
+            toggleTalkMode={toggleTalkMode}
+            wsSend={wsSend}
+            addMessage={addMessage}
+          />
         </div>
       </div>
 
@@ -2692,7 +2190,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
             {bridgeConnected ? (
               <>
                 <div style={{ textAlign: 'center', padding: '12px 0 8px' }}>
-                  <div style={{ fontSize: 32, marginBottom: 6 }}>🟢</div>
+                  <div style={{ fontSize: 32, marginBottom: 6 }}>??</div>
                   <h3 style={{ margin: '0 0 6px', fontSize: 17 }}>Bridge connected!</h3>
                   <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>
                     SUNy can now read &amp; write files, run shell commands, fix lint errors, and auto-commit.
@@ -2704,7 +2202,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
               </>
             ) : (
               <>
-                <h3 style={{ margin: '0 0 4px', fontSize: 17 }}>🔌 Connect the Bridge</h3>
+                <h3 style={{ margin: '0 0 4px', fontSize: 17 }}>?? Connect the Bridge</h3>
                 <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, margin: '0 0 6px' }}>
                   The Bridge is a small background process that runs on <strong>your computer</strong>.
                   SUNy needs it to <strong>create files, edit code, and run commands</strong>.
@@ -2714,13 +2212,13 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                 <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
                   <div style={{ flex: 1, background: 'var(--bg-secondary)', borderRadius: 8, padding: '10px 12px' }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Without Bridge</div>
-                    {['💬 Chat & answer questions', '🧠 Code review & analysis', '📋 Architecture advice'].map(t => (
+                    {['?? Chat & answer questions', '?? Code review & analysis', '?? Architecture advice'].map(t => (
                       <div key={t} style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 3 }}>{t}</div>
                     ))}
                   </div>
                   <div style={{ flex: 1, background: 'rgba(108,99,255,0.07)', border: '1px solid rgba(108,99,255,0.2)', borderRadius: 8, padding: '10px 12px' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.4px' }}>With Bridge ✨</div>
-                    {['✏️ Create & edit files', '⚡ Run shell commands', '🔧 Auto-fix lint errors', '📦 Git auto-commit'].map(t => (
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.4px' }}>With Bridge ?</div>
+                    {['?? Create & edit files', '? Run shell commands', '?? Auto-fix lint errors', '?? Git auto-commit'].map(t => (
                       <div key={t} style={{ fontSize: 12, color: 'var(--text-primary)', marginBottom: 3 }}>{t}</div>
                     ))}
                   </div>
@@ -2802,7 +2300,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 560 }}>
             <h3 className="modal-title">
               <FileText size={16} style={{ marginRight: 8, verticalAlign: 'text-bottom' }} />
-              Project Rules — {activeProject.name}
+              Project Rules � {activeProject.name}
             </h3>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.5 }}>
               These rules are saved to <code style={{ background: 'var(--bg)', padding: '1px 4px', borderRadius: 3 }}>.suny-rules</code> in your project folder and injected into every conversation for this project.
@@ -2858,7 +2356,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                   color: newProjectMode === 'link' ? '#fff' : 'var(--text-muted)',
                 }}
               >
-                📁 Link Existing
+                ?? Link Existing
               </button>
               <button
                 onClick={() => setNewProjectMode('scratch')}
@@ -2868,7 +2366,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                   color: newProjectMode === 'scratch' ? '#fff' : 'var(--text-muted)',
                 }}
               >
-                ✨ Build with SUNy
+                ? Build with SUNy
               </button>
             </div>
 
@@ -2884,7 +2382,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                 />
               </div>
               <div>
-                <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>📁 Project Folder</label>
+                <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>?? Project Folder</label>
                 {/* Primary: big folder pick button */}
                 <button
                   type="button"
@@ -2938,7 +2436,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                 />
               </div>
               <div>
-                <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>📁 Where to create it</label>
+                <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>?? Where to create it</label>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <input
                     value={newProjectPath}
@@ -2953,7 +2451,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                     title="Browse parent folder"
                     onClick={() => pickFolderPath(setNewProjectPath)}
                   >
-                    📁
+                    ??
                   </button>
                 </div>
                 {newProjectPathError && (
@@ -3032,7 +2530,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
             <h3 className="modal-title">
               <User size={16} style={{ marginRight: 8, verticalAlign: 'text-bottom' }} />
-              AI Persona — {activeProject.name}
+              AI Persona � {activeProject.name}
             </h3>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.5 }}>
               Give SUNy a specific role or personality for this project. This is injected into every conversation.
@@ -3141,7 +2639,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                       <div key={m.mode}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
                           <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{m.mode}</span>
-                          <span style={{ color: 'var(--text-muted)' }}>{(total / 1000).toFixed(1)}K Â· ${m.charged_cost.toFixed(4)}</span>
+                          <span style={{ color: 'var(--text-muted)' }}>{(total / 1000).toFixed(1)}K · ${m.charged_cost.toFixed(4)}</span>
                         </div>
                         <div style={{ height: 6, background: 'var(--border)', borderRadius: 3, overflow: 'hidden' }}>
                           <div style={{ width: `${pct}%`, height: '100%', background: 'var(--accent)', transition: 'width 0.4s' }} />
@@ -3174,14 +2672,14 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
               <img src="/SLOGO.png" alt="SUNy" style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', marginBottom: 10, boxShadow: '0 4px 16px rgba(108,99,255,0.3)' }} />
               <h2 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 700 }}>Welcome to SUNy!</h2>
               <p style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.6, margin: '0 0 20px' }}>
-                Your personal AI assistant — ask anything, build anything. Here's how to start:
+                Your personal AI assistant � ask anything, build anything. Here's how to start:
               </p>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
               {[
-                { icon: '📁', title: 'Create or open a project', desc: 'Click "+ New" in the sidebar to link a folder on your computer or let SUNy create one from scratch.' },
-                { icon: '💬', title: 'Just talk to SUNy', desc: 'Ask questions, get explanations, request changes. SUNy understands what you want and gets it done.' },
-                { icon: '⚡', title: 'Connect the Bridge for full power', desc: 'The Bridge lets SUNy actually write files and run commands on your machine — one terminal command to set up.' },
+                { icon: '??', title: 'Create or open a project', desc: 'Click "+ New" in the sidebar to link a folder on your computer or let SUNy create one from scratch.' },
+                { icon: '??', title: 'Just talk to SUNy', desc: 'Ask questions, get explanations, request changes. SUNy understands what you want and gets it done.' },
+                { icon: '?', title: 'Connect the Bridge for full power', desc: 'The Bridge lets SUNy actually write files and run commands on your machine � one terminal command to set up.' },
               ].map((step, i) => (
                 <div key={i} style={{ display: 'flex', gap: 12, padding: '10px 14px', background: 'var(--bg-secondary)', borderRadius: 8 }}>
                   <span style={{ fontSize: 20, flexShrink: 0 }}>{step.icon}</span>
@@ -3194,7 +2692,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <button className="btn btn-primary" style={{ padding: '9px 24px' }} onClick={dismissOnboarding}>
-                Get Started â†’
+                Get Started →
               </button>
             </div>
           </div>
@@ -3239,27 +2737,27 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                 <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)', marginBottom: 8 }}>Features</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
-                    { icon: '🎯', title: 'One-Click Ship', desc: 'Give one goal — SUNy plans, edits, tests, fixes, and delivers a verified result.' },
-                    { icon: '📋', title: 'Proof Panel', desc: 'Every task shows exactly what changed, what passed, and what was fixed.' },
-                    { icon: '⏪', title: 'One-Click Undo', desc: 'Every edit creates a restore point. Roll back any change instantly.' },
-                    { icon: '🧠', title: 'Code Conscience', desc: 'Design memory remembers your intent across sessions and alerts on drift.' },
-                    { icon: '💬', title: 'Talk / Write mode', desc: 'Toggle between conversational chat and file-focused code editing.' },
-                    { icon: '📋', title: 'Project Rules', desc: 'Set persistent instructions SUNy follows in every chat for a project.' },
-                    { icon: '🎭', title: 'Persona', desc: 'Give SUNy a custom role — e.g. "You are a security expert".' },
-                    { icon: '⚡', title: 'Auto-Verify', desc: 'SUNy runs tests and lint in a loop until all errors are resolved.' },
-                    { icon: '📁', title: '@file mentions', desc: 'Type @file:path in any message to reference a file directly.' },
-                    { icon: '🖥️', title: 'Dev Server', desc: 'Start your dev server from the sidebar and get a clickable URL.' },
-                    { icon: '🔗', title: 'Secure Bridge', desc: 'Sandboxed bridge connection for safe file operations.' },
-                    { icon: '🔎', title: 'Symbol Reader', desc: 'Inspect file structure without reading the whole file content.' },
-                    { icon: '🌐', title: 'URL Fetch', desc: 'SUNy can fetch web pages and docs on demand during tasks.' },
-                    { icon: '🔧', title: 'Auto-Correction', desc: 'Failed code is analyzed and fixed automatically.' },
-                    { icon: '🧩', title: 'Subtask Delegation', desc: 'Complex tasks are split into focused sub-tasks with dedicated agents.' },
+                    { icon: '??', title: 'One-Click Ship', desc: 'Give one goal � SUNy plans, edits, tests, fixes, and delivers a verified result.' },
+                    { icon: '??', title: 'Proof Panel', desc: 'Every task shows exactly what changed, what passed, and what was fixed.' },
+                    { icon: '?', title: 'One-Click Undo', desc: 'Every edit creates a restore point. Roll back any change instantly.' },
+                    { icon: '??', title: 'Code Conscience', desc: 'Design memory remembers your intent across sessions and alerts on drift.' },
+                    { icon: '??', title: 'Talk / Write mode', desc: 'Toggle between conversational chat and file-focused code editing.' },
+                    { icon: '??', title: 'Project Rules', desc: 'Set persistent instructions SUNy follows in every chat for a project.' },
+                    { icon: '??', title: 'Persona', desc: 'Give SUNy a custom role � e.g. "You are a security expert".' },
+                    { icon: '?', title: 'Auto-Verify', desc: 'SUNy runs tests and lint in a loop until all errors are resolved.' },
+                    { icon: '??', title: '@file mentions', desc: 'Type @file:path in any message to reference a file directly.' },
+                    { icon: '???', title: 'Dev Server', desc: 'Start your dev server from the sidebar and get a clickable URL.' },
+                    { icon: '??', title: 'Secure Bridge', desc: 'Sandboxed bridge connection for safe file operations.' },
+                    { icon: '??', title: 'Symbol Reader', desc: 'Inspect file structure without reading the whole file content.' },
+                    { icon: '??', title: 'URL Fetch', desc: 'SUNy can fetch web pages and docs on demand during tasks.' },
+                    { icon: '??', title: 'Auto-Correction', desc: 'Failed code is analyzed and fixed automatically.' },
+                    { icon: '??', title: 'Subtask Delegation', desc: 'Complex tasks are split into focused sub-tasks with dedicated agents.' },
                   ].map(f => (
                     <div key={f.title} style={{ display: 'flex', gap: 10 }}>
                       <span style={{ fontSize: 16, flexShrink: 0 }}>{f.icon}</span>
                       <div>
                         <span style={{ fontWeight: 600, fontSize: 12 }}>{f.title}</span>
-                        <span style={{ color: 'var(--text-muted)', fontSize: 12 }}> — {f.desc}</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: 12 }}> � {f.desc}</span>
                       </div>
                     </div>
                   ))}

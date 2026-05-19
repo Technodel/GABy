@@ -25,11 +25,11 @@ interface TopBarProps {
   onOpenSettings: (section?: string, notice?: string) => void;
   navigate: (path: string) => void;
   handleLogout: () => void;
-  setShowBridgeTip: (v: boolean) => void;
+  setShowBridgeTip: React.Dispatch<React.SetStateAction<boolean>>;
   setShowUsage: (v: boolean) => void;
   loadUsageStats: (days: number) => void;
   usageDays: number;
-  setShowHelp: (v: boolean) => void;
+  setShowHelp: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 function routingIcon(mode: string): string {
