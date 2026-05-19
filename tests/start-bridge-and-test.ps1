@@ -11,7 +11,8 @@
 param(
     [string]$Token = "",
     [switch]$Login = $false,
-    [switch]$NoBridge = $false
+    [switch]$NoBridge = $false,
+    [string]$ServerUrl = "https://suny.technodel.tech"
 )
 
 $ProjectRoot = "D:\Projects\GABy"
@@ -40,7 +41,7 @@ Write-Host @"
 
 ╔══════════════════════════════════════════════════════╗
 ║     SUNy Bridge + Task Test Runner                    ║
-║     https://suny.technodel.tech                       ║
+║     $($ServerUrl)                                       ║
 ╚══════════════════════════════════════════════════════╝
 
 "@ -ForegroundColor Magenta
@@ -48,7 +49,7 @@ Write-Host @"
 # ── Step 1: Token Discovery ──
 if ($Login) {
     Write-Step "Opening browser for login..."
-    Start-Process "https://suny.technodel.tech/login"
+    Start-Process "$ServerUrl/login"
     Write-Host "After logging in, press any key to continue..."
     $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 }
@@ -62,7 +63,7 @@ if (-not $Token -and (Test-Path $TokenFile)) {
 if (-not $Token) {
     Write-ErrorMsg "No token provided. Use -Token <JWT> or run with -Login first."
     Write-Host "`nTo get a token:"
-    Write-Host "  1. Open https://suny.technodel.tech in your browser"
+    Write-Host "  1. Open $ServerUrl in your browser"
     Write-Host "  2. Log in as test/test"
     Write-Host "  3. Open DevTools (F12) → Application → Cookies → suny_token"
     Write-Host "  4. Copy the token value and run:"
@@ -73,7 +74,7 @@ if (-not $Token) {
 # ── Step 2: Health Check ──
 Write-Step "Checking server health..."
 try {
-    $health = Invoke-WebRequest -Uri "https://suny.technodel.tech/api/health" -UseBasicParsing -TimeoutSec 10
+    $health = Invoke-WebRequest -Uri "$ServerUrl/api/health" -UseBasicParsing -TimeoutSec 10
     $healthData = $health.Content | ConvertFrom-Json
     if ($healthData.status -eq "ok") {
         Write-Success "Server healthy (uptime: $([math]::Round($healthData.uptime))s)"
@@ -96,7 +97,7 @@ if (-not $NoBridge) {
         Write-Warning "Bridge already running (PID: $($existingBridge.Id)). Will use existing."
     } else {
         # Start bridge in background
-        $bridgeArgs = @($BridgeScript, "--token", $Token, "--server", "wss://suny.technodel.tech")
+        $bridgeArgs = @($BridgeScript, "--token", $Token, "--server", ($ServerUrl -replace "^https", "wss"))
         $bridgeProcess = Start-Process -FilePath "node" -ArgumentList $bridgeArgs -NoNewWindow -PassThru
         Write-Success "Bridge started (PID: $($bridgeProcess.Id))"
         

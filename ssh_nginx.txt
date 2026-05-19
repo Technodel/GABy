@@ -1,7 +1,0 @@
-/usr/sbin/nginx
----
-2026/05/18 11:45:59 [warn] 946816#946816: protocol options redefined for 0.0.0.0:443 in /etc/nginx/sites-enabled/technodel.net:28
-nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
-nginx: configuration file /etc/nginx/nginx.conf test is successful
----
-no nginx config

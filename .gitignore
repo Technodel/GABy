@@ -25,6 +25,7 @@ _*.cjs
 _*.mjs
 _*.ps1
 _vps_*
+_ws_*
 _count_*
 _dbcheck*
 _dump_*
@@ -54,13 +55,26 @@ backups/
 dist.zip
 
 # ── Task execution test files (contain credentials) ──────────────────────────
-suny-task-test.js
+/suny-task-test.js
+/suny-task-test-patched.js
 suny-task-results*.json
 suny-test-results*.json
 suny-test-suite.js
 
-# ── SSH debug logs (contain server IPs and auth info) ────────────────────────
+# ── SSH/SCP debug logs (contain server IPs and auth info) ────────────────────
 ssh_*.txt
+scp_*.txt
+
+# ── Root-level test runners (moved to tests/) ──────────────────────────────
+/run-local-test.js
+/run-task-test-production.js
+/run-full-test.js
+/start-bridge-and-test.ps1
+
+# ── Debug/test scripts not covered by temp patterns ────────────────────────
+test_curl.sh
+test_login.cjs
+check_app_name.sh
 
 # ── One-off debug scripts ────────────────────────────────────────────────────
 fix_db.py

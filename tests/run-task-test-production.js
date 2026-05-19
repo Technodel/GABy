@@ -16,8 +16,8 @@ const fs = require('fs');
 const path = require('path');
 const { execSync, spawn } = require('child_process');
 
-const USERNAME = 'test';
-const PASSWORD = 'test';
+const USERNAME = process.env.SUNY_USER || 'test';
+const PASSWORD = process.env.SUNY_PASS || 'test';
 const BRIDGE_SCRIPT = path.join(__dirname, 'bridge', 'start-silent.js');
 const TEST_SCRIPT = path.join(__dirname, 'suny-task-test.js');
 
@@ -25,7 +25,7 @@ console.log('');
 console.log('╔══════════════════════════════════════════════════════╗');
 console.log('║     SUNy Task Execution Test Suite Runner            ║');
 console.log('║                                                     ║');
-console.log(`║     User: ${USERNAME}/${PASSWORD}                          ║`);
+console.log(`║     User: ${USERNAME}/****                                ║`);
 console.log('╚══════════════════════════════════════════════════════╝');
 console.log('');
 

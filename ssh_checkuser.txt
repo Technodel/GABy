@@ -1,3 +1,0 @@
-suny.db
-suny.db-shm
-suny.db-wal
