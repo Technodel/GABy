@@ -217,6 +217,18 @@ const SCHEMA_MIGRATIONS: Migration[] = [
       }
     },
   },
+
+  // ── Migration 6: Fix OpenRouter model_id_override (deepseek-chat → deepseek/deepseek-chat) ──
+  {
+    version: 6,
+    name: 'Fix OpenRouter model_id_override — deepseek-chat is ambiguous on OpenRouter',
+    up: (db) => {
+      const result = db.prepare(
+        "UPDATE api_keys SET model_id_override = 'deepseek/deepseek-chat' WHERE provider = 'OpenRouter' AND model_id_override = 'deepseek-chat'"
+      ).run();
+      console.log(`[db] Migration v6: Updated ${result.changes} OpenRouter key(s) — deepseek-chat → deepseek/deepseek-chat`);
+    },
+  },
 ];
 
 // ── Schema foundations (always run — CREATE TABLE IF NOT EXISTS) ────────────
