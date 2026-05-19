@@ -111,7 +111,7 @@ app.use(cookieParser());
 // Rate limiting on auth routes (relaxed in development)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: isDev ? 100 : 5,
+  max: isDev ? 100 : 30,
   message: { error: 'Too many login attempts. Please wait a moment.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -120,7 +120,7 @@ const authLimiter = rateLimit({
 // Stricter limiter for registration (prevents account creation floods)
 const registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: isDev ? 50 : 3,
+  max: isDev ? 50 : 10,
   message: { error: 'Registration rate limit exceeded. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
@@ -136,7 +136,7 @@ const registerLimiter = rateLimit({
 // General API brute-force guard for sensitive admin/user endpoints
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: isDev ? 200 : 30,
+  max: isDev ? 200 : 60,
   message: { error: 'Too many requests. Please slow down.' },
   standardHeaders: true,
   legacyHeaders: false,

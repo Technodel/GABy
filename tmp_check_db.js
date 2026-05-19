@@ -1,9 +1,11 @@
-const { execSync } = require('child_process');
-const result = execSync('sqlite3 /var/www/suny/current-new/data/suny.db ".tables"', {encoding:'utf8'});
-console.log('Tables:', result);
-
-const users = execSync('sqlite3 -header -column /var/www/suny/current-new/data/suny.db "SELECT id, username, role, credits, password FROM users;"', {encoding:'utf8'});
-console.log('Users:', users);
-
-const settings = execSync('sqlite3 -header -column /var/www/suny/current-new/data/suny.db "SELECT key, value FROM app_settings;"', {encoding:'utf8'});
-console.log('Settings:', settings);
+const Database = require('better-sqlite3');
+const db = new Database('./data/suny.db');
+console.log('USERS:');
+const users = db.prepare('SELECT id, username, balance, wallet_balance, wallet_auto_spend FROM users').all();
+console.log(JSON.stringify(users, null, 2));
+console.log('API_KEYS:');
+const keys = db.prepare('SELECT id, provider, mode, priority, is_active FROM api_keys').all();
+console.log(JSON.stringify(keys, null, 2));
+console.log('APP_SETTINGS:');
+const settings = db.prepare("SELECT key, value FROM app_settings WHERE key IN ('edit_format', 'daily_token_limit', 'default_keys_seeded')").all();
+console.log(JSON.stringify(settings, null, 2));
