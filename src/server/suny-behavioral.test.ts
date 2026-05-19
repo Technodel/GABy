@@ -379,11 +379,11 @@ describe('4. classifyAutoMode routing (tests 43-60)', () => {
     expect(classifyAutoMode('refactor the login component')).toBe('fast');
   });
 
-  // 50 — Fast: medium-length coding request without depth/creation signals
-  it('should route "configure the api pipeline" to fast', () => {
-    // codingScore=2 (refactor, error), lengthScore=1, depthScore=0 -> fast
+  // 50 — Smart: medium-length coding request with 3 coding keywords
+  it('should route "configure the api pipeline" to smart', () => {
+    // codingScore=3 (refactor, error, component), lengthScore=1, depthScore=0 -> smart
     const result = classifyAutoMode('I need to refactor the login component with proper error handling');
-    expect(result).toBe('fast');
+    expect(result).toBe('smart');
   });
 
   // 51 — Smart: build something

@@ -117,7 +117,7 @@ function getLoopDetector(userId: number): LoopDetector {
   return detector;
 }
 
-const MAX_STEPS = 8;
+const MAX_STEPS = 24;
 const MAX_LINT_RETRIES = 3;  // max extra AI passes to fix lint errors
 const MAX_TEST_RETRIES = 5;  // max extra AI passes to fix test failures ("consider it done")
 
@@ -145,6 +145,7 @@ export interface AgentLoopResult {
   iterations: number;
   resolvedMode: string;
   changedFiles: string[];
+  stepsExhausted: boolean;
   proofSummary: {
     durationMs: number;
     toolCalls: string[];
@@ -159,6 +160,7 @@ export interface AgentLoopResult {
     testGaveUp: boolean;
     filesChanged: number;
     steps: number;
+    stepsExhausted: boolean;
   };
 }
 
@@ -180,16 +182,16 @@ export function classifyAutoMode(message: string): 'free' | 'fast' | 'smart' | '
   // ── Signal detection patterns ──────────────────────────────────────────────
 
   // Strong coding task verbs — the user wants ACTION on code
-  const codingIntentRx = /\b(fix|error|bug|implement|refactor|add|write|function|class|method|variable|api|test|deploy|code|file|build|run|install|import|export|async|await|type|interface|configur|schema|query|pipeline|workflow|component|module|service|middleware|hook|custom|layout|responsive|state|context|reducer|selector|migrate|restructure|integrate|scaffold|generate|delete|rename|edit|change|update|upgrade|downgrade|lint|compile)\b/i;
+  const codingIntentRx = /\b(fix|error|bug|implement|refactor|add|write|function|class|method|variable|api|test|deploy|code|file|build|run|install|import|export|async|await|type|interface|configur|schema|query|pipeline|workflow|component|module|service|middleware|hook|custom|layout|responsive|state|context|reducer|selector|migrate|restructure|integrate|scaffold|generate|delete|rename|edit|change|update|upgrade|downgrade|lint|compile)\b/ig;
 
   // Creation/build signals — building something NEW (not just asking a question)
-  const creationRx = /\b((make|create|build|write|generate|start|scaffold|develop)\s+(a|an|the|me|this|that|my|new|simple|basic|small|fun|quick))|((new|another)\s+(project|app|application|game|website|tool|utility|script|function|module|component|feature|page|form))|game\b/i;
+  const creationRx = /\b((make|create|build|write|generate|start|scaffold|develop)\s+(a|an|the|me|this|that|my|new|simple|basic|small|fun|quick))|((new|another)\s+(project|app|application|game|website|tool|utility|script|function|module|component|feature|page|form))|game\b/ig;
 
   // Deep reasoning signals — the user wants analysis, not just action
-  const depthRx = /\b(architect|design pattern|tradeoff|compare|analyze|security|performance|scalab|deep dive|explain why|explain how|complex|algorithm|optimize|review|audit|architecture|decision|strategy|approach|pros and cons|trade.?off|migration|comparison|evaluate|assess)\b/i;
+  const depthRx = /\b(architect|design pattern|tradeoff|compare|analyze|security|performance|scalab|deep dive|explain why|explain how|complex|algorithm|optimize|review|audit|architecture|decision|strategy|approach|pros and cons|trade.?off|migration|comparison|evaluate|assess)\b/ig;
 
   // System introspection — user asking about SUNy itself
-  const introspectionRx = /\b(instructions|system prompt|trained|training|why do you|why don't you|why are you|why aren't you|follow.*instruction|ignore.*instruction|behavior|personality|who are you|what are you)\b/i;
+  const introspectionRx = /\b(instructions|system prompt|trained|training|why do you|why don't you|why are you|why aren't you|follow.*instruction|ignore.*instruction|behavior|personality|who are you|what are you)\b/ig;
 
   // ── Score calculation ───────────────────────────────────────────────────────
 
@@ -650,8 +652,16 @@ If your tools are not working, say:
         if (onChunk) onChunk(toolDescBuffer);
       }
 
+      // ── Step exhaustion check ──────────────────────────────────────────────
+      const stepsExhausted = steps >= MAX_STEPS;
+      if (stepsExhausted) {
+        const warning = `\n\n[⚠️ Step limit reached (${MAX_STEPS} steps). The task may be incomplete. Consider splitting it into smaller subtasks or asking me to continue.]\n\n`;
+        fullText += warning;
+        console.warn(`[agent-loop] STEP EXHAUSTION: hit ${MAX_STEPS} step limit — appended warning to output`);
+      }
+
       // ── DIAGNOSTIC: Log model response summary ──────────────────────────
-      console.log(`[agent-loop] MODEL RESPONSE: textDeltas=${textDeltas}, fullText.length=${fullText.length}, steps=${steps}, totalInput=${totalInput}, totalOutput=${totalOutput}, toolCallNames=${Array.from(toolCallNames).join(',') || 'none'}`);
+      console.log(`[agent-loop] MODEL RESPONSE: textDeltas=${textDeltas}, fullText.length=${fullText.length}, steps=${steps}, totalInput=${totalInput}, totalOutput=${totalOutput}, toolCallNames=${Array.from(toolCallNames).join(',') || 'none'}, stepsExhausted=${stepsExhausted}`);
       if (fullText.length > 0) {
         console.log(`[agent-loop] MODEL RESPONSE PREVIEW: ${fullText.slice(0, 500).replace(/\n/g, '\\n')}`);
       } else {
@@ -1229,6 +1239,7 @@ If your tools are not working, say:
         iterations: steps || 1,
         resolvedMode,
         changedFiles: Array.from(changedFiles),
+        stepsExhausted,
         proofSummary: {
           durationMs: Date.now() - startedAt,
           toolCalls: Array.from(toolCallNames),
@@ -1243,6 +1254,7 @@ If your tools are not working, say:
           testGaveUp,
           filesChanged: changedFiles.size,
           steps: steps || 1,
+          stepsExhausted,
         },
       };
     } catch (err) {

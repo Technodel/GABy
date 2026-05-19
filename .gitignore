@@ -85,3 +85,8 @@ fix_db.py
 test_suny.py
 test_ws.py
 tmp_deploy/
+
+# ── Bridge binaries (too large for git, generated during builds) ───────────
+public/bridge/*.tgz
+public/bridge/*.exe
+public/bridge/*.zip
