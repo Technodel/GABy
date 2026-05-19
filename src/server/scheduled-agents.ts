@@ -273,6 +273,7 @@ export function startScheduler(checkIntervalMs = 60_000): void {
 
   schedulerInterval = setInterval(async () => {
     try {
+      ensureTable();
       const db = getDb();
       const now = new Date().toISOString();
 
