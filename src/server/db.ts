@@ -188,6 +188,35 @@ const SCHEMA_MIGRATIONS: Migration[] = [
       }
     },
   },
+
+  // ── Migration 5: Seed OpenRouter + Gemini fallback API keys ──────────────
+  {
+    version: 5,
+    name: 'Seed OpenRouter and Gemini fallback API keys for fast/smart/pro modes',
+    up: (db) => {
+      const openrouterKey = process.env.OPENROUTER_API_KEY || process.env.SUNY_OPENROUTER_KEY;
+      const geminiKey = process.env.GEMINI_API_KEY || process.env.SUNY_GEMINI_KEY;
+
+      if (openrouterKey) {
+        for (const mode of ['fast', 'smart', 'pro']) {
+          const existing = db.prepare('SELECT id FROM api_keys WHERE provider = ? AND mode = ? AND priority = 2').get('OpenRouter', mode);
+          if (!existing) {
+            db.prepare(`INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
+              .run('OpenRouter', openrouterKey, mode, `OpenRouter (fallback)`, 2, 'deepseek/deepseek-chat');
+          }
+        }
+      }
+      if (geminiKey) {
+        for (const mode of ['fast', 'smart', 'pro']) {
+          const existing = db.prepare('SELECT id FROM api_keys WHERE provider = ? AND mode = ? AND priority = 3').get('Gemini', mode);
+          if (!existing) {
+            db.prepare(`INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
+              .run('Gemini', geminiKey, mode, `Gemini (fallback 2)`, 3, 'gemini-2.0-flash');
+          }
+        }
+      }
+    },
+  },
 ];
 
 // ── Schema foundations (always run — CREATE TABLE IF NOT EXISTS) ────────────
@@ -422,6 +451,26 @@ function seedData(db: Database.Database): void {
       // DeepSeek as fallback for free in case Groq fails
       db.prepare(`INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
         .run('DeepSeek', deepseekKey, 'free', '⚡ Free – DeepSeek (fallback)', 2, 'deepseek-chat');
+    }
+    // OpenRouter fallback for fast/smart/pro (routes through OpenRouter API)
+    const openrouterKey = process.env.OPENROUTER_API_KEY || process.env.SUNY_OPENROUTER_KEY;
+    if (openrouterKey) {
+      db.prepare(`INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
+        .run('OpenRouter', openrouterKey, 'fast', '🚀 Fast – OpenRouter (fallback)', 2, 'deepseek/deepseek-chat');
+      db.prepare(`INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
+        .run('OpenRouter', openrouterKey, 'smart', '🧠 Smart – OpenRouter (fallback)', 2, 'deepseek/deepseek-chat');
+      db.prepare(`INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
+        .run('OpenRouter', openrouterKey, 'pro', '💎 Pro – OpenRouter (fallback)', 2, 'deepseek/deepseek-chat');
+    }
+    // Gemini fallback for fast/smart/pro
+    const geminiKey = process.env.GEMINI_API_KEY || process.env.SUNY_GEMINI_KEY;
+    if (geminiKey) {
+      db.prepare(`INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
+        .run('Gemini', geminiKey, 'fast', '🚀 Fast – Gemini (fallback 2)', 3, 'gemini-2.0-flash');
+      db.prepare(`INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
+        .run('Gemini', geminiKey, 'smart', '🧠 Smart – Gemini (fallback 2)', 3, 'gemini-2.0-flash');
+      db.prepare(`INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
+        .run('Gemini', geminiKey, 'pro', '💎 Pro – Gemini (fallback 2)', 3, 'gemini-2.0-flash');
     }
     db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('default_keys_seeded', 'true')").run();
   }
