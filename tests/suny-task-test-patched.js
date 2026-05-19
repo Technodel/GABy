@@ -32,8 +32,8 @@ const path = require('path');
 // ── Configuration ─────────────────────────────────────────────────────────
 const HOST = 'https://suny.technodel.tech';
 const WS_HOST = 'wss://suny.technodel.tech';
-const USERNAME = 'testbench';
-const PASSWORD = 'testbench123';
+const USERNAME = 'test';
+const PASSWORD = 'test';
 const CONCURRENCY = 2;   // file tasks need isolation — 2 at a time
 const TASK_TIMEOUT = 120000; // 2 min per task
 const NON_ANSWER_RETRY_DELAY = 4000; // ms before retrying a non-answer

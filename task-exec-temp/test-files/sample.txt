@@ -1,0 +1,11 @@
+This is a sample text file for SUNy's task execution tests.
+It contains multiple lines of text to test file reading capabilities.
+
+Line 3: The quick brown fox jumps over the lazy dog.
+Line 4: 12345 67890
+Line 5: Special characters: !@#$%^&*()
+Line 6: JSON-like content: {"key": "value", "nested": {"a": 1, "b": 2}}
+Line 7: Code snippet: const x = (a, b) => a + b;
+Line 8: URL: https://example.com/path?query=param&sort=asc
+Line 9: Email: test.user@example.com
+Line 10: IP address: 192.168.1.1

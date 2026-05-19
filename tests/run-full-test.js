@@ -11,7 +11,7 @@
 const https = require('https');
 const path = require('path');
 const fs = require('fs');
-const { SunyBridge } = require('./bridge/dist/bridge.js');
+const { SunyBridge } = require(path.join(__dirname, '..', 'bridge', 'dist', 'bridge.js'));
 
 const HOST = process.env.SUNY_HOST || 'suny.technodel.tech';
 const USERNAME = process.env.SUNY_USER || 'test';

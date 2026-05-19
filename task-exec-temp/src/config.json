@@ -1,0 +1,25 @@
+{
+  "app": {
+    "name": "TaskExecTest",
+    "version": "1.0.0",
+    "debug": false,
+    "port": 3000
+  },
+  "database": {
+    "host": "localhost",
+    "port": 5432,
+    "name": "taskexec",
+    "user": "admin",
+    "password": "should-not-be-here"
+  },
+  "api": {
+    "endpoint": "https://api.example.com/v2",
+    "key": "sk-live-abc123def456",
+    "timeout": 30000
+  },
+  "logging": {
+    "level": "info",
+    "format": "json",
+    "output": "./logs/app.log"
+  }
+}

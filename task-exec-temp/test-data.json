@@ -1,0 +1,19 @@
+{
+  "title": "Sample Data",
+  "version": "2.0",
+  "users": [
+    { "id": 1, "name": "Alice", "active": true, "role": "admin" },
+    { "id": 2, "name": "Bob", "active": false, "role": "user" },
+    { "id": 3, "name": "Charlie", "active": true, "role": "user" },
+    { "id": 4, "name": "Diana", "active": true, "role": "moderator" }
+  ],
+  "config": {
+    "maxRetries": 3,
+    "timeout": 5000,
+    "features": {
+      "darkMode": true,
+      "notifications": false,
+      "export": true
+    }
+  }
+}

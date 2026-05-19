@@ -1,0 +1,12 @@
+{
+  "name": "task-exec-test",
+  "version": "1.0.0",
+  "description": "Test project for SUNy task-execution validation",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node test-files/run-tests.js",
+    "build": "node src/build.js"
+  },
+  "dependencies": {}
+}
