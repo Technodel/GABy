@@ -32,15 +32,18 @@ export function registerBridge(userId: number, username: string, ws: WebSocket):
     existing.ws.close();
   }
 
+  console.log(`[bridge-manager] Bridge CONNECTED for user ${userId} (${username})`);
   const conn: BridgeConnection = { ws, userId, username, connectedAt: new Date(), lastPing: new Date() };
   activeBridges.set(userId, conn);
 
   ws.on('message', (raw) => handleBridgeMessage(userId, raw.toString()));
-  ws.on('close', () => {
+  ws.on('close', (code, reason) => {
+    console.log(`[bridge-manager] Bridge DISCONNECTED for user ${userId} (code=${code}, reason=${reason?.toString() || 'none'})`);
     activeBridges.delete(userId);
     rejectAllPendingForUser(userId, 'Bridge disconnected');
   });
-  ws.on('error', () => {
+  ws.on('error', (err) => {
+    console.log(`[bridge-manager] Bridge ERROR for user ${userId}: ${err.message}`);
     activeBridges.delete(userId);
     rejectAllPendingForUser(userId, 'Bridge error');
   });
@@ -107,9 +110,9 @@ export function isBridgeConnected(userId: number): boolean {
   const conn = activeBridges.get(userId);
   if (!conn) return false;
   if (conn.ws.readyState !== WebSocket.OPEN) return false;
-  // Consider stale if no ping in 35 seconds
+  // Consider stale if no ping in 60 seconds (heartbeat interval is 30s, giving 2x buffer)
   const age = Date.now() - conn.lastPing.getTime();
-  return age < 35000;
+  return age < 60000;
 }
 
 function rejectAllPendingForUser(userId: number, reason: string): void {

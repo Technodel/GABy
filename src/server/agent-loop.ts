@@ -421,7 +421,11 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
       return merged;
     }
     // Bridge offline, no project, or talk mode — still provide web tools
-    console.log('[agent-loop] Bridge/project tools unavailable; web_search + url_fetch only');
+    const reasons: string[] = [];
+    if (!bridgeConnected) reasons.push('bridge offline');
+    if (!projectPath) reasons.push('no project path');
+    if (talkMode) reasons.push('talk mode');
+    console.log(`[agent-loop] Full tools unavailable (${reasons.join(', ') || 'unknown'}); web_search + url_fetch only`);
     return alwaysTools;
   })();
 
