@@ -483,6 +483,32 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
     } catch (e) { console.warn('[agent-loop] Hypothesis engine failed:', (e as Error).message); }
   }
 
+  // ── Tool-calling enforcement ──────────────────────────────────
+  // Some models (especially DeepSeek) do not reliably generate tool
+  // calls from instructions buried in a long system prompt. This
+  // ultra-explicit directive at the very END of the system prompt
+  // (immediately before the user message) is where models pay most
+  // attention and is hardest to overlook.
+  if (!textFormat && !talkMode && bridgeConnected && projectPath) {
+    const toolNames = Object.keys(effectiveTools || {});
+    if (toolNames.length > 0) {
+      fullSystem += `
+<tool_mandate>
+You MUST use at least one tool before giving your final answer.
+Tools available: ${toolNames.join(', ')}.
+
+Do NOT answer from your training data or prior knowledge alone.
+READ the files first. SEARCH the web. RUN commands. USE YOUR TOOLS.
+
+Every task that involves looking up information, reading files, checking code,
+or verifying assumptions MUST start with a tool call — not a guess.
+
+If your tools are not working, say:
+"I'm having trouble accessing my tools — let me try a different approach."
+</tool_mandate>`;
+    }
+  }
+
   // Notify client that streaming is starting
   // Emit stage event for pipeline phase tracking
   userClientManager.pushToUser(userId, 'suny:stage', { stage: 'processing', label: 'Planning & executing...' });
