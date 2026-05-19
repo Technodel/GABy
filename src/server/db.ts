@@ -342,39 +342,39 @@ function seedData(db: Database.Database): void {
   const modeCount = (db.prepare('SELECT COUNT(*) as c FROM pricing_modes').get() as { c: number }).c;
   if (modeCount === 0) {
     db.prepare(`INSERT INTO pricing_modes (mode, display_name, description, markup_formula, input_token_base_cost, output_token_base_cost, model_id) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-      .run('free', '⚡ Free', 'Groq Llama 3.3 70B — lightning fast for quick tasks', 'cost * 2.0', 0.00000059, 0.00000079, 'llama-3.3-70b-versatile');
+      .run('free', '⚡ Free', 'Great for quick tasks and light use', 'cost * 2.0', 0.00000059, 0.00000079, 'llama-3.3-70b-versatile');
     db.prepare(`INSERT INTO pricing_modes (mode, display_name, description, markup_formula, input_token_base_cost, output_token_base_cost, model_id) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-      .run('fast', '🚀 Fast', 'DeepSeek V3 — excellent instruction following for everyday coding', 'cost * 2.5', 0.00000027, 0.0000011, 'deepseek-chat');
+      .run('fast', '🚀 Fast', 'Fast and efficient for everyday coding', 'cost * 2.5', 0.00000027, 0.0000011, 'deepseek-chat');
     db.prepare(`INSERT INTO pricing_modes (mode, display_name, description, markup_formula, input_token_base_cost, output_token_base_cost, model_id) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-      .run('smart', '🧠 Smart', 'DeepSeek Pro — advanced reasoning for complex tasks', 'cost * 2.8', 0.00000040, 0.0000015, 'deepseek-chat');
+      .run('smart', '🧠 Smart', 'Advanced reasoning for complex tasks', 'cost * 2.8', 0.00000040, 0.0000015, 'deepseek-chat');
     db.prepare(`INSERT INTO pricing_modes (mode, display_name, description, markup_formula, input_token_base_cost, output_token_base_cost, model_id) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-      .run('pro', '💎 Pro', 'DeepSeek Pro — maximum quality for your hardest challenges', 'cost * 3.0', 0.00000055, 0.00000219, 'deepseek-chat');
+      .run('pro', '💎 Pro', 'Maximum quality for your hardest challenges', 'cost * 3.0', 0.00000055, 0.00000219, 'deepseek-chat');
   }
 
   // Update existing mode configs to current defaults (modes_v2_seeded flag)
   const modesV2Seeded = db.prepare("SELECT value FROM app_settings WHERE key='modes_v2_seeded'").get();
   if (!modesV2Seeded) {
     db.prepare(`UPDATE pricing_modes SET display_name=?, description=?, model_id=?, input_token_base_cost=?, output_token_base_cost=? WHERE mode='free'`)
-      .run('⚡ AFree', 'Almost free — Groq-powered with OpenRouter fallback', 'llama-3.3-70b-versatile', 0.00000059, 0.00000079);
+      .run('⚡ AFree', 'Almost free - great for quick tasks', 'llama-3.3-70b-versatile', 0.00000059, 0.00000079);
     db.prepare(`UPDATE pricing_modes SET display_name=?, description=?, model_id=?, input_token_base_cost=?, output_token_base_cost=? WHERE mode='fast'`)
-      .run('🚀 Fast Smart', 'Smart & affordable — OpenRouter Llama Vision, excellent for coding and image analysis', 'meta-llama/llama-3.2-11b-vision-instruct:free', 0.00000027, 0.0000011);
+      .run('🚀 Fast Smart', 'Smart and affordable, excellent for coding and image analysis', 'meta-llama/llama-3.2-11b-vision-instruct:free', 0.00000027, 0.0000011);
     db.prepare(`UPDATE pricing_modes SET display_name=?, description=?, model_id=?, input_token_base_cost=?, output_token_base_cost=? WHERE mode='pro'`)
-      .run('🧠 Smart Pro', 'Maximum intelligence — HuggingFace Llama Vision for complex analysis and image understanding', 'meta-llama/Llama-3.2-11B-Vision-Instruct', 0.00000055, 0.00000219);
+      .run('🧠 Smart Pro', 'Maximum intelligence for complex analysis and image understanding', 'meta-llama/Llama-3.2-11B-Vision-Instruct', 0.00000055, 0.00000219);
     db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('modes_v2_seeded', 'true')").run();
   }
 
   // ── v4: Configure modes per user preference ──────────────────────────
-  // Free  → Groq (llama-3.3-70b-versatile) — fast for simple tasks
-  // Fast  → DeepSeek (deepseek-chat) — reliable coding assistant
-  // Smart → DeepSeek (deepseek-chat) — advanced reasoning
-  // Pro   → DeepSeek (deepseek-chat) — maximum quality
+  // Free  → llama-3.3-70b-versatile — fast for simple tasks
+  // Fast  → deepseek-chat — reliable coding assistant
+  // Smart → deepseek-chat — advanced reasoning
+  // Pro   → deepseek-chat — maximum quality
   const modesV4 = db.prepare("SELECT value FROM app_settings WHERE key='modes_v4_models'").get();
   if (!modesV4) {
     // Insert smart mode if it doesn't exist (wasn't in original seed)
     const smartExists = db.prepare("SELECT COUNT(*) as c FROM pricing_modes WHERE mode = 'smart'").get() as { c: number };
     if (smartExists.c === 0) {
       db.prepare(`INSERT INTO pricing_modes (mode, display_name, description, markup_formula, input_token_base_cost, output_token_base_cost, model_id) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-        .run('smart', '🧠 Smart', 'DeepSeek Pro — advanced reasoning for complex tasks', 'cost * 2.8', 0.00000040, 0.0000015, 'deepseek-chat');
+        .run('smart', '🧠 Smart', 'Advanced reasoning for complex tasks', 'cost * 2.8', 0.00000040, 0.0000015, 'deepseek-chat');
     }
     // Update pricing_modes model_ids
     db.prepare(`UPDATE pricing_modes SET model_id = ? WHERE mode = 'free'`).run('llama-3.3-70b-versatile');

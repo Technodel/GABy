@@ -829,6 +829,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
 
   const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
   const [renamingTabValue, setRenamingTabValue] = useState('');
+  const [deleteConfirmTabId, setDeleteConfirmTabId] = useState<string | null>(null);
 
   function globalTabKey(tabId: string) { return `suny_chat_global_${tabId}`; }
 
@@ -2123,7 +2124,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
 
             {/* Global chat: tab bar */}
             {!activeProject && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 16, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 16, flexWrap: 'wrap', position: 'sticky', top: 0, zIndex: 10, background: 'var(--bg)', paddingTop: 4, paddingBottom: 4 }}>
                 {globalTabs.map(tab => (
                   <div
                     key={tab.id}
@@ -2137,6 +2138,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                       fontSize: 12,
                       color: activeTabId === tab.id ? 'var(--accent)' : 'var(--text-secondary)',
                       transition: 'all 0.15s',
+                      position: 'relative',
                     }}
                     onClick={() => switchGlobalTab(tab.id)}
                     onDoubleClick={() => { setRenamingTabId(tab.id); setRenamingTabValue(tab.name); }}
@@ -2164,13 +2166,29 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                     ) : (
                       <span>{tab.name}</span>
                     )}
-                    <button
-                      onClick={e => { e.stopPropagation(); closeGlobalTab(tab.id); }}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0, display: 'flex', alignItems: 'center', fontSize: 10, lineHeight: 1 }}
-                      title="Close tab"
-                    >
-                      <X size={10} />
-                    </button>
+                    {deleteConfirmTabId === tab.id ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ fontSize: 10, color: 'var(--error)', whiteSpace: 'nowrap' }}>Delete?</span>
+                        <button
+                          onClick={e => { e.stopPropagation(); closeGlobalTab(tab.id); setDeleteConfirmTabId(null); }}
+                          style={{ background: 'var(--error)', border: 'none', cursor: 'pointer', color: '#fff', padding: '1px 5px', borderRadius: 3, fontSize: 10, lineHeight: 1 }}
+                          title="Confirm delete"
+                        >✓</button>
+                        <button
+                          onClick={e => { e.stopPropagation(); setDeleteConfirmTabId(null); }}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '1px 4px', fontSize: 10, lineHeight: 1 }}
+                          title="Cancel"
+                        >✕</button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={e => { e.stopPropagation(); setDeleteConfirmTabId(tab.id); }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0, display: 'flex', alignItems: 'center', fontSize: 10, lineHeight: 1 }}
+                        title="Delete tab"
+                      >
+                        <Trash2 size={10} />
+                      </button>
+                    )}
                   </div>
                 ))}
                 <button
@@ -2188,9 +2206,9 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
             )}
             {!activeProject && messages.length === 0 && !thinking && (
               <div style={{ textAlign: 'center', marginTop: 48, color: 'var(--text-muted)', padding: '0 24px' }}>
-                <img src="/SLOGO.png" alt="SUNy" style={{ width: 200, height: 200, borderRadius: '50%', objectFit: 'cover', marginBottom: 14, boxShadow: '0 4px 20px rgba(108,99,255,0.2)' }} />
+                <img src="/SLOGO.png" alt="SUNy" style={{ width: 220, height: 220, borderRadius: '50%', objectFit: 'cover', marginBottom: 14, boxShadow: '0 4px 20px rgba(108,99,255,0.2)' }} />
                 <p style={{ fontWeight: 700, fontSize: 22, color: 'var(--text-primary)', marginBottom: 4 }}>SUNy</p>
-                <p style={{ fontSize: 13, fontStyle: 'italic', color: 'var(--accent)', marginBottom: 20, opacity: 0.9 }}>Consider it done.</p>
+                <p style={{ fontSize: 14, fontStyle: 'italic', color: 'var(--accent)', marginBottom: 20, opacity: 0.9 }}>Consider it done.</p>
                 <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 24, lineHeight: 1.6 }}>
                   {globalIntroLine || 'Pick a project from the sidebar to start coding.'}
                 </p>
@@ -2610,7 +2628,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                     <button
                       className="btn btn-icon btn-secondary"
                       onClick={toggleTalkMode}
-                      title={talkMode ? 'Talk Mode â€” no file changes (click to switch to Write Mode)' : 'Write Mode â€” full file editing (click to switch to Talk Mode)'}
+                      title={talkMode ? 'Talk Mode - no file changes (click to switch to Write Mode)' : 'Write Mode - full file editing (click to switch to Talk Mode)'}
                       style={{
                         alignSelf: 'flex-end',
                         padding: '10px 12px',
