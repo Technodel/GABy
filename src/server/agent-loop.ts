@@ -524,6 +524,12 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
         ? buildAnthropicCachedMessages(messages, fullSystem)
         : { messages, useSystemParam: true as const };
 
+      // ── DIAGNOSTIC: Log model call details ──────────────────────────────
+      const toolCount = effectiveTools ? Object.keys(effectiveTools).length : 0;
+      const providerModelId = provider + '/' + ((model as any)?.modelId || 'unknown');
+      console.log(`[agent-loop] MODEL CALL: provider=${provider}, modelId=${providerModelId}, tools=${toolCount}, messages=${finalMessages.length}, systemLen=${(useSystemParam ? fullSystem?.length : '(in-msg cache)') ?? 0}`);
+      // ── End diagnostic ──────────────────────────────────────────────────
+
       const result = streamText({
         model: model as LanguageModel,
         system: useSystemParam ? fullSystem : undefined,
@@ -535,6 +541,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
           steps++;
           totalInput += usage?.inputTokens ?? 0;
           totalOutput += usage?.outputTokens ?? 0;
+          console.log(`[agent-loop] onStepFinish: step=${steps}, inputTokens=${usage?.inputTokens ?? 0}, outputTokens=${usage?.outputTokens ?? 0}`);
           if (steps > 1) {
             userClientManager.pushToUser(userId, 'suny:stage', { stage: 'processing', label: 'Working through the steps...' });
             userClientManager.pushToUser(userId, 'suny:narration', {
@@ -546,6 +553,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
       });
 
       let fullText = '';
+      let textDeltas = 0;
 
       // Stream text chunks to frontend — with filtering for model-generated
       // tool-description technical output (e.g. "Writing web request", "Writing request stream...")
@@ -560,6 +568,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
         /^number\s+of\s+bytes\s+written/i,
       ];
       for await (const delta of result.textStream) {
+        textDeltas++;
         // Skip pure whitespace-only deltas (model often emits blank tool-call framing)
         if (/^\s*$/.test(delta)) continue;
 
@@ -614,6 +623,15 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
         fullText += toolDescBuffer;
         if (onChunk) onChunk(toolDescBuffer);
       }
+
+      // ── DIAGNOSTIC: Log model response summary ──────────────────────────
+      console.log(`[agent-loop] MODEL RESPONSE: textDeltas=${textDeltas}, fullText.length=${fullText.length}, steps=${steps}, totalInput=${totalInput}, totalOutput=${totalOutput}, toolCallNames=${Array.from(toolCallNames).join(',') || 'none'}`);
+      if (fullText.length > 0) {
+        console.log(`[agent-loop] MODEL RESPONSE PREVIEW: ${fullText.slice(0, 500).replace(/\n/g, '\\n')}`);
+      } else {
+        console.warn(`[agent-loop] MODEL RESPONSE EMPTY — no text produced, no tool calls after ${steps} steps`);
+      }
+      // ── End diagnostic ──────────────────────────────────────────────────
 
       // ── Loop detection: if AI was stuck in a loop, inject self-correction ──
       if (getLoopDetector(userId).isLoopReported) {
@@ -1206,10 +1224,13 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
       const isLast = modelEntries.indexOf(modelEntries.find(m => m.model === model)!) === modelEntries.length - 1;
       if (!isLast) {
         console.warn(`[agent-loop] ${provider} failed, trying fallback: ${lastError.message}`);
+        console.warn(`[agent-loop] Fallback stack: ${(lastError as Error).stack?.split('\n').slice(0, 4).join('\n')}`);
         userClientManager.pushToUser(userId, 'suny:stage', { stage: 'fallback', label: `Provider ${provider} failed, trying fallback...` });
         userClientManager.pushToUser(userId, 'suny:narration', {
           message: narrateMessage('Provider failed, trying fallback...', 'error'),
         });
+      } else {
+        console.error(`[agent-loop] ALL PROVIDERS EXHAUSTED — last error: ${lastError.message}`);
       }
     }
   }
