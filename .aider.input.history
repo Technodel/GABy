@@ -549,3 +549,56 @@
 + I should watch for these patterns this session."
 +
 +
+
+# 2026-05-18T23:02:03.337Z
++do u remmeber how many traininng and injections we alreay performed no suny ?hundreds of skills and rules ?? are they all working ?????i feel like im talking to a very basic bot !!
++i asked to create a game it just threw a code with out any single word , without any instcution or explanation
++and when i said please execute this code it returned this
++<function>execute_index_html":{"type": "function", "name": "execute_index_html", "parameters": {</function>
++
++
++im really lost and feel like going in circles and like all the training we are doing are put aside and sunny is just a tool using cheapest ai model to reply
++please explain whats wrong with the app
++
++scan  yesterday backupe 
++"C:\Users\TD\Downloads\GABy2-main (2).zip"
++did we loose any core/engine/code from that ???
++
++
+
+# 2026-05-18T23:09:42.026Z
++but i was not testing in free mode i had credits also i dont want to be specific with game word the app should be smarter to anaylyse each request , inject all training and rules,behaviors,skills to be autoloaded into suny , do all the fixes i want suny to be ready to perform
+
+# 2026-05-18T23:28:35.641Z
++please check the chat with user empy inside project technodel
++see the responses !!!! 
++a very basic free tool would have better answers !!!!
++
++(THIS WAS BEFORE UR FIX)
++
++SHALL IT BE BETTER NOW ??
+
+# 2026-05-18T23:34:20.926Z
++im going to sleep now
++
++ load the new agent-loop.ts with intelligent scoring
++Ensure DEEPSEEK_API_KEY and alll my keys are working in the tool and set in your production .env  u have permission to preload them
++u have all the access , all the time , all the resources to make suny use its full potential and all the rules/skills we injected
++lppease check every engine to make sure suny will perform tasks , answers,codes,builds, like u or ever better
++
++
++please do at least 100 tests to check on suny's behavior, after each do the needed correction comparded to ur personal response
++i want to wake up in the morning having a tool ready to publish
++DO NOT STOP UNLESS U EVALUATE SUNY ON VPS AS READY TO BE OFFICALLY LAUNCHED AND USED AS AI IDE AGENT
+
+# 2026-05-19T07:23:56.582Z
++please fix all minor issues and push to vps
+
+# 2026-05-19T07:38:22.404Z
++push to github technodel/gaby
+
+# 2026-05-19T07:40:08.605Z
++replace landing page logo with "D:\Projects\GABy\public\SUNy.png" and upload it ,delete gaby.png
+
+# 2026-05-19T07:43:28.742Z
++push to vps not github

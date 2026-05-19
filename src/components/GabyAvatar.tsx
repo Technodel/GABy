@@ -2,8 +2,8 @@
 export default function GabyAvatar({ size = 32 }: { size?: number }) {
   return (
     <img
-      src="/GABy.png"
-      alt="GABy"
+      src="/SUNy.png"
+      alt="SUNy"
       style={{
         width: size,
         height: size,

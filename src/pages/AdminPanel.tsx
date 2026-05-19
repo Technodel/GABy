@@ -35,7 +35,7 @@ export default function AdminPanel({ onLogout }: AdminPanelProps) {
       }}>
         <div style={{ padding: '0 16px 20px', borderBottom: '1px solid var(--border)', marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <img src="/GABy.png" alt="GABy" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover' }} />
+            <img src="/SUNy.png" alt="SUNy" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover' }} />
             <span style={{ fontWeight: 700, fontSize: 16, color: 'var(--accent)' }}>GABy Admin</span>
           </div>
         </div>

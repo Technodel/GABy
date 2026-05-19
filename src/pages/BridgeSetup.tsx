@@ -85,7 +85,7 @@ export default function BridgeSetup({ onConnected }: BridgeSetupProps) {
     }}>
       <div style={{ width: '100%', maxWidth: 560 }} className="page-enter">
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <img src="/GABy.png" alt="GABy" style={{ width: 288, height: 288, borderRadius: '50%', objectFit: 'cover', boxShadow: '0 4px 20px rgba(108,99,255,0.3)' }} />
+          <img src="/SUNy.png" alt="SUNy" style={{ width: 288, height: 288, borderRadius: '50%', objectFit: 'cover', boxShadow: '0 4px 20px rgba(108,99,255,0.3)' }} />
         </div>
         <div className="card">
           <h2 style={{ fontSize: 20, fontWeight: 600, marginBottom: 8 }}>🔌 One quick setup step</h2>

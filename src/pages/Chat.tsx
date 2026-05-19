@@ -564,7 +564,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         gap: 12,
         flexShrink: 0,
       }}>
-        <img src="/GABy.png" alt="GABy" style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover' }} />
+        <img src="/SUNy.png" alt="SUNy" style={{ width: 52, height: 52, borderRadius: '50%', objectFit: 'cover' }} />
         <span style={{ fontWeight: 700, fontSize: 18, color: 'var(--accent)', marginRight: 4 }}>GABy</span>
         {activeProject && (
           <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>· {activeProject.name}</span>
@@ -867,7 +867,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
 
             {activeProject && messages.length === 0 && !thinking && (
               <div style={{ textAlign: 'center', marginTop: 40, color: 'var(--text-muted)' }}>
-                <img src="/GABy.png" alt="GABy" style={{ width: 280, height: 280, borderRadius: '50%', objectFit: 'cover', marginBottom: 20, boxShadow: '0 8px 32px rgba(108,99,255,0.25)' }} />
+                <img src="/SUNy.png" alt="SUNy" style={{ width: 280, height: 280, borderRadius: '50%', objectFit: 'cover', marginBottom: 20, boxShadow: '0 8px 32px rgba(108,99,255,0.25)' }} />
                 <p style={{ fontWeight: 700, fontSize: 22, marginBottom: 10, color: 'var(--text-primary)' }}>Hi! I'm GABy</p>
                 <p style={{ fontSize: 14 }}>Tell me what you'd like to build or fix. I'll take it from there!</p>
                 {!bridgeConnected && (

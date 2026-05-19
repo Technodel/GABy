@@ -102,7 +102,7 @@ export default function Login({ onLogin }: LoginProps) {
 
       {/* Hero */}
       <div style={{ textAlign: 'center', padding: '48px 20px 36px', background: 'linear-gradient(180deg, rgba(108,99,255,0.08) 0%, transparent 100%)' }}>
-        <img src="/GABy.png" alt="GABy" style={{ width: 280, height: 280, borderRadius: '50%', objectFit: 'cover', margin: '0 auto 24px', display: 'block', boxShadow: '0 8px 40px rgba(108,99,255,0.35)' }} />
+        <img src="/SUNy.png" alt="SUNy" style={{ width: 280, height: 280, borderRadius: '50%', objectFit: 'cover', margin: '0 auto 24px', display: 'block', boxShadow: '0 8px 40px rgba(108,99,255,0.35)' }} />
         <h1 style={{ fontSize: 52, fontWeight: 800, marginBottom: 10, letterSpacing: '-1px' }}>GABy</h1>
         <p style={{ fontSize: 24, fontWeight: 600, color: 'var(--accent)', marginBottom: 14 }}>Consider it done!</p>
         <p style={{ fontSize: 16, color: 'var(--text-secondary)', maxWidth: 620, margin: '0 auto', lineHeight: 1.75 }}>
