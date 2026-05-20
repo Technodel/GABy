@@ -292,3 +292,180 @@ export function updateCrossProjectPersona(input: PersonaUpdateInput): { updated:
 
   return { updated: false, reason: 'No persona pattern detected' };
 }
+
+// ── Phase 3: Aggregation + Anonymization + Prompt Builder ──────────────────────
+
+/**
+ * Known project-name patterns for anonymization.
+ * Strips these from pattern_summary and pattern_detail to remove
+ * project-specific identifiers before injecting into new projects.
+ */
+const PROJECT_SPECIFIC_PATTERNS = [
+  /project\s+['"][^'"]+['"]/gi,
+  /repo(?:sitory)?\s+['"][^'"]+['"]/gi,
+  /app\s+['"][^'"]+['"]/gi,
+  /module\s+['"][^'"]+['"]/gi,
+  /\b[A-Z][a-zA-Z]*[A-Z][a-zA-Z]*\b/g,   // CamelCaseWithMultipleUppercase (likely project names)
+];
+
+/**
+ * Anonymize a pattern by stripping project-specific identifiers.
+ * Returns a sanitized copy of the pattern.
+ */
+export function anonymizePattern(pattern: SharedPattern): SharedPattern {
+  let summary = pattern.patternSummary;
+  let detail = pattern.patternDetail;
+
+  for (const re of PROJECT_SPECIFIC_PATTERNS) {
+    summary = summary.replace(re, '[project]');
+    detail = detail.replace(re, '[project]');
+  }
+
+  // Strip known file path patterns
+  summary = summary.replace(/(src\/|lib\/|app\/|components\/)[^\s,;)]+/g, '[path]');
+  detail = detail.replace(/(src\/|lib\/|app\/|components\/)[^\s,;)]+/g, '[path]');
+
+  return {
+    ...pattern,
+    patternSummary: summary,
+    patternDetail: detail,
+    sourceProjectName: '[shared]',
+  };
+}
+
+interface AggregatedPattern {
+  type: string;
+  category: string;
+  summary: string;
+  confidence: number;
+  applicationCount: number;
+  sourceCount: number;       // how many source patterns fed into this cluster
+  patternDetailSummary: string;
+}
+
+/**
+ * Cluster similar patterns by type and key prefix, then rank by
+ * (confidence × applicationCount) and return the top 5 aggregated entries.
+ *
+ * The clustering groups patterns with the same type prefix
+ * (e.g. all err: patterns, all design: patterns) and within each type
+ * groups those with overlapping key tokens.
+ */
+export function aggregateSharedPatterns(patterns: SharedPattern[]): AggregatedPattern[] {
+  if (patterns.length === 0) return [];
+
+  // 1. Anonymize
+  const anonymized = patterns.map(p => anonymizePattern(p));
+
+  // 2. Group by type
+  const byType = new Map<string, SharedPattern[]>();
+  for (const p of anonymized) {
+    const type = p.patternType;
+    if (!byType.has(type)) byType.set(type, []);
+    byType.get(type)!.push(p);
+  }
+
+  // 3. Within each type, cluster by shared key tokens (split by ':')
+  const clusters: AggregatedPattern[] = [];
+
+  for (const [type, typePatterns] of byType) {
+    // Sort by confidence desc
+    typePatterns.sort((a, b) => b.confidence - a.confidence);
+
+    // Pick the top patterns, merge similar ones
+    const considered = new Set<number>();
+    for (let i = 0; i < typePatterns.length && clusters.length < 8; i++) {
+      if (considered.has(i)) continue;
+      const base = typePatterns[i];
+      considered.add(i);
+
+      const similar: SharedPattern[] = [base];
+      const baseTokens = base.patternKey.toLowerCase().split(/[:_\s]+/).filter(Boolean);
+
+      for (let j = i + 1; j < typePatterns.length; j++) {
+        if (considered.has(j)) continue;
+        const cmp = typePatterns[j];
+        const cmpTokens = cmp.patternKey.toLowerCase().split(/[:_\s]+/).filter(Boolean);
+        // Check overlap: at least 40% of tokens match
+        const intersect = baseTokens.filter(t => cmpTokens.includes(t));
+        const overlap = intersect.length / Math.max(baseTokens.length, cmpTokens.length);
+        if (overlap >= 0.4) {
+          similar.push(cmp);
+          considered.add(j);
+        }
+      }
+
+      // Merge cluster: use best confidence, sum counts, pick representative summary
+      const avgConfidence = similar.reduce((s, p) => s + p.confidence, 0) / similar.length;
+      const totalApplications = similar.reduce((s, p) => s + p.applicationCount, 0);
+      const bestSummary = similar.reduce((a, b) => a.confidence > b.confidence ? a : b).patternSummary;
+      const detailSummary = similar.length > 1
+        ? `(merged from ${similar.length} similar patterns)`
+        : (similar[0].patternDetail?.slice(0, 200) || '');
+
+      const typeLabel = type === 'error_fix' ? 'Error Pattern'
+        : type === 'design_decision' ? 'Design Pattern'
+        : type === 'coding_convention' ? 'Convention'
+        : 'Preference';
+
+      clusters.push({
+        type,
+        category: typeLabel,
+        summary: bestSummary,
+        confidence: avgConfidence,
+        applicationCount: totalApplications,
+        sourceCount: similar.length,
+        patternDetailSummary: detailSummary,
+      });
+    }
+  }
+
+  // 5. Sort by composite score: confidence × sqrt(applicationCount)
+  clusters.sort((a, b) => {
+    const scoreA = a.confidence * Math.sqrt(a.applicationCount + 1);
+    const scoreB = b.confidence * Math.sqrt(b.applicationCount + 1);
+    return scoreB - scoreA;
+  });
+
+  // 6. Return top 5
+  return clusters.slice(0, 5);
+}
+
+/**
+ * Build a full cross-project knowledge prompt block for injection into
+ * the system prompt. Runs the full pipeline:
+ *   1. Fetch relevant patterns (confidence ≥ 0.3, all types)
+ *   2. Aggregate + anonymize
+ *   3. Format into a clean prompt block
+ *
+ * Returns empty string if cross-project learning is disabled or no patterns found.
+ */
+export function buildCrossProjectPrompt(userId: number): string {
+  if (!isCrossProjectLearningEnabled(userId)) return '';
+
+  const patterns = getRelevantPatterns(userId, {
+    minConfidence: 0.3,
+    limit: 50,     // fetch enough for clustering
+  });
+
+  if (patterns.length === 0) return '';
+
+  const aggregated = aggregateSharedPatterns(patterns);
+  if (aggregated.length === 0) return '';
+
+  const lines: string[] = [
+    '',
+    '<cross_project_knowledge>',
+    'The following patterns were learned from your other projects. They may be relevant here:',
+  ];
+
+  for (const a of aggregated) {
+    lines.push(`  • ${a.category}: ${a.summary}`);
+    lines.push(`    (confidence: ${(a.confidence * 100).toFixed(0)}%, reused ${a.applicationCount}x across ${a.sourceCount} pattern(s))`);
+  }
+
+  lines.push('</cross_project_knowledge>');
+  lines.push('');
+
+  return lines.join('\n');
+}

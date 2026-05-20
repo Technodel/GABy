@@ -36,7 +36,8 @@ import { narrateMessage } from './narrator';
 import { LoopDetector } from './loop-detector';
 import * as fs from 'fs';
 import {
-  selectStrategies, launchHypothesis, completeHypothesis,
+  selectStrategies, launchHypothesis, completeHypothesis, failHypothesis,
+  runHypothesisStrategies,
 } from './hypothesis-engine';
 import {
   scoreAgentTurn, type TrainingScorerInput,
@@ -47,6 +48,11 @@ import {
 import {
   extractMistakeRule,
 } from './behavioral-rules';
+import {
+  buildCrossProjectPrompt,
+  shareErrorPattern, shareDesignDecision,
+  isCrossProjectLearningEnabled,
+} from './cross-project-learning';
 import { isFeatureEnabled } from './feature-flags';
 import {
   applyDiffFormat, applyWholeFormat,
@@ -345,6 +351,22 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
     }
   }
 
+  // ── Cross-project learning: inject aggregated patterns into system prompt
+  if (projectId && isCrossProjectLearningEnabled(userId)) {
+    try {
+      const crossProjectBlock = buildCrossProjectPrompt(userId);
+      if (crossProjectBlock) {
+        const ins = fullSystem.lastIndexOf('\n<WorkingDirectory>');
+        fullSystem = ins >= 0
+          ? fullSystem.slice(0, ins) + '\n' + crossProjectBlock + fullSystem.slice(ins)
+          : fullSystem + '\n' + crossProjectBlock;
+        console.log(`[agent-loop] Cross-project knowledge injected (${crossProjectBlock.split('\n').length} lines)`);
+      }
+    } catch (e) {
+      console.warn('[agent-loop] Cross-project learning injection failed:', (e as Error).message);
+    }
+  }
+
   // Build tools (only if bridge is connected, project is set, and NOT in talk mode)
   // MCP tools from connected servers are merged automatically
   // ── Model references (set inside model loop, used by lazy-getter tools) ──
@@ -373,7 +395,17 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
             });
           }
           console.log(`[agent-loop] tool call: ${name}`, input);
+          userClientManager.pushToUser(userId, 'suny:tool_start', { tool: name, input });
           userClientManager.pushToUser(userId, 'suny:tool_call', { tool: name, input });
+        },
+        onToolResult: (name, input, result, error) => {
+          userClientManager.pushToUser(userId, 'suny:tool_result', {
+            tool: name,
+            input,
+            success: !error,
+            error: error || undefined,
+            summary: typeof result === 'string' ? result.slice(0, 200) : undefined,
+          });
         },
         onFileChanged: (absPath) => {
           changedFiles.add(absPath);
@@ -440,57 +472,27 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
   // tools must still be available for reading files, searching, web access, etc.
   const effectiveTools = tools;
 
-  // ── Hypothesis Engine: Parallel strategy testing ────────────────────────
+  // ── Hypothesis Engine: Branch-isolated parallel strategy testing ─────────
   // For complex tasks with tools available, spawn 2-3 mini-agents with
-  // different strategies (gated by ff_hypothesis_engine) and pick the best
-  // result to guide the main loop. Mini-agents get file-access tools so
-  // they can read code and produce grounded analysis.
+  // different strategies on isolated git branches (gated by ff_hypothesis_engine).
+  // Each strategy runs independently. The winner's branch is merged, losers discarded.
+  // Emits suny:hypothesis_winner event for the frontend.
   if (isFeatureEnabled('ff_hypothesis_engine') && bridgeConnected && projectPath && !talkMode && projectId && userMessage.length > 80 && modelEntries.length > 0 && classifyAutoMode(userMessage) !== 'free' && classifyAutoMode(userMessage) !== 'fast') {
     try {
-      const strategies = selectStrategies(userMessage);
-      if (strategies.length >= 2) {
-        const primaryModel = modelEntries[0].model as LanguageModel;
-        const strategyConfig: Record<string, { prompt: string; steps: number }> = {
-          direct_edit:    { prompt: '<strategy>Use targeted edits to existing files. Make minimal, precise changes.</strategy>', steps: 3 },
-          refactor_first: { prompt: '<strategy>First refactor/clean up the relevant code, then implement the change.</strategy>', steps: 5 },
-          test_first:     { prompt: '<strategy>Write tests first, then implement the feature to make them pass.</strategy>', steps: 6 },
-          from_scratch:   { prompt: '<strategy>Create new files with a fresh implementation.</strategy>', steps: 5 },
-          minimal_patch:  { prompt: '<strategy>Find the absolute smallest change that solves the problem.</strategy>', steps: 3 },
-        };
-        // Mini-agents get read-only power tools (file_read, grep, glob) for grounded analysis
-        const hypTools = createPowerTools({ userId, projectPath, signal, onToolCall: () => {} });
-        const hypResults = await Promise.allSettled(strategies.map(async (strategy) => {
-          const hypId = launchHypothesis({ userId, projectId: projectId!, problem: userMessage.slice(0, 200), strategy });
-          const cfg = strategyConfig[strategy] || { prompt: '', steps: 3 };
-          const hypSys = `${fullSystem}${cfg.prompt}`;
-          const hypMsgs = [...rawMessages.slice(-4)];
-          const result = await generateText({
-            model: primaryModel, system: hypSys, messages: hypMsgs,
-            tools: hypTools, maxSteps: cfg.steps, maxTokens: 2000, abortSignal: signal,
-          });
-          const text = result.text?.trim() || '';
-          // Quality-based scoring: +40 test pass mention, +30 code block, +20 concise, -20 error keywords
-          let score = 0;
-          if (text.length > 50) {
-            if (/tests?\s+(passed|passing|green|succeed)/i.test(text)) score += 40;
-            if (/```[\w]*\n/.test(text)) score += 30;
-            if (text.length < 500) score += 20;
-            if (/(error|failed|fail|couldn't|cannot|unable)/i.test(text)) score -= 20;
-            score = Math.max(0, Math.min(100, score));
-          }
-          completeHypothesis({ hypothesisId: hypId, resultSummary: text.slice(0, 500), changedFiles: [], score });
-          return { strategy, text, score };
-        }));
-        let bestScore = -1, bestText = '', bestStrategy = '';
-        for (const r of hypResults) {
-          if (r.status === 'fulfilled' && r.value.score > bestScore) { bestScore = r.value.score; bestText = r.value.text; bestStrategy = r.value.strategy; }
-        }
-        if (bestText && bestText.length > 100) {
-          const hypBlock = ['', '<hypothesis_testing>', `Best strategy: ${bestStrategy}`, `Result: ${bestText.slice(0, 1500)}`, '</hypothesis_testing>'].join('\n');
-          const ins = fullSystem.lastIndexOf('\n<WorkingDirectory>');
-          fullSystem = ins >= 0 ? fullSystem.slice(0, ins) + '\n' + hypBlock + fullSystem.slice(ins) : fullSystem + '\n' + hypBlock;
-          console.log(`[agent-loop] Hypothesis engine injected: ${bestStrategy} (score: ${bestScore})`);
-        }
+      const primaryModel = modelEntries[0].model as LanguageModel;
+      const hypResult = await runHypothesisStrategies({
+        userId, projectId: projectId!, projectPath, userMessage, fullSystem,
+        rawMessages, primaryModel, signal,
+      });
+      if (hypResult.hypBlock && hypResult.bestText.length > 100) {
+        const ins = fullSystem.lastIndexOf('\n<WorkingDirectory>');
+        fullSystem = ins >= 0 ? fullSystem.slice(0, ins) + '\n' + hypResult.hypBlock + fullSystem.slice(ins) : fullSystem + '\n' + hypResult.hypBlock;
+        console.log(`[agent-loop] Hypothesis engine injected: ${hypResult.bestStrategy} (score: ${hypResult.bestScore})`);
+        userClientManager.pushToUser(userId, 'suny:hypothesis_winner', {
+          strategy: hypResult.bestStrategy,
+          score: hypResult.bestScore,
+          summary: hypResult.bestText.slice(0, 300),
+        });
       }
     } catch (e) { console.warn('[agent-loop] Hypothesis engine failed:', (e as Error).message); }
   }
@@ -575,11 +577,17 @@ If your tools are not working, say:
         tools: effectiveTools,
         maxSteps: MAX_STEPS, // always allow multi-step — tools need result cycles even in text-format modes
         abortSignal: signal,
-        onStepFinish: ({ usage }) => {
+        onStepFinish: ({ usage, text, toolCalls, toolResults }) => {
           steps++;
           totalInput += usage?.inputTokens ?? 0;
           totalOutput += usage?.outputTokens ?? 0;
           console.log(`[agent-loop] onStepFinish: step=${steps}, inputTokens=${usage?.inputTokens ?? 0}, outputTokens=${usage?.outputTokens ?? 0}`);
+          userClientManager.pushToUser(userId, 'suny:step_complete', {
+            step: steps,
+            toolCallCount: toolCalls?.length ?? 0,
+            toolResultCount: toolResults?.length ?? 0,
+            textLength: text?.length ?? 0,
+          });
           if (steps > 1) {
             userClientManager.pushToUser(userId, 'suny:stage', { stage: 'processing', label: 'Working through the steps...' });
             userClientManager.pushToUser(userId, 'suny:narration', {
@@ -934,10 +942,17 @@ If your tools are not working, say:
           tools: tools, // use tool-call for execution if available
           maxSteps: MAX_STEPS,
           abortSignal: signal,
-          onStepFinish: ({ usage: u }) => {
+          onStepFinish: ({ usage: u, text, toolCalls, toolResults }) => {
             steps++;
             totalInput += u?.inputTokens ?? 0;
             totalOutput += u?.outputTokens ?? 0;
+            userClientManager.pushToUser(userId, 'suny:step_complete', {
+              step: steps,
+              toolCallCount: toolCalls?.length ?? 0,
+              toolResultCount: toolResults?.length ?? 0,
+              textLength: typeof text === 'string' ? text.length : 0,
+              phase: 'execution',
+            });
             userClientManager.pushToUser(userId, 'suny:stage', { stage: 'executing', label: 'Executing the plan...' });
             userClientManager.pushToUser(userId, 'suny:narration', {
               message: narrateMessage('Executing the plan...', 'plan'),
@@ -1066,10 +1081,17 @@ If your tools are not working, say:
             tools,
             maxSteps: MAX_STEPS,
             abortSignal: signal,
-            onStepFinish: ({ usage }) => {
+            onStepFinish: ({ usage, text, toolCalls, toolResults }) => {
               steps++;
               totalInput += usage?.inputTokens ?? 0;
               totalOutput += usage?.outputTokens ?? 0;
+              userClientManager.pushToUser(userId, 'suny:step_complete', {
+                step: steps,
+                toolCallCount: toolCalls?.length ?? 0,
+                toolResultCount: toolResults?.length ?? 0,
+                textLength: typeof text === 'string' ? text.length : 0,
+                phase: 'lint-fixing',
+              });
               userClientManager.pushToUser(userId, 'suny:stage', { stage: 'lint-fixing', label: 'Fixing lint errors...' });
               userClientManager.pushToUser(userId, 'suny:narration', {
                 message: narrateMessage('Fixing the errors...', 'test_fixing'),
@@ -1213,10 +1235,17 @@ If your tools are not working, say:
               tools,
               maxSteps: MAX_STEPS,
               abortSignal: signal,
-              onStepFinish: ({ usage: u }) => {
+              onStepFinish: ({ usage: u, text, toolCalls, toolResults }) => {
                 steps++;
                 totalInput += u?.inputTokens ?? 0;
                 totalOutput += u?.outputTokens ?? 0;
+                userClientManager.pushToUser(userId, 'suny:step_complete', {
+                  step: steps,
+                  toolCallCount: toolCalls?.length ?? 0,
+                  toolResultCount: toolResults?.length ?? 0,
+                  textLength: typeof text === 'string' ? text.length : 0,
+                  phase: 'test-fixing',
+                });
                 userClientManager.pushToUser(userId, 'suny:stage', { stage: 'test-fixing', label: `Fixing tests (attempt ${testPass})...` });
                 userClientManager.pushToUser(userId, 'suny:narration', {
                   message: narrateMessage('Fixing tests...', 'test_fixing', { attempt: testPass }),
@@ -1332,6 +1361,38 @@ If your tools are not working, say:
       }
       // Emit stage complete
       userClientManager.pushToUser(userId, 'suny:stage', { stage: 'complete', label: 'Done!' });
+
+      // ── Cross-project learning: share patterns from this task ────────────
+      if (projectId && isCrossProjectLearningEnabled(userId)) {
+        try {
+          // Share lint-fix patterns
+          if (lintErrorsFound > 0 && lintPassed) {
+            shareErrorPattern({
+              userId, projectId: projectId!,
+              projectName: projectPath?.split(/[/\\]/).pop() || 'project',
+              errorPattern: `lint:${lintErrorsFound} errors fixed across ${Array.from(changedFiles).length} files`,
+              errorMessage: `${lintErrorsFound} lint errors found, fixed after ${lintRuns} attempts`,
+              attemptedFix: 'Auto-fix applied via lint self-correction loop',
+              fixSucceeded: lintPassed,
+              recurrenceCount: lintRuns,
+            });
+          }
+          // Share test-fix patterns
+          if (testFailuresFound > 0 && testPassed) {
+            shareErrorPattern({
+              userId, projectId: projectId!,
+              projectName: projectPath?.split(/[/\\]/).pop() || 'project',
+              errorPattern: `test:${testFailuresFound} failures fixed across ${Array.from(changedFiles).length} files`,
+              errorMessage: `${testFailuresFound} test failures found, fixed after ${testRuns} attempts`,
+              attemptedFix: 'Auto-fix applied via test self-correction loop',
+              fixSucceeded: testPassed,
+              recurrenceCount: testRuns,
+            });
+          }
+        } catch (e) {
+          console.warn('[agent-loop] Cross-project learning sharing failed:', (e as Error).message);
+        }
+      }
 
       // ── End self-reflection ───────────────────────────────────────────────
 

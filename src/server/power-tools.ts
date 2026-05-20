@@ -60,6 +60,8 @@ export interface PowerToolContext {
   projectPath: string;
   signal?: AbortSignal;
   onToolCall?: (name: string, input: unknown) => void;
+  /** Called when a tool finishes execution, with result or error. */
+  onToolResult?: (name: string, input: unknown, result?: unknown, error?: string) => void;
   /** Called with the absolute path whenever a file is written or edited. */
   onFileChanged?: (absolutePath: string) => void;
   /** Called with the absolute path whenever a file is deleted. */
@@ -67,7 +69,7 @@ export interface PowerToolContext {
 }
 
 export function createPowerTools(ctx: PowerToolContext): ToolSet {
-  const { userId, projectPath, signal, onToolCall, onFileChanged, onFileDeleted } = ctx;
+  const { userId, projectPath, signal, onToolCall, onToolResult, onFileChanged, onFileDeleted } = ctx;
 
   const notify = (name: string, input: unknown) => onToolCall?.(name, input);
 
@@ -358,7 +360,29 @@ console.log(JSON.stringify(results));`.replace(/\n/g, ' ');
     },
   });
 
-  return { file_read: fileReadTool, file_edit: fileEditTool, file_write: fileWriteTool, file_delete: fileDeleteTool,
+  const allTools: ToolSet = { file_read: fileReadTool, file_edit: fileEditTool, file_write: fileWriteTool, file_delete: fileDeleteTool,
     list_dir: listDirTool, mkdir: mkdirTool, path_exists: pathExistsTool,
     bash: bashTool, glob: globTool, grep: grepTool };
+
+  // Wrap each tool's execute to notify onToolResult after completion
+  if (onToolResult) {
+    for (const [name, toolDef] of Object.entries(allTools)) {
+      const td = toolDef as { execute?: (input: unknown) => Promise<unknown> };
+      const origExecute = td.execute;
+      if (typeof origExecute === 'function') {
+        td.execute = async (input: unknown) => {
+          try {
+            const result = await origExecute(input);
+            onToolResult(name, input, result, undefined);
+            return result;
+          } catch (e) {
+            onToolResult(name, input, undefined, e instanceof Error ? e.message : String(e));
+            throw e;
+          }
+        };
+      }
+    }
+  }
+
+  return allTools;
 }

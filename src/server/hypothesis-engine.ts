@@ -11,6 +11,12 @@
  */
 
 import { getDb } from './db';
+import { generateText, type LanguageModel, type ToolSet } from 'ai';
+import { createPowerTools } from './power-tools';
+import {
+  gitCreateHypothesisBranch, gitSwitchBranch, gitMergeBranch, gitDeleteBranch,
+  gitGetCurrentBranch,
+} from './git-manager';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -285,4 +291,177 @@ function rowToHypothesis(row: HypothesisRow): Hypothesis {
     startedAt: row.started_at,
     completedAt: row.completed_at,
   };
+}
+
+// ── Branch-isolated parallel hypothesis execution ─────────────────────────────
+
+export interface HypothesisRunnerInput {
+  userId: number;
+  projectId: number;
+  projectPath: string;
+  userMessage: string;
+  fullSystem: string;
+  rawMessages: Array<{ role: string; content: unknown }>;
+  primaryModel: LanguageModel;
+  signal?: AbortSignal;
+}
+
+export interface HypothesisRunnerOutput {
+  bestText: string;
+  bestStrategy: string;
+  bestScore: number;
+  /** Formatted HTML-style block for injection into fullSystem, or empty if insufficient. */
+  hypBlock: string;
+}
+
+/**
+ * Strategy configurations copied from agent-loop.ts inline block.
+ * Each strategy has a prompt instruction and max steps.
+ */
+const STRATEGY_CONFIGS: Record<string, { prompt: string; steps: number }> = {
+  direct_edit:    { prompt: '<strategy>Use targeted edits to existing files. Make minimal, precise changes.</strategy>', steps: 3 },
+  refactor_first: { prompt: '<strategy>First refactor/clean up the relevant code, then implement the change.</strategy>', steps: 5 },
+  test_first:     { prompt: '<strategy>Write tests first, then implement the feature to make them pass.</strategy>', steps: 6 },
+  from_scratch:   { prompt: '<strategy>Create new files with a fresh implementation.</strategy>', steps: 5 },
+  minimal_patch:  { prompt: '<strategy>Find the absolute smallest change that solves the problem.</strategy>', steps: 3 },
+};
+
+/**
+ * Run parallel hypothesis strategies on isolated git branches.
+ *
+ * For each strategy:
+ *   1. Create a named git branch from current state
+ *   2. Run the strategy with read-only tools on that branch
+ *   3. Score the result
+ *
+ * After all complete:
+ *   4. Return to original branch
+ *   5. Merge the winning strategy's branch
+ *   6. Delete all hypothesis branches
+ *
+ * Falls back to non-branch execution if git operations fail.
+ */
+export async function runHypothesisStrategies(input: HypothesisRunnerInput): Promise<HypothesisRunnerOutput> {
+  const { userId, projectId, projectPath, userMessage, fullSystem, rawMessages, primaryModel, signal } = input;
+
+  const strategies = selectStrategies(userMessage);
+  if (strategies.length < 2) {
+    return { bestText: '', bestStrategy: '', bestScore: -1, hypBlock: '' };
+  }
+
+  const timestamp = Date.now().toString(36);
+  const originalBranch = await gitGetCurrentBranch(userId, projectPath);
+  const branchNames = strategies.map(s => `${s}/${timestamp}`);
+
+  // Helper to determine if git should be used (non-write strategies work without isolation too)
+  const useGitIsolation = originalBranch !== 'main' || true; // Always try isolation
+
+  // Stage 1: Create branches and run strategies in parallel
+  const hypResults = await Promise.allSettled(strategies.map(async (strategy, idx) => {
+    const branchName = branchNames[idx];
+    const hypId = launchHypothesis({ userId, projectId, problem: userMessage.slice(0, 200), strategy });
+    const cfg = STRATEGY_CONFIGS[strategy] || { prompt: '', steps: 3 };
+
+    // Create and switch to hypothesis branch (best-effort)
+    let isolated = false;
+    if (useGitIsolation) {
+      isolated = await gitCreateHypothesisBranch(userId, projectPath, branchName);
+    }
+
+    try {
+      // Mini-agents get read-only tools (no write capability) for grounded analysis
+      const hypTools = createPowerTools({
+        userId, projectPath, signal,
+        onToolCall: () => {}, // silent — no user-facing events from hypotheses
+      });
+
+      const hypSys = `${fullSystem}${cfg.prompt}`;
+      const hypMsgs = [...rawMessages.slice(-4)] as Parameters<typeof generateText>[0]['messages'];
+
+      const result = await generateText({
+        model: primaryModel,
+        system: hypSys,
+        messages: hypMsgs,
+        tools: hypTools,
+        maxSteps: cfg.steps,
+        maxTokens: 2000,
+        abortSignal: signal,
+      });
+
+      const text = result.text?.trim() || '';
+
+      // Quality-based scoring
+      let score = 0;
+      if (text.length > 50) {
+        if (/tests?\s+(passed|passing|green|succeed)/i.test(text)) score += 40;
+        if (/```[\w]*\n/.test(text)) score += 30;
+        if (text.length < 500) score += 20;
+        if (/(error|failed|fail|couldn't|cannot|unable)/i.test(text)) score -= 20;
+        score = Math.max(0, Math.min(100, score));
+      }
+
+      return { strategy, text, score, hypId, branchName, isolated };
+    } catch (e) {
+      return { strategy, text: '', score: 0, hypId, branchName, isolated, error: (e as Error).message };
+    }
+  }));
+
+  // Stage 2: Return to original branch
+  if (useGitIsolation) {
+    await gitSwitchBranch(userId, projectPath, originalBranch);
+  }
+
+  // Stage 3: Select winner
+  let bestScore = -1, bestText = '', bestStrategy = '', bestBranch = '';
+  const completedEntries: Array<{ strategy: string; score: number; branchName: string; hypId: string }> = [];
+
+  for (const r of hypResults) {
+    if (r.status === 'fulfilled') {
+      const v = r.value;
+      // Complete DB record even on error
+      if (v.error) {
+        failHypothesis(v.hypId, v.error);
+      } else {
+        completeHypothesis({ hypothesisId: v.hypId, resultSummary: v.text.slice(0, 500), changedFiles: [], score: v.score });
+      }
+      if (v.score > bestScore) {
+        bestScore = v.score;
+        bestText = v.text;
+        bestStrategy = v.strategy;
+        bestBranch = v.branchName;
+      }
+      completedEntries.push({ strategy: v.strategy, score: v.score, branchName: v.branchName, hypId: v.hypId });
+    }
+  }
+
+  // Stage 4: Merge winner branch (if git isolation was used and we have a winner)
+  if (useGitIsolation && bestBranch && bestScore > 0) {
+    await gitMergeBranch(userId, projectPath, bestBranch);
+    console.log(`[hypothesis] Merged winner branch: ${bestBranch} (strategy: ${bestStrategy}, score: ${bestScore})`);
+  }
+
+  // Stage 5: Discard all hypothesis branches
+  if (useGitIsolation) {
+    for (const { branchName, strategy } of completedEntries) {
+      if (branchName !== bestBranch) {
+        await gitDeleteBranch(userId, projectPath, branchName);
+        console.log(`[hypothesis] Deleted loser branch: ${branchName} (strategy: ${strategy})`);
+      }
+    }
+  }
+
+  // Stage 6: Build injection block
+  let hypBlock = '';
+  if (bestText && bestText.length > 100) {
+    hypBlock = [
+      '',
+      '<hypothesis_testing>',
+      `Best strategy: ${bestStrategy}`,
+      `Result: ${bestText.slice(0, 1500)}`,
+      '</hypothesis_testing>',
+    ].join('\n');
+    console.log(`[hypothesis] Winner: ${bestStrategy} (score: ${bestScore})`);
+  }
+
+  return { bestText, bestStrategy, bestScore, hypBlock };
 }

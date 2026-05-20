@@ -216,3 +216,135 @@ export async function rollbackToCheckpoint(
   }, 15_000);
   console.log(`[git] rolled back to ${sha}`);
 }
+
+// ── Hypothesis branch isolation ────────────────────────────────────────────────
+
+export const HYPOTHESIS_BRANCH_PREFIX = 'suny-hyp/';
+
+/**
+ * Create a new hypothesis branch from the current state.
+ * Commits all pending changes first (--allow-empty), creates and checks out
+ * the new branch. Returns true on success.
+ */
+export async function gitCreateHypothesisBranch(
+  userId: number,
+  projectPath: string,
+  branchName: string,
+): Promise<boolean> {
+  if (!(await isGitRepo(userId, projectPath))) return false;
+  const fullBranch = `${HYPOTHESIS_BRANCH_PREFIX}${branchName}`;
+  try {
+    // Commit any pending changes first (snapshot)
+    await sendToBridge(userId, 'exec:shell', {
+      command: 'git add -A',
+      cwd: projectPath,
+      requiresConfirmation: false,
+    }, 8_000);
+    await sendToBridge(userId, 'exec:shell', {
+      command: `git -c user.email="suny@ai" -c user.name="SUNy" commit --allow-empty -m "hyp snapshot ${branchName}" --no-verify`,
+      cwd: projectPath,
+      requiresConfirmation: false,
+    }, 10_000);
+    // Create and switch to hypothesis branch
+    await sendToBridge(userId, 'exec:shell', {
+      command: `git checkout -b "${fullBranch}"`,
+      cwd: projectPath,
+      requiresConfirmation: false,
+    }, 10_000);
+    console.log(`[git] Created hypothesis branch: ${fullBranch}`);
+    return true;
+  } catch (err) {
+    console.warn(`[git] createHypothesisBranch failed for ${fullBranch}:`, (err as Error).message?.slice(0, 200));
+    return false;
+  }
+}
+
+/**
+ * Switch back to a specific branch (e.g., the original branch).
+ */
+export async function gitSwitchBranch(
+  userId: number,
+  projectPath: string,
+  branchName: string,
+): Promise<boolean> {
+  if (!(await isGitRepo(userId, projectPath))) return false;
+  try {
+    await sendToBridge(userId, 'exec:shell', {
+      command: `git checkout "${branchName}"`,
+      cwd: projectPath,
+      requiresConfirmation: false,
+    }, 10_000);
+    return true;
+  } catch (err) {
+    console.warn(`[git] gitSwitchBranch failed for ${branchName}:`, (err as Error).message?.slice(0, 200));
+    return false;
+  }
+}
+
+/**
+ * Merge a hypothesis branch into the current branch.
+ * Uses --no-ff to preserve branch history. Returns true on success.
+ */
+export async function gitMergeBranch(
+  userId: number,
+  projectPath: string,
+  branchName: string,
+): Promise<boolean> {
+  const fullBranch = branchName.startsWith(HYPOTHESIS_BRANCH_PREFIX) ? branchName : `${HYPOTHESIS_BRANCH_PREFIX}${branchName}`;
+  if (!(await isGitRepo(userId, projectPath))) return false;
+  try {
+    await sendToBridge(userId, 'exec:shell', {
+      command: `git merge --no-ff -m "Merge hypothesis: ${fullBranch}" "${fullBranch}"`,
+      cwd: projectPath,
+      requiresConfirmation: false,
+    }, 15_000);
+    console.log(`[git] Merged hypothesis branch: ${fullBranch}`);
+    return true;
+  } catch (err) {
+    console.warn(`[git] gitMergeBranch failed for ${fullBranch}:`, (err as Error).message?.slice(0, 200));
+    return false;
+  }
+}
+
+/**
+ * Delete a hypothesis branch (force delete to handle unmerged branches).
+ */
+export async function gitDeleteBranch(
+  userId: number,
+  projectPath: string,
+  branchName: string,
+): Promise<boolean> {
+  const fullBranch = branchName.startsWith(HYPOTHESIS_BRANCH_PREFIX) ? branchName : `${HYPOTHESIS_BRANCH_PREFIX}${branchName}`;
+  if (!(await isGitRepo(userId, projectPath))) return false;
+  try {
+    await sendToBridge(userId, 'exec:shell', {
+      command: `git branch -D "${fullBranch}"`,
+      cwd: projectPath,
+      requiresConfirmation: false,
+    }, 5_000);
+    return true;
+  } catch (err) {
+    console.warn(`[git] gitDeleteBranch failed for ${fullBranch}:`, (err as Error).message?.slice(0, 200));
+    return false;
+  }
+}
+
+/**
+ * Get the current branch name. Returns 'main' as fallback on error.
+ */
+export async function gitGetCurrentBranch(
+  userId: number,
+  projectPath: string,
+): Promise<string> {
+  if (!(await isGitRepo(userId, projectPath))) return 'main';
+  try {
+    const result = await sendToBridge(userId, 'exec:shell', {
+      command: 'git rev-parse --abbrev-ref HEAD',
+      cwd: projectPath,
+      requiresConfirmation: false,
+    }, 5_000) as string;
+    return result.trim() || 'main';
+  } catch {
+    return 'main';
+  }
+}
