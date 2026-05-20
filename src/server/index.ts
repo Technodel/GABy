@@ -27,6 +27,7 @@ import { scanForInjection, initializeInjectionGuardTable } from './injection-gua
 import { AgentMessage } from './agent';
 import { hasSufficientBalance, deductUsage } from './billing';
 import { runAgentLoop } from './agent-loop';
+import { withUserQueue } from './user-queue';
 import { buildRepoMap } from './repo-map';
 import { buildProjectDigest, formatDigestForPrompt, isDigestCached, markDigestCached, buildArchitectureGraph, formatGraphForPrompt, runHealthCheck, formatHealthCheckForPrompt } from './project-digest';
 import { pickRandom, startDidYouKnowTimer } from './personality';
@@ -44,6 +45,7 @@ import { getSkillSystemPrompt, initSkillSystem } from './skill-loader';
 import { loadTrainingAndRules } from './training-loader';
 import { formatGoalContext, getCurrentGoal, addGoalEvidence, incrementGoalAttempt, tryAutoCompleteGoal } from './goal-tracker';
 import { recordAgentTurn } from './metrics';
+import { prometheusMetricsHandler } from './prometheus-metrics';
 
 const PORT = parseInt(process.env.SUNY_PORT || process.env.GABY_PORT || '3500', 10);
 const ALLOWED_ORIGIN = process.env.SUNY_ALLOWED_ORIGIN || process.env.GABY_ALLOWED_ORIGIN || 'http://localhost:5173';
@@ -159,6 +161,9 @@ app.get('/api/health', (_req, res) => {
     version: '3.0',
   });
 });
+
+// ── Prometheus metrics endpoint (for Grafana scraping) ─────────────────────────
+app.get('/metrics', prometheusMetricsHandler);
 
 // ── Feature flags API (public read, admin write via admin-routes) ────────────
 
@@ -333,7 +338,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           sess_used: null,
           sess_limit: null,
           iterations: 0,
-        });
+        }));
         // Also tell the bridge to kill any running process
         killBridgeRequest(userId, (msg.requestId as string) || '');
       }
@@ -1588,7 +1593,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       }, maxTurnMs);
       let result;
       try {
-        result = await runAgentLoop({
+        result = await withUserQueue(userId, () => runAgentLoop({
         userId,
         mode: effectiveMode,
         systemPrompt: systemLines.join('\n'),
@@ -1603,7 +1608,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         onChunk: (chunk) => {
           userClientManager.pushChatContent(userId, 'suny:stream_chunk', { chunk });
         },
-        });
+        }));
       } finally {
         clearTimeout(turnTimeout);
         stopDidYouKnow();
@@ -1921,6 +1926,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       if (errMsg.includes('NO_VISION_MODEL_AVAILABLE')) { friendly = 'I\'m a text-only model and can\'t scan images. To analyze images, please add an API key for a vision-capable model (OpenAI, Anthropic, Groq, or OpenRouter) in the admin settings, then try again.'; errorCategory = 'no_vision_model'; }
       if (errMsg.includes('TURN_TIMEOUT_')) { friendly = 'This task took too long and was safely stopped. Please try again, or ask in smaller steps.'; errorCategory = 'timeout'; }
       if (errMsg.includes('Project is locked by another session')) { friendly = 'This project is currently locked by another session. Please wait a moment, then try again.'; errorCategory = 'lock'; }
+      if (errMsg.includes('Too many pending requests')) { friendly = 'You have too many active requests. Please wait for the current ones to finish, then try again.'; errorCategory = 'rate_limit'; }
       if (errMsg.toLowerCase().includes('fetch failed') || errMsg.toLowerCase().includes('timeout') || errMsg.toLowerCase().includes('econn')) {
         friendly = 'AI provider is temporarily unavailable right now. Please retry in a few seconds.';
         errorCategory = 'api_error';
