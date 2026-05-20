@@ -449,22 +449,23 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
       const strategies = selectStrategies(userMessage);
       if (strategies.length >= 2) {
         const primaryModel = modelEntries[0].model as LanguageModel;
-        const strategyPrompts: Record<string, string> = {
-          direct_edit: '\n\n<strategy>Use targeted edits to existing files. Make minimal, precise changes.</strategy>',
-          refactor_first: '\n\n<strategy>First refactor/clean up the relevant code, then implement the change.</strategy>',
-          test_first: '\n\n<strategy>Write tests first, then implement the feature to make them pass.</strategy>',
-          from_scratch: '\n\n<strategy>Create new files with a fresh implementation.</strategy>',
-          minimal_patch: '\n\n<strategy>Find the absolute smallest change that solves the problem.</strategy>',
+        const strategyConfig: Record<string, { prompt: string; steps: number }> = {
+          direct_edit:    { prompt: '<strategy>Use targeted edits to existing files. Make minimal, precise changes.</strategy>', steps: 3 },
+          refactor_first: { prompt: '<strategy>First refactor/clean up the relevant code, then implement the change.</strategy>', steps: 5 },
+          test_first:     { prompt: '<strategy>Write tests first, then implement the feature to make them pass.</strategy>', steps: 6 },
+          from_scratch:   { prompt: '<strategy>Create new files with a fresh implementation.</strategy>', steps: 5 },
+          minimal_patch:  { prompt: '<strategy>Find the absolute smallest change that solves the problem.</strategy>', steps: 3 },
         };
         // Mini-agents get read-only power tools (file_read, grep, glob) for grounded analysis
         const hypTools = createPowerTools({ userId, projectPath, signal, onToolCall: () => {} });
         const hypResults = await Promise.allSettled(strategies.map(async (strategy) => {
           const hypId = launchHypothesis({ userId, projectId: projectId!, problem: userMessage.slice(0, 200), strategy });
-          const hypSys = `${fullSystem}${strategyPrompts[strategy] || ''}`;
+          const cfg = strategyConfig[strategy] || { prompt: '', steps: 3 };
+          const hypSys = `${fullSystem}${cfg.prompt}`;
           const hypMsgs = [...rawMessages.slice(-4)];
           const result = await generateText({
             model: primaryModel, system: hypSys, messages: hypMsgs,
-            tools: hypTools, maxSteps: 3, maxTokens: 2000, abortSignal: signal,
+            tools: hypTools, maxSteps: cfg.steps, maxTokens: 2000, abortSignal: signal,
           });
           const text = result.text?.trim() || '';
           // Quality-based scoring: +40 test pass mention, +30 code block, +20 concise, -20 error keywords
