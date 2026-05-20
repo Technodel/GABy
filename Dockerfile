@@ -6,7 +6,7 @@ RUN apk add --no-cache python3 make g++ && npm install && apk del python3 make g
 COPY tsconfig.json ./
 COPY src/server ./src/server
 COPY scripts/build.js ./scripts/build.js
-RUN npm run build
+RUN node scripts/build.js
 
 
 FROM node:20-alpine AS builder-renderer
