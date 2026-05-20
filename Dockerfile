@@ -20,12 +20,12 @@ RUN npm run build
 
 FROM node:20-alpine AS runtime
 
-RUN apk add --no-cache dumb-init
+RUN apk add --no-cache dumb-init python3 make g++
 
 WORKDIR /app
 
 COPY package.json ./
-RUN npm install --production
+RUN npm install --production && npm rebuild better-sqlite3 && apk del python3 make g++
 
 COPY --from=builder-server /app/dist ./dist
 COPY --from=builder-renderer /app/renderer/dist ./src/renderer/dist
