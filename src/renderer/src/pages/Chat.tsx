@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+﻿import { useState, useEffect, useRef, useCallback } from 'react';
 import { Plus, Trash2, Settings, LogOut, Edit3, RotateCcw, X, BarChart2, User, HelpCircle, Sparkles, Home, Eraser, Phone, ChevronRight, ChevronDown, FolderOpen, Folder, Play, FileText } from 'lucide-react';
 
 import ReportBadgeButton, { ReportMetrics } from '../components/ReportBadgeButton';
@@ -2190,7 +2190,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
             {bridgeConnected ? (
               <>
                 <div style={{ textAlign: 'center', padding: '12px 0 8px' }}>
-                  <div style={{ fontSize: 32, marginBottom: 6 }}>??</div>
+                  <div style={{ fontSize: 32, marginBottom: 6 }}>✅</div>
                   <h3 style={{ margin: '0 0 6px', fontSize: 17 }}>Bridge connected!</h3>
                   <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>
                     SUNy can now read &amp; write files, run shell commands, fix lint errors, and auto-commit.
@@ -2202,7 +2202,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
               </>
             ) : (
               <>
-                <h3 style={{ margin: '0 0 4px', fontSize: 17 }}>?? Connect the Bridge</h3>
+                <h3 style={{ margin: '0 0 4px', fontSize: 17 }}>💡 Connect the Bridge</h3>
                 <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, margin: '0 0 6px' }}>
                   The Bridge is a small background process that runs on <strong>your computer</strong>.
                   SUNy needs it to <strong>create files, edit code, and run commands</strong>.
@@ -2212,13 +2212,13 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                 <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
                   <div style={{ flex: 1, background: 'var(--bg-secondary)', borderRadius: 8, padding: '10px 12px' }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Without Bridge</div>
-                    {['?? Chat & answer questions', '?? Code review & analysis', '?? Architecture advice'].map(t => (
+                    {['💬 Chat & answer questions', '🧠 Code review & analysis', '📋 Architecture advice'].map(t => (
                       <div key={t} style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 3 }}>{t}</div>
                     ))}
                   </div>
                   <div style={{ flex: 1, background: 'rgba(108,99,255,0.07)', border: '1px solid rgba(108,99,255,0.2)', borderRadius: 8, padding: '10px 12px' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.4px' }}>With Bridge ?</div>
-                    {['?? Create & edit files', '? Run shell commands', '?? Auto-fix lint errors', '?? Git auto-commit'].map(t => (
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.4px' }}>With Bridge ✨</div>
+                    {['✏️ Create & edit files', '⚡ Run shell commands', '🔧 Auto-fix lint errors', '📦 Git auto-commit'].map(t => (
                       <div key={t} style={{ fontSize: 12, color: 'var(--text-primary)', marginBottom: 3 }}>{t}</div>
                     ))}
                   </div>

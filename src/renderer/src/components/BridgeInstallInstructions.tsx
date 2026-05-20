@@ -16,7 +16,7 @@ export default function BridgeInstallInstructions({ autoCopy = false }: { autoCo
         const wsProto = window.location.protocol === 'https:' ? 'wss' : 'ws';
         const serverUrl = import.meta.env.DEV ? 'ws://localhost:3500' : `${wsProto}://${window.location.host}`;
         const tgzUrl = `${window.location.protocol}//${window.location.host}/bridge/suny-bridge.tgz`;
-        const c = `npm install -g ${tgzUrl} && npx suny-bridge start --token ${data.token} --server ${serverUrl}`;
+        const c = `npm install -g ${tgzUrl} ; npx suny-bridge start --token ${data.token} --server ${serverUrl}`;
         const exeUrl = `${window.location.protocol}//${window.location.host}/bridge/suny-bridge.exe`;
         const winCmd = `@echo off\r\ntitle SUNy Bridge Setup\r\ncolor 0A\r\nset BRIDGE_DIR=%APPDATA%\\suny-bridge\r\nif not exist "%BRIDGE_DIR%" mkdir "%BRIDGE_DIR%"\r\nif not exist "%BRIDGE_DIR%\\suny-bridge.exe" (\r\n  echo Downloading SUNy Bridge... (may take 30-60 seconds)\r\n  powershell -Command "Invoke-WebRequest -Uri '${exeUrl}' -OutFile '%APPDATA%\\\\suny-bridge\\\\suny-bridge.exe' -UseBasicParsing"\r\n  if errorlevel 1 (\r\n    echo.\r\n    echo Download failed. Check your internet connection.\r\n    pause\r\n    exit /b 1\r\n  )\r\n  echo Download complete.\r\n)\r\necho.\r\necho Starting SUNy Bridge...\r\n"%BRIDGE_DIR%\\suny-bridge.exe" --token ${data.token} --server ${serverUrl}\r\n`;
         setCmd(c);

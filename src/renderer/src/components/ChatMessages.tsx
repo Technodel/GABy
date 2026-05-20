@@ -149,7 +149,7 @@ export default function ChatMessages(props: ChatMessagesProps) {
       {/* Empty state: global */}
       {!activeProject && messages.length === 0 && !thinking && (
         <div style={{ textAlign: 'center', marginTop: 48, color: 'var(--text-muted)', padding: '0 24px' }}>
-          <img src="/SLOGO.png" alt="SUNy" style={{ width: 220, height: 220, borderRadius: '50%', objectFit: 'cover', marginBottom: 14, boxShadow: '0 4px 20px rgba(108,99,255,0.2)' }} />
+          <img src="/SLOGO.png" alt="SUNy" style={{ width: 140, height: 140, borderRadius: '50%', objectFit: 'cover', marginBottom: 14, boxShadow: '0 4px 20px rgba(108,99,255,0.2)' }} />
           <p style={{ fontWeight: 700, fontSize: 22, color: 'var(--text-primary)', marginBottom: 4 }}>SUNy</p>
           <p style={{ fontSize: 14, fontStyle: 'italic', color: 'var(--accent)', marginBottom: 20, opacity: 0.9 }}>Consider it done.</p>
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 24, lineHeight: 1.6 }}>
@@ -188,7 +188,7 @@ export default function ChatMessages(props: ChatMessagesProps) {
       {/* Empty state: project */}
       {activeProject && messages.length === 0 && !thinking && (
         <div style={{ textAlign: 'center', marginTop: 40, color: 'var(--text-muted)' }}>
-          <img src="/SLOGO.png" alt="SUNy" style={{ width: 'clamp(260px, 46vw, 560px)', height: 'clamp(260px, 46vw, 560px)', borderRadius: '50%', objectFit: 'cover', marginBottom: 20, boxShadow: '0 8px 32px rgba(108,99,255,0.25)' }} />
+          <img src="/SLOGO.png" alt="SUNy" style={{ width: 'clamp(100px, 14vw, 180px)', height: 'clamp(100px, 14vw, 180px)', borderRadius: '50%', objectFit: 'cover', marginBottom: 14, boxShadow: '0 4px 20px rgba(108,99,255,0.2)' }} />
           <p style={{ fontWeight: 700, fontSize: 22, marginBottom: 6, color: 'var(--text-primary)' }}>Hi! I'm SUNy</p>
           <p style={{ fontSize: 13, fontStyle: 'italic', color: 'var(--accent)', marginBottom: 10, opacity: 0.9 }}>Consider it done.</p>
           <p style={{ fontSize: 14 }}>Tell me what you'd like to build or fix. I'll take it from there!</p>
@@ -397,16 +397,17 @@ export default function ChatMessages(props: ChatMessagesProps) {
       {thinking && streamingContent && (
         <>
           <NarratedMessage message={streamingContent} type="suny" isActive={true} timestamp={Date.now()} />
-          {thinkingStatus && (
+          {(thinkingStatus || true) && (
             <div style={{
               display: 'flex', gap: 8, marginLeft: 38, marginBottom: 12,
-              alignItems: 'center', fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic',
+              alignItems: 'center', fontSize: 13, color: 'var(--text-secondary)',
+              fontStyle: 'italic',
             }}>
-              <span style={{
-                display: 'inline-block', width: 6, height: 6, borderRadius: '50%',
-                background: 'var(--accent)', opacity: 0.7, flexShrink: 0,
+              <span className="dot-pulse" style={{
+                display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
+                background: 'var(--accent)', flexShrink: 0,
               }} />
-              {thinkingStatus}
+              <span style={{ opacity: 0.85 }}>{thinkingStatus || 'Working on your request…'}</span>
             </div>
           )}
         </>

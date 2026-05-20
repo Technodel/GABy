@@ -52,7 +52,7 @@ function GabyMessage({ message, isActive = false, timestamp, report }: { message
   return (
     <div className="message-appear" style={gabyContainerStyle}>
       <SunyAvatar size={28} />
-      <div style={{ ...gabyBubbleStyle, position: 'relative' }}>
+      <div className={isActive && visualEffects ? 'suny-bubble-led' : undefined} style={{ ...gabyBubbleStyle, position: 'relative' }}>
         <div className={isActive && visualEffects ? 'suny-bubble-active' : undefined}>
           <FormattedContent content={message} />
         </div>
@@ -240,7 +240,6 @@ const gabyBubbleStyle: React.CSSProperties = {
   lineHeight: 1.6,
   whiteSpace: 'pre-wrap',
   wordBreak: 'break-word',
-  overflow: 'hidden',
 };
 
 const gabyMetaRowStyle: React.CSSProperties = {
@@ -367,15 +366,15 @@ export function ThinkingIndicator({ statusText }: { statusText?: string }) {
   }, [statusText]);
 
   return (
-    <div style={thinkingContainerStyle}>
+    <div className="message-appear" style={thinkingContainerStyle}>
       <SunyAvatar size={28} />
-      <div style={thinkingBubbleStyle}>
+      <div className={statusText ? undefined : 'suny-bubble-led'} style={thinkingBubbleStyle}>
         <span style={dotContainerStyle}>
           {[1, 2, 3].map(i => (
             <span key={i} className={`dot-${i}`} style={dotStyle} />
           ))}
         </span>
-        {statusText || THINKING_PHRASES[phraseIdx]}
+        <span style={{ marginLeft: 2 }}>{statusText || THINKING_PHRASES[phraseIdx]}</span>
       </div>
     </div>
   );

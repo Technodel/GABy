@@ -250,6 +250,25 @@ app.use('/api/sessions', (req: Request, _res: Response, next) => {
 const bridgeDist = path.join(__dirname, '../../public/bridge');
 app.use('/bridge', express.static(bridgeDist));
 
+// Bridge file fallback — if the static file isn't found, return a helpful response
+// instead of falling through to the SPA catch-all (which serves index.html as a .tgz)
+app.use('/bridge', (req, res) => {
+  if (req.path === '/bridge/suny-bridge.tgz' || req.path === '/bridge/suny-bridge.exe') {
+    res.status(404).json({
+      error: 'Bridge binary not found on server',
+      detail: 'The bridge package files are not deployed on this server. Contact the administrator or run the bridge from source.',
+      files_required: ['public/bridge/suny-bridge.tgz', 'public/bridge/suny-bridge.exe'],
+      source_dir: 'bridge/',
+      build_commands: [
+        'cd bridge && npm run build && npm pack && copy suny-bridge-*.tgz ../public/bridge/suny-bridge.tgz',
+        'cd bridge && npm run build:exe && copy dist/suny-bridge.exe ../public/bridge/suny-bridge.exe',
+      ],
+    });
+  } else {
+    res.status(404).json({ error: 'File not found' });
+  }
+});
+
 // ── Serve frontend build (production) ─────────────────────────────────────────
 
 const rendererDist = path.join(__dirname, '../../src/renderer/dist');

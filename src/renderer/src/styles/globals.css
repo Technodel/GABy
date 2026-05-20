@@ -59,7 +59,7 @@ html, body, #root {
 }
 
 body {
-  font-family: 'IBM Plex Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-family: 'IBM Plex Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
   background: var(--bg);
   color: var(--text-primary);
   font-size: 14px;
@@ -284,13 +284,62 @@ h1, h2, h3, h4, h5, h6 {
 }
 .message-appear { animation: fadeInUp 0.2s ease forwards; }
 
-/* Active SUNy bubble border glow */
+/* Active SUNy bubble — pulsing content glow (inner) */
 @keyframes bubbleGlow {
   0%, 100% { box-shadow: 0 0 0 0 rgba(41,255,122,0.0); }
   50% { box-shadow: 0 0 10px 3px rgba(41,255,122,0.22), 0 0 20px 6px rgba(41,255,122,0.08); }
 }
 .suny-bubble-active {
   animation: bubbleGlow 1.6s ease-in-out infinite;
+}
+
+/* LED running strip — animated border that travels around the bubble */
+@keyframes ledRun {
+  0% {
+    border-color: var(--accent) transparent transparent transparent;
+    box-shadow:
+       0 -2px 8px -2px rgba(41,255,122,0.45),
+       2px 0  8px -2px transparent,
+       0  2px 8px -2px transparent,
+      -2px 0  8px -2px transparent;
+  }
+  25% {
+    border-color: transparent var(--accent) transparent transparent;
+    box-shadow:
+       0 -2px 8px -2px transparent,
+       2px 0  8px -2px rgba(41,255,122,0.45),
+       0  2px 8px -2px transparent,
+      -2px 0  8px -2px transparent;
+  }
+  50% {
+    border-color: transparent transparent var(--accent) transparent;
+    box-shadow:
+       0 -2px 8px -2px transparent,
+       2px 0  8px -2px transparent,
+       0  2px 8px -2px rgba(41,255,122,0.45),
+      -2px 0  8px -2px transparent;
+  }
+  75% {
+    border-color: transparent transparent transparent var(--accent);
+    box-shadow:
+       0 -2px 8px -2px transparent,
+       2px 0  8px -2px transparent,
+       0  2px 8px -2px transparent,
+      -2px 0  8px -2px rgba(41,255,122,0.45);
+  }
+  100% {
+    border-color: var(--accent) transparent transparent transparent;
+    box-shadow:
+       0 -2px 8px -2px rgba(41,255,122,0.45),
+       2px 0  8px -2px transparent,
+       0  2px 8px -2px transparent,
+      -2px 0  8px -2px transparent;
+  }
+}
+.suny-bubble-led {
+  border: 2px solid transparent !important;
+  border-radius: 4px 16px 16px 16px !important;
+  animation: ledRun 1.8s linear infinite !important;
 }
 
 /* Landing page card glow */
@@ -307,6 +356,13 @@ h1, h2, h3, h4, h5, h6 {
   66% { transform: translate(-15px,15px) scale(0.95); opacity: 0.2; }
 }
 .orb { animation: orbFloat 8s ease-in-out infinite; }
+
+/* Status dot pulse (used in thinking status indicator) */
+@keyframes statusDotPulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+.dot-pulse { animation: statusDotPulse 1.2s ease-in-out infinite; }
 
 /* Thinking dots */
 @keyframes dotPulse {
