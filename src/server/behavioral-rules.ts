@@ -348,3 +348,112 @@ export function getTrainingProgress(userId: number): {
     topRules: allRules.slice(0, 5),
   };
 }
+
+// ── Seed AiderDesk behavioral rules ─────────────────────────────────────────
+
+/**
+ * Seed high-confidence AiderDesk reasoning-pattern behavioral rules directly
+ * into the DB. These bypass the scoring pipeline and inject AiderDesk-level
+ * reasoning behaviors immediately on first run (no training required).
+ *
+ * Uses INSERT OR IGNORE with a unique constraint on rule_text + user_id so
+ * re-seeding is idempotent. All rules start at confidence 0.9 so they are
+ * immediately injected into every session.
+ *
+ * All rules are category='win' since they represent proven AiderDesk patterns.
+ * Each rule includes a trigger context for grouping in the system prompt.
+ */
+export function seedBehavioralRules(userId: number = 1): number {
+  const db = getDb();
+
+  const seedRules: Array<{
+    category: 'win';
+    ruleText: string;
+    triggerContext: string;
+  }> = [
+    {
+      category: 'win',
+      ruleText: 'Always read and understand existing files before making any edits — never guess file contents.',
+      triggerContext: 'when editing existing files',
+    },
+    {
+      category: 'win',
+      ruleText: 'After every change, verify the file was actually written by reading it back and confirming it contains the expected content.',
+      triggerContext: 'after writing or editing files',
+    },
+    {
+      category: 'win',
+      ruleText: 'Never give up after a single failed attempt — retry with a different approach, different tools, or a stronger instruction mandate.',
+      triggerContext: 'when tools produce empty or error output',
+    },
+    {
+      category: 'win',
+      ruleText: 'Use one tool at a time and build on previous results — do not fire all tool calls simultaneously.',
+      triggerContext: 'when executing multi-step tasks',
+    },
+    {
+      category: 'win',
+      ruleText: 'When lint errors or test failures are reported, fix ALL of them and re-run until green — do not leave errors unresolved.',
+      triggerContext: 'when fixing lint errors or test failures',
+    },
+    {
+      category: 'win',
+      ruleText: 'Before writing new code, search the codebase for existing patterns, conventions, and utilities to reuse.',
+      triggerContext: 'when implementing new functionality',
+    },
+    {
+      category: 'win',
+      ruleText: 'Decompose complex tasks into smaller subtasks and tackle them one at a time — do not try to solve everything in one step.',
+      triggerContext: 'when faced with complex multi-file changes',
+    },
+    {
+      category: 'win',
+      ruleText: 'Always start a coding task by using tools (file_read, grep, glob) to gather context — never answer from training data alone.',
+      triggerContext: 'at the start of every coding task',
+    },
+    {
+      category: 'win',
+      ruleText: 'When the model produces empty output with no tool calls, treat it as a failure and re-invoke with a stronger tool mandate.',
+      triggerContext: 'when AI response is empty with no tool calls',
+    },
+    {
+      category: 'win',
+      ruleText: 'After completing all changes and verifying them, confirm the task requirements are fully met — do not deliver partial solutions.',
+      triggerContext: 'at the end of every task',
+    },
+  ];
+
+  // Ensure the table has the behavioral_rules table
+  const tableExists = db.prepare(
+    "SELECT name FROM sqlite_master WHERE type='table' AND name='behavioral_rules'"
+  ).get();
+  if (!tableExists) {
+    initializeBehavioralRulesTable();
+  }
+
+  let seededCount = 0;
+  const insert = db.prepare(`
+    INSERT OR IGNORE INTO behavioral_rules
+      (user_id, category, rule_text, trigger_context, source_score, confidence, application_count, created_at)
+    VALUES (?, ?, ?, ?, 50, 0.9, 1, datetime('now'))
+  `);
+
+  for (const rule of seedRules) {
+    // Check if a near-duplicate already exists (same user, same or similar rule text)
+    const existing = db.prepare(
+      `SELECT id FROM behavioral_rules
+       WHERE user_id = ? AND category = ? AND rule_text = ?`
+    ).get(userId, rule.category, rule.ruleText);
+
+    if (!existing) {
+      insert.run(userId, rule.category, rule.ruleText, rule.triggerContext);
+      seededCount++;
+    }
+  }
+
+  if (seededCount > 0) {
+    console.log(`[behavioral-rules] Seeded ${seededCount} AiderDesk behavioral rules (userId=${userId})`);
+  }
+
+  return seededCount;
+}

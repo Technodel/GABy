@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
+import { seedBehavioralRules } from './behavioral-rules';
 
 const DB_PATH = process.env.SUNY_DB_PATH || './data/suny.db';
 
@@ -532,6 +533,13 @@ function seedData(db: Database.Database): void {
   const insertFlag = db.prepare('INSERT OR IGNORE INTO feature_flags (key, value, label, description) VALUES (?, ?, ?, ?)');
   for (const [key, value, label, desc] of featureFlagDefaults) {
     insertFlag.run(key, value, label, desc);
+  }
+
+  // ── Seed AiderDesk behavioral rules (idempotent, high-confidence patterns) ──
+  try {
+    seedBehavioralRules(1);
+  } catch (e) {
+    console.warn('[db] seedBehavioralRules skipped (behavioral_rules table may not exist yet):', (e as Error).message);
   }
 }
 

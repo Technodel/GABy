@@ -34,6 +34,7 @@ import { runTests, runFailingTests, buildTestFixPrompt } from './test-runner';
 import { pickRandom } from './personality';
 import { narrateMessage } from './narrator';
 import { LoopDetector } from './loop-detector';
+import * as fs from 'fs';
 import {
   selectStrategies, launchHypothesis, completeHypothesis,
 } from './hypothesis-engine';
@@ -678,6 +679,72 @@ If your tools are not working, say:
       }
       // ── End diagnostic ──────────────────────────────────────────────────
 
+      // ── Auto-retry on empty/no-tool output ────────────────────────────────
+      // If the model produced absolutely nothing (no text, no tool calls) and
+      // this is a coding task, re-invoke with a stronger tool mandate rather
+      // than silently returning empty output. Retry up to 2 times.
+      const isEmptyOutput = fullText.length === 0 && toolCallNames.size === 0;
+      const isCodingTask = bridgeConnected && projectPath && !talkMode;
+      if (isEmptyOutput && isCodingTask) {
+        console.warn('[agent-loop] AUTO-RETRY: empty output with no tools — re-invoking with stronger mandate');
+        userClientManager.pushToUser(userId, 'suny:stage', { stage: 'processing', label: 'Model produced empty output — retrying...' });
+        userClientManager.pushToUser(userId, 'suny:narration', {
+          message: narrateMessage('Model produced empty output — retrying...', 'thinking'),
+        });
+
+        let retryAttempt = 0;
+        const MAX_RETRY_ATTEMPTS = 2;
+        while (retryAttempt < MAX_RETRY_ATTEMPTS && fullText.length === 0 && toolCallNames.size === 0) {
+          retryAttempt++;
+          const retryMsg: CoreMessage = {
+            role: 'user',
+            content:
+              'I asked you to work on a coding task but you produced no output and made no tool calls.\n\n' +
+              'You MUST make at least one tool call (read files, search the web, run commands).\n' +
+              'Do NOT just explain what you would do — actually DO it.\n\n' +
+              'Original request: ' + userMessage,
+          };
+
+          const retryHistory = [...messages, { role: 'assistant', content: '' }, retryMsg];
+          const trimRetry = trimHistory(retryHistory, fullSystem, provider);
+
+          try {
+            const retryResult = await generateText({
+              model: model as LanguageModel,
+              system: fullSystem,
+              messages: trimRetry,
+              tools: effectiveTools,
+              maxSteps: 4,
+              maxTokens: 2000,
+              abortSignal: signal,
+            });
+
+            const retryText = retryResult.text?.trim() || '';
+            // Check if retry produced meaningful output or tool calls
+            // (generateText doesn't give us toolCallNames directly, but text.length is a proxy)
+            if (retryText.length > 50 || retryResult.steps > 1) {
+              fullText = retryText;
+              // Estimate tool calls from steps
+              if (retryResult.steps > 1) {
+                for (let t = 0; t < retryResult.steps - 1; t++) toolCallNames.add('retry_tool_call');
+              }
+              console.log(`[agent-loop] AUTO-RETRY attempt ${retryAttempt} succeeded: ${retryText.length} chars, ${retryResult.steps} steps`);
+            } else {
+              console.warn(`[agent-loop] AUTO-RETRY attempt ${retryAttempt} also produced insufficient output`);
+            }
+          } catch (retryErr) {
+            console.warn(`[agent-loop] AUTO-RETRY attempt ${retryAttempt} failed:`, (retryErr as Error).message);
+          }
+        }
+
+        if (fullText.length === 0 && toolCallNames.size === 0) {
+          // All retries exhausted — produce a fallback message
+          fullText = 'I encountered an issue generating a response. Let me try a different approach.\n\n' +
+                     'Could you please rephrase your request or let me know what specific task you need help with?';
+          console.warn('[agent-loop] AUTO-RETRY exhausted — using fallback message');
+        }
+      }
+
       // ── Loop detection: if AI was stuck in a loop, inject self-correction ──
       if (getLoopDetector(userId).isLoopReported) {
         const loopMsg = '\n\n[SYSTEM: You were stuck in a repetitive loop. Step back, stop repeating yourself, and try a completely different approach. If you were reading the same files, stop — you already have the information you need.]\n\n';
@@ -1043,6 +1110,35 @@ If your tools are not working, say:
         lintRetryCount = lintPass;
       }
       // ── End lint loop ────────────────────────────────────────────────────
+
+      // ── Post-change file verification ─────────────────────────────────────
+      // After files have been written and linted, verify that all files in
+      // changedFiles actually exist on disk. This catches cases where the AI
+      // claimed to write a file but the write was silently skipped or failed.
+      if (projectPath && changedFiles.size > 0) {
+        const verifiedFiles = new Set<string>();
+        let missingCount = 0;
+        for (const filePath of changedFiles) {
+          const absPath = filePath.startsWith('/') ? filePath : `${projectPath}/${filePath}`;
+          try {
+            if (fs.existsSync(absPath)) {
+              verifiedFiles.add(filePath);
+            } else {
+              missingCount++;
+              console.warn(`[agent-loop] FILE VERIFICATION FAILED: ${filePath} — file does not exist despite being reported as changed`);
+            }
+          } catch {
+            missingCount++;
+            console.warn(`[agent-loop] FILE VERIFICATION ERROR: could not stat ${filePath}`);
+          }
+        }
+        if (missingCount > 0) {
+          const originalCount = changedFiles.size;
+          changedFiles.clear();
+          verifiedFiles.forEach(f => changedFiles.add(f));
+          console.warn(`[agent-loop] FILE VERIFICATION: removed ${missingCount}/${originalCount} phantom file(s) from changedFiles`);
+        }
+      }
 
       // ── Phase 2.3: Extract mistake rules from lint failures ───────────────
       if (lintErrorsFound > 0 && projectPath) {
