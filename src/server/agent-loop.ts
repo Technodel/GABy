@@ -46,6 +46,7 @@ import {
 import {
   extractMistakeRule,
 } from './behavioral-rules';
+import { isFeatureEnabled } from './feature-flags';
 import {
   applyDiffFormat, applyWholeFormat,
   DIFF_FORMAT_INSTRUCTIONS, WHOLE_FORMAT_INSTRUCTIONS,
@@ -439,9 +440,11 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
   const effectiveTools = tools;
 
   // ── Hypothesis Engine: Parallel strategy testing ────────────────────────
-  // For complex tasks with tools available, spawn 2-3 mini-agent runs
-  // with different strategies and pick the best result to guide the main loop.
-  if (bridgeConnected && projectPath && !talkMode && projectId && userMessage.length > 80 && modelEntries.length > 0 && classifyAutoMode(userMessage) !== 'free' && classifyAutoMode(userMessage) !== 'fast') {
+  // For complex tasks with tools available, spawn 2-3 mini-agents with
+  // different strategies (gated by ff_hypothesis_engine) and pick the best
+  // result to guide the main loop. Mini-agents get file-access tools so
+  // they can read code and produce grounded analysis.
+  if (isFeatureEnabled('ff_hypothesis_engine') && bridgeConnected && projectPath && !talkMode && projectId && userMessage.length > 80 && modelEntries.length > 0 && classifyAutoMode(userMessage) !== 'free' && classifyAutoMode(userMessage) !== 'fast') {
     try {
       const strategies = selectStrategies(userMessage);
       if (strategies.length >= 2) {
@@ -453,11 +456,16 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
           from_scratch: '\n\n<strategy>Create new files with a fresh implementation.</strategy>',
           minimal_patch: '\n\n<strategy>Find the absolute smallest change that solves the problem.</strategy>',
         };
+        // Mini-agents get read-only power tools (file_read, grep, glob) for grounded analysis
+        const hypTools = createPowerTools({ userId, projectPath, signal, onToolCall: () => {} });
         const hypResults = await Promise.allSettled(strategies.map(async (strategy) => {
           const hypId = launchHypothesis({ userId, projectId: projectId!, problem: userMessage.slice(0, 200), strategy });
           const hypSys = `${fullSystem}${strategyPrompts[strategy] || ''}`;
           const hypMsgs = [...rawMessages.slice(-4)];
-          const result = await generateText({ model: primaryModel, system: hypSys, messages: hypMsgs, maxTokens: 800, abortSignal: signal });
+          const result = await generateText({
+            model: primaryModel, system: hypSys, messages: hypMsgs,
+            tools: hypTools, maxSteps: 3, maxTokens: 2000, abortSignal: signal,
+          });
           const text = result.text?.trim() || '';
           // Quality-based scoring: +40 test pass mention, +30 code block, +20 concise, -20 error keywords
           let score = 0;

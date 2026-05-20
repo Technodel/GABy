@@ -16,6 +16,9 @@ export function getDb(): Database.Database {
   if (!db) {
     db = new Database(path.resolve(DB_PATH));
     db.pragma('journal_mode = WAL');
+    db.pragma('synchronous = NORMAL');      // safe with WAL — 2-5x faster than FULL
+    db.pragma('cache_size = -64000');        // 64 MB page cache
+    db.pragma('busy_timeout = 5000');        // wait up to 5s instead of immediate SQLITE_BUSY
     db.pragma('foreign_keys = ON');
     runMigrations(db);
   }
@@ -524,6 +527,7 @@ function seedData(db: Database.Database): void {
     ['ff_test_generator',      'on',  'Test Generator',     'Auto-generate tests after feature implementation'],
     ['ff_operation_audit',     'on',  'Operation Audit',    'Detailed operation logging for debugging'],
     ['ff_project_lock',        'on',  'Project Lock',       'Prevent concurrent edits to the same project'],
+    ['ff_hypothesis_engine',   'on',  'Hypothesis Engine',  'Parallel strategy testing for complex tasks before main agent loop'],
   ];
   const insertFlag = db.prepare('INSERT OR IGNORE INTO feature_flags (key, value, label, description) VALUES (?, ?, ?, ?)');
   for (const [key, value, label, desc] of featureFlagDefaults) {
