@@ -36,6 +36,13 @@ __pycache__/
 *.tgz
 *.bat
 
+# ── Root-level VPS / utility / debug scripts (keep root clean) ────────────
+/vps_*
+/check_*
+/_index_*
+/run-*
+/start-*
+
 # Backup directories
 SUNy-14B-Agent-Demo_bak/
 comparison/
@@ -65,25 +72,15 @@ suny-test-suite.js
 ssh_*.txt
 scp_*.txt
 
-# ── Root-level test runners (moved to tests/) ──────────────────────────────
-/run-local-test.js
-/run-task-test-production.js
-/run-full-test.js
-/start-bridge-and-test.ps1
+# ── Root-level debug/test scripts (covered by /vps_*, /check_*, /run-*, /start-*) ──
+/test_curl.sh
+/test_login.cjs
+/fix_db.py
+/test_suny.py
+/test_ws.py
 
-# ── Temporary task-exec scaffolding (not for permanent repo) ──────────────
+# ── Temporary task-exec scaffolding ────────────────────────────────────────
 task-exec-temp/
-
-# ── Debug/test scripts not covered by temp patterns ────────────────────────
-test_curl.sh
-test_login.cjs
-check_app_name.sh
-
-# ── One-off debug scripts ────────────────────────────────────────────────────
-check_user.cjs
-fix_db.py
-test_suny.py
-test_ws.py
 tmp_deploy/
 
 # ── Bridge binaries (too large for git, generated during builds) ───────────
