@@ -12,6 +12,10 @@ import userRouter from './user-routes';
 import mcpRouter from './mcp-routes';
 import bridgeOnboardingRouter from './bridge-onboarding';
 import sessionReplayRouter from './session-replay';
+import schedulerRouter from './scheduler-routes';
+import hypothesisRouter from './hypothesis-routes';
+import checkpointRouter from './checkpoint-routes';
+import { createMarketplaceRouter } from './mcp-marketplace';
 import { handleBridgeUpgrade } from './bridge-routes';
 import { userClientManager } from './user-client-manager';
 import { isBridgeConnected, registerPathForUser, killBridgeRequest } from './bridge-manager';
@@ -212,6 +216,25 @@ app.use('/api/bridge', (req: Request, _res: Response, next) => {
 }, bridgeOnboardingRouter);
 
 // ── Session Replay API ─────────────────────────────────────────────────────────
+// ── Scheduled Agents API ───────────────────────────────────────────────────────
+
+app.use('/api', schedulerRouter);
+
+// ── Hypothesis Engine API ──────────────────────────────────────────────────────
+
+app.use('/api', hypothesisRouter);
+
+// ── Checkpoint Timeline API ─────────────────────────────────────────────────────
+
+app.use('/api', checkpointRouter);
+
+// ── MCP Marketplace API ─────────────────────────────────────────────────────────
+
+const marketplaceRouter = createMarketplaceRouter();
+app.use('/api', marketplaceRouter);
+
+// ── Session Replay API ─────────────────────────────────────────────────────────
+
 app.use('/api/sessions', (req: Request, _res: Response, next) => {
   const token = req.cookies?.suny_token;
   if (token) {
@@ -338,7 +361,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           sess_used: null,
           sess_limit: null,
           iterations: 0,
-        }));
+        });
         // Also tell the bridge to kill any running process
         killBridgeRequest(userId, (msg.requestId as string) || '');
       }

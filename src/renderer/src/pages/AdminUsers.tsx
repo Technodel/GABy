@@ -56,7 +56,12 @@ export default function AdminUsers() {
       setNewUsername(''); setNewPassword(''); setNewBalance('0'); setNewMaxTokens('');
       loadUsers();
     } else {
-      setError(data.error || 'Failed to create user');
+      const detailMsg = data.details
+        ? Object.entries(data.details.fieldErrors || {})
+            .flatMap(([f, msgs]) => (msgs as string[]).map(m => `${f}: ${m}`))
+            .join('; ')
+        : '';
+    setError((data.error || 'Failed to create user') + (detailMsg ? ` — ${detailMsg}` : ''));
     }
   }
 
@@ -174,7 +179,7 @@ export default function AdminUsers() {
               </div>
               <div>
                 <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Password</label>
-                <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="password" />
+                <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} placeholder="password (min 6 characters)" minLength={6} />
               </div>
               <div>
                 <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Initial Balance ($)</label>

@@ -31,12 +31,23 @@ export default function AdminApiKeys() {
   const [error, setError] = useState('');
   const [modelBrowserOpen, setModelBrowserOpen] = useState(false);
   const [browseSearch, setBrowseSearch] = useState('');
+  const [loadError, setLoadError] = useState('');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => { loadKeys(); }, []);
 
   async function loadKeys() {
-    const res = await fetch('/admin/api/api-keys', { credentials: 'include' });
-    if (res.ok) setKeys(await res.json());
+    setLoadError('');
+    setLoading(true);
+    try {
+      const res = await fetch('/admin/api/api-keys', { credentials: 'include' });
+      if (res.ok) setKeys(await res.json());
+      else setLoadError(`Failed to load API keys (HTTP ${res.status})`);
+    } catch {
+      setLoadError('Network error — is the server running?');
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function addKey() {
@@ -78,6 +89,11 @@ export default function AdminApiKeys() {
         Each mode (Free / Fast / Pro) should have exactly one active key. Adding a new key for a mode deactivates the previous one automatically.
       </div>
 
+      {loadError && (
+        <div style={{ padding: '10px 14px', marginBottom: 16, borderRadius: 'var(--radius-sm)', background: 'rgba(239,68,68,0.08)', border: '1px solid var(--error)', fontSize: 13, color: 'var(--error)' }}>
+          {loadError}
+        </div>
+      )}
       <div className="card table-responsive" style={{ padding: 0, overflow: 'auto' }}>
         <table>
           <thead>
@@ -115,7 +131,12 @@ export default function AdminApiKeys() {
             ))}
           </tbody>
         </table>
-        {keys.length === 0 && (
+        {loading && (
+          <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
+            Loading API keys...
+          </div>
+        )}
+        {!loading && keys.length === 0 && (
           <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>
             No API keys configured yet. Add one to enable SUNy.
           </div>
