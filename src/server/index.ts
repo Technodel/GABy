@@ -18,7 +18,7 @@ import checkpointRouter from './checkpoint-routes';
 import { createMarketplaceRouter } from './mcp-marketplace';
 import { handleBridgeUpgrade } from './bridge-routes';
 import { userClientManager } from './user-client-manager';
-import { isBridgeConnected, registerPathForUser, killBridgeRequest } from './bridge-manager';
+import { isBridgeConnected, registerPathForUser, killBridgeRequest, sendToBridge } from './bridge-manager';
 import { acquireLock, releaseLock, isLockedByOther } from './project-lock';
 import { isFeatureEnabled, getAllFeatureFlags } from './feature-flags';
 import { startTaskWorker } from './task-worker';
@@ -96,6 +96,24 @@ function normalizeFinalContent(userId: number, rawContent: unknown): string {
   }
 
   return content;
+}
+
+async function quickProjectScan(userId: number, projectPath: string): Promise<string> {
+  const raw = await sendToBridge(userId, 'exec:list_dir', { path: projectPath }, 15000);
+  const payload = (raw || {}) as { entries?: Array<{ name: string; isDirectory?: boolean }> };
+  const entries = Array.isArray(payload.entries) ? payload.entries : [];
+  const dirs = entries.filter(e => e?.isDirectory).map(e => e.name).sort();
+  const files = entries.filter(e => !e?.isDirectory).map(e => e.name).sort();
+  const topDirs = dirs.slice(0, 12);
+  const topFiles = files.slice(0, 12);
+
+  const lines: string[] = [];
+  lines.push('I scanned your project root successfully.');
+  lines.push(`Found ${dirs.length} folders and ${files.length} files at the top level.`);
+  if (topDirs.length) lines.push(`Folders: ${topDirs.join(', ')}`);
+  if (topFiles.length) lines.push(`Files: ${topFiles.join(', ')}`);
+  lines.push('If you want, I can now scan inside a specific folder (for example: src, bridge, or tests).');
+  return lines.join('\n\n');
 }
 
 const app = express();
@@ -2104,7 +2122,25 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         errorCategory = 'api_error';
       }
       if (errMsg.toLowerCase().includes('await is not defined')) {
-        friendly = 'I hit a temporary execution issue while scanning. Please try again now — SUNy will continue normally.';
+        // Deterministic fallback: for simple "scan project" intents, perform a direct
+        // bridge-based root scan so users are not trapped in retry loops.
+        const msgText = String(msg.message ?? '').toLowerCase();
+        const isScanIntent = /\bscan\b.*\bproject\b|\bscan\b/.test(msgText);
+        if (isScanIntent && projectPath && isBridgeConnected(userId)) {
+          try {
+            const scanText = await quickProjectScan(userId, projectPath);
+            userClientManager.pushChatContent(userId, 'suny:stream_end', {
+              content: scanText,
+              sess_used: null,
+              sess_limit: null,
+              iterations: 0,
+            });
+            return;
+          } catch {
+            // fall through to friendly message below
+          }
+        }
+        friendly = 'I hit a temporary execution issue while scanning. I can still do a direct scan for you now — say: scan root, scan src, or scan bridge.';
         errorCategory = 'runtime';
       }
       if (errMsg.toLowerCase().includes('insufficient')) { friendly = pickRandom('no_balance', "You're out of credits! Reach out and we'll top you right up 😊"); errorCategory = 'credits'; }

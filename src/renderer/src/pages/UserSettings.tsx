@@ -289,10 +289,16 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
               onChange={e => {
                 const next = e.target.value === 'pro' ? 'pro' : e.target.value === 'suny' ? 'suny' : 'matrix';
                 setUiTheme(next);
+                localStorage.setItem('suny_ui_theme', next);
+                localStorage.setItem('suny_dark_mode', String(next === 'matrix'));
                 document.body.classList.remove('theme-matrix', 'theme-pro', 'theme-suny', 'light-mode');
+                document.documentElement.classList.remove('theme-matrix', 'theme-pro', 'theme-suny');
                 if (next === 'pro') document.body.classList.add('theme-pro');
                 else if (next === 'suny') document.body.classList.add('theme-suny');
                 else document.body.classList.add('theme-matrix');
+                if (next === 'pro') document.documentElement.classList.add('theme-pro');
+                else if (next === 'suny') document.documentElement.classList.add('theme-suny');
+                else document.documentElement.classList.add('theme-matrix');
               }}
               style={{ maxWidth: 180 }}
             >
