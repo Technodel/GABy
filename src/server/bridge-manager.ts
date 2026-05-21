@@ -160,6 +160,26 @@ export function registerPathForUser(userId: number, projectPath: string): Promis
  * Kill an active bridge request by its request id.
  * Returns true if the request was found and killed.
  */
+/**
+ * Gracefully disconnect a user's bridge and tell it to stop reconnecting.
+ * Returns true if a bridge was actually disconnected.
+ */
+export function disconnectBridge(userId: number): boolean {
+  const conn = activeBridges.get(userId);
+  if (!conn || conn.ws.readyState !== WebSocket.OPEN) {
+    // Not connected — remove stale entry if any
+    if (conn) activeBridges.delete(userId);
+    return false;
+  }
+
+  // Tell the bridge to stop (sets this.stopped = true so it won't reconnect)
+  conn.ws.send(JSON.stringify({ type: 'bridge:disconnect', payload: { reason: 'user_disconnected' } }));
+  conn.ws.close(1000, 'User requested disconnect');
+  activeBridges.delete(userId);
+  rejectAllPendingForUser(userId, 'Bridge disconnected by user');
+  return true;
+}
+
 export function killBridgeRequest(userId: number, requestId: string): boolean {
   const pending = pendingRequests.get(requestId);
   if (!pending || pending.userId !== userId) return false;

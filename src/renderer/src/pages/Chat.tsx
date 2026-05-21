@@ -1804,7 +1804,17 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
           )}
           <BridgeStatusBadge
             connected={bridgeConnected}
-            onClick={() => setShowBridgeTip(t => !t)}
+            onClick={async () => {
+              if (bridgeConnected) {
+                if (!confirm('🔌 Disconnect the SUNy Bridge?\n\nSUNy will no longer be able to read/write files or run commands on your machine. You can reconnect by clicking the bridge button again.')) return;
+                try {
+                  await fetch('/api/bridge/disconnect', { method: 'POST', credentials: 'include' });
+                  setBridgeConnected(false);
+                } catch { /* ignore */ }
+              } else {
+                setShowBridgeTip(t => !t);
+              }
+            }}
           />
           <BalanceBadge
             balance={balance}

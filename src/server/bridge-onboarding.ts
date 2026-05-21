@@ -229,4 +229,28 @@ router.get('/setup-codes', (req: BridgeSetupCodesRequest, res: Response) => {
   res.json({ codes });
 });
 
+// ── POST /api/bridge/disconnect — Disconnect the bridge for this user ────
+
+router.post('/disconnect', (req: BridgeStatusRequest, res: Response) => {
+  const userId = req.userId;
+  if (!userId) {
+    res.status(401).json({ error: 'Authentication required' });
+    return;
+  }
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { disconnectBridge } = require('./bridge-manager');
+    const ok = disconnectBridge(userId);
+    if (ok) {
+      logOperation({ userId, operation: 'bridge_disconnect', status: 'success' });
+      res.json({ success: true, message: 'Bridge disconnected' });
+    } else {
+      res.json({ success: false, message: 'Bridge was not connected' });
+    }
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to disconnect bridge' });
+  }
+});
+
 export default router;
