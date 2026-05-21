@@ -106,6 +106,10 @@ const server = http.createServer(app);
 // isDev must be defined before any middleware that uses it
 const isDev = process.env.NODE_ENV !== 'production';
 
+// Running behind nginx/reverse proxy in production.
+// Prevents express-rate-limit proxy validation warnings and ensures req.ip is correct.
+app.set('trust proxy', 1);
+
 app.use(cors({
   origin: isDev
     ? ['http://localhost:5173', 'http://localhost:3000']

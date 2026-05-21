@@ -146,9 +146,30 @@ async function createFoundationTables(adapter: DbAdapter): Promise<void> {
       FOREIGN KEY(project_id) REFERENCES projects(id)
     );
 
+    CREATE TABLE IF NOT EXISTS shared_patterns (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      source_project_id INTEGER NOT NULL,
+      source_project_name TEXT DEFAULT '',
+      pattern_type TEXT NOT NULL,
+      pattern_key TEXT NOT NULL,
+      pattern_summary TEXT NOT NULL,
+      pattern_detail TEXT DEFAULT '',
+      confidence REAL DEFAULT 0.5,
+      application_count INTEGER DEFAULT 0,
+      last_applied_at TEXT DEFAULT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY(user_id) REFERENCES users(id),
+      FOREIGN KEY(source_project_id) REFERENCES projects(id)
+    );
+
     CREATE INDEX IF NOT EXISTS idx_behavioral_rules_user ON behavioral_rules(user_id);
     CREATE INDEX IF NOT EXISTS idx_behavioral_rules_category ON behavioral_rules(category);
     CREATE INDEX IF NOT EXISTS idx_behavioral_rules_confidence ON behavioral_rules(confidence);
+    CREATE INDEX IF NOT EXISTS idx_shared_patterns_user ON shared_patterns(user_id);
+    CREATE INDEX IF NOT EXISTS idx_shared_patterns_type ON shared_patterns(pattern_type);
+    CREATE INDEX IF NOT EXISTS idx_shared_patterns_key ON shared_patterns(pattern_key);
+    CREATE INDEX IF NOT EXISTS idx_shared_patterns_confidence ON shared_patterns(confidence);
   `);
 }
 

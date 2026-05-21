@@ -156,7 +156,7 @@ export default function Login({ onLogin }: LoginProps) {
         <h1 className="login-hero-title" style={{ fontSize: 52, fontWeight: 800, marginBottom: 10, letterSpacing: '-1px' }}>SUNy</h1>
         <p className="login-hero-subtitle" style={{ fontSize: 24, fontWeight: 600, color: 'var(--accent)', marginBottom: 14 }}>Smart Unstoppable Navigator</p>
         <p className="login-hero-copy" style={{ fontSize: 16, color: 'var(--text-secondary)', maxWidth: 620, margin: '0 auto', lineHeight: 1.75 }}>
-          Your unstoppable AI companion. Give SUNy a target \u2014 it maps out the path, handles the complex work, and polishes everything until it&apos;s perfect. No complicated instructions, just results.
+          Your unstoppable AI companion. Give SUNy a target {'\u2014'} it maps out the path, handles the complex work, and polishes everything until it&apos;s perfect. No complicated instructions, just results.
         </p>
       </div>
 
@@ -276,7 +276,7 @@ export default function Login({ onLogin }: LoginProps) {
         <div className="login-col-about" style={{ flex: 1, minWidth: 0 }}>
           <h2 style={{ fontSize: 19, fontWeight: 700, marginBottom: 6 }}>{'\ud83d\udc4b'} What is SUNy?</h2>
           <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>
-            The coding buddy you always wished you had \u2014 one that never gets tired, never judges, and doesn&apos;t stop until the job is done.
+            The coding buddy you always wished you had {'\u2014'} one that never gets tired, never judges, and doesn&apos;t stop until the job is done.
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {features.map(f => (
@@ -303,7 +303,7 @@ export default function Login({ onLogin }: LoginProps) {
 
       {/* Footer */}
       <div style={{ textAlign: 'center', padding: '20px', fontSize: 13, color: 'var(--text-muted)', borderTop: '1px solid var(--border)' }}>
-        SUNy \u2014 Consider it done! &nbsp;&middot;&nbsp; &copy; {new Date().getFullYear()}
+        SUNy {'\u2014'} Consider it done! &nbsp;&middot;&nbsp; &copy; {new Date().getFullYear()}
       </div>
     </div>
   );
