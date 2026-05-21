@@ -822,7 +822,6 @@ Thumbs.db
 src/renderer/dist/
 bridge/dist/
 bridge/node_modules/
-.aider-desk/
 temp_*
 tmp_*
 _temp_*

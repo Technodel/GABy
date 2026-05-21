@@ -1802,13 +1802,10 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
               <button
                 className="btn btn-icon btn-secondary"
                 onClick={forkConversation}
-                title="Fork conversation — save a snapshot to explore a different path"
+                title="Fork conversation — save a snapshot of this chat, then branch into another path"
               >
                 <GitBranch size={15} />
               </button>
-              <span style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-                Fork = save snapshot
-              </span>
             </>
           )}
           {forkList.length > 0 && (

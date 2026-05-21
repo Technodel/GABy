@@ -14,9 +14,6 @@ src/renderer/dist/
 bridge/dist/
 bridge/node_modules/
 
-# AiderDesk (auto-generated)
-.aider-desk/
-
 # Temp and scratch files
 temp_*
 tmp_*
