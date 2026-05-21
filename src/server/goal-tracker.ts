@@ -11,7 +11,7 @@
  * DB table: goal_stack
  */
 
-import { getDb } from './db';
+import { getAdapter } from './db';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -48,9 +48,9 @@ export interface GoalProgress {
 
 // ── DB initialization ─────────────────────────────────────────────────────────
 
-export function initializeGoalTrackerTable(): void {
-  const db = getDb();
-  db.exec(`
+export async function initializeGoalTrackerTable(): Promise<void> {
+  const db = await getAdapter();
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS goal_stack (
       id TEXT PRIMARY KEY,
       user_id INTEGER NOT NULL,
@@ -84,7 +84,7 @@ export function initializeGoalTrackerTable(): void {
 /**
  * Create a new goal. Returns the goal ID.
  */
-export function createGoal(input: {
+export async function createGoal(input: {
   userId: number;
   projectId: number;
   description: string;
@@ -92,18 +92,19 @@ export function createGoal(input: {
   priority?: GoalPriority;
   parentGoalId?: string | null;
   sortOrder?: number;
-}): string {
-  const db = getDb();
+}): Promise<string> {
+  const db = await getAdapter();
   const id = `goal_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const criteria = JSON.stringify(input.successCriteria || []);
   const parentId = input.parentGoalId ?? null;
 
-  db.prepare(`
-    INSERT INTO goal_stack
+  await db.run(
+    `INSERT INTO goal_stack
       (id, user_id, project_id, description, success_criteria, priority, parent_goal_id, sort_order)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(id, input.userId, input.projectId, input.description, criteria,
-    input.priority || 'normal', parentId, input.sortOrder ?? 0);
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [id, input.userId, input.projectId, input.description, criteria,
+      input.priority || 'normal', parentId, input.sortOrder ?? 0],
+  );
 
   return id;
 }
@@ -112,14 +113,15 @@ export function createGoal(input: {
  * Get the current (most recent non-completed) active goal for a user/project.
  * Returns null if no active goal exists.
  */
-export function getCurrentGoal(userId: number, projectId: number): Goal | null {
-  const db = getDb();
-  const row = db.prepare(`
-    SELECT * FROM goal_stack
+export async function getCurrentGoal(userId: number, projectId: number): Promise<Goal | null> {
+  const db = await getAdapter();
+  const row = await db.get(
+    `SELECT * FROM goal_stack
     WHERE user_id = ? AND project_id = ? AND status IN ('active', 'blocked')
     ORDER BY sort_order ASC, created_at DESC
-    LIMIT 1
-  `).get(userId, projectId) as GoalRow | undefined;
+    LIMIT 1`,
+    [userId, projectId],
+  ) as GoalRow | undefined;
 
   return row ? rowToGoal(row) : null;
 }
@@ -127,13 +129,14 @@ export function getCurrentGoal(userId: number, projectId: number): Goal | null {
 /**
  * Get all goals for a user/project, ordered hierarchically.
  */
-export function getGoalHierarchy(userId: number, projectId: number): Goal[] {
-  const db = getDb();
-  const rows = db.prepare(`
-    SELECT * FROM goal_stack
+export async function getGoalHierarchy(userId: number, projectId: number): Promise<Goal[]> {
+  const db = await getAdapter();
+  const rows = await db.all(
+    `SELECT * FROM goal_stack
     WHERE user_id = ? AND project_id = ?
-    ORDER BY parent_goal_id IS NULL DESC, sort_order ASC, created_at ASC
-  `).all(userId, projectId) as GoalRow[];
+    ORDER BY parent_goal_id IS NULL DESC, sort_order ASC, created_at ASC`,
+    [userId, projectId],
+  ) as GoalRow[];
 
   return rows.map(rowToGoal);
 }
@@ -141,69 +144,75 @@ export function getGoalHierarchy(userId: number, projectId: number): Goal[] {
 /**
  * Get a single goal by ID.
  */
-export function getGoal(goalId: string): Goal | null {
-  const db = getDb();
-  const row = db.prepare('SELECT * FROM goal_stack WHERE id = ?').get(goalId) as GoalRow | undefined;
+export async function getGoal(goalId: string): Promise<Goal | null> {
+  const db = await getAdapter();
+  const row = await db.get('SELECT * FROM goal_stack WHERE id = ?', [goalId]) as GoalRow | undefined;
   return row ? rowToGoal(row) : null;
 }
 
 /**
  * Update goal status.
  */
-export function setGoalStatus(goalId: string, status: GoalStatus, blockedReason?: string): void {
-  const db = getDb();
+export async function setGoalStatus(goalId: string, status: GoalStatus, blockedReason?: string): Promise<void> {
+  const db = await getAdapter();
   const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
 
   if (status === 'completed') {
-    db.prepare(`
-      UPDATE goal_stack SET status = ?, completed_at = ?, updated_at = ? WHERE id = ?
-    `).run(status, now, now, goalId);
+    await db.run(
+      `UPDATE goal_stack SET status = ?, completed_at = ?, updated_at = ? WHERE id = ?`,
+      [status, now, now, goalId],
+    );
   } else if (status === 'blocked' && blockedReason) {
-    db.prepare(`
-      UPDATE goal_stack SET status = ?, blocked_reason = ?, updated_at = ? WHERE id = ?
-    `).run(status, blockedReason, now, goalId);
+    await db.run(
+      `UPDATE goal_stack SET status = ?, blocked_reason = ?, updated_at = ? WHERE id = ?`,
+      [status, blockedReason, now, goalId],
+    );
   } else {
-    db.prepare(`
-      UPDATE goal_stack SET status = ?, updated_at = ? WHERE id = ?
-    `).run(status, now, goalId);
+    await db.run(
+      `UPDATE goal_stack SET status = ?, updated_at = ? WHERE id = ?`,
+      [status, now, goalId],
+    );
   }
 }
 
 /**
  * Add evidence to a goal (proof that a criterion is met).
  */
-export function addGoalEvidence(goalId: string, evidence: string): void {
-  const db = getDb();
-  const goal = getGoal(goalId);
+export async function addGoalEvidence(goalId: string, evidence: string): Promise<void> {
+  const db = await getAdapter();
+  const goal = await getGoal(goalId);
   if (!goal) return;
 
   const current = goal.evidence;
   current.push(`[${new Date().toISOString().slice(0, 19)}] ${evidence}`);
-  db.prepare('UPDATE goal_stack SET evidence = ?, updated_at = datetime(\'now\') WHERE id = ?')
-    .run(JSON.stringify(current), goalId);
+  await db.run(
+    'UPDATE goal_stack SET evidence = ?, updated_at = datetime(\'now\') WHERE id = ?',
+    [JSON.stringify(current), goalId],
+  );
 }
 
 /**
  * Increment attempt count (called when agent retries this goal).
  */
-export function incrementGoalAttempt(goalId: string): void {
-  const db = getDb();
-  db.prepare(`
-    UPDATE goal_stack SET attempt_count = attempt_count + 1, last_attempt_at = datetime('now'), updated_at = datetime('now')
-    WHERE id = ?
-  `).run(goalId);
+export async function incrementGoalAttempt(goalId: string): Promise<void> {
+  const db = await getAdapter();
+  await db.run(
+    `UPDATE goal_stack SET attempt_count = attempt_count + 1, last_attempt_at = datetime('now'), updated_at = datetime('now')
+    WHERE id = ?`,
+    [goalId],
+  );
 }
 
 /**
  * Check if all success criteria are met based on evidence.
  * Returns the list of met and unmet criteria.
  */
-export function checkGoalCriteria(goalId: string): {
+export async function checkGoalCriteria(goalId: string): Promise<{
   met: string[];
   unmet: string[];
   allMet: boolean;
-} {
-  const goal = getGoal(goalId);
+}> {
+  const goal = await getGoal(goalId);
   if (!goal) return { met: [], unmet: [], allMet: false };
 
   const evidenceText = goal.evidence.join(' ').toLowerCase();
@@ -225,10 +234,10 @@ export function checkGoalCriteria(goalId: string): {
  * Auto-complete a goal if all criteria are met.
  * Returns true if the goal was auto-completed.
  */
-export function tryAutoCompleteGoal(goalId: string): boolean {
-  const { allMet } = checkGoalCriteria(goalId);
+export async function tryAutoCompleteGoal(goalId: string): Promise<boolean> {
+  const { allMet } = await checkGoalCriteria(goalId);
   if (allMet) {
-    setGoalStatus(goalId, 'completed');
+    await setGoalStatus(goalId, 'completed');
     return true;
   }
   return false;
@@ -237,13 +246,14 @@ export function tryAutoCompleteGoal(goalId: string): boolean {
 /**
  * Get progress summary for all goals in a project.
  */
-export function getGoalProgress(userId: number, projectId: number): GoalProgress {
-  const db = getDb();
-  const all = db.prepare(`
-    SELECT status, COUNT(*) as count FROM goal_stack
+export async function getGoalProgress(userId: number, projectId: number): Promise<GoalProgress> {
+  const db = await getAdapter();
+  const all = await db.all(
+    `SELECT status, COUNT(*) as count FROM goal_stack
     WHERE user_id = ? AND project_id = ?
-    GROUP BY status
-  `).all(userId, projectId) as Array<{ status: string; count: number }>;
+    GROUP BY status`,
+    [userId, projectId],
+  ) as Array<{ status: string; count: number }>;
 
   const counts: Record<string, number> = { active: 0, blocked: 0, completed: 0, abandoned: 0 };
   let total = 0;
@@ -266,11 +276,11 @@ export function getGoalProgress(userId: number, projectId: number): GoalProgress
  * Format current goals as a context block for the agent prompt.
  * This is injected at session start so the agent knows what to work on.
  */
-export function formatGoalContext(userId: number, projectId: number): string {
-  const current = getCurrentGoal(userId, projectId);
+export async function formatGoalContext(userId: number, projectId: number): Promise<string> {
+  const current = await getCurrentGoal(userId, projectId);
   if (!current) return '';
 
-  const progress = getGoalProgress(userId, projectId);
+  const progress = await getGoalProgress(userId, projectId);
   const criteria = current.successCriteria.join('\n    • ');
   const evidence = current.evidence.join('\n    • ');
 
@@ -291,12 +301,13 @@ export function formatGoalContext(userId: number, projectId: number): string {
 /**
  * Get active goal count for a user/project.
  */
-export function getActiveGoalCount(userId: number, projectId: number): number {
-  const db = getDb();
-  const row = db.prepare(`
-    SELECT COUNT(*) as c FROM goal_stack
-    WHERE user_id = ? AND project_id = ? AND status = 'active'
-  `).get(userId, projectId) as { c: number };
+export async function getActiveGoalCount(userId: number, projectId: number): Promise<number> {
+  const db = await getAdapter();
+  const row = await db.get(
+    `SELECT COUNT(*) as c FROM goal_stack
+    WHERE user_id = ? AND project_id = ? AND status = 'active'`,
+    [userId, projectId],
+  ) as { c: number };
   return row.c;
 }
 

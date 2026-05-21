@@ -9,7 +9,7 @@
  * to prevent persona drift (attention dilution).
  */
 
-import { getDb } from './db';
+import { getAdapter } from './db';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Project Map

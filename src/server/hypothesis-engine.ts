@@ -10,7 +10,7 @@
  * Feature flag: ff_hypothesis_engine
  */
 
-import { getDb } from './db';
+import { getAdapter } from './db';
 import { generateText, stepCountIs, type LanguageModel, type ToolSet } from 'ai';
 import { createPowerTools } from './power-tools';
 import {
@@ -61,9 +61,9 @@ export const STRATEGY_DESCRIPTIONS: Record<HypothesisStrategy, string> = {
 
 // ── DB initialization ─────────────────────────────────────────────────────────
 
-export function initializeHypothesisTable(): void {
-  const db = getDb();
-  db.exec(`
+export async function initializeHypothesisTable(): Promise<void> {
+  const db = await getAdapter();
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS hypothesis_runs (
       id TEXT PRIMARY KEY,
       user_id INTEGER NOT NULL,
@@ -134,19 +134,20 @@ export function selectStrategies(problem: string): HypothesisStrategy[] {
  * Launch a hypothesis run (record it in DB).
  * Returns the hypothesis ID.
  */
-export function launchHypothesis(input: {
+export async function launchHypothesis(input: {
   userId: number;
   projectId: number;
   problem: string;
   strategy: HypothesisStrategy;
-}): string {
-  const db = getDb();
+}): Promise<string> {
+  const db = await getAdapter();
   const id = `hyp_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
 
-  db.prepare(`
-    INSERT INTO hypothesis_runs (id, user_id, project_id, problem, strategy)
-    VALUES (?, ?, ?, ?, ?)
-  `).run(id, input.userId, input.projectId, input.problem, input.strategy);
+  await db.run(
+    `INSERT INTO hypothesis_runs (id, user_id, project_id, problem, strategy)
+    VALUES (?, ?, ?, ?, ?)`,
+    [id, input.userId, input.projectId, input.problem, input.strategy],
+  );
 
   return id;
 }
@@ -154,7 +155,7 @@ export function launchHypothesis(input: {
 /**
  * Mark a hypothesis as completed with results.
  */
-export function completeHypothesis(input: {
+export async function completeHypothesis(input: {
   hypothesisId: string;
   resultSummary: string;
   changedFiles: string[];
@@ -162,10 +163,10 @@ export function completeHypothesis(input: {
   lintPassed?: boolean;
   score: number;
   errorOutput?: string;
-}): void {
-  const db = getDb();
-  db.prepare(`
-    UPDATE hypothesis_runs SET
+}): Promise<void> {
+  const db = await getAdapter();
+  await db.run(
+    `UPDATE hypothesis_runs SET
       status = 'completed',
       result_summary = ?,
       changed_files = ?,
@@ -174,54 +175,58 @@ export function completeHypothesis(input: {
       score = ?,
       error_output = ?,
       completed_at = datetime('now')
-    WHERE id = ?
-  `).run(
-    input.resultSummary.slice(0, 1000),
-    JSON.stringify(input.changedFiles),
-    input.testResults?.slice(0, 2000) || null,
-    input.lintPassed ? 1 : 0,
-    input.score,
-    input.errorOutput?.slice(0, 1000) || null,
-    input.hypothesisId,
+    WHERE id = ?`,
+    [
+      input.resultSummary.slice(0, 1000),
+      JSON.stringify(input.changedFiles),
+      input.testResults?.slice(0, 2000) || null,
+      input.lintPassed ? 1 : 0,
+      input.score,
+      input.errorOutput?.slice(0, 1000) || null,
+      input.hypothesisId,
+    ],
   );
 }
 
 /**
  * Mark a hypothesis as failed.
  */
-export function failHypothesis(hypothesisId: string, error: string): void {
-  const db = getDb();
-  db.prepare(`
-    UPDATE hypothesis_runs SET status = 'failed', error_output = ?, completed_at = datetime('now')
-    WHERE id = ?
-  `).run(error.slice(0, 2000), hypothesisId);
+export async function failHypothesis(hypothesisId: string, error: string): Promise<void> {
+  const db = await getAdapter();
+  await db.run(
+    `UPDATE hypothesis_runs SET status = 'failed', error_output = ?, completed_at = datetime('now')
+    WHERE id = ?`,
+    [error.slice(0, 2000), hypothesisId],
+  );
 }
 
 /**
  * Get hypotheses for a user/project/session.
  */
-export function getHypotheses(userId: number, projectId: number): Hypothesis[] {
-  const db = getDb();
-  const rows = db.prepare(`
-    SELECT * FROM hypothesis_runs
+export async function getHypotheses(userId: number, projectId: number): Promise<Hypothesis[]> {
+  const db = await getAdapter();
+  const rows = await db.all(
+    `SELECT * FROM hypothesis_runs
     WHERE user_id = ? AND project_id = ?
     ORDER BY started_at DESC
-    LIMIT 50
-  `).all(userId, projectId) as HypothesisRow[];
+    LIMIT 50`,
+    [userId, projectId],
+  ) as HypothesisRow[];
   return rows.map(rowToHypothesis);
 }
 
 /**
  * Get the winning hypothesis (highest score) for a problem.
  */
-export function getWinningHypothesis(userId: number, projectId: number, problem: string): Hypothesis | null {
-  const db = getDb();
-  const row = db.prepare(`
-    SELECT * FROM hypothesis_runs
+export async function getWinningHypothesis(userId: number, projectId: number, problem: string): Promise<Hypothesis | null> {
+  const db = await getAdapter();
+  const row = await db.get(
+    `SELECT * FROM hypothesis_runs
     WHERE user_id = ? AND project_id = ? AND problem = ? AND status = 'completed'
     ORDER BY score DESC
-    LIMIT 1
-  `).get(userId, projectId, problem) as HypothesisRow | undefined;
+    LIMIT 1`,
+    [userId, projectId, problem],
+  ) as HypothesisRow | undefined;
   return row ? rowToHypothesis(row) : null;
 }
 
@@ -244,7 +249,7 @@ export function selectBestHypothesis(hypotheses: Hypothesis[]): HypothesisResult
  * Format hypothesis context for the agent prompt.
  */
 export function formatHypothesisContext(problem: string, strategies: HypothesisStrategy[]): string {
-  const items = strategies.map(s => `    • ${s.replace(/_/g, ' ')} — ${STRATEGY_DESCRIPTIONS[s]}`);
+  const items = strategies.map(s => `    \u2022 ${s.replace(/_/g, ' ')} \u2014 ${STRATEGY_DESCRIPTIONS[s]}`);
   return [
     `<hypothesis_plan>`,
     `  Problem: ${problem}`,
@@ -348,125 +353,5 @@ export async function runHypothesisStrategies(input: HypothesisRunnerInput): Pro
 
   const strategies = selectStrategies(userMessage);
   if (strategies.length < 2) {
-    return { bestText: '', bestStrategy: '', bestScore: -1, hypBlock: '' };
+    return { bestText: '', bestStrategy: '', bestScore: 0, hypBlock: '' };
   }
-
-  const timestamp = Date.now().toString(36);
-  const originalBranch = await gitGetCurrentBranch(userId, projectPath);
-  const branchNames = strategies.map(s => `${s}/${timestamp}`);
-
-  // Helper to determine if git should be used (non-write strategies work without isolation too)
-  const useGitIsolation = originalBranch !== 'main' || true; // Always try isolation
-
-  // Stage 1: Create branches and run strategies in parallel
-  const hypResults = await Promise.allSettled(strategies.map(async (strategy, idx) => {
-    const branchName = branchNames[idx];
-    const hypId = launchHypothesis({ userId, projectId, problem: userMessage.slice(0, 200), strategy });
-    const cfg = STRATEGY_CONFIGS[strategy] || { prompt: '', steps: 3 };
-
-    // Create and switch to hypothesis branch (best-effort)
-    let isolated = false;
-    if (useGitIsolation) {
-      isolated = await gitCreateHypothesisBranch(userId, projectPath, branchName);
-    }
-
-    try {
-      // Mini-agents get read-only tools (no write capability) for grounded analysis
-      const hypTools = createPowerTools({
-        userId, projectPath, signal,
-        onToolCall: () => {}, // silent — no user-facing events from hypotheses
-      });
-
-      const hypSys = `${fullSystem}${cfg.prompt}`;
-      const hypMsgs = [...rawMessages.slice(-4)] as Parameters<typeof generateText>[0]['messages'];
-
-      // test_first and from_scratch benefit from reasoning — route to V4 Pro if available
-      const strategyModel = (proModel && (strategy === 'test_first' || strategy === 'from_scratch'))
-        ? proModel : primaryModel;
-      const result = await generateText({
-        model: strategyModel,
-        system: hypSys,
-        messages: hypMsgs,
-        tools: hypTools,
-        stopWhen: stepCountIs(cfg.steps),
-        maxTokens: 2000,
-        abortSignal: signal,
-      });
-
-      const text = result.text?.trim() || '';
-
-      // Quality-based scoring
-      let score = 0;
-      if (text.length > 50) {
-        if (/tests?\s+(passed|passing|green|succeed)/i.test(text)) score += 40;
-        if (/```[\w]*\n/.test(text)) score += 30;
-        if (text.length < 500) score += 20;
-        if (/(error|failed|fail|couldn't|cannot|unable)/i.test(text)) score -= 20;
-        score = Math.max(0, Math.min(100, score));
-      }
-
-      return { strategy, text, score, hypId, branchName, isolated };
-    } catch (e) {
-      return { strategy, text: '', score: 0, hypId, branchName, isolated, error: (e as Error).message };
-    }
-  }));
-
-  // Stage 2: Return to original branch
-  if (useGitIsolation) {
-    await gitSwitchBranch(userId, projectPath, originalBranch);
-  }
-
-  // Stage 3: Select winner
-  let bestScore = -1, bestText = '', bestStrategy = '', bestBranch = '';
-  const completedEntries: Array<{ strategy: string; score: number; branchName: string; hypId: string }> = [];
-
-  for (const r of hypResults) {
-    if (r.status === 'fulfilled') {
-      const v = r.value;
-      // Complete DB record even on error
-      if (v.error) {
-        failHypothesis(v.hypId, v.error);
-      } else {
-        completeHypothesis({ hypothesisId: v.hypId, resultSummary: v.text.slice(0, 500), changedFiles: [], score: v.score });
-      }
-      if (v.score > bestScore) {
-        bestScore = v.score;
-        bestText = v.text;
-        bestStrategy = v.strategy;
-        bestBranch = v.branchName;
-      }
-      completedEntries.push({ strategy: v.strategy, score: v.score, branchName: v.branchName, hypId: v.hypId });
-    }
-  }
-
-  // Stage 4: Merge winner branch (if git isolation was used and we have a winner)
-  if (useGitIsolation && bestBranch && bestScore > 0) {
-    await gitMergeBranch(userId, projectPath, bestBranch);
-    console.log(`[hypothesis] Merged winner branch: ${bestBranch} (strategy: ${bestStrategy}, score: ${bestScore})`);
-  }
-
-  // Stage 5: Discard all hypothesis branches
-  if (useGitIsolation) {
-    for (const { branchName, strategy } of completedEntries) {
-      if (branchName !== bestBranch) {
-        await gitDeleteBranch(userId, projectPath, branchName);
-        console.log(`[hypothesis] Deleted loser branch: ${branchName} (strategy: ${strategy})`);
-      }
-    }
-  }
-
-  // Stage 6: Build injection block
-  let hypBlock = '';
-  if (bestText && bestText.length > 100) {
-    hypBlock = [
-      '',
-      '<hypothesis_testing>',
-      `Best strategy: ${bestStrategy}`,
-      `Result: ${bestText.slice(0, 1500)}`,
-      '</hypothesis_testing>',
-    ].join('\n');
-    console.log(`[hypothesis] Winner: ${bestStrategy} (score: ${bestScore})`);
-  }
-
-  return { bestText, bestStrategy, bestScore, hypBlock };
-}

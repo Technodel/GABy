@@ -12,7 +12,7 @@
 import { Router, Request, Response } from 'express';
 import { getSessionLog, getRecentSessions, logOperation } from './operation-audit';
 import { isSessionReplayEnabled } from './feature-flags';
-import { getDb } from './db';
+import { getAdapter } from './db';
 import { sendToBridge } from './bridge-manager';
 
 const router = Router();
@@ -109,22 +109,24 @@ router.post('/:sessionId/undo', async (req: AuthRequest, res: Response) => {
   }
 
   // Find the project associated with this session
-  const db = getDb();
-  const result = db.prepare(
+  const db = await getAdapter();
+  const result = await db.get<{ project_id: number }>(
     `SELECT project_id
      FROM operation_log
      WHERE session_id = ? AND user_id = ? AND project_id IS NOT NULL
      LIMIT 1`,
-  ).get(sessionId, userId) as { project_id: number } | undefined;
+    [sessionId, userId],
+  );
 
   if (!result) {
     res.status(404).json({ error: 'No project found for this session' });
     return;
   }
 
-  const project = db.prepare(
+  const project = await db.get<{ local_path: string }>(
     'SELECT local_path FROM projects WHERE id = ? AND user_id = ?',
-  ).get(result.project_id, userId) as { local_path: string } | undefined;
+    [result.project_id, userId],
+  );
 
   if (!project) {
     res.status(404).json({ error: 'Project not found' });

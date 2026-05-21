@@ -2,7 +2,7 @@ import WebSocket from 'ws';
 import { verifyToken, AuthPayload } from './auth';
 import { narrateMessage } from './narrator';
 import { userClientManager } from './user-client-manager';
-import { getDb } from './db';
+import { getAdapter } from './db';
 
 interface BridgeConnection {
   ws: WebSocket;
@@ -25,7 +25,7 @@ const activeBridges = new Map<number, BridgeConnection>();
 // Map: pending request id → resolve/reject callbacks (with userId tracking)
 const pendingRequests = new Map<string, PendingRequest>();
 
-export function registerBridge(userId: number, username: string, ws: WebSocket): void {
+export async function registerBridge(userId: number, username: string, ws: WebSocket): Promise<void> {
   // Disconnect existing bridge for this user if any
   const existing = activeBridges.get(userId);
   if (existing && existing.ws.readyState === WebSocket.OPEN) {
@@ -35,7 +35,7 @@ export function registerBridge(userId: number, username: string, ws: WebSocket):
 
   // Mark user as having ever connected a bridge
   try {
-    getDb().prepare('UPDATE users SET bridge_ever_connected = 1 WHERE id = ?').run(userId);
+    (await getAdapter()).run('UPDATE users SET bridge_ever_connected = 1 WHERE id = ?', [userId]);
   } catch { /* best-effort */ }
 
   console.log(`[bridge-manager] Bridge CONNECTED for user ${userId} (${username})`);

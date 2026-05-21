@@ -51,11 +51,11 @@ const AUDIT_TABLE = 'injection_attempts';
 
 // ── Initialize DB table ───────────────────────────────────────────────────────
 
-export function initializeInjectionGuardTable(): void {
-  const { getDb } = require('./db');
+export async function initializeInjectionGuardTable(): Promise<void> {
   try {
+    const { getDb } = require('./db');
     const db = getDb();
-    db.exec(`
+    await db.exec(`
       CREATE TABLE IF NOT EXISTS ${AUDIT_TABLE} (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER DEFAULT 0,
@@ -128,20 +128,12 @@ export function scanForInjection(
     try {
       const { getDb } = require('./db');
       const db = getDb();
-      const insert = db.prepare(`
-        INSERT INTO ${AUDIT_TABLE} (user_id, session_id, pattern_label, severity, matched_text, context_snippet, blocked)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `);
       for (const m of matches) {
-        insert.run(
-          context?.userId ?? 0,
-          context?.sessionId ?? '',
-          m.label,
-          m.severity,
-          m.matchedText.slice(0, 200),
-          text.slice(0, 100),
-          blocked ? 1 : 0,
-        );
+        db.run(
+          `INSERT INTO ${AUDIT_TABLE} (user_id, session_id, pattern_label, severity, matched_text, context_snippet, blocked)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          [context?.userId ?? 0, context?.sessionId ?? '', m.label, m.severity, m.matchedText.slice(0, 200), text.slice(0, 100), blocked ? 1 : 0],
+        ).catch(() => {}); // best-effort
       }
     } catch {
       // best-effort

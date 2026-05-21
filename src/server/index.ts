@@ -533,6 +533,9 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         projectPersona = proj?.persona ?? null;
       }
 
+      // Fetch training/behavioral data async
+      const trainingLoadResult = await loadTrainingAndRules({ userId, projectRoot: projectPath });
+
       const systemLines = [
         '<role>',
         '╔══════════════════════════════════════════════════════════════╗',
@@ -1005,7 +1008,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         ...getSkillSystemPrompt().split('\n').filter(l => l !== ''),
         // ── Training loader: injection files + behavioral rules ──────────
         ...(() => {
-          const tl = loadTrainingAndRules({ userId, projectRoot: projectPath });
+          const tl = trainingLoadResult;
           const blocks: string[] = [];
           if (tl.injectionBlocks.length > 0) blocks.push(...tl.injectionBlocks);
           if (tl.behavioralBlock) blocks.push('', tl.behavioralBlock);
@@ -1716,7 +1719,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       }
       // ── Project lock (prevents concurrent mutations) ─────────────────
       const projectLockHeld = projectPath && projectId
-        ? acquireLock(projectId, userId, sessionId)
+        ? await acquireLock(projectId, userId, sessionId)
         : true;
       if (!projectLockHeld) {
         userClientManager.pushToUser(userId, 'suny:system_error', {
@@ -1768,7 +1771,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
 
         // Release project lock
         if (projectId) {
-          releaseLock(projectId, sessionId);
+          await releaseLock(projectId, sessionId);
         }
 
         // Log session end
@@ -1826,7 +1829,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         // Track user preferences (verbosity, formality, framework choices)
         // so they carry across projects.
         try {
-          const personaResult = updateCrossProjectPersona({
+          const personaResult = await updateCrossProjectPersona({
             userId,
             projectId: projectId ?? null,
             userMessage: msg.message as string,
@@ -1977,7 +1980,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
 
       if (isFeatureEnabled('ff_benchmark_mode')) {
         try {
-          recordBenchmarkRun({
+          await recordBenchmarkRun({
             userId,
             projectId: projectId ?? null,
             sessionId,
@@ -2201,13 +2204,13 @@ server.listen(PORT, () => {
 
   // Initialize all system tables (best-effort)
   const tableInits: Array<() => Promise<void> | void> = [
-    () => { try { initializeInjectionGuardTable(); } catch {} },
+    async () => { try { await initializeInjectionGuardTable(); } catch {} },
     () => { try { initializeDesignIntentTable(); } catch {} },
     () => { try { initializeInteractionPatternsTable(); } catch {} },
     () => { try { initializePresenceTable(); } catch {} },
     () => { try { require('./task-queue').initializeTaskQueueTable(); } catch {} },
     () => { try { require('./goal-tracker').initializeGoalTrackerTable(); } catch {} },
-    () => { try { require('./confidence-scorer').initializeConfidenceTable(); } catch {} },
+    async () => { try { await require('./confidence-scorer').initializeConfidenceTable(); } catch {} },
     () => { try { require('./task-graph').initializeTaskGraphTable(); } catch {} },
     () => { try { require('./hypothesis-engine').initializeHypothesisTable(); } catch {} },
   ];

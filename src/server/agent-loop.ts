@@ -48,6 +48,7 @@ import {
 import {
   extractMistakeRule,
 } from './behavioral-rules';
+import { getAdapter } from './db';
 import {
   buildCrossProjectPrompt,
   shareErrorPattern, shareDesignDecision,
@@ -363,9 +364,9 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
   }
 
   // ── Cross-project learning: inject aggregated patterns into system prompt
-  if (projectId && isCrossProjectLearningEnabled(userId)) {
+  if (projectId && await isCrossProjectLearningEnabled(userId)) {
     try {
-      const crossProjectBlock = buildCrossProjectPrompt(userId);
+      const crossProjectBlock = await buildCrossProjectPrompt(userId);
       if (crossProjectBlock) {
         const ins = fullSystem.lastIndexOf('\n<WorkingDirectory>');
         fullSystem = ins >= 0
@@ -839,7 +840,7 @@ If your tools are not working, say:
             .filter(l => /unsure|not certain|might not|maybe|could be|concern|risk|edge case/i.test(l))
             .map(l => l.trim())
             .slice(0, 5);
-          recordConfidence({
+          await recordConfidence({
             turnIndex: steps || 1,
             userId,
             projectId: projectId!,
@@ -1183,7 +1184,7 @@ If your tools are not working, say:
       // ── Phase 2.3: Extract mistake rules from lint failures ───────────────
       if (lintErrorsFound > 0 && projectPath) {
         try {
-          await extractMistakeRule(userId, projectId ?? null, 'lint', {
+          await extractMistakeRule(await getAdapter(), userId, projectId ?? null, 'lint', {
             errorCount: lintErrorsFound,
             retriesUsed: lintRetryCount,
             gaveUp: lintGaveUp,
@@ -1328,7 +1329,7 @@ If your tools are not working, say:
       // ── Phase 2.3: Extract mistake rules from test failures ───────────────
       if (testFailuresFound > 0 && projectPath) {
         try {
-          await extractMistakeRule(userId, projectId ?? null, 'test', {
+          await extractMistakeRule(await getAdapter(), userId, projectId ?? null, 'test', {
             errorCount: testFailuresFound,
             retriesUsed: testRuns,
             gaveUp: testGaveUp,
@@ -1381,11 +1382,11 @@ If your tools are not working, say:
       userClientManager.pushToUser(userId, 'suny:stage', { stage: 'complete', label: 'Done!' });
 
       // ── Cross-project learning: share patterns from this task ────────────
-      if (projectId && isCrossProjectLearningEnabled(userId)) {
+      if (projectId && await isCrossProjectLearningEnabled(userId)) {
         try {
           // Share lint-fix patterns
           if (lintErrorsFound > 0 && lintPassed) {
-            shareErrorPattern({
+            await shareErrorPattern({
               userId, projectId: projectId!,
               projectName: projectPath?.split(/[/\\]/).pop() || 'project',
               errorPattern: `lint:${lintErrorsFound} errors fixed across ${Array.from(changedFiles).length} files`,
@@ -1397,7 +1398,7 @@ If your tools are not working, say:
           }
           // Share test-fix patterns
           if (testFailuresFound > 0 && testPassed) {
-            shareErrorPattern({
+            await shareErrorPattern({
               userId, projectId: projectId!,
               projectName: projectPath?.split(/[/\\]/).pop() || 'project',
               errorPattern: `test:${testFailuresFound} failures fixed across ${Array.from(changedFiles).length} files`,

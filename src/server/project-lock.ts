@@ -5,7 +5,7 @@
  * Uses the project_locks DB table with expiry to handle crashes gracefully.
  */
 
-import { getDb } from './db';
+import { getAdapter } from './db';
 
 const LOCK_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes max lock duration
 
@@ -21,23 +21,25 @@ export interface ProjectLock {
  * Acquire a lock for a project session.
  * Returns true if lock acquired, false if another session holds it.
  */
-export function acquireLock(projectId: number, userId: number, sessionId: string): boolean {
-  const db = getDb();
+export async function acquireLock(projectId: number, userId: number, sessionId: string): Promise<boolean> {
+  const db = getAdapter();
 
   // Clean expired locks first
-  db.prepare('DELETE FROM project_locks WHERE expires_at < datetime(?)').run(new Date().toISOString());
+  await db.run('DELETE FROM project_locks WHERE expires_at < datetime(?)', [new Date().toISOString()]);
 
-  const existing = db.prepare(
+  const existing = await db.get<ProjectLock>(
     'SELECT * FROM project_locks WHERE project_id = ?',
-  ).get(projectId) as ProjectLock | undefined;
+    [projectId],
+  );
 
   if (existing) {
     // Same session — refresh the lock
     if (existing.sessionId === sessionId) {
       const expiresAt = new Date(Date.now() + LOCK_TIMEOUT_MS).toISOString();
-      db.prepare(
+      await db.run(
         'UPDATE project_locks SET expires_at = ? WHERE project_id = ?',
-      ).run(expiresAt, projectId);
+        [expiresAt, projectId],
+      );
       return true;
     }
     // Different session holds it — deny
@@ -47,10 +49,11 @@ export function acquireLock(projectId: number, userId: number, sessionId: string
   // No existing lock — create one
   const expiresAt = new Date(Date.now() + LOCK_TIMEOUT_MS).toISOString();
   try {
-    db.prepare(
+    await db.run(
       `INSERT INTO project_locks (project_id, user_id, session_id, expires_at)
        VALUES (?, ?, ?, ?)`,
-    ).run(projectId, userId, sessionId, expiresAt);
+      [projectId, userId, sessionId, expiresAt],
+    );
     return true;
   } catch {
     return false;
@@ -60,33 +63,36 @@ export function acquireLock(projectId: number, userId: number, sessionId: string
 /**
  * Release a lock for a project session.
  */
-export function releaseLock(projectId: number, sessionId: string): void {
-  const db = getDb();
-  db.prepare(
+export async function releaseLock(projectId: number, sessionId: string): Promise<void> {
+  const db = getAdapter();
+  await db.run(
     'DELETE FROM project_locks WHERE project_id = ? AND session_id = ?',
-  ).run(projectId, sessionId);
+    [projectId, sessionId],
+  );
 }
 
 /**
  * Check if a project is locked by another session.
  */
-export function isLockedByOther(projectId: number, sessionId: string): boolean {
-  const db = getDb();
-  const lock = db.prepare(
+export async function isLockedByOther(projectId: number, sessionId: string): Promise<boolean> {
+  const db = getAdapter();
+  const lock = await db.get<ProjectLock>(
     'SELECT * FROM project_locks WHERE project_id = ? AND session_id != ? AND expires_at >= datetime(?)',
-  ).get(projectId, sessionId, new Date().toISOString()) as ProjectLock | undefined;
+    [projectId, sessionId, new Date().toISOString()],
+  );
   return !!lock;
 }
 
 /**
  * Check if lock is active (for UI status).
  */
-export function getLockStatus(projectId: number): { locked: boolean; sessionId?: string } | null {
-  const db = getDb();
-  db.prepare('DELETE FROM project_locks WHERE expires_at < datetime(?)').run(new Date().toISOString());
-  const lock = db.prepare(
+export async function getLockStatus(projectId: number): Promise<{ locked: boolean; sessionId?: string } | null> {
+  const db = getAdapter();
+  await db.run('DELETE FROM project_locks WHERE expires_at < datetime(?)', [new Date().toISOString()]);
+  const lock = await db.get<ProjectLock>(
     'SELECT * FROM project_locks WHERE project_id = ?',
-  ).get(projectId) as ProjectLock | undefined;
+    [projectId],
+  );
   if (!lock) return { locked: false };
   return { locked: true, sessionId: lock.sessionId };
 }

@@ -5,7 +5,7 @@
  * to surface issues like rate limiting, credential expiry, or downtime.
  */
 
-import { getDb } from './db';
+import { getAdapter } from './db';
 
 interface ProviderStatus {
   provider: string;
@@ -19,9 +19,9 @@ interface ProviderStatus {
  * Get a summary of all provider health statuses.
  * Falls back gracefully if no health data has been collected yet.
  */
-export function getProviderHealthSummary(): ProviderStatus[] {
-  const db = getDb();
-  db.exec(`
+export async function getProviderHealthSummary(): Promise<ProviderStatus[]> {
+  const db = getAdapter();
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS provider_health (
       provider TEXT PRIMARY KEY,
       healthy INTEGER NOT NULL DEFAULT 1,
@@ -30,13 +30,13 @@ export function getProviderHealthSummary(): ProviderStatus[] {
       error TEXT
     )
   `);
-  const rows = db.prepare('SELECT * FROM provider_health ORDER BY provider').all() as Array<{
+  const rows = await db.all<{
     provider: string;
     healthy: number;
     last_checked: string;
     latency_ms: number;
     error: string | null;
-  }>;
+  }>('SELECT * FROM provider_health ORDER BY provider');
   if (rows.length === 0) {
     return [
       { provider: 'Groq', healthy: true, lastChecked: new Date().toISOString(), latencyMs: 0 },

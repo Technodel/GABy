@@ -17,7 +17,7 @@
  * Settings key: user_{id}_cross_project_learning_enabled
  */
 
-import { getDb } from './db';
+import { getAdapter } from './db';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -38,9 +38,9 @@ export interface SharedPattern {
 
 // ── DB initialization ─────────────────────────────────────────────────────────
 
-export function initializeCrossProjectTable(): void {
-  const db = getDb();
-  db.exec(`
+export async function initializeCrossProjectTable(): Promise<void> {
+  const db = await getAdapter();
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS shared_patterns (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
@@ -66,11 +66,12 @@ export function initializeCrossProjectTable(): void {
 
 // ── Check if cross-project learning is enabled for a user ─────────────────────
 
-export function isCrossProjectLearningEnabled(userId: number): boolean {
-  const db = getDb();
-  const row = db.prepare(
-    "SELECT value FROM app_settings WHERE key = ?"
-  ).get(`user_${userId}_cross_project_learning_enabled`) as { value: string } | undefined;
+export async function isCrossProjectLearningEnabled(userId: number): Promise<boolean> {
+  const db = await getAdapter();
+  const row = await db.get(
+    "SELECT value FROM app_settings WHERE key = ?",
+    [`user_${userId}_cross_project_learning_enabled`],
+  ) as { value: string } | undefined;
   return row?.value === 'true';
 }
 
@@ -80,7 +81,7 @@ export function isCrossProjectLearningEnabled(userId: number): boolean {
  * Extract a generalizable error pattern from a failure memory entry and
  * store it in the shared patterns pool.
  */
-export function shareErrorPattern(entry: {
+export async function shareErrorPattern(entry: {
   userId: number;
   projectId: number;
   projectName: string;
@@ -89,83 +90,88 @@ export function shareErrorPattern(entry: {
   attemptedFix: string;
   fixSucceeded: boolean;
   recurrenceCount: number;
-}): SharedPattern | null {
-  if (!isCrossProjectLearningEnabled(entry.userId)) return null;
+}): Promise<SharedPattern | null> {
+  if (!(await isCrossProjectLearningEnabled(entry.userId))) return null;
   if (!entry.fixSucceeded) return null;
   if (entry.recurrenceCount < 2) return null; // need at least 2 occurrences to be a pattern
 
-  const db = getDb();
+  const db = await getAdapter();
   const normalizedPattern = entry.errorPattern;
   const key = `err:${normalizedPattern.slice(0, 80)}`;
 
   // Check if this pattern already exists
-  const existing = db.prepare(
-    'SELECT id, application_count, confidence FROM shared_patterns WHERE user_id = ? AND pattern_key = ?'
-  ).get(entry.userId, key) as SharedPattern | undefined;
+  const existing = await db.get(
+    'SELECT id, application_count, confidence FROM shared_patterns WHERE user_id = ? AND pattern_key = ?',
+    [entry.userId, key],
+  ) as SharedPattern | undefined;
 
   if (existing) {
     // Increment confidence and application count
     const newConfidence = Math.min(1.0, existing.confidence + 0.1);
-    db.prepare(`
-      UPDATE shared_patterns
+    await db.run(
+      `UPDATE shared_patterns
       SET confidence = ?, application_count = application_count + 1, last_applied_at = datetime('now')
-      WHERE id = ?
-    `).run(newConfidence, existing.id);
+      WHERE id = ?`,
+      [newConfidence, existing.id],
+    );
     return { ...existing, confidence: newConfidence, applicationCount: existing.application_count + 1 };
   }
 
   // Create new shared pattern
-  const result = db.prepare(`
-    INSERT INTO shared_patterns (user_id, source_project_id, source_project_name, pattern_type, pattern_key, pattern_summary, pattern_detail, confidence, application_count)
-    VALUES (?, ?, ?, 'error_fix', ?, ?, ?, ?, 1)
-  `).run(
-    entry.userId,
-    entry.projectId,
-    entry.projectName.slice(0, 100),
-    key,
-    `Failed with: ${normalizedPattern.slice(0, 150)}`,
-    entry.attemptedFix.slice(0, 500),
-    Math.min(0.9, 0.3 + entry.recurrenceCount * 0.15),
+  const result = await db.run(
+    `INSERT INTO shared_patterns (user_id, source_project_id, source_project_name, pattern_type, pattern_key, pattern_summary, pattern_detail, confidence, application_count)
+    VALUES (?, ?, ?, 'error_fix', ?, ?, ?, ?, 1)`,
+    [
+      entry.userId,
+      entry.projectId,
+      entry.projectName.slice(0, 100),
+      key,
+      `Failed with: ${normalizedPattern.slice(0, 150)}`,
+      entry.attemptedFix.slice(0, 500),
+      Math.min(0.9, 0.3 + entry.recurrenceCount * 0.15),
+    ],
   );
 
-  return db.prepare('SELECT * FROM shared_patterns WHERE id = ?').get(result.lastInsertRowid) as SharedPattern;
+  return await db.get('SELECT * FROM shared_patterns WHERE id = ?', [result.lastInsertRowid]) as SharedPattern;
 }
 
 /**
  * Extract a generalizable design decision from a blueprint entry.
  */
-export function shareDesignDecision(entry: {
+export async function shareDesignDecision(entry: {
   userId: number;
   projectId: number;
   projectName: string;
   category: string;
   summary: string;
   details: string | null;
-}): SharedPattern | null {
-  if (!isCrossProjectLearningEnabled(entry.userId)) return null;
+}): Promise<SharedPattern | null> {
+  if (!(await isCrossProjectLearningEnabled(entry.userId))) return null;
   if (!['architecture_change', 'design_decision', 'config_change'].includes(entry.category)) return null;
 
-  const db = getDb();
+  const db = await getAdapter();
   const key = `design:${entry.summary.slice(0, 100)}`;
 
-  const existing = db.prepare(
-    'SELECT id FROM shared_patterns WHERE user_id = ? AND pattern_key = ?'
-  ).get(entry.userId, key) as SharedPattern | undefined;
+  const existing = await db.get(
+    'SELECT id FROM shared_patterns WHERE user_id = ? AND pattern_key = ?',
+    [entry.userId, key],
+  ) as SharedPattern | undefined;
   if (existing) return null; // already recorded
 
-  const result = db.prepare(`
-    INSERT INTO shared_patterns (user_id, source_project_id, source_project_name, pattern_type, pattern_key, pattern_summary, pattern_detail, confidence)
-    VALUES (?, ?, ?, 'design_decision', ?, ?, ?, 0.5)
-  `).run(
-    entry.userId,
-    entry.projectId,
-    entry.projectName.slice(0, 100),
-    key,
-    entry.summary.slice(0, 200),
-    entry.details?.slice(0, 500) ?? '',
+  const result = await db.run(
+    `INSERT INTO shared_patterns (user_id, source_project_id, source_project_name, pattern_type, pattern_key, pattern_summary, pattern_detail, confidence)
+    VALUES (?, ?, ?, 'design_decision', ?, ?, ?, 0.5)`,
+    [
+      entry.userId,
+      entry.projectId,
+      entry.projectName.slice(0, 100),
+      key,
+      entry.summary.slice(0, 200),
+      entry.details?.slice(0, 500) ?? '',
+    ],
   );
 
-  return db.prepare('SELECT * FROM shared_patterns WHERE id = ?').get(result.lastInsertRowid) as SharedPattern;
+  return await db.get('SELECT * FROM shared_patterns WHERE id = ?', [result.lastInsertRowid]) as SharedPattern;
 }
 
 // ── Query shared patterns ─────────────────────────────────────────────────────
@@ -174,21 +180,18 @@ export function shareDesignDecision(entry: {
  * Get all shared patterns for a user that are applicable to a given context.
  * Returns patterns ranked by confidence × relevance.
  */
-export function getRelevantPatterns(userId: number, context?: {
+export async function getRelevantPatterns(userId: number, context?: {
   patternTypes?: string[];
   minConfidence?: number;
   limit?: number;
-}): SharedPattern[] {
-  if (!isCrossProjectLearningEnabled(userId)) return [];
+}): Promise<SharedPattern[]> {
+  if (!(await isCrossProjectLearningEnabled(userId))) return [];
 
-  const db = getDb();
+  const db = await getAdapter();
   const minConfidence = context?.minConfidence ?? 0.3;
   const limit = context?.limit ?? 20;
 
-  let query = `
-    SELECT * FROM shared_patterns
-    WHERE user_id = ? AND confidence >= ?
-  `;
+  let query = `SELECT * FROM shared_patterns WHERE user_id = ? AND confidence >= ?`;
   const params: unknown[] = [userId, minConfidence];
 
   if (context?.patternTypes && context.patternTypes.length > 0) {
@@ -200,7 +203,7 @@ export function getRelevantPatterns(userId: number, context?: {
   query += ' ORDER BY confidence DESC, application_count DESC LIMIT ?';
   params.push(limit);
 
-  return db.prepare(query).all(...params) as SharedPattern[];
+  return await db.all(query, params) as SharedPattern[];
 }
 
 /**
@@ -238,8 +241,8 @@ export interface PersonaUpdateInput {
  * Detect and store user preferences from conversation patterns so they carry
  * across projects. Tracks: verbosity, formality, framework preferences.
  */
-export function updateCrossProjectPersona(input: PersonaUpdateInput): { updated: boolean; reason: string } {
-  const db = getDb();
+export async function updateCrossProjectPersona(input: PersonaUpdateInput): Promise<{ updated: boolean; reason: string }> {
+  const db = await getAdapter();
 
   // Detect verbosity preference: short user messages = prefs conciseness
   const userMsgLen = input.userMessage.length;
@@ -248,20 +251,23 @@ export function updateCrossProjectPersona(input: PersonaUpdateInput): { updated:
   if (userMsgLen < 80 && responseLen > 1500) {
     // User was brief, AI was verbose — might be a pattern
     const key = 'verbosity_preference:' + (userMsgLen < 40 ? 'concise' : 'moderate');
-    const existing = db.prepare(
-      `SELECT id FROM shared_patterns WHERE user_id = ? AND pattern_key = ?`
-    ).get(input.userId, key) as { id: number } | undefined;
+    const existing = await db.get(
+      `SELECT id FROM shared_patterns WHERE user_id = ? AND pattern_key = ?`,
+      [input.userId, key],
+    ) as { id: number } | undefined;
 
     if (!existing) {
-      db.prepare(
+      await db.run(
         `INSERT INTO shared_patterns (user_id, source_project_id, source_project_name, pattern_type, pattern_key, pattern_summary, pattern_detail, confidence)
-         VALUES (?, ?, 'current', 'user_preference', ?, 'User prefers ' || ?, 'Detected from message patterns', 0.5)`,
-      ).run(input.userId, input.projectId ?? 0, key, key === 'verbosity_preference:concise' ? 'concise responses' : 'moderate detail');
+         VALUES (?, ?, 'current', 'user_preference', ?, ?, 'Detected from message patterns', 0.5)`,
+        [input.userId, input.projectId ?? 0, key, key === 'verbosity_preference:concise' ? 'concise responses' : 'moderate detail'],
+      );
       return { updated: true, reason: `Detected ${key}` };
     } else {
-      db.prepare(
+      await db.run(
         `UPDATE shared_patterns SET application_count = application_count + 1, confidence = MIN(1.0, confidence + 0.05) WHERE id = ?`,
-      ).run(existing.id);
+        [existing.id],
+      );
       return { updated: true, reason: `Reinforced ${key}` };
     }
   }
@@ -271,20 +277,23 @@ export function updateCrossProjectPersona(input: PersonaUpdateInput): { updated:
   for (const fw of frameworks) {
     if (input.userMessage.toLowerCase().includes(fw)) {
       const key = `framework_pref:${fw}`;
-      const existing = db.prepare(
-        `SELECT id FROM shared_patterns WHERE user_id = ? AND pattern_key = ?`
-      ).get(input.userId, key) as { id: number } | undefined;
+      const existing = await db.get(
+        `SELECT id FROM shared_patterns WHERE user_id = ? AND pattern_key = ?`,
+        [input.userId, key],
+      ) as { id: number } | undefined;
 
       if (!existing) {
-        db.prepare(
+        await db.run(
           `INSERT INTO shared_patterns (user_id, source_project_id, source_project_name, pattern_type, pattern_key, pattern_summary, pattern_detail, confidence)
-           VALUES (?, ?, 'current', 'coding_convention', ?, 'User works with ' || ?, 'Detected from message patterns', 0.6)`,
-        ).run(input.userId, input.projectId ?? 0, key, fw);
+           VALUES (?, ?, 'current', 'coding_convention', ?, ?, 'Detected from message patterns', 0.6)`,
+          [input.userId, input.projectId ?? 0, key, fw],
+        );
         return { updated: true, reason: `Detected framework preference: ${fw}` };
       } else {
-        db.prepare(
+        await db.run(
           `UPDATE shared_patterns SET application_count = application_count + 1, confidence = MIN(1.0, confidence + 0.05) WHERE id = ?`,
-        ).run(existing.id);
+          [existing.id],
+        );
         return { updated: true, reason: `Reinforced framework preference: ${fw}` };
       }
     }
@@ -440,10 +449,10 @@ export function aggregateSharedPatterns(patterns: SharedPattern[]): AggregatedPa
  *
  * Returns empty string if cross-project learning is disabled or no patterns found.
  */
-export function buildCrossProjectPrompt(userId: number): string {
-  if (!isCrossProjectLearningEnabled(userId)) return '';
+export async function buildCrossProjectPrompt(userId: number): Promise<string> {
+  if (!(await isCrossProjectLearningEnabled(userId))) return '';
 
-  const patterns = getRelevantPatterns(userId, {
+  const patterns = await getRelevantPatterns(userId, {
     minConfidence: 0.3,
     limit: 50,     // fetch enough for clustering
   });

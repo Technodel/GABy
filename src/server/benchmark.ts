@@ -5,7 +5,7 @@
  * for performance analysis and regression detection.
  */
 
-import { getDb } from './db';
+import { getAdapter } from './db';
 
 export interface BenchmarkRun {
   id?: number;
@@ -26,9 +26,9 @@ export interface BenchmarkRun {
 /**
  * Record a benchmark run result.
  */
-export function recordBenchmarkRun(run: Omit<BenchmarkRun, 'id' | 'createdAt'>): void {
-  const db = getDb();
-  db.exec(`
+export async function recordBenchmarkRun(run: Omit<BenchmarkRun, 'id' | 'createdAt'>): Promise<void> {
+  const db = getAdapter();
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS benchmark_runs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
@@ -45,13 +45,13 @@ export function recordBenchmarkRun(run: Omit<BenchmarkRun, 'id' | 'createdAt'>):
       created_at TEXT DEFAULT (datetime('now'))
     )
   `);
-  db.prepare(`
+  await db.run(`
     INSERT INTO benchmark_runs (user_id, session_id, task_type, model_id, input_tokens, output_tokens,
        cache_write_tokens, cache_read_tokens, duration_ms, success, error_message)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
+  `, [
     run.userId, run.sessionId, run.taskType, run.modelId,
     run.inputTokens, run.outputTokens, run.cacheWriteTokens, run.cacheReadTokens,
-    run.durationMs, run.success ? 1 : 0, run.errorMessage || null
-  );
+    run.durationMs, run.success ? 1 : 0, run.errorMessage || null,
+  ]);
 }

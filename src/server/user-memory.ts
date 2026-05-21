@@ -11,7 +11,7 @@
 
 import { tool } from 'ai';
 import { z } from 'zod';
-import { getDb } from './db';
+import { getAdapter } from './db';
 
 // -- Tool factory -------------------------------------------------------------
 

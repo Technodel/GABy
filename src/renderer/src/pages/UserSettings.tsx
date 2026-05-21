@@ -28,7 +28,15 @@ interface UserSettingsProps {
 }
 
 export default function UserSettings({ onBack, onLogout, initialSection = 'general', initialNotice = null }: UserSettingsProps) {
-  const [darkMode, setDarkMode] = useState(true);
+  const [uiTheme, setUiTheme] = useState<'matrix' | 'pro'>(() => {
+    try {
+      const saved = localStorage.getItem('suny_ui_theme');
+      if (saved === 'matrix' || saved === 'pro') return saved;
+      return localStorage.getItem('suny_dark_mode') === 'false' ? 'pro' : 'matrix';
+    } catch {
+      return 'matrix';
+    }
+  });
   const [autoApprove, setAutoApprove] = useState(true);
   const [memoryEnabled, setMemoryEnabled] = useState(true);
   const [crossDeviceMemoryEnabled, setCrossDeviceMemoryEnabled] = useState(false);
@@ -82,8 +90,13 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
       .then(r => r.ok ? r.json() : [])
       .then((data: PricingMode[]) => setPricingModes(Array.isArray(data) ? data : []))
       .catch(() => {});
-    const stored = localStorage.getItem('suny_dark_mode');
-    if (stored !== null) setDarkMode(stored !== 'false');
+    const storedTheme = localStorage.getItem('suny_ui_theme');
+    if (storedTheme === 'matrix' || storedTheme === 'pro') {
+      setUiTheme(storedTheme);
+    } else {
+      const storedDark = localStorage.getItem('suny_dark_mode');
+      if (storedDark !== null) setUiTheme(storedDark === 'false' ? 'pro' : 'matrix');
+    }
     const mem = localStorage.getItem('suny_memory_enabled');
     if (mem !== null) setMemoryEnabled(mem !== 'false');
   }, []);
@@ -117,7 +130,7 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        dark_mode: darkMode,
+        dark_mode: uiTheme === 'matrix',
         auto_approve: autoApprove,
         memory_enabled: memoryEnabled,
         cross_device_memory_enabled: crossDeviceMemoryEnabled,
@@ -159,8 +172,10 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
       }
     }
 
-    localStorage.setItem('suny_dark_mode', String(darkMode));
-    document.body.classList.toggle('light-mode', !darkMode);
+    localStorage.setItem('suny_ui_theme', uiTheme);
+    localStorage.setItem('suny_dark_mode', String(uiTheme === 'matrix'));
+    document.body.classList.remove('theme-matrix', 'theme-pro', 'light-mode');
+    document.body.classList.add(uiTheme === 'pro' ? 'theme-pro' : 'theme-matrix');
     localStorage.setItem('suny_memory_enabled', String(memoryEnabled));
     localStorage.setItem('suny_sounds_enabled', String(soundsEnabled));
     localStorage.setItem('suny_visual_effects', String(visualEffects));
@@ -264,14 +279,22 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
           <h3 style={{ fontWeight: 600, marginBottom: 16 }}>🎨 Look & Feel</h3>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
             <div>
-              <div style={{ fontWeight: 500, fontSize: 14 }}>Dark Mode</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Easy on the eyes at night</div>
+              <div style={{ fontWeight: 500, fontSize: 14 }}>Interface Mode</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Choose between Matrix and Pro styles</div>
             </div>
-            <input type="checkbox" className="toggle" checked={darkMode} onChange={e => {
-              const val = e.target.checked;
-              setDarkMode(val);
-              document.body.classList.toggle('light-mode', !val);
-            }} />
+            <select
+              value={uiTheme}
+              onChange={e => {
+                const next = e.target.value === 'pro' ? 'pro' : 'matrix';
+                setUiTheme(next);
+                document.body.classList.remove('theme-matrix', 'theme-pro', 'light-mode');
+                document.body.classList.add(next === 'pro' ? 'theme-pro' : 'theme-matrix');
+              }}
+              style={{ maxWidth: 180 }}
+            >
+              <option value="matrix">Matrix (Dark Green)</option>
+              <option value="pro">Pro (Gemini-Inspired)</option>
+            </select>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
             <div>

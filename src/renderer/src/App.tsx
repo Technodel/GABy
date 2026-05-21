@@ -19,11 +19,21 @@ import PricingPlans from './pages/PricingPlans';
 
 type AuthState = 'loading' | 'user' | 'admin' | 'none';
 
-// Apply saved theme immediately (before first paint)
-function applyTheme(dark: boolean) {
-  document.body.classList.toggle('light-mode', !dark);
+type UITheme = 'matrix' | 'pro';
+
+function getSavedTheme(): UITheme {
+  const saved = localStorage.getItem('suny_ui_theme');
+  if (saved === 'matrix' || saved === 'pro') return saved;
+  // Backward compatibility: migrate old dark-mode boolean to theme.
+  return localStorage.getItem('suny_dark_mode') === 'false' ? 'pro' : 'matrix';
 }
-applyTheme(localStorage.getItem('suny_dark_mode') !== 'false');
+
+// Apply saved theme immediately (before first paint)
+function applyTheme(theme: UITheme) {
+  document.body.classList.remove('theme-matrix', 'theme-pro', 'light-mode');
+  document.body.classList.add(theme === 'pro' ? 'theme-pro' : 'theme-matrix');
+}
+applyTheme(getSavedTheme());
 
 function AppRoutes() {
   const [auth, setAuth] = useState<AuthState>('loading');

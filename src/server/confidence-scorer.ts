@@ -10,7 +10,7 @@
  * DB table: confidence_log
  */
 
-import { getDb } from './db';
+import { getAdapter } from './db';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -50,9 +50,9 @@ export const CONFIDENCE_THRESHOLDS = {
 
 // ── DB initialization ─────────────────────────────────────────────────────────
 
-export function initializeConfidenceTable(): void {
-  const db = getDb();
-  db.exec(`
+export async function initializeConfidenceTable(): Promise<void> {
+  const db = await getAdapter();
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS confidence_log (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       turn_index INTEGER NOT NULL,
@@ -81,7 +81,7 @@ export function initializeConfidenceTable(): void {
  * Record a confidence report after an agent turn.
  * Returns the escalation recommendation (if any).
  */
-export function recordConfidence(input: {
+export async function recordConfidence(input: {
   turnIndex: number;
   userId: number;
   projectId: number;
@@ -89,8 +89,8 @@ export function recordConfidence(input: {
   confidence: number;
   uncertainties?: string[];
   currentMode?: string;
-}): { escalationNeeded: boolean; escalateTo?: string; flagForReview: boolean } {
-  const db = getDb();
+}): Promise<{ escalationNeeded: boolean; escalateTo?: string; flagForReview: boolean }> {
+  const db = await getAdapter();
   const clampedConfidence = Math.max(0, Math.min(1, input.confidence));
   const uncertainties = input.uncertainties || [];
   const escalationNeeded = clampedConfidence < CONFIDENCE_THRESHOLDS.ESCALATE;
@@ -105,17 +105,18 @@ export function recordConfidence(input: {
     }
   }
 
-  db.prepare(`
-    INSERT INTO confidence_log
+  await db.run(
+    `INSERT INTO confidence_log
       (turn_index, user_id, project_id, session_id, confidence, uncertainties,
        escalation_needed, escalated_from, escalated_to)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    input.turnIndex, input.userId, input.projectId, input.sessionId,
-    clampedConfidence, JSON.stringify(uncertainties),
-    escalationNeeded ? 1 : 0,
-    escalationNeeded ? input.currentMode || null : null,
-    escalateTo || null,
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      input.turnIndex, input.userId, input.projectId, input.sessionId,
+      clampedConfidence, JSON.stringify(uncertainties),
+      escalationNeeded ? 1 : 0,
+      escalationNeeded ? input.currentMode || null : null,
+      escalateTo || null,
+    ],
   );
 
   return { escalationNeeded, escalateTo, flagForReview };
@@ -124,30 +125,32 @@ export function recordConfidence(input: {
 /**
  * Mark an escalation as resolved (the stronger model fixed the uncertainty).
  */
-export function markEscalationResolved(
+export async function markEscalationResolved(
   userId: number,
   sessionId: string,
   turnIndex: number,
-): void {
-  const db = getDb();
-  db.prepare(`
-    UPDATE confidence_log SET escalation_resolved = 1
-    WHERE user_id = ? AND session_id = ? AND turn_index = ? AND escalation_needed = 1
-  `).run(userId, sessionId, turnIndex);
+): Promise<void> {
+  const db = await getAdapter();
+  await db.run(
+    `UPDATE confidence_log SET escalation_resolved = 1
+    WHERE user_id = ? AND session_id = ? AND turn_index = ? AND escalation_needed = 1`,
+    [userId, sessionId, turnIndex],
+  );
 }
 
 /**
  * Get confidence stats for a user/project.
  */
-export function getConfidenceStats(userId: number, projectId: number): ConfidenceStats {
-  const db = getDb();
-  const rows = db.prepare(`
-    SELECT confidence, escalation_needed, escalation_resolved, uncertainties
+export async function getConfidenceStats(userId: number, projectId: number): Promise<ConfidenceStats> {
+  const db = await getAdapter();
+  const rows = await db.all(
+    `SELECT confidence, escalation_needed, escalation_resolved, uncertainties
     FROM confidence_log
     WHERE user_id = ? AND project_id = ?
     ORDER BY created_at DESC
-    LIMIT 500
-  `).all(userId, projectId) as Array<{
+    LIMIT 500`,
+    [userId, projectId],
+  ) as Array<{
     confidence: number; escalation_needed: number; escalation_resolved: number; uncertainties: string;
   }>;
 
@@ -194,8 +197,8 @@ export function getConfidenceStats(userId: number, projectId: number): Confidenc
 /**
  * Format confidence context for the agent prompt.
  */
-export function formatConfidenceContext(userId: number, projectId: number): string {
-  const stats = getConfidenceStats(userId, projectId);
+export async function formatConfidenceContext(userId: number, projectId: number): Promise<string> {
+  const stats = await getConfidenceStats(userId, projectId);
   if (stats.totalTurns === 0) return '';
 
   return [
@@ -227,14 +230,15 @@ List specific things you're unsure about (if any). Be honest — low confidence 
 /**
  * Determine if escalation is trending (last N turns show declining confidence).
  */
-export function isEscalationTrending(userId: number, projectId: number, lookback: number = 5): boolean {
-  const db = getDb();
-  const rows = db.prepare(`
-    SELECT confidence FROM confidence_log
+export async function isEscalationTrending(userId: number, projectId: number, lookback: number = 5): Promise<boolean> {
+  const db = await getAdapter();
+  const rows = await db.all(
+    `SELECT confidence FROM confidence_log
     WHERE user_id = ? AND project_id = ?
     ORDER BY created_at DESC
-    LIMIT ?
-  `).all(userId, projectId, lookback) as Array<{ confidence: number }>;
+    LIMIT ?`,
+    [userId, projectId, lookback],
+  ) as Array<{ confidence: number }>;
 
   if (rows.length < 3) return false;
 

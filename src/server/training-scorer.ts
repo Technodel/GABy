@@ -16,7 +16,7 @@
 
 import { generateText } from 'ai';
 import type { LanguageModel } from 'ai';
-import { getDb } from './db';
+import { getAdapter } from './db';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -53,9 +53,9 @@ export interface TrainingScorerInput {
 
 // ── DB initialization ─────────────────────────────────────────────────────────
 
-export function initializeTrainingScorerTable(): void {
-  const db = getDb();
-  db.exec(`
+export async function initializeTrainingScorerTable(): Promise<void> {
+  const db = await getAdapter();
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS training_scores (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
@@ -220,7 +220,7 @@ Based on the criteria in the system prompt, score this execution.`;
 
 // ── Record a training score in the DB ─────────────────────────────────────────
 
-export function recordTrainingScore(entry: {
+export async function recordTrainingScore(entry: {
   userId: number;
   projectId: number | null;
   sessionId: string;
@@ -234,29 +234,30 @@ export function recordTrainingScore(entry: {
   total: number;
   lesson: string;
   category: string;
-}): void {
-  const db = getDb();
-  db.prepare(`
-    INSERT INTO training_scores (
+}): Promise<void> {
+  const db = await getAdapter();
+  await db.run(
+    `INSERT INTO training_scores (
       user_id, project_id, session_id, task_mode, turn_index,
       rubric_correctness, rubric_completeness, rubric_safety,
       rubric_efficiency, rubric_style, rubric_total,
       extracted_lesson, lesson_category
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    entry.userId,
-    entry.projectId,
-    entry.sessionId,
-    entry.taskMode,
-    entry.turnIndex,
-    entry.correctness,
-    entry.completeness,
-    entry.safety,
-    entry.efficiency,
-    entry.style,
-    entry.total,
-    entry.lesson,
-    entry.category,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      entry.userId,
+      entry.projectId,
+      entry.sessionId,
+      entry.taskMode,
+      entry.turnIndex,
+      entry.correctness,
+      entry.completeness,
+      entry.safety,
+      entry.efficiency,
+      entry.style,
+      entry.total,
+      entry.lesson,
+      entry.category,
+    ],
   );
 }
 
@@ -286,7 +287,7 @@ export async function scoreAgentTurn(
     const scores = await evaluateWithJudge(input, null);
     if (!scores) return;
 
-    recordTrainingScore({
+    await recordTrainingScore({
       userId,
       projectId,
       sessionId,
@@ -310,7 +311,7 @@ export async function scoreAgentTurn(
 /**
  * Get the average scores for a user across all scored tasks.
  */
-export function getTrainingSummary(userId: number): {
+export async function getTrainingSummary(userId: number): Promise<{
   totalScored: number;
   avgCorrectness: number;
   avgCompleteness: number;
@@ -322,11 +323,12 @@ export function getTrainingSummary(userId: number): {
   mistakeCount: number;
   neutralCount: number;
   recentLessons: string[];
-} {
-  const db = getDb();
-  const rows = db.prepare(
+}> {
+  const db = await getAdapter();
+  const rows = await db.all(
     'SELECT * FROM training_scores WHERE user_id = ? ORDER BY created_at',
-  ).all(userId) as TrainingScore[];
+    [userId],
+  ) as TrainingScore[];
 
   if (rows.length === 0) {
     return {

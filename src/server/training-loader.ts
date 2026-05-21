@@ -17,6 +17,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { getAdapter } from './db';
 import { getRelevantRules, formatBehavioralRules } from './behavioral-rules';
 import { isFeatureEnabled } from './feature-flags';
 
@@ -106,10 +107,10 @@ function loadInjectionFiles(filePaths: string[]): { blocks: string[]; loaded: nu
 
 // ── Main loader — call this to get formatted prompt blocks ───────────────────
 
-export function loadTrainingAndRules(options: {
+export async function loadTrainingAndRules(options: {
   userId: number;
   projectRoot?: string;
-}): TrainingLoadResult {
+}): Promise<TrainingLoadResult> {
   const result: TrainingLoadResult = {
     injectionBlocks: [],
     behavioralBlock: null,
@@ -131,7 +132,8 @@ export function loadTrainingAndRules(options: {
   // 2. Load behavioral rules from DB (feature-gated)
   if (isFeatureEnabled('ff_behavioral_rules')) {
     try {
-      const rules = getRelevantRules(options.userId, { minConfidence: 0.4, limit: 10 });
+      const db = await getAdapter();
+      const rules = await getRelevantRules(db, options.userId, { minConfidence: 0.4, limit: 10 });
       if (rules.length > 0) {
         result.behavioralBlock = formatBehavioralRules(rules);
         console.log(`[training-loader] Loaded ${rules.length} behavioral rules for user ${options.userId}`);

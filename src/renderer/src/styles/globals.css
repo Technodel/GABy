@@ -18,33 +18,31 @@
   --shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
   --radius: 6px;
   --radius-sm: 4px;
+  --font-ui: 'IBM Plex Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
 }
 
-/* Light mode overrides */
-body.light-mode {
-  --bg: #f2f6f1;
+body.theme-matrix {
+  --font-ui: 'IBM Plex Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
+}
+
+/* Pro mode: Gemini-inspired, clean and modern with cool blue accents. */
+body.theme-pro {
+  --bg: #eef3ff;
   --bg-elevated: #ffffff;
-  --surface: #f9fbf8;
-  --surface-2: #eef4ef;
-  --border: #cad7cd;
-  --border-strong: #7fa08e;
-  --accent: #0b7f43;
-  --accent-hover: #0a6c39;
-  --success: #0b7f43;
-  --warning: #8a6d00;
-  --error: #b42318;
-  --text-primary: #0d1912;
-  --text-secondary: #496055;
-  --text-muted: #6c8479;
-  --shadow: 0 18px 40px rgba(13, 25, 18, 0.08);
-}
-
-/* Light mode: remove dark overlay effects */
-body.light-mode::before {
-  opacity: 0 !important;
-}
-body.light-mode::after {
-  opacity: 0 !important;
+  --surface: #f9fbff;
+  --surface-2: #f1f6ff;
+  --border: #d6e0f7;
+  --border-strong: #9fb6ea;
+  --accent: #2f6dff;
+  --accent-hover: #2158d8;
+  --success: #0a8d67;
+  --warning: #8f6900;
+  --error: #be2f2f;
+  --text-primary: #0f1930;
+  --text-secondary: #3d517f;
+  --text-muted: #6d7fa8;
+  --shadow: 0 20px 48px rgba(36, 58, 117, 0.10);
+  --font-ui: 'Manrope', 'Plus Jakarta Sans', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 *, *::before, *::after {
@@ -59,7 +57,7 @@ html, body, #root {
 }
 
 body {
-  font-family: 'IBM Plex Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
+  font-family: var(--font-ui);
   background: var(--bg);
   color: var(--text-primary);
   font-size: 14px;
@@ -92,6 +90,20 @@ body::after {
   opacity: 0.12;
   mix-blend-mode: screen;
   z-index: 0;
+}
+
+body.theme-pro::before {
+  background:
+    radial-gradient(circle at top left, rgba(47, 109, 255, 0.12), transparent 40%),
+    radial-gradient(circle at bottom right, rgba(20, 189, 165, 0.10), transparent 38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.08));
+}
+
+body.theme-pro::after {
+  background-image: linear-gradient(rgba(47, 109, 255, 0.035) 1px, transparent 1px);
+  background-size: 100% 10px;
+  opacity: 0.18;
+  mix-blend-mode: normal;
 }
 
 #root {

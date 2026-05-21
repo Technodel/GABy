@@ -7,7 +7,7 @@
  * the admin dashboard at GET /api/admin/metrics.
  */
 
-import { getDb } from './db';
+import { getAdapter } from './db';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -36,14 +36,15 @@ export interface TurnRecord {
  * Record a single agent turn outcome.  Call this at the end of every turn,
  * both on success and in the error catch block in index.ts.
  */
-export function recordAgentTurn(rec: TurnRecord): void {
+export async function recordAgentTurn(rec: TurnRecord): Promise<void> {
   try {
-    getDb().prepare(`
+    const db = getAdapter();
+    await db.run(`
       INSERT INTO agent_turn_metrics
         (user_id, session_id, project_id, mode, tool_calls,
          input_tokens, output_tokens, cost_usd, success, error_category, duration_ms)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
+    `, [
       rec.userId,
       rec.sessionId,
       rec.projectId ?? null,
@@ -55,7 +56,7 @@ export function recordAgentTurn(rec: TurnRecord): void {
       rec.success ? 1 : 0,
       rec.errorCategory ?? null,
       rec.durationMs,
-    );
+    ]);
   } catch {
     // Metrics must never crash the server — swallow silently
   }
@@ -64,11 +65,11 @@ export function recordAgentTurn(rec: TurnRecord): void {
 // ── Read ──────────────────────────────────────────────────────────────────
 
 /** Overall platform health for the last N days */
-export function getAgentMetricsSummary(days = 7) {
-  const db = getDb();
+export async function getAgentMetricsSummary(days = 7) {
+  const db = getAdapter();
   const since = `datetime('now', '-${days} days')`;
 
-  const overall = db.prepare(`
+  const overall = await db.get<Record<string, number | null>>(`
     SELECT
       COUNT(*)                                     AS total_turns,
       SUM(success)                                 AS successful_turns,
@@ -81,9 +82,9 @@ export function getAgentMetricsSummary(days = 7) {
       ROUND(AVG(cost_usd), 8)                      AS avg_cost_per_turn
     FROM agent_turn_metrics
     WHERE ts >= ${since}
-  `).get() as Record<string, number | null>;
+  `) ?? {};
 
-  const byMode = db.prepare(`
+  const byMode = await db.all<Record<string, unknown>>(`
     SELECT
       mode,
       COUNT(*)                                     AS turns,
@@ -95,9 +96,9 @@ export function getAgentMetricsSummary(days = 7) {
     WHERE ts >= ${since}
     GROUP BY mode
     ORDER BY turns DESC
-  `).all() as Array<Record<string, unknown>>;
+  `);
 
-  const byError = db.prepare(`
+  const byError = await db.all<Record<string, unknown>>(`
     SELECT
       COALESCE(error_category, 'none') AS error_category,
       COUNT(*)                         AS count
@@ -105,9 +106,9 @@ export function getAgentMetricsSummary(days = 7) {
     WHERE ts >= ${since} AND success = 0
     GROUP BY error_category
     ORDER BY count DESC
-  `).all() as Array<Record<string, unknown>>;
+  `);
 
-  const dailyTrend = db.prepare(`
+  const dailyTrend = await db.all<Record<string, unknown>>(`
     SELECT
       DATE(ts)                                     AS day,
       COUNT(*)                                     AS turns,
@@ -118,10 +119,10 @@ export function getAgentMetricsSummary(days = 7) {
     WHERE ts >= ${since}
     GROUP BY DATE(ts)
     ORDER BY day ASC
-  `).all() as Array<Record<string, unknown>>;
+  `);
 
   // Active users with their per-user stats
-  const topUsers = db.prepare(`
+  const topUsers = await db.all<Record<string, unknown>>(`
     SELECT
       u.username,
       COUNT(*)                                     AS turns,
@@ -134,14 +135,15 @@ export function getAgentMetricsSummary(days = 7) {
     GROUP BY atm.user_id
     ORDER BY turns DESC
     LIMIT 20
-  `).all() as Array<Record<string, unknown>>;
+  `);
 
   return { overall, byMode, byError, dailyTrend, topUsers, days };
 }
 
 /** Recent individual turns (last 100) for live monitoring */
-export function getRecentTurns(limit = 100) {
-  return getDb().prepare(`
+export async function getRecentTurns(limit = 100) {
+  const db = getAdapter();
+  return db.all<Record<string, unknown>>(`
     SELECT
       atm.id,
       u.username,
@@ -158,5 +160,5 @@ export function getRecentTurns(limit = 100) {
     JOIN users u ON u.id = atm.user_id
     ORDER BY atm.ts DESC
     LIMIT ?
-  `).all(limit) as Array<Record<string, unknown>>;
+  `, [limit]);
 }

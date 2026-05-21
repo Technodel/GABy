@@ -10,7 +10,7 @@
 
 import { Request, Response } from 'express';
 import promClient from 'prom-client';
-import { getDb } from './db';
+import { getAdapter } from './db';
 import { getGlobalQueueStats } from './user-queue';
 
 // ── Registry ──────────────────────────────────────────────────────────────────
@@ -98,12 +98,12 @@ const userQueueQueuedGauge = new promClient.Gauge({
 let lastRefresh = 0;
 const REFRESH_INTERVAL_MS = 15_000; // refresh from DB every 15s
 
-function refreshMetrics(): void {
-  const db = getDb();
+async function refreshMetrics(): Promise<void> {
+  const db = getAdapter();
   const since = "datetime('now', '-7 days')";
 
   // Per-mode stats
-  const byMode = db.prepare(`
+  const byMode = await db.all<Record<string, unknown>>(`
     SELECT
       mode,
       COUNT(*)                                     AS turns,
@@ -114,7 +114,7 @@ function refreshMetrics(): void {
     FROM agent_turn_metrics
     WHERE ts >= ${since}
     GROUP BY mode
-  `).all() as Array<Record<string, unknown>>;
+  `);
 
   for (const row of byMode) {
     const mode = String(row.mode);
@@ -126,50 +126,50 @@ function refreshMetrics(): void {
   }
 
   // Error categories
-  const byError = db.prepare(`
+  const byError = await db.all<Record<string, unknown>>(`
     SELECT COALESCE(error_category, 'none') AS category, COUNT(*) AS count
     FROM agent_turn_metrics
     WHERE ts >= ${since} AND success = 0
     GROUP BY error_category
-  `).all() as Array<Record<string, unknown>>;
+  `);
 
   for (const row of byError) {
     errorCountGauge.set({ category: String(row.category) }, Number(row.count));
   }
 
   // Token usage (aggregate from usage_log)
-  const tokenUsage = db.prepare(`
+  const tokenUsage = await db.get<{ input: number; output: number }>(`
     SELECT
       COALESCE(SUM(input_tokens), 0)  AS input,
       COALESCE(SUM(output_tokens), 0) AS output
     FROM usage_log
     WHERE created_at >= ${since}
-  `).get() as { input: number; output: number };
+  `) ?? { input: 0, output: 0 };
 
   tokenUsageGauge.set({ type: 'input' }, tokenUsage.input);
   tokenUsageGauge.set({ type: 'output' }, tokenUsage.output);
 
   // Step exhaustion — count completed turns where steps >= 24 (MAX_STEPS)
-  const exhausted = db.prepare(`
+  const exhausted = await db.get<{ count: number }>(`
     SELECT COUNT(*) AS count FROM agent_turn_metrics
     WHERE ts >= ${since}
-  `).get() as { count: number };
+  `) ?? { count: 0 };
   // Approximate: we don't store steps exhausted in agent_turn_metrics directly
   // Use 0-tool-call failures as a proxy
-  const zeroToolFailures = db.prepare(`
+  const zeroToolFailures = await db.get<{ count: number }>(`
     SELECT COUNT(*) AS count FROM agent_turn_metrics
     WHERE ts >= ${since} AND tool_calls = 0 AND success = 0
-  `).get() as { count: number };
+  `) ?? { count: 0 };
   stepsExhaustedGauge.set(zeroToolFailures.count);
 
   // Hypothesis win rate — counting ratio of positive scores from hypothesis_runs
-  const hypStats = db.prepare(`
+  const hypStats = await db.get<{ total: number; high_score: number }>(`
     SELECT
       COUNT(*) AS total,
       SUM(CASE WHEN score > 50 THEN 1 ELSE 0 END) AS high_score
     FROM hypothesis_runs
     WHERE completed_at >= ${since}
-  `).get() as { total: number; high_score: number };
+  `) ?? { total: 0, high_score: 0 };
   if (hypStats.total > 0) {
     hypotheisWinRateGauge.set(hypStats.high_score / hypStats.total * 100);
   }
@@ -182,12 +182,12 @@ function refreshMetrics(): void {
 
 // ── Express handler ───────────────────────────────────────────────────────────
 
-export function prometheusMetricsHandler(_req: Request, res: Response): void {
+export async function prometheusMetricsHandler(_req: Request, res: Response): Promise<void> {
   // Refresh data from DB if interval has elapsed
   const now = Date.now();
   if (now - lastRefresh > REFRESH_INTERVAL_MS) {
     try {
-      refreshMetrics();
+      await refreshMetrics();
       lastRefresh = now;
     } catch (e) {
       console.warn('[prometheus] metrics refresh failed:', (e as Error).message);

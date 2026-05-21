@@ -60,7 +60,7 @@ registerTaskHandler('echo', async (ctx) => {
 
 registerTaskHandler('health_report', async (ctx) => {
   const { getProviderHealthSummary } = await import('./provider-health');
-  const summary = getProviderHealthSummary(1);
+  const summary = await getProviderHealthSummary();
   const failing = summary.filter(s => s.score < 50);
   console.log(
     `[task-worker] health_report #${ctx.id}: ${summary.length} providers, ` +
