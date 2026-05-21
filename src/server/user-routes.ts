@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
-import { requireAuth, AuthRequest } from './auth';
+import { requireAuth, AuthRequest, signToken, verifyToken } from './auth';
 import { getDb } from './db';
 import { hasSufficientBalance, getUserBalance, friendlySessionLimit, deductUsage, transferToWallet } from './billing';
 import { isBridgeConnected, sendToBridge } from './bridge-manager';
@@ -377,12 +377,20 @@ interface PricingRow {
 }
 
 // ── Bridge token (for BridgeSetup page) ───────────────────────────────────────
-// Returns the same JWT already in the cookie so the bridge CLI can use it.
-// Since it's httpOnly, the frontend can't read the cookie directly.
+// Issues a long-lived (1 year) JWT scoped for bridge use. The frontend can't
+// read the httpOnly cookie directly, and the user's session token would expire
+// in hours — neither is good UX for a background bridge process. Instead we
+// mint a fresh long-lived token tied to the authenticated user.
 router.get('/bridge-token', (req: Request, res: Response) => {
-  const token = req.cookies?.suny_token;
-  if (!token) { res.status(401).json({ error: 'Not authenticated' }); return; }
-  res.json({ token });
+  const sessionToken = req.cookies?.suny_token;
+  if (!sessionToken) { res.status(401).json({ error: 'Not authenticated' }); return; }
+  const payload = verifyToken(sessionToken);
+  if (!payload) { res.status(401).json({ error: 'Invalid session' }); return; }
+  const bridgeToken = signToken(
+    { id: payload.id, username: payload.username, role: payload.role },
+    '365d',
+  );
+  res.json({ token: bridgeToken });
 });
 
 // ── Launch a local terminal with the bridge install command pre-loaded ─────────
