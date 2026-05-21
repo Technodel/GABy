@@ -19,19 +19,21 @@ import PricingPlans from './pages/PricingPlans';
 
 type AuthState = 'loading' | 'user' | 'admin' | 'none';
 
-type UITheme = 'matrix' | 'pro';
+type UITheme = 'matrix' | 'pro' | 'suny';
 
 function getSavedTheme(): UITheme {
   const saved = localStorage.getItem('suny_ui_theme');
-  if (saved === 'matrix' || saved === 'pro') return saved;
+  if (saved === 'matrix' || saved === 'pro' || saved === 'suny') return saved;
   // Backward compatibility: migrate old dark-mode boolean to theme.
   return localStorage.getItem('suny_dark_mode') === 'false' ? 'pro' : 'matrix';
 }
 
 // Apply saved theme immediately (before first paint)
 function applyTheme(theme: UITheme) {
-  document.body.classList.remove('theme-matrix', 'theme-pro', 'light-mode');
-  document.body.classList.add(theme === 'pro' ? 'theme-pro' : 'theme-matrix');
+  document.body.classList.remove('theme-matrix', 'theme-pro', 'theme-suny', 'light-mode');
+  if (theme === 'pro') document.body.classList.add('theme-pro');
+  else if (theme === 'suny') document.body.classList.add('theme-suny');
+  else document.body.classList.add('theme-matrix');
 }
 applyTheme(getSavedTheme());
 

@@ -8,11 +8,13 @@
       (function () {
         try {
           var saved = localStorage.getItem('suny_ui_theme');
-          var theme = (saved === 'pro' || saved === 'matrix')
+          var theme = (saved === 'pro' || saved === 'matrix' || saved === 'suny')
             ? saved
             : (localStorage.getItem('suny_dark_mode') === 'false' ? 'pro' : 'matrix');
           document.documentElement.dataset.theme = theme;
-          document.documentElement.classList.add(theme === 'pro' ? 'theme-pro' : 'theme-matrix');
+          if (theme === 'pro') document.documentElement.classList.add('theme-pro');
+          else if (theme === 'suny') document.documentElement.classList.add('theme-suny');
+          else document.documentElement.classList.add('theme-matrix');
         } catch (_) {}
       })();
     </script>

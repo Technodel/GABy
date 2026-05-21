@@ -1753,22 +1753,34 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       }, maxTurnMs);
       let result;
       try {
-        result = await withUserQueue(userId, () => runAgentLoop({
-        userId,
-        mode: effectiveMode,
-        systemPrompt: systemLines.join('\n'),
-        projectId,
-        projectPath,
-        history,
-        userMessage: msg.message as string,
-        imageData: msg.imageData as string | undefined,
-        sessionId,
-        talkMode,
-        signal: currentAbortController.signal,
-        onChunk: (chunk) => {
-          userClientManager.pushChatContent(userId, 'suny:stream_chunk', { chunk });
-        },
+        const runLoop = () => withUserQueue(userId, () => runAgentLoop({
+          userId,
+          mode: effectiveMode,
+          systemPrompt: systemLines.join('\n'),
+          projectId,
+          projectPath,
+          history,
+          userMessage: msg.message as string,
+          imageData: msg.imageData as string | undefined,
+          sessionId,
+          talkMode,
+          signal: currentAbortController.signal,
+          onChunk: (chunk) => {
+            userClientManager.pushChatContent(userId, 'suny:stream_chunk', { chunk });
+          },
         }));
+
+        try {
+          result = await runLoop();
+        } catch (loopErr) {
+          const loopMsg = loopErr instanceof Error ? loopErr.message : String(loopErr);
+          if (loopMsg.toLowerCase().includes('await is not defined')) {
+            console.warn('[chat:retry] Retrying once after await-reference error');
+            result = await runLoop();
+          } else {
+            throw loopErr;
+          }
+        }
       } finally {
         clearTimeout(turnTimeout);
         stopDidYouKnow();
@@ -2090,6 +2102,10 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       if (errMsg.toLowerCase().includes('fetch failed') || errMsg.toLowerCase().includes('timeout') || errMsg.toLowerCase().includes('econn')) {
         friendly = 'AI provider is temporarily unavailable right now. Please retry in a few seconds.';
         errorCategory = 'api_error';
+      }
+      if (errMsg.toLowerCase().includes('await is not defined')) {
+        friendly = 'I hit a temporary execution issue while scanning. Please try again now — SUNy will continue normally.';
+        errorCategory = 'runtime';
       }
       if (errMsg.toLowerCase().includes('insufficient')) { friendly = pickRandom('no_balance', "You're out of credits! Reach out and we'll top you right up 😊"); errorCategory = 'credits'; }
       if (errMsg.toLowerCase().includes('rate') && errMsg.toLowerCase().includes('limit')) { errorCategory = 'rate_limit'; }

@@ -1806,6 +1806,9 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
               >
                 <GitBranch size={15} />
               </button>
+              <span style={{ fontSize: 10, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                Fork = save snapshot
+              </span>
             </>
           )}
           {forkList.length > 0 && (

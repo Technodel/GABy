@@ -25,6 +25,27 @@ body.theme-matrix {
   --font-ui: 'IBM Plex Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
 }
 
+/* SUNY mode: matrix DNA with warm yellow/orange "sun" accents. */
+body.theme-suny,
+html.theme-suny {
+  --bg: #120c04;
+  --bg-elevated: #1a1207;
+  --surface: #201608;
+  --surface-2: #271b0a;
+  --border: #4a3214;
+  --border-strong: #7a4e1b;
+  --accent: #ffb833;
+  --accent-hover: #ffd15f;
+  --success: #ffb833;
+  --warning: #ffd666;
+  --error: #ff7a59;
+  --text-primary: #ffe8b8;
+  --text-secondary: #d5b173;
+  --text-muted: #a57f4a;
+  --shadow: 0 18px 60px rgba(0, 0, 0, 0.52);
+  --font-ui: 'IBM Plex Mono', 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
+}
+
 /* Pro mode: clean and modern with cool blue accents. */
 body.theme-pro,
 html.theme-pro {
@@ -102,12 +123,28 @@ html.theme-pro body::before {
     linear-gradient(180deg, rgba(255, 255, 255, 0.32), rgba(255, 255, 255, 0.08));
 }
 
+body.theme-suny::before,
+html.theme-suny body::before {
+  background:
+    radial-gradient(circle at top, rgba(255, 184, 51, 0.16), transparent 35%),
+    radial-gradient(circle at bottom right, rgba(255, 121, 58, 0.11), transparent 33%),
+    linear-gradient(180deg, rgba(255, 210, 120, 0.03), transparent 20%, transparent 80%, rgba(0, 0, 0, 0.22));
+}
+
 body.theme-pro::after,
 html.theme-pro body::after {
   background-image: linear-gradient(rgba(47, 109, 255, 0.035) 1px, transparent 1px);
   background-size: 100% 10px;
   opacity: 0.18;
   mix-blend-mode: normal;
+}
+
+body.theme-suny::after,
+html.theme-suny body::after {
+  background-image: linear-gradient(rgba(255, 184, 51, 0.05) 1px, transparent 1px);
+  background-size: 100% 6px;
+  opacity: 0.18;
+  mix-blend-mode: screen;
 }
 
 body.theme-pro .card,
@@ -258,6 +295,32 @@ html.theme-pro a {
 }
 .btn-primary { background: linear-gradient(180deg, rgba(41,255,122,0.95), rgba(18,173,78,0.95)); color: #041008; border-color: rgba(41,255,122,0.8); box-shadow: 0 0 0 1px rgba(41,255,122,0.12), 0 8px 24px rgba(8, 35, 20, 0.28); }
 .btn-primary:hover { background: linear-gradient(180deg, rgba(70,255,146,0.98), rgba(24,217,100,0.98)); transform: translateY(-1px); }
+
+body.theme-suny .btn-primary,
+html.theme-suny .btn-primary {
+  background: linear-gradient(180deg, rgba(255, 188, 71, 0.98), rgba(255, 138, 48, 0.98));
+  color: #2f1402;
+  border-color: rgba(255, 188, 71, 0.9);
+  box-shadow: 0 0 0 1px rgba(255, 190, 76, 0.20), 0 10px 24px rgba(52, 24, 6, 0.38);
+}
+
+body.theme-suny .btn-primary:hover,
+html.theme-suny .btn-primary:hover {
+  background: linear-gradient(180deg, rgba(255, 208, 108, 0.99), rgba(255, 158, 66, 0.99));
+}
+
+body.theme-suny .badge-purple,
+html.theme-suny .badge-purple {
+  background: rgba(255, 184, 51, 0.12) !important;
+  color: #ffcf78 !important;
+  border-color: rgba(255, 184, 51, 0.25) !important;
+}
+
+body.theme-suny ::selection,
+html.theme-suny ::selection {
+  background: rgba(255, 184, 51, 0.26);
+  color: #fff2d2;
+}
 .btn-secondary { background: rgba(8, 17, 12, 0.92); color: var(--text-primary); border-color: var(--border); box-shadow: inset 0 1px 0 rgba(255,255,255,0.02); }
 .btn-secondary:hover { background: rgba(13, 28, 20, 0.96); border-color: var(--border-strong); transform: translateY(-1px); }
 .btn-danger { background: transparent; color: var(--error); border: 1px solid var(--error); }
