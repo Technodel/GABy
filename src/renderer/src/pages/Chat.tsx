@@ -1281,6 +1281,24 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
   });
 
   useEffect(() => { loadUserData(); loadProjects(); return () => clearThinkingTimeout(); }, []);
+
+  // Bridge status resilience: poll /api/bridge/status every 30s as a fallback
+  // in case a WS bridge:connected/disconnected event is missed (e.g. tab was
+  // backgrounded). Cheap (single bool fetch) and keeps the badge accurate.
+  useEffect(() => {
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const res = await fetch('/api/bridge/status', { credentials: 'include' });
+        if (!cancelled && res.ok) {
+          const data = await res.json();
+          if (typeof data.connected === 'boolean') setBridgeConnected(data.connected);
+        }
+      } catch { /* ignore transient network errors */ }
+    };
+    const id = setInterval(tick, 30_000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, []);
   useEffect(() => { msgEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, thinking]);
   // Focus input when thinking state changes (message sent or response received)
   useEffect(() => {

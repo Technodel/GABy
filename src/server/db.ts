@@ -601,19 +601,19 @@ function seedData(db: Database.Database): void {
 
   // ── Seed feature flags: ON by default for launch-ready capabilities ──
   const featureFlagDefaults: Array<[string, string, string, string]> = [
-    ['ff_behavioral_rules',    'on',  'Behavioral Rules',   'Learn from past tasks and inject rules into future prompts'],
-    ['ff_training_scorer',     'on',  'Training Scorer',    'LLM-as-Judge scoring of SUNy outputs after each task'],
+    ['ff_behavioral_rules',    'off', 'Behavioral Rules',   'Learn from past tasks and inject rules into future prompts'],
+    ['ff_training_scorer',     'off', 'Training Scorer',    'LLM-as-Judge scoring of SUNy outputs after each task'],
     ['ff_training_loader',     'on',  'Training Loader',    'Auto-load injection files and behavioral rules into system prompt'],
-    ['ff_goal_tracker',        'on',  'Goal Tracker',       'Persistent multi-horizon goal tracking across sessions'],
+    ['ff_goal_tracker',        'off', 'Goal Tracker',       'Persistent multi-horizon goal tracking across sessions'],
     ['ff_code_index',          'on',  'Code Index',         'Semantic code index for intelligent code search'],
     ['ff_vector_context',      'on',  'Vector Context',     'Semantic chunk retrieval: inject most relevant code chunks into every prompt'],
-    ['ff_confidence_scoring',  'on',  'Confidence Scoring', 'Self-reported uncertainty tracking with escalation'],
-    ['ff_failure_memory',      'on',  'Failure Memory',     'Remember and avoid repeating past mistakes'],
-    ['ff_multi_agent_review',  'on',  'Multi-Agent Review', 'Silent code review after every task'],
-    ['ff_test_generator',      'on',  'Test Generator',     'Auto-generate tests after feature implementation'],
+    ['ff_confidence_scoring',  'off', 'Confidence Scoring', 'Self-reported uncertainty tracking with escalation'],
+    ['ff_failure_memory',      'off', 'Failure Memory',     'Remember and avoid repeating past mistakes'],
+    ['ff_multi_agent_review',  'off', 'Multi-Agent Review', 'Silent code review after every task'],
+    ['ff_test_generator',      'off', 'Test Generator',     'Auto-generate tests after feature implementation'],
     ['ff_operation_audit',     'on',  'Operation Audit',    'Detailed operation logging for debugging'],
     ['ff_project_lock',        'on',  'Project Lock',       'Prevent concurrent edits to the same project'],
-    ['ff_hypothesis_engine',   'on',  'Hypothesis Engine',  'Parallel strategy testing for complex tasks before main agent loop'],
+    ['ff_hypothesis_engine',   'off', 'Hypothesis Engine',  'Parallel strategy testing for complex tasks before main agent loop'],
   ];
   const insertFlag = db.prepare('INSERT OR IGNORE INTO feature_flags (key, value, label, description) VALUES (?, ?, ?, ?)');
   for (const [key, value, label, desc] of featureFlagDefaults) {
@@ -692,6 +692,31 @@ function seedData(db: Database.Database): void {
 
     db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('modes_v5_realkeys', 'true')").run();
     console.log('[db] v5: Real API keys seeded, model IDs fixed (deepseek-chat), search keys stored');
+  }
+
+  // ── v6: Stable-baseline feature flags ─────────────────────────────────────
+  // Disable experimental/heavy features so the core conversation loop is the
+  // hot path. Users can re-enable individually from the admin panel.
+  const flagsV6 = db.prepare("SELECT value FROM app_settings WHERE key='flags_v6_stable'").get();
+  if (!flagsV6) {
+    const offFlags = [
+      'ff_behavioral_rules',
+      'ff_training_scorer',
+      'ff_goal_tracker',
+      'ff_confidence_scoring',
+      'ff_failure_memory',
+      'ff_multi_agent_review',
+      'ff_test_generator',
+      'ff_hypothesis_engine',
+    ];
+    const upd = db.prepare('UPDATE feature_flags SET value = ? WHERE key = ?');
+    for (const k of offFlags) upd.run('off', k);
+
+    const onFlags = ['ff_training_loader', 'ff_code_index', 'ff_vector_context', 'ff_operation_audit', 'ff_project_lock'];
+    for (const k of onFlags) upd.run('on', k);
+
+    db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('flags_v6_stable', 'true')").run();
+    console.log('[db] v6: Feature flags reset to stable baseline (heavy/experimental features disabled)');
   }
 }
 

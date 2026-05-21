@@ -73,6 +73,13 @@ export function createPowerTools(ctx: PowerToolContext): ToolSet {
 
   const notify = (name: string, input: unknown) => onToolCall?.(name, input);
 
+  // ── Read-before-edit guard ──────────────────────────────────────────────
+  // Tracks files the model has actually read this turn. file_edit and overwrite
+  // file_write are blocked for files that exist but were never read, to prevent
+  // hallucinated edits from corrupting code. Resets per turn (new context).
+  const readFiles = new Set<string>();
+  const knownNewFiles = new Set<string>(); // files the model just created — safe to edit
+
   // file_read
   const fileReadTool = tool({
     description: 'Read the content of a file. Optionally return with line numbers and a line range.',
@@ -89,6 +96,7 @@ export function createPowerTools(ctx: PowerToolContext): ToolSet {
         const result = await sendToBridge(userId, 'exec:read_file', {
           path: abs, withLines: input.withLines, lineOffset: input.lineOffset, lineLimit: input.lineLimit,
         }, 30000);
+        readFiles.add(abs);
         return result as string;
       } catch (e) {
         return `Error reading '${input.filePath}': ${e instanceof Error ? e.message : String(e)}`;
@@ -113,6 +121,11 @@ Include enough context to uniquely identify the location. Do not use escape char
       if (input.searchTerm === input.replacementText) return 'Already updated - no changes were needed.';
 
       const abs = resolvePath(input.filePath, projectPath);
+
+      // Read-before-edit guard: refuse to edit files the model hasn't read this turn.
+      if (!readFiles.has(abs) && !knownNewFiles.has(abs)) {
+        return `Refused: you must call file_read on '${input.filePath}' before editing it. This guard prevents hallucinated edits from corrupting code. Read the file first, then retry the edit with the exact searchTerm matching what you read.`;
+      }
 
       return withFileLock(abs, async () => {
         try {
@@ -144,6 +157,7 @@ Include enough context to uniquely identify the location. Do not use escape char
           // Write back via bridge
           await sendToBridge(userId, 'exec:write_file', { path: abs, content: modifiedContent }, 30000);
           onFileChanged?.(abs);
+          readFiles.add(abs); // post-edit content is now what model has seen
           return `Successfully edited '${input.filePath}'.`;
         } catch (e) {
           return `Error editing '${input.filePath}': ${e instanceof Error ? e.message : String(e)}`;
@@ -165,11 +179,27 @@ Modes: 'create_only' (fail if exists), 'overwrite' (replace or create), 'append'
     execute: async (input) => {
       notify('file_write', input);
       const abs = resolvePath(input.filePath, projectPath);
+
+      // Read-before-overwrite guard: 'overwrite' mode without a prior read on
+      // an existing file is dangerous (it would silently destroy unseen code).
+      // 'create_only' is fine (intentionally a new file). 'append' is fine
+      // (additive, doesn't destroy existing content).
+      if (input.mode === 'overwrite' && !readFiles.has(abs) && !knownNewFiles.has(abs)) {
+        try {
+          const exists = await sendToBridge(userId, 'exec:path_exists', { path: abs }, 5000);
+          if (exists === true || (typeof exists === 'object' && exists && (exists as { exists?: boolean }).exists)) {
+            return `Refused: '${input.filePath}' already exists and you have not read it this turn. Either call file_read first (recommended) to verify the content you would be overwriting, or use mode:'create_only' if you intend to fail when the file exists.`;
+          }
+        } catch { /* if path_exists fails, fall through and let the write attempt proceed */ }
+      }
+
       try {
         await sendToBridgeWithNarration(userId, 'exec:write_file', {
           path: abs, content: input.content, mode: input.mode,
         }, 'file_edit', { filename: path.basename(input.filePath) }, 30000);
         onFileChanged?.(abs);
+        readFiles.add(abs);
+        knownNewFiles.add(abs);
         return `Successfully written to '${input.filePath}'.`;
       } catch (e) {
         return `Error writing '${input.filePath}': ${e instanceof Error ? e.message : String(e)}`;

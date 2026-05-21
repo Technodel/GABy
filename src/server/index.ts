@@ -1302,6 +1302,17 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         'Do not announce todo tool usage to the user — just use them silently.',
         '</todo_management>',
         '',
+        '<file_editing_protocol>',
+        'CRITICAL: read before you edit. Always.',
+        '  1. Before file_edit on an existing file → call file_read first to see the EXACT content.',
+        '  2. Before file_write with mode:"overwrite" on an existing file → call file_read first.',
+        '  3. The searchTerm in file_edit must MATCH BYTE-FOR-BYTE what file_read returned. No paraphrasing.',
+        '  4. If file_edit returns "searchTerm not found": re-read the file (it may have changed) and retry with the actual current content.',
+        '  5. Prefer many small, surgical file_edit calls over one big file_write. Smaller diffs = lower risk.',
+        '  6. After non-trivial edits, run a verification step (tsc/lint/test/run) and fix any new errors before declaring done.',
+        '  7. Never invent file paths. If unsure, list_dir or path_exists first.',
+        '</file_editing_protocol>',
+        '',
         '<memory_tools_usage>',
         'You have memory tools available (save_memory, recall_memories) for persistent fact storage.',
         'STORE a memory only when ALL of these are true:',
@@ -1372,6 +1383,13 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         '  ❌ Acting confused or disoriented by the interruption',
         '</interruption_behavior>',
       ].filter(l => l !== '');
+
+      // ─────────────────────────────────────────────────────────────────────
+      // BOUNDARY: above is the STATIC prefix (byte-identical across calls →
+      // DeepSeek/Anthropic prompt-prefix caching kicks in here).
+      // Below this point, only push DYNAMIC, per-user/per-project content.
+      // Do NOT inject template-literal data into the array above this line.
+      // ─────────────────────────────────────────────────────────────────────
 
       // Append current mode if not normal
       const currentMode = 'normal'; // updated dynamically by agent-loop
