@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useRef, useCallback } from 'react';
-import { Plus, Trash2, Settings, LogOut, Edit3, RotateCcw, X, BarChart2, User, HelpCircle, Sparkles, Home, Eraser, Phone, ChevronRight, ChevronDown, FolderOpen, Folder, Play, FileText } from 'lucide-react';
+import { Plus, Trash2, Settings, LogOut, Edit3, RotateCcw, X, BarChart2, User, HelpCircle, Sparkles, Home, Eraser, Phone, ChevronRight, ChevronDown, FolderOpen, Folder, Play, FileText, GitBranch } from 'lucide-react';
 
 import ReportBadgeButton, { ReportMetrics } from '../components/ReportBadgeButton';
 import { useWebSocket } from '../hooks/useWebSocket';
@@ -45,6 +45,37 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       try { localStorage.setItem('suny_talk_mode', next ? '1' : '0'); } catch {}
       return next;
     });
+  }
+
+  // ── Voice input (Web Speech API) ─────────────────────────────────────────
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
+
+  function toggleVoice() {
+    const SpeechRec = (window as Record<string, unknown>).SpeechRecognition as (typeof SpeechRecognition | undefined)
+      ?? (window as Record<string, unknown>).webkitSpeechRecognition as (typeof SpeechRecognition | undefined);
+    if (!SpeechRec) {
+      addMessage('system', '🎤 Voice input is not supported in this browser. Try Chrome or Edge.');
+      return;
+    }
+    if (isListening && recognitionRef.current) {
+      recognitionRef.current.stop();
+      return;
+    }
+    const rec = new SpeechRec();
+    rec.continuous = true;
+    rec.interimResults = false;
+    rec.lang = 'en-US';
+    rec.onstart = () => setIsListening(true);
+    rec.onend = () => setIsListening(false);
+    rec.onerror = () => setIsListening(false);
+    rec.onresult = (e: SpeechRecognitionEvent) => {
+      const transcript = Array.from(e.results).slice(e.resultIndex)
+        .map(r => r[0].transcript).join('');
+      setInput(prev => (prev ? prev + ' ' : '') + transcript);
+    };
+    recognitionRef.current = rec;
+    rec.start();
   }
 
   // ── Adaptive routing ─────────────────────────────────────────────────────
@@ -433,6 +464,67 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     } catch {}
   }
 
+  // ── Pinned files state & helpers ─────────────────────────────────────────
+  const [pinnedFiles, setPinnedFiles] = useState<Set<string>>(new Set());
+
+  // ── Vector context index state ───────────────────────────────────────────
+  const [vectorIndexStats, setVectorIndexStats] = useState<{ chunks: number; files: number; projectId: number } | null>(null);
+  const [reindexing, setReindexing] = useState(false);
+
+  async function triggerReindex() {
+    if (!activeProject || reindexing) return;
+    setReindexing(true);
+    try {
+      await fetch(`/api/projects/${activeProject.id}/reindex`, { method: 'POST', credentials: 'include' });
+    } catch {}
+    // Stats will be updated when suny:vector_index_ready arrives
+    setTimeout(() => setReindexing(false), 3000);
+  }
+
+  useEffect(() => {
+    if (activeProject) {
+      fetch(`/api/projects/${activeProject.id}/vector-stats`, { credentials: 'include' })
+        .then(r => r.ok ? r.json() : null)
+        .then((data: { total: number; files: number; indexed_at: string | null } | null) => {
+          if (data && data.total > 0) {
+            setVectorIndexStats({ chunks: data.total, files: data.files, projectId: activeProject.id });
+          } else {
+            setVectorIndexStats(null);
+          }
+        })
+        .catch(() => {});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProject?.id]);
+
+  async function loadPinnedFiles(projectId: number) {
+    try {
+      const res = await fetch(`/api/projects/${projectId}/pinned-files`, { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json() as { files: string[] };
+        setPinnedFiles(new Set(data.files));
+      }
+    } catch {}
+  }
+
+  async function togglePinFile(node: FileNode) {
+    if (!activeProject) return;
+    const isPinned = pinnedFiles.has(node.path);
+    if (isPinned) {
+      await fetch(`/api/projects/${activeProject.id}/pinned-files/${encodeURIComponent(node.path)}`, {
+        method: 'DELETE', credentials: 'include',
+      });
+      setPinnedFiles(prev => { const next = new Set(prev); next.delete(node.path); return next; });
+    } else {
+      await fetch(`/api/projects/${activeProject.id}/pinned-files`, {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file_path: node.path }),
+      });
+      setPinnedFiles(prev => new Set([...prev, node.path]));
+    }
+  }
+
   // ── Live server ───────────────────────────────────────────────────────────
   const [devServerUrl, setDevServerUrl] = useState<string | null>(null);
   const [devServerRunning, setDevServerRunning] = useState(false);
@@ -720,6 +812,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     setDevServerRunning(false);
     setDevServerUrl(null);
     if (showFileBrowser) loadFileBrowser(project.id);
+    loadPinnedFiles(project.id);
   }
 
   function addMemory(title: string, summary: string) {
@@ -957,6 +1050,9 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         setStreamingContent('');
         if (!activeProofIdRef.current) startProofRun();
         resetThinkingTimeout();
+      } else if (msg.event === 'suny:vector_index_ready') {
+        const data = msg as unknown as { projectId: number; chunks: number; files: number };
+        setVectorIndexStats({ chunks: data.chunks, files: data.files, projectId: data.projectId });
       } else if (msg.event === 'suny:preparation_step') {
         setThinkingStatus(pickStatusVariant('prep', [
           'Getting everything ready�',
@@ -1483,6 +1579,62 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     localStorage.removeItem(proofHistoryKey);
   }
 
+  // ── Delete single message from context ────────────────────────────────
+  function deleteMessage(id: number) {
+    setMessages(prev => prev.filter(m => m.id !== id));
+  }
+
+  // ── Conversation forking ────────────────────────────────────────────────
+  interface ConversationFork { id: string; label: string; savedAt: number; messages: Message[]; }
+
+  function forksKey() {
+    return `suny_forks_${activeProject?.id ?? 'global'}`;
+  }
+
+  function loadForks(): ConversationFork[] {
+    try {
+      const raw = localStorage.getItem(forksKey());
+      return raw ? JSON.parse(raw) as ConversationFork[] : [];
+    } catch { return []; }
+  }
+
+  function saveForks(forks: ConversationFork[]) {
+    try { localStorage.setItem(forksKey(), JSON.stringify(forks.slice(0, 10))); } catch {}
+  }
+
+  function forkConversation() {
+    if (messages.length === 0) return;
+    const forks = loadForks();
+    const label = (() => {
+      const last = messages.filter(m => m.type === 'user').slice(-1)[0];
+      const raw = last?.content ?? '';
+      return raw.length > 50 ? raw.slice(0, 47) + '…' : (raw || `Fork ${forks.length + 1}`);
+    })();
+    const fork: ConversationFork = { id: 'f_' + Date.now(), label, savedAt: Date.now(), messages: [...messages] };
+    saveForks([fork, ...forks]);
+    addMessage('system', `🌿 Conversation forked as **"${label}"**. You can restore it any time from the Forks menu.`);
+    setShowForks(true);
+  }
+
+  function restoreFork(fork: ConversationFork) {
+    setMessages(fork.messages);
+    setShowForks(false);
+    addMessage('system', `🌿 Restored fork: **"${fork.label}"**`);
+  }
+
+  function deleteFork(id: string) {
+    saveForks(loadForks().filter(f => f.id !== id));
+    setForkList(prev => prev.filter(f => f.id !== id));
+  }
+
+  const [showForks, setShowForks] = useState(false);
+  const [forkList, setForkList] = useState<ConversationFork[]>([]);
+
+  useEffect(() => {
+    if (showForks) setForkList(loadForks());
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showForks]);
+
   async function handleLogout() {
     await fetch('/api/logout', { method: 'POST', credentials: 'include' });
     onLogout();
@@ -1602,8 +1754,32 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
             </button>
           )}
           {messages.length > 0 && (
-            <button className="btn btn-icon btn-secondary" onClick={clearChat} title="Clear chat">
-              <Eraser size={15} />
+            <>
+              <button className="btn btn-icon btn-secondary" onClick={clearChat} title="Clear chat">
+                <Eraser size={15} />
+              </button>
+              <button
+                className="btn btn-icon btn-secondary"
+                onClick={forkConversation}
+                title="Fork conversation — save a snapshot to explore a different path"
+              >
+                <GitBranch size={15} />
+              </button>
+            </>
+          )}
+          {loadForks().length > 0 && (
+            <button
+              className="btn btn-icon btn-secondary"
+              onClick={() => setShowForks(true)}
+              title="Restore a forked conversation"
+              style={{ position: 'relative' }}
+            >
+              <GitBranch size={15} style={{ opacity: 0.6 }} />
+              <span style={{
+                position: 'absolute', top: 2, right: 2,
+                width: 6, height: 6, borderRadius: '50%',
+                background: 'var(--accent)', border: '1px solid var(--bg)',
+              }} />
             </button>
           )}
           <BridgeStatusBadge
@@ -1963,18 +2139,53 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                 <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Files
                 </span>
-                <button
-                  className="btn btn-icon btn-sm"
-                  onClick={() => loadFileBrowser(activeProject.id)}
-                  title="Refresh file list"
-                  style={{ background: 'none', border: 'none', color: 'var(--text-muted)', padding: 2, cursor: 'pointer' }}
-                >
-                  ↻
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  {vectorIndexStats && vectorIndexStats.projectId === activeProject.id && (
+                    <span title={`${vectorIndexStats.chunks} code chunks indexed across ${vectorIndexStats.files} files`} style={{
+                      fontSize: 9, color: 'var(--accent)', fontWeight: 600, padding: '1px 5px',
+                      background: 'rgba(108,99,255,0.12)', borderRadius: 3, cursor: 'default',
+                    }}>
+                      ⚡ {vectorIndexStats.chunks} chunks
+                    </span>
+                  )}
+                  <button
+                    className="btn btn-icon btn-sm"
+                    onClick={triggerReindex}
+                    disabled={reindexing}
+                    title="Re-index project for vector context"
+                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', padding: 2, cursor: 'pointer',
+                      animation: reindexing ? 'spin 1s linear infinite' : 'none' }}
+                  >
+                    ⊕
+                  </button>
+                  <button
+                    className="btn btn-icon btn-sm"
+                    onClick={() => loadFileBrowser(activeProject.id)}
+                    title="Refresh file list"
+                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', padding: 2, cursor: 'pointer' }}
+                  >
+                    ↻
+                  </button>
+                </div>
               </div>
               <div style={{ maxHeight: 200, overflowY: 'auto', fontSize: 11 }}>
                 {fileBrowser.length === 0 && (
                   <p style={{ padding: '0 12px 8px', color: 'var(--text-muted)' }}>No files loaded.</p>
+                )}
+                {pinnedFiles.size > 0 && (
+                  <div style={{ padding: '4px 12px 4px', borderBottom: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: 10, color: 'var(--accent)', fontWeight: 600, marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
+                      📌 Pinned ({pinnedFiles.size})
+                    </div>
+                    {[...pinnedFiles].map(fp => (
+                      <div key={fp} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 0' }}>
+                        <span style={{ flex: 1, fontSize: 10, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fp}</span>
+                        <button onClick={() => togglePinFile({ name: fp.split('/').pop()!, path: fp, isDir: false })}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 1 }}
+                          title="Unpin">✕</button>
+                      </div>
+                    ))}
+                  </div>
                 )}
                 {fileBrowser.map(node => (
                   <FileTreeNode
@@ -1987,6 +2198,8 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                       return next;
                     })}
                     onFileClick={node => setInput(prev => prev + `\n@file:${node.path}`)}
+                    pinnedFiles={pinnedFiles}
+                    onPinToggle={togglePinFile}
                   />
                 ))}
               </div>
@@ -2146,6 +2359,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
             expandedRunIds={expandedRunIds}
             msgEndRef={msgEndRef}
             clearChat={clearChat}
+            onDeleteMessage={deleteMessage}
             setRenamingTabId={setRenamingTabId}
             setRenamingTabValue={setRenamingTabValue}
             setDeleteConfirmTabId={setDeleteConfirmTabId}
@@ -2179,6 +2393,8 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
             toggleTalkMode={toggleTalkMode}
             wsSend={wsSend}
             addMessage={addMessage}
+            isListening={isListening}
+            onVoiceToggle={toggleVoice}
           />
         </div>
       </div>
@@ -2564,8 +2780,43 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       )}
 
       {/* Usage Dashboard Modal */}
-      {showUsage && (
-        <div className="modal-overlay" onClick={() => setShowUsage(false)}>
+      {showForks && (
+        <div className="modal-overlay" onClick={() => setShowForks(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 className="modal-title" style={{ margin: 0 }}>
+                <GitBranch size={15} style={{ marginRight: 8, verticalAlign: 'text-bottom' }} />
+                Forked Conversations
+              </h3>
+              <button className="btn btn-icon btn-secondary" onClick={() => setShowForks(false)}><X size={14} /></button>
+            </div>
+            {forkList.length === 0 ? (
+              <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>No forks saved yet. Use the 🌿 button to save a snapshot of your current conversation.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {forkList.map(fork => (
+                  <div key={fork.id} style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '10px 12px', borderRadius: 8,
+                    border: '1px solid var(--border)', background: 'var(--bg-secondary)',
+                  }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fork.label}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
+                        {fork.messages.length} messages · {new Date(fork.savedAt).toLocaleString()}
+                      </div>
+                    </div>
+                    <button className="btn btn-sm btn-primary" onClick={() => restoreFork(fork)}>Restore</button>
+                    <button className="btn btn-sm btn-secondary" onClick={() => deleteFork(fork.id)}><Trash2 size={12} /></button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showUsage && (        <div className="modal-overlay" onClick={() => setShowUsage(false)}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 620, maxHeight: '80vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h3 className="modal-title" style={{ margin: 0 }}>

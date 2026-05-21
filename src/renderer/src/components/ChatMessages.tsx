@@ -1,4 +1,5 @@
 import { Eraser, X, FolderOpen, ChevronRight, ChevronDown, Copy, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import NarratedMessage, { ThinkingIndicator } from './NarratedMessage';
 import type { Message, ProofRun, Project } from '../types';
 
@@ -21,6 +22,7 @@ interface ChatMessagesProps {
   expandedRunIds: Set<number>;
   msgEndRef: React.RefObject<HTMLDivElement>;
   clearChat: () => void;
+  onDeleteMessage?: (id: number) => void;
   setRenamingTabId: React.Dispatch<React.SetStateAction<string | null>>;
   setRenamingTabValue: React.Dispatch<React.SetStateAction<string>>;
   setDeleteConfirmTabId: React.Dispatch<React.SetStateAction<string | null>>;
@@ -40,10 +42,12 @@ export default function ChatMessages(props: ChatMessagesProps) {
     proofRuns, globalTabs, activeTabId, renamingTabId, renamingTabValue,
     deleteConfirmTabId, projectStateReady, globalIntroLine, projects,
     bridgeConnected, expandedRunIds, msgEndRef,
-    clearChat, setRenamingTabId, setRenamingTabValue, setDeleteConfirmTabId,
+    clearChat, onDeleteMessage, setRenamingTabId, setRenamingTabValue, setDeleteConfirmTabId,
     switchGlobalTab, closeGlobalTab, addGlobalTab, setShowBridgeTip, openProject,
     copyProofReportToClipboard, setExpandedRunIds, toolLabel,
   } = props;
+
+  const [hoveredMsgId, setHoveredMsgId] = useState<number | null>(null);
 
   return (
     <div className="chat-messages-area" style={{ flex: 1, overflow: 'auto', padding: '20px 24px' }}>
@@ -392,7 +396,30 @@ export default function ChatMessages(props: ChatMessagesProps) {
 
       {/* Messages */}
       {messages.map(m => (
-        <NarratedMessage key={m.id} message={m.content} type={m.type} timestamp={m.timestamp} report={m.report} />
+        <div
+          key={m.id}
+          style={{ position: 'relative' }}
+          onMouseEnter={() => setHoveredMsgId(m.id)}
+          onMouseLeave={() => setHoveredMsgId(null)}
+        >
+          <NarratedMessage message={m.content} type={m.type} timestamp={m.timestamp} report={m.report} />
+          {onDeleteMessage && hoveredMsgId === m.id && (
+            <button
+              onClick={() => onDeleteMessage(m.id)}
+              title="Remove from context"
+              style={{
+                position: 'absolute', top: 6, right: 6,
+                background: 'rgba(255,60,60,0.12)', border: '1px solid rgba(255,60,60,0.3)',
+                borderRadius: 4, cursor: 'pointer', padding: '2px 5px',
+                display: 'flex', alignItems: 'center', gap: 3,
+                color: 'rgba(255,100,100,0.85)', fontSize: 10, opacity: 0.9,
+                transition: 'opacity 0.15s',
+              }}
+            >
+              <Trash2 size={10} /> delete
+            </button>
+          )}
+        </div>
       ))}
       {thinking && streamingContent && (
         <>

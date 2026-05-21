@@ -1,4 +1,4 @@
-import { Send, Square, Image, MessageSquare, Pencil } from 'lucide-react';
+import { Send, Square, Image, MessageSquare, Pencil, Mic, MicOff } from 'lucide-react';
 import { useRef } from 'react';
 import type { Message } from '../types';
 
@@ -23,6 +23,8 @@ interface ChatInputProps {
   toggleTalkMode: () => void;
   wsSend: (msg: Record<string, unknown>) => void;
   addMessage: (type: 'user' | 'suny' | 'system', content: string, extra?: Record<string, unknown>) => void;
+  isListening?: boolean;
+  onVoiceToggle?: () => void;
 }
 
 export default function ChatInput(props: ChatInputProps) {
@@ -31,6 +33,7 @@ export default function ChatInput(props: ChatInputProps) {
     activeProject, bridgeConnected, talkMode, noBalance,
     imagePreview, setImagePreview, fileInputRef, inputRef,
     inputHistoryIndex, messages, sendMessage, toggleTalkMode, wsSend, addMessage,
+    isListening, onVoiceToggle,
   } = props;
 
   return (
@@ -213,14 +216,34 @@ export default function ChatInput(props: ChatInputProps) {
             <Square size={15} />
           </button>
         ) : (
-          <button
-            className="btn btn-primary"
-            onClick={sendMessage}
-            disabled={!input.trim()}
-            style={{ padding: '10px 16px', alignSelf: 'flex-end' }}
-          >
-            <Send size={15} />
-          </button>
+          <>
+            {onVoiceToggle && (
+              <button
+                className="btn btn-icon btn-secondary"
+                onClick={onVoiceToggle}
+                title={isListening ? 'Stop listening' : 'Dictate with voice'}
+                style={{
+                  alignSelf: 'flex-end',
+                  padding: '10px 12px',
+                  background: isListening ? 'rgba(255,60,60,0.12)' : 'transparent',
+                  border: isListening ? '1px solid rgba(255,60,60,0.5)' : '1px solid var(--border)',
+                  color: isListening ? 'rgba(255,80,80,0.9)' : 'var(--text-muted)',
+                  transition: 'all 0.15s',
+                  animation: isListening ? 'pulse 1.2s infinite' : 'none',
+                }}
+              >
+                {isListening ? <MicOff size={15} /> : <Mic size={15} />}
+              </button>
+            )}
+            <button
+              className="btn btn-primary"
+              onClick={sendMessage}
+              disabled={!input.trim()}
+              style={{ padding: '10px 16px', alignSelf: 'flex-end' }}
+            >
+              <Send size={15} />
+            </button>
+          </>
         )}
       </>
     </div>

@@ -9,6 +9,8 @@ import { userClientManager } from './user-client-manager';
 import { loadProjectRules, saveProjectRules, deleteProjectRules } from './project-rules';
 import { listCheckpoints, rollbackToCheckpoint } from './git-manager';
 import { getBlueprintEntries } from './blueprint-memory';
+import { buildChunkVectors, getChunkStats, clearChunkIndex } from './code-chunks';
+import { indexProject } from './code-index';
 import { evaluate } from 'mathjs';
 
 const router = Router();
@@ -811,6 +813,86 @@ router.post('/projects/:id/dev-server/stop', async (req: Request, res: Response)
     }, 5000).catch(() => {});
   }
   res.json({ success: true });
+});
+
+// ── Pinned Files ──────────────────────────────────────────────────────────────
+
+router.get('/projects/:id/pinned-files', (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const projectId = parseInt(req.params.id, 10);
+  if (isNaN(projectId)) { res.status(400).json({ error: 'Invalid project id' }); return; }
+  const proj = getDb().prepare('SELECT id FROM projects WHERE id = ? AND user_id = ?').get(projectId, user.id);
+  if (!proj) { res.status(404).json({ error: 'Project not found' }); return; }
+  const rows = getDb().prepare('SELECT file_path, created_at FROM pinned_files WHERE user_id = ? AND project_id = ? ORDER BY created_at ASC')
+    .all(user.id, projectId) as Array<{ file_path: string; created_at: string }>;
+  res.json({ files: rows.map(r => r.file_path) });
+});
+
+router.post('/projects/:id/pinned-files', (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const projectId = parseInt(req.params.id, 10);
+  if (isNaN(projectId)) { res.status(400).json({ error: 'Invalid project id' }); return; }
+  const { file_path } = req.body as { file_path?: string };
+  if (!file_path || typeof file_path !== 'string' || file_path.includes('..')) {
+    res.status(400).json({ error: 'Invalid file_path' }); return;
+  }
+  const proj = getDb().prepare('SELECT id FROM projects WHERE id = ? AND user_id = ?').get(projectId, user.id);
+  if (!proj) { res.status(404).json({ error: 'Project not found' }); return; }
+  getDb().prepare('INSERT OR IGNORE INTO pinned_files (user_id, project_id, file_path) VALUES (?, ?, ?)')
+    .run(user.id, projectId, file_path);
+  res.json({ ok: true });
+});
+
+router.delete('/projects/:id/pinned-files/:filePath', (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const projectId = parseInt(req.params.id, 10);
+  if (isNaN(projectId)) { res.status(400).json({ error: 'Invalid project id' }); return; }
+  const filePath = decodeURIComponent(req.params.filePath);
+  if (!filePath || filePath.includes('..')) { res.status(400).json({ error: 'Invalid file path' }); return; }
+  getDb().prepare('DELETE FROM pinned_files WHERE user_id = ? AND project_id = ? AND file_path = ?')
+    .run(user.id, projectId, filePath);
+  res.json({ ok: true });
+});
+
+// ── Vector Context: chunk stats + re-index ────────────────────────────────────
+
+router.get('/projects/:id/vector-stats', (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const projectId = parseInt(req.params.id, 10);
+  if (isNaN(projectId)) { res.status(400).json({ error: 'Invalid project id' }); return; }
+  const proj = getDb().prepare('SELECT id FROM projects WHERE id = ? AND user_id = ?').get(projectId, user.id);
+  if (!proj) { res.status(404).json({ error: 'Project not found' }); return; }
+  res.json(getChunkStats(projectId));
+});
+
+router.post('/projects/:id/reindex', async (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const projectId = parseInt(req.params.id, 10);
+  if (isNaN(projectId)) { res.status(400).json({ error: 'Invalid project id' }); return; }
+  const proj = getDb().prepare('SELECT id, local_path FROM projects WHERE id = ? AND user_id = ?')
+    .get(projectId, user.id) as { id: number; local_path: string } | undefined;
+  if (!proj) { res.status(404).json({ error: 'Project not found' }); return; }
+  res.json({ ok: true, message: 'Re-indexing started in background' });
+  // Fire-and-forget
+  setImmediate(() => {
+    try {
+      // Clear old index keys so next message re-indexes
+      getDb().prepare("DELETE FROM app_settings WHERE key IN (?, ?)")
+        .run(`indexed:${proj.local_path}`, `chunk_indexed:${proj.local_path}`);
+      // Run symbol index first, then chunk vectors
+      indexProject(proj.local_path);
+      clearChunkIndex(projectId);
+      const stats = buildChunkVectors(proj.local_path, projectId);
+      getDb().prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, 'true')").run(`indexed:${proj.local_path}`);
+      getDb().prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, 'true')").run(`chunk_indexed:${proj.local_path}`);
+      console.log(`[reindex] Project ${projectId}: ${stats.chunksIndexed} chunks across ${stats.filesProcessed} files`);
+      userClientManager.pushToUser(user.id as number, 'suny:vector_index_ready', {
+        projectId, chunks: stats.chunksIndexed, files: stats.filesProcessed,
+      });
+    } catch (err) {
+      console.warn('[reindex] Failed:', (err as Error).message);
+    }
+  });
 });
 
 // ── Blueprint Memory Graph ────────────────────────────────────────────────────

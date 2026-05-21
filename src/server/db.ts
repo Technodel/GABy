@@ -233,6 +233,53 @@ const SCHEMA_MIGRATIONS: Migration[] = [
       console.log(`[db] Migration v6: Updated ${result.changes} OpenRouter key(s) — deepseek-chat → deepseek/deepseek-chat`);
     },
   },
+  // ── Migration 7: Pinned files per user/project ────────────────────────────
+  {
+    version: 7,
+    name: 'Create pinned_files table',
+    up: (db) => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS pinned_files (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          project_id INTEGER NOT NULL,
+          file_path TEXT NOT NULL,
+          created_at TEXT DEFAULT (datetime('now')),
+          UNIQUE(user_id, project_id, file_path),
+          FOREIGN KEY(user_id) REFERENCES users(id),
+          FOREIGN KEY(project_id) REFERENCES projects(id)
+        )
+      `);
+      console.log('[db] Migration v7: Created pinned_files table');
+    },
+  },
+  // ── Migration 8: Semantic code chunk vectors ──────────────────────────────
+  {
+    version: 8,
+    name: 'Create code_chunks table for vector context',
+    up: (db) => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS code_chunks (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          project_id INTEGER NOT NULL,
+          file_path TEXT NOT NULL,
+          symbol_name TEXT NOT NULL DEFAULT '',
+          symbol_type TEXT NOT NULL DEFAULT 'block',
+          start_line INTEGER NOT NULL DEFAULT 0,
+          end_line INTEGER NOT NULL DEFAULT 0,
+          content TEXT NOT NULL,
+          content_hash TEXT NOT NULL,
+          vector_b64 TEXT NOT NULL,
+          updated_at TEXT DEFAULT (datetime('now')),
+          UNIQUE(project_id, file_path, symbol_name, symbol_type),
+          FOREIGN KEY(project_id) REFERENCES projects(id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_code_chunks_project ON code_chunks(project_id);
+        CREATE INDEX IF NOT EXISTS idx_code_chunks_file ON code_chunks(project_id, file_path);
+      `);
+      console.log('[db] Migration v8: Created code_chunks table');
+    },
+  },
 ];
 
 // ── Schema foundations (always run — CREATE TABLE IF NOT EXISTS) ────────────
@@ -522,6 +569,7 @@ function seedData(db: Database.Database): void {
     ['ff_training_loader',     'on',  'Training Loader',    'Auto-load injection files and behavioral rules into system prompt'],
     ['ff_goal_tracker',        'on',  'Goal Tracker',       'Persistent multi-horizon goal tracking across sessions'],
     ['ff_code_index',          'on',  'Code Index',         'Semantic code index for intelligent code search'],
+    ['ff_vector_context',      'on',  'Vector Context',     'Semantic chunk retrieval: inject most relevant code chunks into every prompt'],
     ['ff_confidence_scoring',  'on',  'Confidence Scoring', 'Self-reported uncertainty tracking with escalation'],
     ['ff_failure_memory',      'on',  'Failure Memory',     'Remember and avoid repeating past mistakes'],
     ['ff_multi_agent_review',  'on',  'Multi-Agent Review', 'Silent code review after every task'],

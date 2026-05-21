@@ -42,6 +42,7 @@ import { captureSnapshot, detectDrift, formatDriftForCorrection } from './change
 import { mcpManager } from './mcp-manager';
 import { recordBenchmarkRun } from './benchmark';
 import { indexProject } from './code-index';
+import { buildChunkVectors, searchChunks, formatChunksForPrompt, clearChunkIndex } from './code-chunks';
 import { processDesignIntents, getDesignIntentsPrompt, initializeDesignIntentTable } from './design-intent';
 import { silentCodeReview, formatCodeReviewForPrompt, postMergeValidation, formatValidationForPrompt, analyzeInteractionPatterns, formatPatternAnalysisForPrompt, recordInteraction, initializeInteractionPatternsTable } from './verification-obsession';
 import { getPresenceInjection, updatePresenceProfile, getPresenceProfile, initializePresenceTable } from './presence-engineering';
@@ -958,25 +959,33 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         '─── EXHAUST TOOLS FIRST ───',
         '',
         'You have web_search and url_fetch. Use them.',
-        'You have file tools. Use them.',
-        'You have shell commands. Use them.',
+        ...(bridgeOnline && projectPath ? ['You have file tools. Use them.', 'You have shell commands. Use them.'] : []),
         '',
         'The user is your LAST resort, not your first. If a question can be answered',
         'by searching the web, searching the codebase, or running a command — do it.',
         '',
         '─── SCAN / ANALYZE MANDATE ───',
         '',
-        'When the user asks you to "scan", "analyze", "look at", "check", or "explore"',
-        'the project — you MUST use the find_files or glob tool IMMEDIATELY.',
-        '',
-        '  ❌ "Let me scan the project..." (says this without using any tool)',
-        '  ❌ "Let me take a look..." (says this and stops)',
-        '  ✅ "Let me scan the project..." *calls find_files*',
-        '  ✅ *reads files, greps for patterns, lists directories, delivers findings*',
-        '',
-        'The phrase "let me scan" is NARRATION that must ACCOMPANY a tool call.',
-        'It is NEVER a complete response on its own.',
-        'If you say you are going to scan — you MUST call find_files or glob.',
+        ...(bridgeOnline && projectPath ? [
+          'When the user asks you to "scan", "analyze", "look at", "check", or "explore"',
+          'the project — you MUST use the find_files or glob tool IMMEDIATELY.',
+          '',
+          '  ❌ "Let me scan the project..." (says this without using any tool)',
+          '  ❌ "Let me take a look..." (says this and stops)',
+          '  ✅ "Let me scan the project..." *calls find_files*',
+          '  ✅ *reads files, greps for patterns, lists directories, delivers findings*',
+          '',
+          'The phrase "let me scan" is NARRATION that must ACCOMPANY a tool call.',
+          'It is NEVER a complete response on its own.',
+          'If you say you are going to scan — you MUST call find_files or glob.',
+        ] : [
+          !bridgeOnline
+            ? 'The bridge is currently offline — file/shell tools are NOT available.'
+            : 'No project is selected — file/shell tools are NOT available.',
+          'If the user asks you to "scan" or "analyze" the project, do NOT say you will scan and then stop.',
+          'Instead, tell them clearly: the bridge needs to be connected and a project selected before you can access files.',
+          'Do NOT narrate a scan you cannot perform.',
+        ]),
         '',
         '─── IDENTITY IN ANSWERS ───',
         '',
@@ -1496,6 +1505,45 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         }
       }
 
+      // ── Pinned files: inject contents into system prompt ─────────────────
+      if (projectPath && projectId) {
+        try {
+          const pinnedRows = getDb().prepare(
+            'SELECT file_path FROM pinned_files WHERE user_id = ? AND project_id = ? ORDER BY created_at ASC'
+          ).all(userId, projectId) as Array<{ file_path: string }>;
+          if (pinnedRows.length > 0) {
+            const pinLines: string[] = ['', '=== PINNED FILES (always in context) ==='];
+            for (const row of pinnedRows) {
+              try {
+                const absPath = require('path').join(projectPath, row.file_path);
+                const content = require('fs').readFileSync(absPath, 'utf8');
+                const truncated = content.length > 8000 ? content.slice(0, 8000) + '\n... [truncated]' : content;
+                pinLines.push(`\n--- ${row.file_path} ---\n${truncated}`);
+              } catch {
+                pinLines.push(`\n--- ${row.file_path} --- [could not read]`);
+              }
+            }
+            systemLines.push(...pinLines);
+            console.log(`[index] Injected ${pinnedRows.length} pinned file(s) into system prompt`);
+          }
+        } catch (err) {
+          console.warn('[index] Pinned files injection failed:', (err as Error).message);
+        }
+      }
+
+      // ── Vector context: semantic chunk retrieval ──────────────────────────
+      if (projectPath && projectId && isFeatureEnabled('ff_vector_context')) {
+        try {
+          const chunks = searchChunks(msg.message as string, projectId, 8);
+          if (chunks.length > 0) {
+            systemLines.push(formatChunksForPrompt(chunks, projectPath));
+            console.log(`[index] Vector context: injected ${chunks.length} relevant chunk(s)`);
+          }
+        } catch (err) {
+          console.warn('[index] Vector context retrieval failed:', (err as Error).message);
+        }
+      }
+
       // ── Phase 3.1: Project Digest (first connect only) ──────────────────
       // Auto-reads README, package.json, tsconfig.json and caches result.
       if (projectPath) {
@@ -1600,6 +1648,34 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
                 console.warn('[code-index] Background indexing failed:', (err as Error).message);
               }
             });
+          }
+        }
+
+        // ── Background vector chunk index ─────────────────────────────────
+        // Runs after code_index (or independently for non-TS files).
+        if (isFeatureEnabled('ff_vector_context') && projectId) {
+          const chunkKey = `chunk_indexed:${projectPath}`;
+          const alreadyChunked = db.prepare("SELECT value FROM app_settings WHERE key = ?").get(chunkKey) as { value: string } | undefined;
+          if (!alreadyChunked) {
+            // Delay slightly to let code_index finish first
+            setTimeout(() => {
+              try {
+                // Ensure code_index ran first
+                const indexKey = `indexed:${projectPath}`;
+                const indexed = db.prepare("SELECT value FROM app_settings WHERE key = ?").get(indexKey);
+                if (!indexed) indexProject(projectPath);
+
+                const stats = buildChunkVectors(projectPath, projectId);
+                console.log(`[code-chunks] Embedded ${stats.chunksIndexed} chunks across ${stats.filesProcessed} files`);
+                db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, 'true')").run(chunkKey);
+                // Notify frontend
+                userClientManager.pushToUser(userId, 'suny:vector_index_ready', {
+                  projectId, chunks: stats.chunksIndexed, files: stats.filesProcessed,
+                });
+              } catch (err) {
+                console.warn('[code-chunks] Background vector indexing failed:', (err as Error).message);
+              }
+            }, 3000);
           }
         }
 
