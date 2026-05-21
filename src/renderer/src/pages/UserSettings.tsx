@@ -280,7 +280,7 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
             <div>
               <div style={{ fontWeight: 500, fontSize: 14 }}>Interface Mode</div>
-              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Choose between Matrix and Pro styles</div>
+              <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Choose between Matrix and Pro</div>
             </div>
             <select
               value={uiTheme}
@@ -293,7 +293,7 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
               style={{ maxWidth: 180 }}
             >
               <option value="matrix">Matrix (Dark Green)</option>
-              <option value="pro">Pro (Gemini-Inspired)</option>
+              <option value="pro">Pro</option>
             </select>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
