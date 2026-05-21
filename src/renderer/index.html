@@ -4,6 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SUNy — Smart Unstoppable Navigator</title>
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('suny_ui_theme');
+          var theme = (saved === 'pro' || saved === 'matrix')
+            ? saved
+            : (localStorage.getItem('suny_dark_mode') === 'false' ? 'pro' : 'matrix');
+          document.documentElement.dataset.theme = theme;
+          document.documentElement.classList.add(theme === 'pro' ? 'theme-pro' : 'theme-matrix');
+        } catch (_) {}
+      })();
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Arabic:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />

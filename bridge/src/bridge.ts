@@ -217,6 +217,9 @@ export class SunyBridge {
   }
 
   private openBrowserForReauth(): void {
+    if (this.silent) {
+      return;
+    }
     const { server } = this;
     const loginUrl = server.replace(/^wss?:\/\//, 'https://').replace('/bridge', '/login');
     this.log(`[SUNy Bridge] Open this URL to log in again: ${loginUrl}`);
