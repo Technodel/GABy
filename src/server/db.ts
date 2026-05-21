@@ -206,7 +206,7 @@ const SCHEMA_MIGRATIONS: Migration[] = [
           const existing = db.prepare('SELECT id FROM api_keys WHERE provider = ? AND mode = ? AND priority = 2').get('OpenRouter', mode);
           if (!existing) {
             db.prepare(`INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
-              .run('OpenRouter', openrouterKey, mode, `OpenRouter (fallback)`, 2, 'deepseek/deepseek-chat');
+              .run('OpenRouter', openrouterKey, mode, `OpenRouter (fallback)`, 2, mode === 'fast' ? 'deepseek/deepseek-v4-flash' : 'deepseek/deepseek-v4-pro');
           }
         }
       }
@@ -431,11 +431,11 @@ function seedData(db: Database.Database): void {
     db.prepare(`INSERT INTO pricing_modes (mode, display_name, description, markup_formula, input_token_base_cost, output_token_base_cost, model_id) VALUES (?, ?, ?, ?, ?, ?, ?)`)
       .run('free', '⚡ Free', 'Great for quick tasks and light use', 'cost * 2.0', 0.00000059, 0.00000079, 'llama-3.3-70b-versatile');
     db.prepare(`INSERT INTO pricing_modes (mode, display_name, description, markup_formula, input_token_base_cost, output_token_base_cost, model_id) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-      .run('fast', '🚀 Fast', 'Fast and efficient for everyday coding', 'cost * 2.5', 0.00000027, 0.0000011, 'deepseek-chat');
+      .run('fast', '🚀 Fast', 'Fast and efficient for everyday coding', 'cost * 2.5', 0.00000027, 0.0000011, 'deepseek-v4-flash');
     db.prepare(`INSERT INTO pricing_modes (mode, display_name, description, markup_formula, input_token_base_cost, output_token_base_cost, model_id) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-      .run('smart', '🧠 Smart', 'Advanced reasoning for complex tasks', 'cost * 2.8', 0.00000040, 0.0000015, 'deepseek-chat');
+      .run('smart', '🧠 Smart', 'Advanced reasoning for complex tasks', 'cost * 2.8', 0.00000040, 0.0000015, 'deepseek-v4-pro');
     db.prepare(`INSERT INTO pricing_modes (mode, display_name, description, markup_formula, input_token_base_cost, output_token_base_cost, model_id) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-      .run('pro', '💎 Pro', 'Maximum quality for your hardest challenges', 'cost * 3.0', 0.00000055, 0.00000219, 'deepseek-chat');
+      .run('pro', '💎 Pro', 'Maximum quality for your hardest challenges', 'cost * 3.0', 0.00000055, 0.00000219, 'deepseek-v4-pro');
   }
 
   // Update existing mode configs to current defaults (modes_v2_seeded flag)
@@ -461,30 +461,30 @@ function seedData(db: Database.Database): void {
     const smartExists = db.prepare("SELECT COUNT(*) as c FROM pricing_modes WHERE mode = 'smart'").get() as { c: number };
     if (smartExists.c === 0) {
       db.prepare(`INSERT INTO pricing_modes (mode, display_name, description, markup_formula, input_token_base_cost, output_token_base_cost, model_id) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-        .run('smart', '🧠 Smart', 'Advanced reasoning for complex tasks', 'cost * 2.8', 0.00000040, 0.0000015, 'deepseek-chat');
+        .run('smart', '🧠 Smart', 'Advanced reasoning for complex tasks', 'cost * 2.8', 0.00000040, 0.0000015, 'deepseek-v4-pro');
     }
     // Update pricing_modes model_ids
     db.prepare(`UPDATE pricing_modes SET model_id = ? WHERE mode = 'free'`).run('llama-3.3-70b-versatile');
-    db.prepare(`UPDATE pricing_modes SET model_id = ? WHERE mode = 'fast'`).run('deepseek-chat');
-    db.prepare(`UPDATE pricing_modes SET model_id = ? WHERE mode = 'smart'`).run('deepseek-chat');
-    db.prepare(`UPDATE pricing_modes SET model_id = ? WHERE mode = 'pro'`).run('deepseek-chat');
+    db.prepare(`UPDATE pricing_modes SET model_id = ? WHERE mode = 'fast'`).run('deepseek-v4-flash');
+    db.prepare(`UPDATE pricing_modes SET model_id = ? WHERE mode = 'smart'`).run('deepseek-v4-pro');
+    db.prepare(`UPDATE pricing_modes SET model_id = ? WHERE mode = 'pro'`).run('deepseek-v4-pro');
     // Update API key model overrides
     db.prepare(`UPDATE api_keys SET model_id_override = 'llama-3.3-70b-versatile' WHERE mode = 'free'`).run();
-    db.prepare(`UPDATE api_keys SET model_id_override = 'deepseek-chat' WHERE mode = 'fast'`).run();
-    db.prepare(`UPDATE api_keys SET model_id_override = 'deepseek-chat' WHERE mode = 'smart'`).run();
-    db.prepare(`UPDATE api_keys SET model_id_override = 'deepseek-chat' WHERE mode = 'pro'`).run();
+    db.prepare(`UPDATE api_keys SET model_id_override = 'deepseek-v4-flash' WHERE mode = 'fast'`).run();
+    db.prepare(`UPDATE api_keys SET model_id_override = 'deepseek-v4-pro' WHERE mode = 'smart'`).run();
+    db.prepare(`UPDATE api_keys SET model_id_override = 'deepseek-v4-pro' WHERE mode = 'pro'`).run();
     // Add DeepSeek as primary provider for fast/smart/pro modes
     const deepseekKey = process.env.DEEPSEEK_API_KEY || process.env.SUNY_DEEPSEEK_KEY;
     if (deepseekKey) {
       db.prepare(`INSERT OR REPLACE INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
-        .run('DeepSeek', deepseekKey, 'fast', '🚀 Fast – DeepSeek V3', 1, 'deepseek-chat');
+        .run('DeepSeek', deepseekKey, 'fast', '🚀 Fast – DeepSeek V4 Flash', 1, 'deepseek-v4-flash');
       db.prepare(`INSERT OR REPLACE INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
-        .run('DeepSeek', deepseekKey, 'smart', '🧠 Smart – DeepSeek Pro', 1, 'deepseek-chat');
+        .run('DeepSeek', deepseekKey, 'smart', '🧠 Smart – DeepSeek V4 Pro', 1, 'deepseek-v4-pro');
       db.prepare(`INSERT OR REPLACE INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
-        .run('DeepSeek', deepseekKey, 'pro', '💎 Pro – DeepSeek Pro', 1, 'deepseek-chat');
+        .run('DeepSeek', deepseekKey, 'pro', '💎 Pro – DeepSeek V4 Pro', 1, 'deepseek-v4-pro');
       // Free mode uses Groq, but also register DeepSeek as fallback
       db.prepare(`INSERT OR REPLACE INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
-        .run('DeepSeek', deepseekKey, 'free', '⚡ Free – DeepSeek (fallback)', 2, 'deepseek-chat');
+        .run('DeepSeek', deepseekKey, 'free', '⚡ Free – DeepSeek V4 Flash (fallback)', 2, 'deepseek-v4-flash');
     }
     // Ensure Groq is the primary provider for free mode
     const groqKey = process.env.GROQ_API_KEY || process.env.SUNY_GROQ_KEY;
@@ -496,13 +496,13 @@ function seedData(db: Database.Database): void {
     db.prepare(`UPDATE pricing_modes SET display_name = ?, description = ? WHERE mode = 'free'`)
       .run('⚡ Free', 'Groq Llama 3.3 70B — lightning fast for quick tasks');
     db.prepare(`UPDATE pricing_modes SET display_name = ?, description = ? WHERE mode = 'fast'`)
-      .run('🚀 Fast', 'DeepSeek V3 — reliable, excellent instruction following for everyday coding');
+      .run('🚀 Fast', 'DeepSeek V4 Flash — ultra-fast, absurdly cheap with auto-cache');
     db.prepare(`UPDATE pricing_modes SET display_name = ?, description = ? WHERE mode = 'smart'`)
-      .run('🧠 Smart', 'DeepSeek Pro — advanced reasoning for complex tasks');
+      .run('🧠 Smart', 'DeepSeek V4 Pro — advanced reasoning for complex tasks');
     db.prepare(`UPDATE pricing_modes SET display_name = ?, description = ? WHERE mode = 'pro'`)
-      .run('💎 Pro', 'DeepSeek Pro — maximum quality for your hardest challenges');
+      .run('💎 Pro', 'DeepSeek V4 Pro — maximum quality for your hardest challenges');
     db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('modes_v4_models', 'true')").run();
-    console.log('[db] Configured modes: Free=Groq, Fast/Smart/Pro=DeepSeek (v4)');
+    console.log('[db] Configured modes: Free=Groq, Fast=DeepSeek V4 Flash, Smart/Pro=DeepSeek V4 Pro');
   }
 
   // Clean mode descriptions (modes_v3_descriptions flag)
@@ -530,24 +530,24 @@ function seedData(db: Database.Database): void {
     }
     if (deepseekKey) {
       db.prepare(`INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
-        .run('DeepSeek', deepseekKey, 'fast', '🚀 Fast – DeepSeek V3', 1, 'deepseek-chat');
+        .run('DeepSeek', deepseekKey, 'fast', '🚀 Fast – DeepSeek V4 Flash', 1, 'deepseek-v4-flash');
       db.prepare(`INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
-        .run('DeepSeek', deepseekKey, 'smart', '🧠 Smart – DeepSeek Pro', 1, 'deepseek-chat');
+        .run('DeepSeek', deepseekKey, 'smart', '🧠 Smart – DeepSeek V4 Pro', 1, 'deepseek-v4-pro');
       db.prepare(`INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
-        .run('DeepSeek', deepseekKey, 'pro', '💎 Pro – DeepSeek Pro', 1, 'deepseek-chat');
+        .run('DeepSeek', deepseekKey, 'pro', '💎 Pro – DeepSeek V4 Pro', 1, 'deepseek-v4-pro');
       // DeepSeek as fallback for free in case Groq fails
       db.prepare(`INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
-        .run('DeepSeek', deepseekKey, 'free', '⚡ Free – DeepSeek (fallback)', 2, 'deepseek-chat');
+        .run('DeepSeek', deepseekKey, 'free', '⚡ Free – DeepSeek V4 Flash (fallback)', 2, 'deepseek-v4-flash');
     }
     // OpenRouter fallback for fast/smart/pro (routes through OpenRouter API)
     const openrouterKey = process.env.OPENROUTER_API_KEY || process.env.SUNY_OPENROUTER_KEY;
     if (openrouterKey) {
       db.prepare(`INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
-        .run('OpenRouter', openrouterKey, 'fast', '🚀 Fast – OpenRouter (fallback)', 2, 'deepseek/deepseek-chat');
+        .run('OpenRouter', openrouterKey, 'fast', '🚀 Fast – OpenRouter (fallback)', 2, 'deepseek/deepseek-v4-flash');
       db.prepare(`INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
-        .run('OpenRouter', openrouterKey, 'smart', '🧠 Smart – OpenRouter (fallback)', 2, 'deepseek/deepseek-chat');
+        .run('OpenRouter', openrouterKey, 'smart', '🧠 Smart – OpenRouter (fallback)', 2, 'deepseek/deepseek-v4-pro');
       db.prepare(`INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`)
-        .run('OpenRouter', openrouterKey, 'pro', '💎 Pro – OpenRouter (fallback)', 2, 'deepseek/deepseek-chat');
+        .run('OpenRouter', openrouterKey, 'pro', '💎 Pro – OpenRouter (fallback)', 2, 'deepseek/deepseek-v4-pro');
     }
     // Gemini fallback for fast/smart/pro
     const geminiKey = process.env.GEMINI_API_KEY || process.env.SUNY_GEMINI_KEY;

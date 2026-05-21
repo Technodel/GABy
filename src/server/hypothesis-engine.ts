@@ -303,6 +303,8 @@ export interface HypothesisRunnerInput {
   fullSystem: string;
   rawMessages: Array<{ role: string; content: unknown }>;
   primaryModel: LanguageModel;
+  /** Optional stronger model for reasoning-heavy strategies (test_first, from_scratch) */
+  proModel?: LanguageModel;
   signal?: AbortSignal;
 }
 
@@ -342,7 +344,7 @@ const STRATEGY_CONFIGS: Record<string, { prompt: string; steps: number }> = {
  * Falls back to non-branch execution if git operations fail.
  */
 export async function runHypothesisStrategies(input: HypothesisRunnerInput): Promise<HypothesisRunnerOutput> {
-  const { userId, projectId, projectPath, userMessage, fullSystem, rawMessages, primaryModel, signal } = input;
+  const { userId, projectId, projectPath, userMessage, fullSystem, rawMessages, primaryModel, proModel, signal } = input;
 
   const strategies = selectStrategies(userMessage);
   if (strategies.length < 2) {
@@ -378,8 +380,11 @@ export async function runHypothesisStrategies(input: HypothesisRunnerInput): Pro
       const hypSys = `${fullSystem}${cfg.prompt}`;
       const hypMsgs = [...rawMessages.slice(-4)] as Parameters<typeof generateText>[0]['messages'];
 
+      // test_first and from_scratch benefit from reasoning — route to V4 Pro if available
+      const strategyModel = (proModel && (strategy === 'test_first' || strategy === 'from_scratch'))
+        ? proModel : primaryModel;
       const result = await generateText({
-        model: primaryModel,
+        model: strategyModel,
         system: hypSys,
         messages: hypMsgs,
         tools: hypTools,

@@ -73,6 +73,9 @@ export { AgentMessage };
  *   2. Last assistant message in history → also marked with cacheControl,
  *      so on turn 2+ the full prior conversation is cached too.
  *
+ * DeepSeek auto-caches without any markers — no special handling needed.
+ * This function is Anthropic-only.
+ *
  * When this is used, `system` is NOT passed separately to streamText
  * (Anthropic throws if you supply both a system param and a system message).
  */
@@ -320,6 +323,14 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
     ? `${systemPrompt}\n\n${ARCHITECT_PLAN_INSTRUCTIONS}\n\n<WorkingDirectory>${projectPath ?? '(no project)'}</WorkingDirectory>`
     : null;
 
+  // ── DeepSeek cache exploitation ──────────────────────────────────────
+  // DeepSeek auto-caches the common prefix across consecutive turns — no
+  // explicit cache_control markers needed (unlike Anthropic). The static
+  // portions (behavioral rules, project guide, pinned files) are built into
+  // systemPrompt first in index.ts. Dynamic parts (repo map, hyp block,
+  // tool mandate) are appended below. This keeps the cacheable prefix as
+  // large and stable as possible. Cache hit on Flash: $0.003/M input (98%
+  // off the $0.14/M miss rate).
   let fullSystem = architectPlanSystem ?? (projectPath
     ? `${systemPrompt}${formatSystemAddition}\n\n<WorkingDirectory>${projectPath}</WorkingDirectory>\nAll relative file paths are resolved against this directory.`
     : systemPrompt + formatSystemAddition);
@@ -477,12 +488,18 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
   // different strategies on isolated git branches (gated by ff_hypothesis_engine).
   // Each strategy runs independently. The winner's branch is merged, losers discarded.
   // Emits suny:hypothesis_winner event for the frontend.
-  if (isFeatureEnabled('ff_hypothesis_engine') && bridgeConnected && projectPath && !talkMode && projectId && userMessage.length > 80 && modelEntries.length > 0 && classifyAutoMode(userMessage) !== 'free' && classifyAutoMode(userMessage) !== 'fast') {
+  if (isFeatureEnabled('ff_hypothesis_engine') && bridgeConnected && projectPath && !talkMode && projectId && userMessage.length > 80 && modelEntries.length > 0 && classifyAutoMode(userMessage) !== 'free') {
     try {
       const primaryModel = modelEntries[0].model as LanguageModel;
+      // Resolve Pro model for reasoning-heavy hypothesis strategies
+      let proModel: LanguageModel | undefined;
+      try {
+        const proEntries = getModelsForMode('pro');
+        if (proEntries.length > 0) proModel = proEntries[0].model as LanguageModel;
+      } catch { /* pro model unavailable — fall through, hypothesis uses primaryModel */ }
       const hypResult = await runHypothesisStrategies({
         userId, projectId: projectId!, projectPath, userMessage, fullSystem,
-        rawMessages, primaryModel, signal,
+        rawMessages, primaryModel, proModel, signal,
       });
       if (hypResult.hypBlock && hypResult.bestText.length > 100) {
         const ins = fullSystem.lastIndexOf('\n<WorkingDirectory>');

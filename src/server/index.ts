@@ -1491,21 +1491,10 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         console.log('[index] Presence engineering injected');
       }
 
-      // Build repo map and inject into system prompt
-      if (projectPath) {
-        userClientManager.pushToUser(userId, 'suny:preparation_step', { step: 'Scanning codebase...' });
-        try {
-          const repoMap = await buildRepoMap(userId, projectPath, msg.message as string);
-          if (repoMap) {
-            systemLines.push('', repoMap);
-            console.log(`[index] Repo map injected (${repoMap.length} chars)`);
-          }
-        } catch (err) {
-          console.warn('[index] Repo map failed:', (err as Error).message);
-        }
-      }
-
       // ── Pinned files: inject contents into system prompt ─────────────────
+      // Injected BEFORE repo map so static pinned content stays in the cached
+      // prefix. DeepSeek caches automatically on common prefix — repo map
+      // (which changes every turn) would shift pinned positions and break cache.
       if (projectPath && projectId) {
         try {
           const pinnedRows = getDb().prepare(
@@ -1528,6 +1517,20 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           }
         } catch (err) {
           console.warn('[index] Pinned files injection failed:', (err as Error).message);
+        }
+      }
+
+      // Build repo map and inject into system prompt (after pinned files)
+      if (projectPath) {
+        userClientManager.pushToUser(userId, 'suny:preparation_step', { step: 'Scanning codebase...' });
+        try {
+          const repoMap = await buildRepoMap(userId, projectPath, msg.message as string);
+          if (repoMap) {
+            systemLines.push('', repoMap);
+            console.log(`[index] Repo map injected (${repoMap.length} chars)`);
+          }
+        } catch (err) {
+          console.warn('[index] Repo map failed:', (err as Error).message);
         }
       }
 
