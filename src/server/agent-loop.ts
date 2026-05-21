@@ -391,7 +391,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
   const alwaysTools: Record<string, any> = { web_search: webSearch, url_fetch: urlFetch };
 
   const mcpToolsAvailable = mcpManager.availableToolCount > 0;
-  const tools = (() => {
+  const tools = await (async () => {
     if (bridgeConnected && projectPath && !talkMode) {
       const powerTools = createPowerTools({
         userId,
@@ -676,16 +676,27 @@ If your tools are not working, say:
         }
 
         // Flush on sentence boundaries or at 30-character minimum for low latency
-        if (toolDescBuffer.length >= 30 || SENTENCE_BOUNDARY.test(toolDescBuffer)) {
+        // BUT never in the middle of a UTF-16 surrogate pair (emoji, etc.),
+        // which would produce garbled output (U+FFFD) on the frontend.
+        const endsWithPartialSurrogate = toolDescBuffer.length > 0 && (() => {
+          const last = toolDescBuffer.charCodeAt(toolDescBuffer.length - 1);
+          return last >= 0xD800 && last <= 0xDBFF;
+        })();
+        if ((toolDescBuffer.length >= 30 || SENTENCE_BOUNDARY.test(toolDescBuffer)) && !endsWithPartialSurrogate) {
           fullText += toolDescBuffer;
           if (onChunk) onChunk(toolDescBuffer);
           toolDescBuffer = '';
         }
       }
-      // Flush any remaining buffer content
+      // Flush any remaining buffer content — strip trailing orphan surrogate to avoid garbled output
       if (toolDescBuffer.length > 0) {
-        fullText += toolDescBuffer;
-        if (onChunk) onChunk(toolDescBuffer);
+        let finalFlush = toolDescBuffer;
+        const lastCode = finalFlush.charCodeAt(finalFlush.length - 1);
+        if (lastCode >= 0xD800 && lastCode <= 0xDBFF) {
+          finalFlush = finalFlush.slice(0, -1);
+        }
+        fullText += finalFlush;
+        if (onChunk && finalFlush.length > 0) onChunk(finalFlush);
       }
 
       // ── Step exhaustion check ──────────────────────────────────────────────
