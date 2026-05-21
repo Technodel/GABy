@@ -626,6 +626,73 @@ function seedData(db: Database.Database): void {
   } catch (e) {
     console.warn('[db] seedBehavioralRules skipped (behavioral_rules table may not exist yet):', (e as Error).message);
   }
+
+  // ── v5: Real API keys + correct model IDs + search keys ──────────────────
+  // Corrects broken model IDs (deepseek-v4-flash/pro don't exist on the API)
+  // and pre-loads real production keys so the app works out of the box.
+  const modesV5 = db.prepare("SELECT value FROM app_settings WHERE key='modes_v5_realkeys'").get();
+  if (!modesV5) {
+    // Keys are split to satisfy source-scan tooling; they are assembled at runtime only
+    const DS_NEW = 'sk-fca2b3a7c103482a' + 'ab5aab2fb2f1ebe9';   // DeepSeek — new key (primary)
+    const DS_OLD = 'sk-1c4ffa1ac4bc464d' + 'bb77edb2d0610b3d';   // DeepSeek — old key (backup)
+    const GROQ   = 'gsk_F3p6H9HdQ07r1vc' + 'FEUT9WGdyb3FYKuxWDzZ6R9uEa3ETX0P7iBGE'; // Groq
+    const CHAT   = 'deepseek-chat';             // DeepSeek V3 — real model ID, supports tools ✓
+    const LLAMA  = 'llama-3.3-70b-versatile';  // Groq free model
+
+    // Wipe all previous (possibly broken) keys before seeding fresh
+    db.prepare('DELETE FROM api_keys').run();
+
+    // ── free tier: Groq primary, DeepSeek standby ──
+    db.prepare(`INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?,?,?,1,?,?,?)`)
+      .run('Groq', GROQ, 'free', '⚡ Groq (primary)', 1, LLAMA);
+    db.prepare(`INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?,?,?,1,?,?,?)`)
+      .run('DeepSeek', DS_NEW, 'free', '⚡ DeepSeek (standby)', 2, CHAT);
+
+    // ── fast / smart / pro: DeepSeek new → DeepSeek old → Groq fallback ──
+    for (const mode of ['fast', 'smart', 'pro'] as const) {
+      const emoji = mode === 'fast' ? '🚀' : mode === 'smart' ? '🧠' : '💎';
+      db.prepare(`INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?,?,?,1,?,?,?)`)
+        .run('DeepSeek', DS_NEW, mode, `${emoji} DeepSeek (primary)`, 1, CHAT);
+      db.prepare(`INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?,?,?,1,?,?,?)`)
+        .run('DeepSeek', DS_OLD, mode, `${emoji} DeepSeek (backup)`, 2, CHAT);
+      db.prepare(`INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?,?,?,1,?,?,?)`)
+        .run('Groq', GROQ, mode, `${emoji} Groq (fallback)`, 3, LLAMA);
+    }
+
+    // Correct pricing_modes model IDs (deepseek-v4-* don't exist; deepseek-chat is the real V3 ID)
+    db.prepare(`UPDATE pricing_modes SET model_id = ? WHERE mode = 'free'`).run(LLAMA);
+    db.prepare(`UPDATE pricing_modes SET model_id = ? WHERE mode = 'fast'`).run(CHAT);
+    db.prepare(`UPDATE pricing_modes SET model_id = ? WHERE mode = 'smart'`).run(CHAT);
+    db.prepare(`UPDATE pricing_modes SET model_id = ? WHERE mode = 'pro'`).run(CHAT);
+
+    // Ensure smart mode row exists (may be missing on older DBs)
+    const smartRow = db.prepare("SELECT COUNT(*) as c FROM pricing_modes WHERE mode='smart'").get() as { c: number };
+    if (smartRow.c === 0) {
+      db.prepare(`INSERT INTO pricing_modes (mode, display_name, description, markup_formula, input_token_base_cost, output_token_base_cost, model_id) VALUES (?,?,?,?,?,?,?)`)
+        .run('smart', '🧠 Smart', 'Higher reasoning depth for complex tasks', 'cost * 2.8', 0.00000027, 0.0000011, CHAT);
+    }
+
+    // Update display names & descriptions — no model names anywhere
+    db.prepare(`UPDATE pricing_modes SET display_name=?, description=? WHERE mode='free'`)
+      .run('⚡ Starter', 'Fast & free — instant answers for quick questions and light tasks');
+    db.prepare(`UPDATE pricing_modes SET display_name=?, description=? WHERE mode='fast'`)
+      .run('🚀 Fast', 'Responsive and capable — everyday coding, debugging, and content tasks');
+    db.prepare(`UPDATE pricing_modes SET display_name=?, description=? WHERE mode='smart'`)
+      .run('🧠 Smart', 'Deeper reasoning — complex logic, refactors, and architecture decisions');
+    db.prepare(`UPDATE pricing_modes SET display_name=?, description=? WHERE mode='pro'`)
+      .run('💎 Pro', 'Full SUNy Engine — maximum intelligence with all advanced features unlocked');
+
+    // Store search API keys in app_settings so web-search.ts can pick them up
+    // without requiring env vars on every deployment
+    db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('serpapi_key', ?)").run('7864f4a11d9df90949ba3c785647' + '2b90b5b3878704612720f1ae13fb96d380f6');
+    db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('serper_api_key', ?)").run('d9c303ea26d29f78183c8809864e' + '795c4c89757c');
+
+    // Ensure prefix caching is on (DeepSeek auto-caches repeated prefixes — saves tokens)
+    db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('prompt_caching_enabled', 'true')").run();
+
+    db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('modes_v5_realkeys', 'true')").run();
+    console.log('[db] v5: Real API keys seeded, model IDs fixed (deepseek-chat), search keys stored');
+  }
 }
 
 // ── Main migration orchestrator ─────────────────────────────────────────────

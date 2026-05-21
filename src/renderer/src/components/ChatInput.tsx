@@ -1,4 +1,4 @@
-import { Send, Square, Image, MessageSquare, Pencil, Mic, MicOff } from 'lucide-react';
+import { Send, Square, Image, MessageSquare, Pencil, Mic, MicOff, FileCode } from 'lucide-react';
 import { useRef } from 'react';
 import type { Message } from '../types';
 
@@ -35,6 +35,8 @@ export default function ChatInput(props: ChatInputProps) {
     inputHistoryIndex, messages, sendMessage, toggleTalkMode, wsSend, addMessage,
     isListening, onVoiceToggle,
   } = props;
+
+  const codeFileRef = useRef<HTMLInputElement>(null);
 
   return (
     <div className="chat-input-area" style={{
@@ -82,6 +84,31 @@ export default function ChatInput(props: ChatInputProps) {
             >×</button>
           </div>
         )}
+        <input
+          ref={codeFileRef}
+          type="file"
+          accept=".js,.ts,.tsx,.jsx,.mjs,.cjs,.py,.html,.css,.scss,.json,.jsonc,.md,.txt,.sh,.bash,.env,.yaml,.yml,.toml,.rs,.go,.java,.c,.cpp,.h,.rb,.php,.sql,.xml,.csv"
+          style={{ display: 'none' }}
+          onChange={e => {
+            const file = e.target.files?.[0];
+            if (!file) return;
+            if (file.size > 500 * 1024) {
+              addMessage('system', '⚠️ File is too large for inline upload (max 500 KB). Use file pinning instead.');
+              e.target.value = '';
+              return;
+            }
+            const ext = file.name.split('.').pop() ?? 'text';
+            const reader = new FileReader();
+            reader.onload = () => {
+              const content = reader.result as string;
+              const block = `\n\`\`\`${ext}\n// ${file.name}\n${content}\n\`\`\``;
+              setInput(prev => prev + block);
+              inputRef.current?.focus();
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+          }}
+        />
         <input
           ref={fileInputRef}
           type="file"
@@ -171,6 +198,23 @@ export default function ChatInput(props: ChatInputProps) {
           style={{ flex: 1, resize: 'none', maxHeight: 120 }}
           disabled={thinking}
         />
+        {/* Code file upload button */}
+        <button
+          className="btn btn-icon btn-secondary"
+          onClick={() => codeFileRef.current?.click()}
+          disabled={thinking}
+          title="Attach a code or text file — content will be pasted as a code block"
+          style={{
+            alignSelf: 'flex-end',
+            padding: '10px 12px',
+            background: 'transparent',
+            border: '1px solid var(--border)',
+            color: 'var(--text-muted)',
+            transition: 'all 0.15s',
+          }}
+        >
+          <FileCode size={15} />
+        </button>
         {/* Image upload button */}
         <button
           className="btn btn-icon btn-secondary"

@@ -11,6 +11,17 @@
 
 import { tool } from 'ai';
 import { z } from 'zod';
+import { getDb } from './db';
+
+// Lazy-read a search API key from app_settings (fallback when env var is missing)
+function getDbKey(settingKey: string): string | undefined {
+  try {
+    const row = getDb().prepare('SELECT value FROM app_settings WHERE key = ?').get(settingKey) as { value: string } | undefined;
+    return row?.value || undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 // -- Result formatting --------------------------------------------------------
 
@@ -91,7 +102,7 @@ async function searchSerpApi(
   query: string,
   maxResults: number,
 ): Promise<SearchResult[] | null> {
-  const key = process.env['SERPAPI_KEY'];
+  const key = process.env['SERPAPI_KEY'] || getDbKey('serpapi_key');
   if (!key) return null;
 
   try {
@@ -129,7 +140,7 @@ async function searchSerper(
   query: string,
   maxResults: number,
 ): Promise<SearchResult[] | null> {
-  const key = process.env['SERPER_API_KEY'];
+  const key = process.env['SERPER_API_KEY'] || getDbKey('serper_api_key');
   if (!key) return null;
 
   try {

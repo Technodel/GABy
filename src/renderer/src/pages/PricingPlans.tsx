@@ -39,11 +39,25 @@ const PLAN_FEATURES: Record<string, { name: string; features: string[]; highligh
     highlight: 'Popular',
     features: [
       '500 messages per day',
-      'Vision-capable model — image analysis',
+      'Vision & image analysis',
       'Bridge-powered file editing tools',
       'Git checkpoint & rollback',
       'Memory tools (save/recall)',
       'Lint self-correction loop',
+      'Pay-as-you-go token pricing',
+    ],
+  },
+  smart: {
+    name: 'Smart',
+    features: [
+      'Unlimited messages',
+      'Vision & image analysis',
+      'Bridge-powered file editing tools',
+      'Git checkpoint & rollback',
+      'Memory tools (save/recall)',
+      'Lint self-correction loop',
+      'Extended reasoning steps',
+      'Architecture-aware planning',
       'Pay-as-you-go token pricing',
     ],
   },
@@ -52,9 +66,9 @@ const PLAN_FEATURES: Record<string, { name: string; features: string[]; highligh
     highlight: 'Most powerful',
     features: [
       'Unlimited messages',
-      'Maximum intelligence — best available model',
+      'Everything in Smart',
       'Hypothesis engine (parallel strategy testing)',
-      'Self-revision for accuracy (2nd pass refinement)',
+      'Self-revision for accuracy (2nd pass)',
       'Test self-correction loop (up to 5 retries)',
       'Subtask delegation & self-healing',
       'Architect mode (plan → execute)',
@@ -65,15 +79,17 @@ const PLAN_FEATURES: Record<string, { name: string; features: string[]; highligh
   },
 };
 
-const MODE_ICONS: Record<string, string> = { free: '⚡', fast: '🚀', pro: '🧠' };
+const MODE_ICONS: Record<string, string> = { free: '⚡', fast: '🚀', smart: '🧠', pro: '💎' };
 const MODE_ACCENT: Record<string, string> = {
   free: '#10b981',
   fast: '#f59e0b',
+  smart: '#3b82f6',
   pro: '#6c63ff',
 };
 const MODE_BG: Record<string, string> = {
   free: 'rgba(16,185,129,0.08)',
   fast: 'rgba(245,158,11,0.08)',
+  smart: 'rgba(59,130,246,0.08)',
   pro: 'rgba(108,99,255,0.08)',
 };
 
@@ -140,7 +156,7 @@ export default function PricingPlans() {
         padding: '32px 24px 48px', maxWidth: 1100, margin: '0 auto',
         flexWrap: 'wrap', alignItems: 'stretch',
       }}>
-        {['free', 'fast', 'pro'].map(mode => {
+        {['free', 'fast', 'smart', 'pro'].map(mode => {
           const pm = priceMap[mode];
           const plan = PLAN_FEATURES[mode];
           const isFree = mode === 'free';
@@ -186,7 +202,7 @@ export default function PricingPlans() {
                 <span style={{ fontSize: 36, display: 'block', marginBottom: 8 }}>{MODE_ICONS[mode]}</span>
                 <h2 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 4px' }}>{plan.name}</h2>
                 <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5, minHeight: 40 }}>
-                  {pm?.description || (mode === 'free' ? 'Quick tasks & simple questions' : mode === 'fast' ? 'Coding, debugging & everyday tasks' : 'Complex analysis & deep reasoning')}
+                  {pm?.description || (mode === 'free' ? 'Quick tasks & simple questions' : mode === 'fast' ? 'Coding, debugging & everyday tasks' : mode === 'smart' ? 'Complex features & architecture decisions' : 'Maximum power with all features unlocked')}
                 </p>
 
                 {/* Daily limit badge */}
@@ -208,22 +224,13 @@ export default function PricingPlans() {
                         <div style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: 15, color: MODE_ACCENT[mode] }}>
                           {pm ? fmtPrice(pm.input_price_per_1m) : '—'}
                         </div>
-                        {pm?.model_id && (
-                          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3, maxWidth: 130, wordBreak: 'break-all' }}>
-                            {pm.model_id.length > 30 ? pm.model_id.slice(0, 27) + '…' : pm.model_id}
-                          </div>
-                        )}
                       </div>
                       <div>
                         <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 2 }}>Output / 1M tokens</div>
                         <div style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: 15, color: MODE_ACCENT[mode] }}>
                           {pm ? fmtPrice(pm.output_price_per_1m) : '—'}
                         </div>
-                        {pm?.model_id && (
-                          <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>
-                            after markup applied
-                          </div>
-                        )}
+                        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>after markup applied</div>
                       </div>
                     </div>
                   )}
@@ -284,31 +291,45 @@ export default function PricingPlans() {
           border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden',
           fontSize: 13,
         }}>
+          {/* Header row */}
+          <div style={{
+            display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr',
+            background: 'var(--bg-tertiary, var(--bg-secondary))',
+            borderBottom: '2px solid var(--border)',
+          }}>
+            <div style={{ padding: '10px 16px', fontWeight: 600, color: 'var(--text-muted)', fontSize: 12 }}>Feature</div>
+            <div style={{ padding: '10px 16px', textAlign: 'center', fontWeight: 700, color: '#10b981', fontSize: 12 }}>⚡ Free</div>
+            <div style={{ padding: '10px 16px', textAlign: 'center', fontWeight: 700, color: '#f59e0b', fontSize: 12 }}>🚀 Fast</div>
+            <div style={{ padding: '10px 16px', textAlign: 'center', fontWeight: 700, color: '#3b82f6', fontSize: 12 }}>🧠 Smart</div>
+            <div style={{ padding: '10px 16px', textAlign: 'center', fontWeight: 700, color: '#6c63ff', fontSize: 12 }}>💎 Pro</div>
+          </div>
           {[
-            { label: 'Daily message limit', free: '100/day', fast: '500/day', pro: 'Unlimited' },
-            { label: 'Token pricing', free: 'Free', fast: 'Pay per token', pro: 'Pay per token' },
-            { label: 'AI Model', free: 'Default free model', fast: 'Vision-capable', pro: 'Best available' },
-            { label: 'Web search', free: '✓', fast: '✓', pro: '✓' },
-            { label: 'Vision / Image analysis', free: '—', fast: '✓', pro: '✓' },
-            { label: 'File editing tools', free: '—', fast: '✓', pro: '✓' },
-            { label: 'Git checkpoints', free: '—', fast: '✓', pro: '✓' },
-            { label: 'Memory (save/recall)', free: '—', fast: '✓', pro: '✓' },
-            { label: 'Lint self-correction', free: '—', fast: '✓', pro: '✓' },
-            { label: 'Test self-correction', free: '—', fast: '—', pro: '✓ (5 retries)' },
-            { label: 'Hypothesis engine', free: '—', fast: '—', pro: '✓' },
-            { label: 'Self-revision (2nd pass)', free: '—', fast: '—', pro: '✓' },
-            { label: 'Subtask delegation', free: '—', fast: '—', pro: '✓' },
-            { label: 'MCP integration', free: '—', fast: '—', pro: '✓' },
-            { label: 'Priority support', free: '—', fast: '—', pro: '✓' },
+            { label: 'Daily message limit', free: '100/day', fast: '500/day', smart: 'Unlimited', pro: 'Unlimited' },
+            { label: 'Token pricing', free: 'Free', fast: 'Per token', smart: 'Per token', pro: 'Per token' },
+            { label: 'Web search', free: '✓', fast: '✓', smart: '✓', pro: '✓' },
+            { label: 'Vision / Image analysis', free: '—', fast: '✓', smart: '✓', pro: '✓' },
+            { label: 'File editing tools', free: '—', fast: '✓', smart: '✓', pro: '✓' },
+            { label: 'Git checkpoints', free: '—', fast: '✓', smart: '✓', pro: '✓' },
+            { label: 'Memory (save/recall)', free: '—', fast: '✓', smart: '✓', pro: '✓' },
+            { label: 'Lint self-correction', free: '—', fast: '✓', smart: '✓', pro: '✓' },
+            { label: 'Extended reasoning steps', free: '—', fast: '—', smart: '✓', pro: '✓' },
+            { label: 'Architecture-aware planning', free: '—', fast: '—', smart: '✓', pro: '✓' },
+            { label: 'Test self-correction', free: '—', fast: '—', smart: '—', pro: '✓ (5 retries)' },
+            { label: 'Hypothesis engine', free: '—', fast: '—', smart: '—', pro: '✓' },
+            { label: 'Self-revision (2nd pass)', free: '—', fast: '—', smart: '—', pro: '✓' },
+            { label: 'Subtask delegation', free: '—', fast: '—', smart: '—', pro: '✓' },
+            { label: 'MCP integration', free: '—', fast: '—', smart: '—', pro: '✓' },
+            { label: 'Priority support', free: '—', fast: '—', smart: '—', pro: '✓' },
           ].map((row, i) => (
             <div key={i} style={{
-              display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr',
-              borderBottom: i < 14 ? '1px solid var(--border)' : 'none',
+              display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr',
+              borderBottom: i < 15 ? '1px solid var(--border)' : 'none',
               background: i % 2 === 0 ? 'var(--bg-secondary)' : 'transparent',
             }}>
               <div style={{ padding: '10px 16px', fontWeight: 500, color: 'var(--text-primary)' }}>{row.label}</div>
               <div style={{ padding: '10px 16px', textAlign: 'center', color: 'var(--text-muted)' }}>{row.free}</div>
               <div style={{ padding: '10px 16px', textAlign: 'center', color: 'var(--text-muted)' }}>{row.fast}</div>
+              <div style={{ padding: '10px 16px', textAlign: 'center', color: '#3b82f6', fontWeight: 500 }}>{row.smart}</div>
               <div style={{ padding: '10px 16px', textAlign: 'center', color: 'var(--accent)', fontWeight: 500 }}>{row.pro}</div>
             </div>
           ))}
@@ -357,7 +378,7 @@ export default function PricingPlans() {
       }}>
         <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: 12 }}>Questions?</h3>
         <p style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 20 }}>
-          The Starter plan is always free — no credit card needed. Fast and Professional plans require wallet credits.{' '}
+          The Starter plan is always free — no credit card needed. Fast, Smart, and Professional plans are pay-as-you-go.{' '}
           Unused credits never expire.
         </p>
         {contact && (
