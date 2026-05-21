@@ -11,7 +11,7 @@
  * No more XML parsing, no more hallucinated tool calls.
  */
 
-import { streamText, generateText, type CoreMessage, type LanguageModel } from 'ai';
+import { streamText, generateText, stepCountIs, type CoreMessage, type LanguageModel } from 'ai';
 import { getModelsForMode, getVisionCapableModels, isCachingEnabled, getEditFormat } from './agent';
 import { createPowerTools } from './power-tools';
 import { createWebSearchTool } from './web-search';
@@ -592,7 +592,7 @@ If your tools are not working, say:
         system: useSystemParam ? fullSystem : undefined,
         messages: finalMessages,
         tools: effectiveTools,
-        maxSteps: MAX_STEPS, // always allow multi-step — tools need result cycles even in text-format modes
+        stopWhen: stepCountIs(MAX_STEPS), // v5 API: enables multi-step tool-use loop
         abortSignal: signal,
         onStepFinish: ({ usage, text, toolCalls, toolResults }) => {
           steps++;
@@ -739,7 +739,7 @@ If your tools are not working, say:
               system: fullSystem,
               messages: trimRetry,
               tools: effectiveTools,
-              maxSteps: 4,
+              stopWhen: stepCountIs(4),
               maxTokens: 2000,
               abortSignal: signal,
             });
@@ -747,13 +747,14 @@ If your tools are not working, say:
             const retryText = retryResult.text?.trim() || '';
             // Check if retry produced meaningful output or tool calls
             // (generateText doesn't give us toolCallNames directly, but text.length is a proxy)
-            if (retryText.length > 50 || retryResult.steps > 1) {
+            const retryStepCount = Array.isArray(retryResult.steps) ? retryResult.steps.length : 0;
+            if (retryText.length > 50 || retryStepCount > 1) {
               fullText = retryText;
               // Estimate tool calls from steps
-              if (retryResult.steps > 1) {
-                for (let t = 0; t < retryResult.steps - 1; t++) toolCallNames.add('retry_tool_call');
+              if (retryStepCount > 1) {
+                for (let t = 0; t < retryStepCount - 1; t++) toolCallNames.add('retry_tool_call');
               }
-              console.log(`[agent-loop] AUTO-RETRY attempt ${retryAttempt} succeeded: ${retryText.length} chars, ${retryResult.steps} steps`);
+              console.log(`[agent-loop] AUTO-RETRY attempt ${retryAttempt} succeeded: ${retryText.length} chars, ${retryStepCount} steps`);
             } else {
               console.warn(`[agent-loop] AUTO-RETRY attempt ${retryAttempt} also produced insufficient output`);
             }
@@ -892,7 +893,7 @@ If your tools are not working, say:
                 system: revUse ? fullSystem : undefined,
                 messages: revMsgs,
                 // No tools — this is a pure text refinement pass
-                maxSteps: 1,
+                stopWhen: stepCountIs(1),
                 abortSignal: signal,
                 onStepFinish: ({ usage }) => {
                   steps++;
@@ -957,7 +958,7 @@ If your tools are not working, say:
           system: execUseSystem ? execSystem : undefined,
           messages: execMessages,
           tools: tools, // use tool-call for execution if available
-          maxSteps: MAX_STEPS,
+          stopWhen: stepCountIs(MAX_STEPS),
           abortSignal: signal,
           onStepFinish: ({ usage: u, text, toolCalls, toolResults }) => {
             steps++;
@@ -1096,7 +1097,7 @@ If your tools are not working, say:
             system: lintUseSystem ? fullSystem : undefined,
             messages: trimmedLint,
             tools,
-            maxSteps: MAX_STEPS,
+            stopWhen: stepCountIs(MAX_STEPS),
             abortSignal: signal,
             onStepFinish: ({ usage, text, toolCalls, toolResults }) => {
               steps++;
@@ -1250,7 +1251,7 @@ If your tools are not working, say:
               system: testUseSystem ? fullSystem : undefined,
               messages: trimmedTest,
               tools,
-              maxSteps: MAX_STEPS,
+              stopWhen: stepCountIs(MAX_STEPS),
               abortSignal: signal,
               onStepFinish: ({ usage: u, text, toolCalls, toolResults }) => {
                 steps++;

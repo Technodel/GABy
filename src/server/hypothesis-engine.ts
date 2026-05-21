@@ -11,7 +11,7 @@
  */
 
 import { getDb } from './db';
-import { generateText, type LanguageModel, type ToolSet } from 'ai';
+import { generateText, stepCountIs, type LanguageModel, type ToolSet } from 'ai';
 import { createPowerTools } from './power-tools';
 import {
   gitCreateHypothesisBranch, gitSwitchBranch, gitMergeBranch, gitDeleteBranch,
@@ -388,7 +388,7 @@ export async function runHypothesisStrategies(input: HypothesisRunnerInput): Pro
         system: hypSys,
         messages: hypMsgs,
         tools: hypTools,
-        maxSteps: cfg.steps,
+        stopWhen: stepCountIs(cfg.steps),
         maxTokens: 2000,
         abortSignal: signal,
       });

@@ -15,7 +15,7 @@
  * beyond the files it modifies (which are real files on the user's machine).
  */
 
-import { generateText, tool, type LanguageModel, type ToolSet } from 'ai';
+import { generateText, stepCountIs, tool, type LanguageModel, type ToolSet } from 'ai';
 import { z } from 'zod';
 import { createPowerTools, type PowerToolContext } from './power-tools';
 import type { AgentMessage } from './agent';
@@ -135,7 +135,7 @@ export async function runSubtask(
       system: SUBAGENT_SYSTEM,
       messages,
       tools: subTools,
-      maxSteps: max_steps,
+      stopWhen: stepCountIs(max_steps),
       abortSignal: signal,
       experimental_telemetry: { isEnabled: false },
     });
