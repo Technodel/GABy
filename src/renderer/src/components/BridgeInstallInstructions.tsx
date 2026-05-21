@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Check, Copy, Download } from 'lucide-react';
+import { Check, Copy, Download, Power, Trash2 } from 'lucide-react';
 
 export default function BridgeInstallInstructions({ autoCopy = false }: { autoCopy?: boolean }) {
   const [cmd, setCmd] = useState('');
@@ -106,6 +106,36 @@ export default function BridgeInstallInstructions({ autoCopy = false }: { autoCo
           {copied ? '✓ Command copied to clipboard — now open a terminal and paste.' : 'Click Copy above, then paste in your terminal.'}
         </p>
       )}
+
+      {/* ── Auto-start section ───────────────────────────────────────────────── */}
+      <details style={{ marginTop: 16, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
+        <summary style={{ cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Power size={14} /> Keep the bridge connected after restart
+        </summary>
+        <div style={{ marginTop: 10 }}>
+          <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 8 }}>
+            Make the bridge auto-start when you log in to your computer. Run this command once:
+          </p>
+          <code style={{
+            display: 'block',
+            background: '#0a0b0f',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-sm)',
+            padding: '8px 12px',
+            fontSize: 12,
+            color: 'var(--accent)',
+            wordBreak: 'break-all',
+            fontFamily: 'JetBrains Mono, monospace',
+          }}>npx suny-bridge --install-startup</code>
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.5 }}>
+            After running this, the bridge will connect automatically every time you boot your computer.
+            You only need to do this once.
+          </p>
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.5 }}>
+            To undo: <code style={{ fontSize: 11, color: 'var(--danger)' }}>npx suny-bridge --remove-startup</code>
+          </p>
+        </div>
+      </details>
     </div>
   );
 }
