@@ -1,0 +1,12 @@
+const Database = require('better-sqlite3');
+const db = new Database('./data/suny.db');
+console.log('=== PRICING_MODES ===');
+const modes = db.prepare('SELECT * FROM pricing_modes ORDER BY id').all();
+console.table(modes);
+console.log('=== API_KEYS ===');
+const keys = db.prepare('SELECT id, provider, mode, is_active, label, priority, model_id_override FROM api_keys ORDER BY priority ASC, id DESC').all();
+console.table(keys);
+console.log('=== APP_SETTINGS (prompt caching) ===');
+const settings = db.prepare("SELECT * FROM app_settings WHERE key = 'prompt_caching_enabled'").all();
+console.table(settings);
+db.close();

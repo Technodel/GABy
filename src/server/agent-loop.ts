@@ -535,6 +535,10 @@ READ the files first. SEARCH the web. RUN commands. USE YOUR TOOLS.
 Every task that involves looking up information, reading files, checking code,
 or verifying assumptions MUST start with a tool call — not a guess.
 
+IMPORTANT: After you make a tool call and receive the result, you MUST
+always produce a text response summarizing what you found or did.
+Never send tool calls alone — always include a text reply for the user.
+
 If your tools are not working, say:
 "I'm having trouble accessing my tools — let me try a different approach."
 </tool_mandate>`;
