@@ -100,7 +100,7 @@ router.get('/me', (req: Request, res: Response) => {
   const user = (req as AuthRequest).user;
   const db = getDb();
   const row = db.prepare(`
-    SELECT id, username, display_name, balance, wallet_balance, wallet_auto_spend, selected_mode, max_tokens_per_session, is_active, role
+    SELECT id, username, display_name, balance, wallet_balance, wallet_auto_spend, selected_mode, max_tokens_per_session, is_active, role, bridge_ever_connected
     FROM users WHERE id = ?
   `).get(user.id) as UserRow | undefined;
 
@@ -160,6 +160,7 @@ router.get('/me', (req: Request, res: Response) => {
       return list;
     })(),
     bridge_connected: isBridgeConnected(user.id as number),
+    bridge_previously_connected: row.bridge_ever_connected === 1,
   });
 });
 

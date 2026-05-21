@@ -31,6 +31,7 @@ export interface UserData {
   cross_device_memory_enabled?: boolean;
   chat_show_technical_details?: boolean;
   bridge_connected: boolean;
+  bridge_previously_connected?: boolean;
   modes: Mode[];
 }
 

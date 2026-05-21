@@ -164,6 +164,9 @@ function cmdStatus() {
 
 // ── Main ────────────────────────────────────────────────────────────────────
 
+// Export for programmatic use (e.g. from bridge/src/bridge.ts)
+module.exports = { cmdInstall, cmdRemove, cmdStatus, getStartupScriptPath };
+
 const command = process.argv[2] || 'status';
 
 switch (command) {

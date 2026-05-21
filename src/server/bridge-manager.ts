@@ -2,6 +2,7 @@ import WebSocket from 'ws';
 import { verifyToken, AuthPayload } from './auth';
 import { narrateMessage } from './narrator';
 import { userClientManager } from './user-client-manager';
+import { getDb } from './db';
 
 interface BridgeConnection {
   ws: WebSocket;
@@ -31,6 +32,11 @@ export function registerBridge(userId: number, username: string, ws: WebSocket):
     existing.ws.send(JSON.stringify({ type: 'bridge:disconnect', reason: 'replaced_by_new_connection' }));
     existing.ws.close();
   }
+
+  // Mark user as having ever connected a bridge
+  try {
+    getDb().prepare('UPDATE users SET bridge_ever_connected = 1 WHERE id = ?').run(userId);
+  } catch { /* best-effort */ }
 
   console.log(`[bridge-manager] Bridge CONNECTED for user ${userId} (${username})`);
   const conn: BridgeConnection = { ws, userId, username, connectedAt: new Date(), lastPing: new Date() };

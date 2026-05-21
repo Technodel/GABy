@@ -29,6 +29,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
   const streamingContentRef = useRef('');
   const [thinkingStatus, setThinkingStatus] = useState('');
   const [bridgeConnected, setBridgeConnected] = useState(false);
+  const [bridgePreviouslyConnected, setBridgePreviouslyConnected] = useState(false);
   const [showBridgeTip, setShowBridgeTip] = useState(false);
   const [crossDeviceMemoryEnabled, setCrossDeviceMemoryEnabled] = useState(false);
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
@@ -1311,6 +1312,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       setWalletBalance(data.wallet_balance);
       setSelectedMode(data.selected_mode);
       setBridgeConnected(data.bridge_connected);
+      setBridgePreviouslyConnected(Boolean(data.bridge_previously_connected));
       setCrossDeviceMemoryEnabled(Boolean(data.cross_device_memory_enabled));
       setShowTechnicalDetails(Boolean(data.chat_show_technical_details));
       if (data.max_tokens_per_session != null) setSessLimit(data.max_tokens_per_session);
@@ -2470,7 +2472,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                   </div>
                 </div>
 
-                <BridgeInstallInstructions autoCopy />
+                <BridgeInstallInstructions autoCopy previouslyConnected={bridgePreviouslyConnected} />
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
                   <button className="btn btn-secondary" onClick={() => setShowBridgeTip(false)}>Close</button>

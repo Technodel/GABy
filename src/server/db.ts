@@ -304,7 +304,19 @@ const SCHEMA_MIGRATIONS: Migration[] = [
       console.log('[db] Migration v9: Created conversation_forks table');
     },
   },
-];
+
+    // ── Migration 10: Track bridge connection history ────────────────────────
+    {
+      version: 10,
+      name: 'Add bridge_ever_connected column to users table',
+      up: (db) => {
+        if (!columnExists(db, 'users', 'bridge_ever_connected')) {
+          db.exec("ALTER TABLE users ADD COLUMN bridge_ever_connected INTEGER DEFAULT 0");
+          console.log('[db] Migration v10: Added bridge_ever_connected column to users table');
+        }
+      },
+    },
+  ];
 
 // ── Schema foundations (always run — CREATE TABLE IF NOT EXISTS) ────────────
 
@@ -324,6 +336,7 @@ function createFoundationTables(db: Database.Database): void {
       wallet_auto_spend INTEGER DEFAULT 0,
       is_active INTEGER DEFAULT 1,
       role TEXT DEFAULT 'user',
+      bridge_ever_connected INTEGER DEFAULT 0,
       selected_mode TEXT DEFAULT 'fast',
       created_at TEXT DEFAULT (datetime('now')),
       max_tokens_per_session INTEGER DEFAULT NULL

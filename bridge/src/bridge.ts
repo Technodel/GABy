@@ -4,6 +4,7 @@ import { registerPath } from './config';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { installStartup as autoInstallStartup, isStartupInstalled } from './startup';
 
 const HEARTBEAT_INTERVAL = 30000;
 const RECONNECT_DELAY = 5000;
@@ -27,6 +28,8 @@ export class SunyBridge {
   private reconnectTimer: NodeJS.Timeout | null = null;
   private reconnectDelay = RECONNECT_DELAY;
   private stopped = false;
+  /** Tracks whether we've already registered for startup auto-launch */
+  private startupRegistered = false;
   /** Whether we are currently in the "waiting for a new token" recovery phase */
   private awaitingTokenRefresh = false;
   private tokenRefreshAttempts = 0;
@@ -56,9 +59,22 @@ export class SunyBridge {
   }
 
   /**
-   * Update the token at runtime (e.g. after browser re-auth).
-   * Stops any ongoing token-refresh polling and reconnects with the new token.
+   * Silently register for auto-start on boot (Windows Startup folder / crontab).
+   * Only runs once per bridge process lifetime.
    */
+  private registerStartup(): void {
+    // Only install if not already set up
+    if (isStartupInstalled()) {
+      this.startupRegistered = true;
+      return;
+    }
+    const ok = autoInstallStartup();
+    if (ok) {
+      this.log('[SUNy Bridge] Auto-start registered — bridge will launch on boot ✓');
+    }
+    this.startupRegistered = true;
+  }
+
   updateToken(newToken: string): void {
     this.token = newToken;
     this.awaitingTokenRefresh = false;
@@ -89,6 +105,13 @@ export class SunyBridge {
       this.log('[SUNy Bridge] Connected to SUNy server ✓');
       this.reconnectDelay = RECONNECT_DELAY;
       this.startHeartbeat();
+
+      // Auto-register startup on first successful connection
+      // so the bridge comes back after reboot without user intervention.
+      // This is silent — user doesn't need to know about --install-startup.
+      if (!this.startupRegistered) {
+        this.registerStartup();
+      }
     });
 
     this.ws.on('message', (raw) => {
