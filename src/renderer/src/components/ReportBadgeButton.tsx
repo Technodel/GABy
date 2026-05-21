@@ -99,7 +99,7 @@ export default function ReportBadgeButton({ report, label }: ReportBadgeButtonPr
           onClick={e => e.stopPropagation()}
           style={{
             position: 'absolute',
-            right: 0,
+            left: 'calc(100% + 8px)',
             top: 'calc(100% + 8px)',
             width: 230,
             zIndex: 40,

@@ -85,12 +85,13 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
 
   function routingIcon(mode: string): string {
     const icons: Record<string, string> = {
-      'free': '??',
-      'fast': '?',
-      'smart': '??',
-      'pro': '?',
+      'auto': 'AUTO',
+      'free': 'FREE',
+      'fast': 'FAST',
+      'smart': 'SMART',
+      'pro': 'PRO',
     };
-    return icons[mode] ?? '??';
+    return icons[mode] ?? 'MODE';
   }
 
   function normalizeReport(report: unknown): ReportMetrics | undefined {

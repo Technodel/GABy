@@ -121,7 +121,7 @@ export default function TopBar(props: TopBarProps) {
         {activeProject && (
           <button
             className="btn btn-icon btn-secondary"
-            onClick={() => { clearChat(); }} title="Home — back to global chat"
+            onClick={() => { clearChat(); }} title="Home - back to global chat"
           >
             <Home size={15} />
           </button>
