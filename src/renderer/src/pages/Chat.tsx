@@ -1587,33 +1587,42 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
   // ── Conversation forking ────────────────────────────────────────────────
   interface ConversationFork { id: string; label: string; savedAt: number; messages: Message[]; }
 
-  function forksKey() {
-    return `suny_forks_${activeProject?.id ?? 'global'}`;
-  }
-
-  function loadForks(): ConversationFork[] {
+  async function loadForks(): Promise<ConversationFork[]> {
     try {
-      const raw = localStorage.getItem(forksKey());
-      return raw ? JSON.parse(raw) as ConversationFork[] : [];
+      const url = activeProject
+        ? `/api/forks?project_id=${activeProject.id}`
+        : '/api/forks';
+      const res = await fetch(url, { credentials: 'include' });
+      if (!res.ok) return [];
+      const data = await res.json() as ConversationFork[];
+      setForkList(data);
+      return data;
     } catch { return []; }
   }
 
-  function saveForks(forks: ConversationFork[]) {
-    try { localStorage.setItem(forksKey(), JSON.stringify(forks.slice(0, 10))); } catch {}
-  }
-
-  function forkConversation() {
+  async function forkConversation() {
     if (messages.length === 0) return;
-    const forks = loadForks();
     const label = (() => {
       const last = messages.filter(m => m.type === 'user').slice(-1)[0];
       const raw = last?.content ?? '';
-      return raw.length > 50 ? raw.slice(0, 47) + '…' : (raw || `Fork ${forks.length + 1}`);
+      return raw.length > 50 ? raw.slice(0, 47) + '…' : (raw || 'Fork');
     })();
-    const fork: ConversationFork = { id: 'f_' + Date.now(), label, savedAt: Date.now(), messages: [...messages] };
-    saveForks([fork, ...forks]);
-    addMessage('system', `🌿 Conversation forked as **"${label}"**. You can restore it any time from the Forks menu.`);
-    setShowForks(true);
+    try {
+      const res = await fetch('/api/forks', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_id: activeProject?.id ?? null,
+          label,
+          messages: [...messages],
+        }),
+      });
+      if (!res.ok) return;
+      await loadForks();
+      addMessage('system', `🌿 Conversation forked as **"${label}"**. You can restore it any time from the Forks menu.`);
+      setShowForks(true);
+    } catch {}
   }
 
   function restoreFork(fork: ConversationFork) {
@@ -1622,16 +1631,27 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     addMessage('system', `🌿 Restored fork: **"${fork.label}"**`);
   }
 
-  function deleteFork(id: string) {
-    saveForks(loadForks().filter(f => f.id !== id));
-    setForkList(prev => prev.filter(f => f.id !== id));
+  async function deleteFork(id: string) {
+    try {
+      await fetch(`/api/forks/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      setForkList(prev => prev.filter(f => f.id !== id));
+    } catch {}
   }
 
   const [showForks, setShowForks] = useState(false);
   const [forkList, setForkList] = useState<ConversationFork[]>([]);
 
+  // Load fork count for button badge on mount, project change, or modal open
   useEffect(() => {
-    if (showForks) setForkList(loadForks());
+    loadForks();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProject?.id]);
+
+  useEffect(() => {
+    if (showForks) loadForks();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showForks]);
 
@@ -1767,7 +1787,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
               </button>
             </>
           )}
-          {loadForks().length > 0 && (
+          {forkList.length > 0 && (
             <button
               className="btn btn-icon btn-secondary"
               onClick={() => setShowForks(true)}

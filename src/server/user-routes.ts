@@ -895,6 +895,67 @@ router.post('/projects/:id/reindex', async (req: Request, res: Response) => {
   });
 });
 
+// ── Conversation Forks ─────────────────────────────────────────────────────────
+
+const ForkSchema = z.object({
+  project_id: z.number().int().nullable().optional(),
+  label: z.string().max(100).default(''),
+  messages: z.array(z.any()).max(200),
+});
+
+/** List forks for this user, optionally filtered by project */
+router.get('/forks', (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const projectId = parseInt((req.query.project_id as string) || '', 10);
+  const db = getDb();
+  let forks: Array<{ uid: string; label: string; project_id: number | null; messages_json: string; message_count: number; created_at: string }>;
+  if (!isNaN(projectId)) {
+    forks = db.prepare(
+      `SELECT uid, label, project_id, messages_json, message_count, created_at
+       FROM conversation_forks WHERE user_id = ? AND project_id = ? ORDER BY created_at DESC`
+    ).all(user.id, projectId) as typeof forks;
+  } else {
+    forks = db.prepare(
+      `SELECT uid, label, project_id, messages_json, message_count, created_at
+       FROM conversation_forks WHERE user_id = ? ORDER BY created_at DESC`
+    ).all(user.id) as typeof forks;
+  }
+  const parsed = forks.map(f => ({
+    id: f.uid,
+    label: f.label,
+    project_id: f.project_id,
+    savedAt: new Date(f.created_at).getTime(),
+    message_count: f.message_count,
+    messages: (() => { try { return JSON.parse(f.messages_json); } catch { return []; } })(),
+  }));
+  res.json(parsed);
+});
+
+/** Create a new fork */
+router.post('/forks', (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const parsed = ForkSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: 'Invalid fork data' }); return; }
+  const uid = 'f_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+  const db = getDb();
+  db.prepare(
+    `INSERT INTO conversation_forks (uid, user_id, project_id, label, messages_json, message_count)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(uid, user.id, parsed.data.project_id ?? null, parsed.data.label, JSON.stringify(parsed.data.messages), parsed.data.messages.length);
+  res.json({ success: true, id: uid });
+});
+
+/** Delete a fork by uid */
+router.delete('/forks/:uid', (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const uid = req.params.uid;
+  const db = getDb();
+  const fork = db.prepare('SELECT id FROM conversation_forks WHERE uid = ? AND user_id = ?').get(uid, user.id);
+  if (!fork) { res.status(404).json({ error: 'Fork not found' }); return; }
+  db.prepare('DELETE FROM conversation_forks WHERE uid = ? AND user_id = ?').run(uid, user.id);
+  res.json({ success: true });
+});
+
 // ── Blueprint Memory Graph ────────────────────────────────────────────────────
 
 /** Return the design-decision timeline for a project */

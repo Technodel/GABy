@@ -24,7 +24,7 @@
 const DEFAULT_M = 16;           // max connections per node per layer
 const DEFAULT_EF_CONSTRUCTION = 200;  // dynamic candidate list during construction
 const DEFAULT_EF_SEARCH = 50;         // dynamic candidate list during search
-const DEFAULT_LEVEL_MULTIPLIER = 1 / Math.LN_E; // mL parameter
+const DEFAULT_LEVEL_MULTIPLIER = 1 / Math.LN2; // mL parameter — ln(2) ≈ 0.693
 
 // ── Distance function ─────────────────────────────────────────────────────────
 
@@ -250,9 +250,8 @@ export class HNSWIndex {
     const candidates = this.searchLayer(query, currEntry, Math.max(ef, k), 0);
 
     return candidates
-      .sort((a, b) => a.dist - b.dist)
-      .slice(0, k)
-      .map(item => ({ id: item.id, distance: item.dist }));
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, k);
   }
 
   // ── Internal search helpers ───────────────────────────────────────────────

@@ -280,6 +280,30 @@ const SCHEMA_MIGRATIONS: Migration[] = [
       console.log('[db] Migration v8: Created code_chunks table');
     },
   },
+  // ── Migration 9: Conversation forks (server-side, durable) ────────────────
+  {
+    version: 9,
+    name: 'Create conversation_forks table',
+    up: (db) => {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS conversation_forks (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          uid TEXT NOT NULL UNIQUE,
+          user_id INTEGER NOT NULL,
+          project_id INTEGER DEFAULT NULL,
+          label TEXT NOT NULL DEFAULT '',
+          messages_json TEXT NOT NULL DEFAULT '[]',
+          message_count INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT DEFAULT (datetime('now')),
+          FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_forks_user ON conversation_forks(user_id);
+        CREATE INDEX IF NOT EXISTS idx_forks_project ON conversation_forks(project_id);
+        CREATE INDEX IF NOT EXISTS idx_forks_created ON conversation_forks(created_at);
+      `);
+      console.log('[db] Migration v9: Created conversation_forks table');
+    },
+  },
 ];
 
 // ── Schema foundations (always run — CREATE TABLE IF NOT EXISTS) ────────────
