@@ -51,6 +51,9 @@ comparison/
 scripts/*
 !scripts/build.js
 
+# VPS utility scripts — isolated to scripts/vps/, never track
+/scripts/vps/*
+
 # Prevent secret leaks
 .aider.input.history
 suny-vps.env
