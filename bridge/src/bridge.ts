@@ -11,8 +11,6 @@ const RECONNECT_DELAY = 5000;
 const MAX_RECONNECT_DELAY = 60000;
 /** Seconds between token-refresh poll attempts after expiry */
 const TOKEN_REFRESH_POLL_INTERVAL = 30_000;
-/** How many poll attempts before giving up (30s × 10 = 5 min) */
-const TOKEN_REFRESH_MAX_ATTEMPTS = 10;
 /** File path where a new token can be written for auto-pick-up */
 const TOKEN_REFRESH_FILE = path.join(os.homedir(), '.gaby', 'refresh_token');
 
@@ -121,14 +119,9 @@ export class SunyBridge {
     this.ws.on('close', (code, reason) => {
       this.clearTimers();
       if (code === 4001) {
-        const reasonStr = reason.toString();
         this.log('[SUNy Bridge] Authentication failed (code 4001).');
-        if (reasonStr.includes('expired')) {
-          this.startTokenRefreshFlow();
-        } else {
-          this.log('[SUNy Bridge] Token is invalid. Generate a new token from the admin panel and restart the bridge.');
-        }
-        // Don't schedule normal reconnect — token-refresh flow handles it
+        this.startTokenRefreshFlow();
+        // Keep waiting for a fresh token until the user explicitly disconnects.
         return;
       }
       if (!this.stopped) {
@@ -157,8 +150,15 @@ export class SunyBridge {
     };
 
     if (type === 'bridge:disconnect') {
-      this.log('[SUNy Bridge] Server requested disconnect:', (payload as { reason?: string })?.reason);
-      this.stopped = true;
+      const reason = (payload as { reason?: string })?.reason || 'unknown';
+      if (reason === 'user_disconnected') {
+        this.log('[SUNy Bridge] User requested disconnect. Stopping bridge.');
+        this.stopped = true;
+        this.ws?.close();
+        return;
+      }
+
+      this.log('[SUNy Bridge] Server requested disconnect:', reason, '— reconnecting...');
       this.ws?.close();
       return;
     }
@@ -255,8 +255,7 @@ export class SunyBridge {
     this.log('[SUNy Bridge]      e.g.  echo "YOUR_TOKEN" > ~/.gaby/refresh_token');
     this.log('[SUNy Bridge]      OR restart the bridge with the new token flag.');
     this.log('[SUNy Bridge]');
-    this.log(`[SUNy Bridge] Checking for new token every ${TOKEN_REFRESH_POLL_INTERVAL / 1000}s ` +
-      `(${TOKEN_REFRESH_MAX_ATTEMPTS} attempts / ~${Math.round(TOKEN_REFRESH_MAX_ATTEMPTS * TOKEN_REFRESH_POLL_INTERVAL / 60000)} min)...`);
+    this.log(`[SUNy Bridge] Checking for new token every ${TOKEN_REFRESH_POLL_INTERVAL / 1000}s until you disconnect...`);
     this.log('[SUNy Bridge] ──────────────────────────────────────────');
 
     this.openBrowserForReauth();
@@ -303,17 +302,7 @@ export class SunyBridge {
       return;
     }
 
-    if (this.tokenRefreshAttempts >= TOKEN_REFRESH_MAX_ATTEMPTS) {
-      this.log('[SUNy Bridge] Token refresh timed out after ' +
-        `${TOKEN_REFRESH_MAX_ATTEMPTS} attempts. ` +
-        'Please restart the bridge manually with a new token.');
-      this.awaitingTokenRefresh = false;
-      return;
-    }
-
-    // Keep polling
-    const remaining = TOKEN_REFRESH_MAX_ATTEMPTS - this.tokenRefreshAttempts;
-    this.log(`[SUNy Bridge] Waiting for new token... (${remaining} attempts left)`);
+    this.log(`[SUNy Bridge] Waiting for new token... attempt ${this.tokenRefreshAttempts}`);
     this.scheduleTokenRefreshPoll();
   }
 }
