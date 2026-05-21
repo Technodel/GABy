@@ -56,6 +56,7 @@ export async function getEditFormat(): Promise<EditFormat> {
 export async function getKeysForMode(mode: string): Promise<KeyEntry[]> {
   const db = await getAdapter();
   return db.all<KeyEntry[]>('SELECT key_value, provider, model_id_override, priority FROM api_keys WHERE mode = ? AND is_active = 1 ORDER BY priority ASC', [mode]);
+}
 
 export async function getModelForMode(mode: string): Promise<string> {
   const db = await getAdapter();
