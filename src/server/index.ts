@@ -1478,10 +1478,10 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       // Inject SUNy Code Conscience blueprint memory (design context from past turns)
       if (projectPath) {
         userClientManager.pushToUser(userId, 'suny:preparation_step', { step: 'Loading project memory...' });
-        const blueprintCtx = getBlueprintContext({ userId, projectId, maxEntries: 5 });
+        const blueprintCtx = await getBlueprintContext({ userId, projectId, maxEntries: 5 });
         if (blueprintCtx) {
           systemLines.push(blueprintCtx);
-          const summary = getBlueprintSummary({ userId, projectId });
+          const summary = await getBlueprintSummary({ userId, projectId });
           if (summary) systemLines.push(summary);
           console.log(`[index] Blueprint memory injected`);
         }
@@ -1489,7 +1489,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
 
       // Inject goal tracker context (current goal, progress, success criteria)
       if (projectPath && projectId && isFeatureEnabled('ff_goal_tracker')) {
-        const goalCtx = formatGoalContext(userId, projectId);
+        const goalCtx = await formatGoalContext(userId, projectId);
         if (goalCtx) {
           systemLines.push('', goalCtx);
           console.log('[index] Goal tracker context injected');
@@ -1500,8 +1500,8 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       // Injects conversation flow, error vulnerability, attention awareness,
       // and celebration cues into the system prompt.
       {
-        const profile = getPresenceProfile(userId);
-        const presencePrompt = getPresenceInjection(
+        const profile = await getPresenceProfile(userId);
+        const presencePrompt = await getPresenceInjection(
           userId,
           profile?.lastTaskDuration ?? 0,
           0, // changedFiles not known yet — will be updated post-turn
@@ -1558,7 +1558,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       // ── Vector context: semantic chunk retrieval ──────────────────────────
       if (projectPath && projectId && isFeatureEnabled('ff_vector_context')) {
         try {
-          const chunks = searchChunks(msg.message as string, projectId, 8);
+          const chunks = await searchChunks(msg.message as string, projectId, 8);
           if (chunks.length > 0) {
             systemLines.push(formatChunksForPrompt(chunks, projectPath));
             console.log(`[index] Vector context: injected ${chunks.length} relevant chunk(s)`);
@@ -1572,11 +1572,11 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       // Auto-reads README, package.json, tsconfig.json and caches result.
       if (projectPath) {
         try {
-          if (!isDigestCached(projectPath)) {
+          if (!await isDigestCached(projectPath)) {
             const digest = buildProjectDigest(projectPath);
             if (digest) {
               systemLines.push(formatDigestForPrompt(digest));
-              markDigestCached(projectPath);
+              await markDigestCached(projectPath);
               console.log('[index] Project digest injected');
             }
           }
@@ -1610,7 +1610,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       // ── Phase 3.3: Design Intent injection ───────────────────────────
       // Inject previously-learned user style/architecture preferences.
       try {
-        const intentPrompt = getDesignIntentsPrompt(userId);
+        const intentPrompt = await getDesignIntentsPrompt(userId);
         if (intentPrompt) {
           systemLines.push(intentPrompt);
           console.log('[index] Design intents injected');
@@ -1622,7 +1622,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       // ── Phase 4.3: Interaction Pattern Analysis ───────────────────────
       // Analyze repeated error patterns and inject learnings.
       try {
-        const patterns = analyzeInteractionPatterns(userId);
+        const patterns = await analyzeInteractionPatterns(userId);
         if (patterns.length > 0) {
           const patternPrompt = formatPatternAnalysisForPrompt(patterns);
           systemLines.push(patternPrompt);
@@ -1682,14 +1682,14 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           const alreadyChunked = db.prepare("SELECT value FROM app_settings WHERE key = ?").get(chunkKey) as { value: string } | undefined;
           if (!alreadyChunked) {
             // Delay slightly to let code_index finish first
-            setTimeout(() => {
+            setTimeout(async () => {
               try {
                 // Ensure code_index ran first
                 const indexKey = `indexed:${projectPath}`;
                 const indexed = db.prepare("SELECT value FROM app_settings WHERE key = ?").get(indexKey);
                 if (!indexed) indexProject(projectPath);
 
-                const stats = buildChunkVectors(projectPath, projectId);
+                const stats = await buildChunkVectors(projectPath, projectId);
                 console.log(`[code-chunks] Embedded ${stats.chunksIndexed} chunks across ${stats.filesProcessed} files`);
                 db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, 'true')").run(chunkKey);
                 // Notify frontend
@@ -1798,7 +1798,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           turnSummary = `Conversational turn: ${(msg.message as string).slice(0, 120)}`;
         }
 
-        storeBlueprintEntry({
+        await storeBlueprintEntry({
           userId,
           projectId: projectId ?? null,
           sessionId,
@@ -1817,7 +1817,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         // When blueprint memory detects repeated patterns (same file 3+ times),
         // auto-generate behavioral rules.
         try {
-          const ruleResult = generateRulesFromPatterns({ userId, projectId: projectId ?? null });
+          const ruleResult = await generateRulesFromPatterns({ userId, projectId: projectId ?? null });
           if (ruleResult.generated > 0) {
             console.log(`[blueprint→rule] ${ruleResult.reason}`);
           }
@@ -1845,7 +1845,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         // ── Phase 3.3: Design Intent Tracker ───────────────────────────
         // Harvest explicit user design preferences from conversation.
         try {
-          const intentResult = processDesignIntents(userId, msg.message as string);
+          const intentResult = await processDesignIntents(userId, msg.message as string);
           if (intentResult) {
             console.log('[design-intent] Detected new user preferences');
           }
@@ -1937,26 +1937,26 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       if (result.lintErrors?.length) {
         for (const le of result.lintErrors) {
           try {
-            recordInteraction(userId, msg.id as string, 'lint_error', le.rule || le.message || 'unknown', le.file);
+            await recordInteraction(userId, msg.id as string, 'lint_error', le.rule || le.message || 'unknown', le.file);
           } catch {}
         }
       }
       if (result.testFailures?.length) {
         for (const tf of result.testFailures) {
           try {
-            recordInteraction(userId, msg.id as string, 'test_failure', tf.name || tf.message || 'unknown', tf.file);
+            await recordInteraction(userId, msg.id as string, 'test_failure', tf.name || tf.message || 'unknown', tf.file);
           } catch {}
         }
       }
       if (result.loopCount && result.loopCount > 1) {
         try {
-          recordInteraction(userId, msg.id as string, 'loop', `correction-loop-${result.loopCount}x`, '');
+          await recordInteraction(userId, msg.id as string, 'loop', `correction-loop-${result.loopCount}x`, '');
         } catch {}
       }
 
       // ── Phase 5: Presence profile update ────────────────────────────
       try {
-        updatePresenceProfile(
+        await updatePresenceProfile(
           userId,
           Math.round((Date.now() - turnStart) / 1000),
           !result.success,
@@ -2205,9 +2205,9 @@ server.listen(PORT, () => {
   // Initialize all system tables (best-effort)
   const tableInits: Array<() => Promise<void> | void> = [
     async () => { try { await initializeInjectionGuardTable(); } catch {} },
-    () => { try { initializeDesignIntentTable(); } catch {} },
-    () => { try { initializeInteractionPatternsTable(); } catch {} },
-    () => { try { initializePresenceTable(); } catch {} },
+    async () => { try { await initializeDesignIntentTable(); } catch {} },
+    async () => { try { await initializeInteractionPatternsTable(); } catch {} },
+    async () => { try { await initializePresenceTable(); } catch {} },
     () => { try { require('./task-queue').initializeTaskQueueTable(); } catch {} },
     () => { try { require('./goal-tracker').initializeGoalTrackerTable(); } catch {} },
     async () => { try { await require('./confidence-scorer').initializeConfidenceTable(); } catch {} },

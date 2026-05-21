@@ -23,7 +23,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { getDb } from './db';
+import { getAdapter } from './db';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -383,9 +383,9 @@ interface InteractionRecord {
 /**
  * Initialize the interaction patterns table.
  */
-export function initializeInteractionPatternsTable(): void {
-  const db = getDb();
-  db.exec(`
+export async function initializeInteractionPatternsTable(): Promise<void> {
+  const db = await getAdapter();
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS interaction_patterns (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
@@ -403,28 +403,29 @@ export function initializeInteractionPatternsTable(): void {
 /**
  * Record an interaction event for pattern analysis.
  */
-export function recordInteraction(
+export async function recordInteraction(
   userId: number,
   turnId: string,
   eventType: string,
   detail: string,
   file?: string,
-): void {
-  const db = getDb();
-  db.prepare(
+): Promise<void> {
+  const db = await getAdapter();
+  await db.run(
     'INSERT INTO interaction_patterns (user_id, turn_id, event_type, detail, file) VALUES (?, ?, ?, ?, ?)',
-  ).run(userId, turnId, eventType, detail, file || '');
+    [userId, turnId, eventType, detail, file || ''],
+  );
 }
 
 /**
  * Analyze interaction patterns looking for repeated issues.
  * Returns patterns that have occurred 3+ times recently.
  */
-export function analyzeInteractionPatterns(userId: number): InteractionPattern[] {
-  const db = getDb();
+export async function analyzeInteractionPatterns(userId: number): Promise<InteractionPattern[]> {
+  const db = await getAdapter();
 
   // Find events that repeat 3+ times
-  const rows = db.prepare(`
+  const rows = await db.all<Array<{ event_type: string; detail: string; cnt: number; first_seen: string; last_seen: string }>>(`
     SELECT event_type, detail, COUNT(*) as cnt, MIN(timestamp) as first_seen, MAX(timestamp) as last_seen
     FROM interaction_patterns
     WHERE user_id = ?
@@ -432,7 +433,7 @@ export function analyzeInteractionPatterns(userId: number): InteractionPattern[]
     HAVING cnt >= 3
     ORDER BY cnt DESC
     LIMIT 10
-  `).all(userId) as Array<{ event_type: string; detail: string; cnt: number; first_seen: string; last_seen: string }>;
+  `, [userId]);
 
   return rows.map(row => ({
     pattern: `${row.event_type}: ${row.detail}`,

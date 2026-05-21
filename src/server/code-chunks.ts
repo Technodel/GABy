@@ -24,7 +24,7 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
-import { getDb } from './db';
+import { getAdapter } from './db';
 import { textToVector, cosineSimilarity, serializeVector, deserializeVector } from './vectors';
 import { HNSWIndex } from './hnsw-lite';
 
@@ -71,19 +71,20 @@ export interface IndexStats {
  * Hash-gated: only re-embeds chunks whose content has changed.
  * Returns stats. Safe to call repeatedly (idempotent).
  */
-export function buildChunkVectors(projectPath: string, projectId: number): IndexStats {
-  const db = getDb();
+export async function buildChunkVectors(projectPath: string, projectId: number): Promise<IndexStats> {
+  const db = getAdapter();
   const stats: IndexStats = { chunksIndexed: 0, chunksUpdated: 0, filesProcessed: 0, skipped: 0 };
 
   // Get all indexed symbols for this project (from code_index table)
-  const symbols = db.prepare(
+  const symbols = await db.all<{
+    file_path: string; symbol_name: string; symbol_type: string; line_start: number; line_end: number;
+  }>(
     `SELECT file_path, symbol_name, symbol_type, line_start, line_end
      FROM code_index
      WHERE file_path LIKE ?
-     ORDER BY file_path, line_start`
-  ).all(projectPath.replace(/\\/g, '/') + '%') as Array<{
-    file_path: string; symbol_name: string; symbol_type: string; line_start: number; line_end: number;
-  }>;
+     ORDER BY file_path, line_start`,
+    [projectPath.replace(/\\/g, '/') + '%'],
+  );
 
   // Also collect file-level chunks for files with very few/no symbols
   const indexedFiles = new Set(symbols.map(s => s.file_path));
@@ -94,7 +95,7 @@ export function buildChunkVectors(projectPath: string, projectId: number): Index
     if (!indexedFiles.has(fp)) extraFiles.push(fp);
   });
 
-  const upsert = db.prepare(`
+  const upsertSql = `
     INSERT INTO code_chunks (project_id, file_path, symbol_name, symbol_type, start_line, end_line, content, content_hash, vector_b64)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(project_id, file_path, symbol_name, symbol_type) DO UPDATE SET
@@ -105,19 +106,21 @@ export function buildChunkVectors(projectPath: string, projectId: number): Index
       vector_b64 = excluded.vector_b64,
       updated_at = datetime('now')
     WHERE excluded.content_hash != content_hash
-  `);
+  `;
 
-  const insertMany = db.transaction((items: Array<{
+  const insertMany = async (items: Array<{
     projectId: number; filePath: string; symbolName: string; symbolType: string;
     startLine: number; endLine: number; content: string; hash: string; vec: string;
   }>) => {
-    for (const item of items) {
-      const result = upsert.run(item.projectId, item.filePath, item.symbolName, item.symbolType,
-        item.startLine, item.endLine, item.content, item.hash, item.vec);
-      if (result.changes > 0) stats.chunksUpdated++;
-      stats.chunksIndexed++;
-    }
-  });
+    await db.transaction(async (trx) => {
+      for (const item of items) {
+        const result = await trx.run(upsertSql, [item.projectId, item.filePath, item.symbolName, item.symbolType,
+          item.startLine, item.endLine, item.content, item.hash, item.vec]);
+        if (result.changes > 0) stats.chunksUpdated++;
+        stats.chunksIndexed++;
+      }
+    });
+  };
 
   // ── Process symbol-level chunks ──────────────────────────────────────────
   // Group by file to avoid repeated reads
@@ -182,7 +185,7 @@ export function buildChunkVectors(projectPath: string, projectId: number): Index
   }
 
   // ── Rebuild in-memory HNSW for this project ───────────────────────────────
-  rebuildProjectIndex(projectId);
+  await rebuildProjectIndex(projectId);
 
   return stats;
 }
@@ -193,12 +196,12 @@ export function buildChunkVectors(projectPath: string, projectId: number): Index
  * Find the topK most semantically relevant code chunks for a query.
  * Uses HNSW for fast ANN, then re-ranks with exact cosine similarity.
  */
-export function searchChunks(query: string, projectId: number, topK: number = 8): ChunkResult[] {
-  const db = getDb();
+export async function searchChunks(query: string, projectId: number, topK: number = 8): Promise<ChunkResult[]> {
+  const db = getAdapter();
 
   // Ensure index is loaded
   if (!projectIndexes.has(projectId)) {
-    rebuildProjectIndex(projectId);
+    await rebuildProjectIndex(projectId);
   }
 
   const idx = projectIndexes.get(projectId);
@@ -212,24 +215,26 @@ export function searchChunks(query: string, projectId: number, topK: number = 8)
     candidateIds = results.map(r => r.id);
   } else {
     // Fallback: just take most recent 100 chunks for this project
-    const rows = db.prepare(
-      'SELECT id FROM code_chunks WHERE project_id = ? ORDER BY updated_at DESC LIMIT 100'
-    ).all(projectId) as Array<{ id: number }>;
-    candidateIds = rows.map(r => r.id);
+    const fallbackRows = await db.all<{ id: number }>(
+      'SELECT id FROM code_chunks WHERE project_id = ? ORDER BY updated_at DESC LIMIT 100',
+      [projectId],
+    );
+    candidateIds = fallbackRows.map(r => r.id);
   }
 
   if (candidateIds.length === 0) return [];
 
   // Fetch candidate rows
   const placeholders = candidateIds.map(() => '?').join(',');
-  const rows = db.prepare(
-    `SELECT id, file_path, symbol_name, symbol_type, start_line, end_line, content, vector_b64
-     FROM code_chunks
-     WHERE id IN (${placeholders})`
-  ).all(...candidateIds) as Array<{
+  const rows = await db.all<{
     id: number; file_path: string; symbol_name: string; symbol_type: string;
     start_line: number; end_line: number; content: string; vector_b64: string;
-  }>;
+  }>(
+    `SELECT id, file_path, symbol_name, symbol_type, start_line, end_line, content, vector_b64
+     FROM code_chunks
+     WHERE id IN (${placeholders})`,
+    candidateIds,
+  );
 
   // Re-rank with exact cosine similarity
   const scored = rows.map(row => {
@@ -294,30 +299,33 @@ export function formatChunksForPrompt(chunks: ChunkResult[], projectPath: string
 
 // ── Stats helpers ─────────────────────────────────────────────────────────────
 
-export function getChunkStats(projectId: number): { total: number; files: number; indexed_at: string | null } {
-  const db = getDb();
-  const row = db.prepare(
+export async function getChunkStats(projectId: number): Promise<{ total: number; files: number; indexed_at: string | null }> {
+  const db = getAdapter();
+  const row = await db.get<{ total: number; files: number; indexed_at: string | null }>(
     `SELECT COUNT(*) as total, COUNT(DISTINCT file_path) as files, MAX(updated_at) as indexed_at
-     FROM code_chunks WHERE project_id = ?`
-  ).get(projectId) as { total: number; files: number; indexed_at: string | null };
+     FROM code_chunks WHERE project_id = ?`,
+    [projectId],
+  );
   return row ?? { total: 0, files: 0, indexed_at: null };
 }
 
-export function clearChunkIndex(projectId: number): void {
-  getDb().prepare('DELETE FROM code_chunks WHERE project_id = ?').run(projectId);
+export async function clearChunkIndex(projectId: number): Promise<void> {
+  const db = getAdapter();
+  await db.run('DELETE FROM code_chunks WHERE project_id = ?', [projectId]);
   projectIndexes.delete(projectId);
 }
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
 
-function rebuildProjectIndex(projectId: number): void {
-  const db = getDb();
-  const rows = db.prepare(
-    'SELECT id, vector_b64, file_path, symbol_name, symbol_type, start_line, end_line FROM code_chunks WHERE project_id = ?'
-  ).all(projectId) as Array<{
+async function rebuildProjectIndex(projectId: number): Promise<void> {
+  const db = getAdapter();
+  const rows = await db.all<{
     id: number; vector_b64: string; file_path: string;
     symbol_name: string; symbol_type: string; start_line: number; end_line: number;
-  }>;
+  }>(
+    'SELECT id, vector_b64, file_path, symbol_name, symbol_type, start_line, end_line FROM code_chunks WHERE project_id = ?',
+    [projectId],
+  );
 
   const hnsw = new HNSWIndex(VECTOR_DIMS, 16, 200);
   const idToChunk = new Map<number, { file: string; symbol: string; type: string; startLine: number; endLine: number }>();

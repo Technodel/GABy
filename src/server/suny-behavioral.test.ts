@@ -247,8 +247,8 @@ describe('2. Feature Flags (tests 16-30)', () => {
 
 describe('3. Provider Resolution (tests 31-42)', () => {
   // 31
-  it('getKeysForMode should return keys ordered by priority', () => {
-    const keys = getKeysForMode('fast');
+  it('getKeysForMode should return keys ordered by priority', async () => {
+    const keys = await getKeysForMode('fast');
     expect(keys.length).toBeGreaterThanOrEqual(2);
     // Priorities should be in ascending order
     for (let i = 1; i < keys.length; i++) {
@@ -257,8 +257,8 @@ describe('3. Provider Resolution (tests 31-42)', () => {
   });
 
   // 32
-  it('getKeysForMode should only return active keys', () => {
-    const keys = getKeysForMode('free');
+  it('getKeysForMode should only return active keys', async () => {
+    const keys = await getKeysForMode('free');
     for (const k of keys) {
       // All returned keys are is_active=1 due to SQL filter
     }
@@ -266,36 +266,36 @@ describe('3. Provider Resolution (tests 31-42)', () => {
   });
 
   // 33
-  it('getModelForMode should return valid model IDs', () => {
-    expect(getModelForMode('free')).toBeTruthy();
-    expect(getModelForMode('fast')).toBeTruthy();
-    expect(getModelForMode('smart')).toBeTruthy();
-    expect(getModelForMode('pro')).toBeTruthy();
+  it('getModelForMode should return valid model IDs', async () => {
+    expect(await getModelForMode('free')).toBeTruthy();
+    expect(await getModelForMode('fast')).toBeTruthy();
+    expect(await getModelForMode('smart')).toBeTruthy();
+    expect(await getModelForMode('pro')).toBeTruthy();
   });
 
   // 34
-  it('free mode should use llama-3.3-70b-versatile', () => {
-    expect(getModelForMode('free')).toBe('llama-3.3-70b-versatile');
+  it('free mode should use llama-3.3-70b-versatile', async () => {
+    expect(await getModelForMode('free')).toBe('llama-3.3-70b-versatile');
   });
 
   // 35
-  it('fast mode should use deepseek-chat', () => {
-    expect(getModelForMode('fast')).toBe('deepseek-chat');
+  it('fast mode should use deepseek-chat', async () => {
+    expect(await getModelForMode('fast')).toBe('deepseek-chat');
   });
 
   // 36
-  it('smart mode should use deepseek-chat', () => {
-    expect(getModelForMode('smart')).toBe('deepseek-chat');
+  it('smart mode should use deepseek-chat', async () => {
+    expect(await getModelForMode('smart')).toBe('deepseek-chat');
   });
 
   // 37
-  it('pro mode should use deepseek-chat', () => {
-    expect(getModelForMode('pro')).toBe('deepseek-chat');
+  it('pro mode should use deepseek-chat', async () => {
+    expect(await getModelForMode('pro')).toBe('deepseek-chat');
   });
 
   // 38
-  it('getModelsForMode should return LanguageModel instances for free mode', () => {
-    const models = getModelsForMode('free');
+  it('getModelsForMode should return LanguageModel instances for free mode', async () => {
+    const models = await getModelsForMode('free');
     expect(models.length).toBeGreaterThanOrEqual(1);
     expect(models[0].model).toBeDefined();
     expect(models[0].provider).toBeDefined();
@@ -303,27 +303,27 @@ describe('3. Provider Resolution (tests 31-42)', () => {
   });
 
   // 39
-  it('getModelsForMode should return LanguageModel instances for fast mode', () => {
-    const models = getModelsForMode('fast');
+  it('getModelsForMode should return LanguageModel instances for fast mode', async () => {
+    const models = await getModelsForMode('fast');
     expect(models.length).toBeGreaterThanOrEqual(1);
     expect(models[0].model.modelId).toBeDefined();
   });
 
   // 40
-  it('getModelsForMode should return LanguageModel instances for smart mode', () => {
-    const models = getModelsForMode('smart');
+  it('getModelsForMode should return LanguageModel instances for smart mode', async () => {
+    const models = await getModelsForMode('smart');
     expect(models.length).toBeGreaterThanOrEqual(1);
   });
 
   // 41
-  it('getModelsForMode should return LanguageModel instances for pro mode', () => {
-    const models = getModelsForMode('pro');
+  it('getModelsForMode should return LanguageModel instances for pro mode', async () => {
+    const models = await getModelsForMode('pro');
     expect(models.length).toBeGreaterThanOrEqual(1);
   });
 
   // 42
-  it('isCachingEnabled should return boolean', () => {
-    const val = isCachingEnabled();
+  it('isCachingEnabled should return boolean', async () => {
+    const val = await isCachingEnabled();
     expect(typeof val).toBe('boolean');
   });
 });

@@ -17,7 +17,7 @@
  *     missed that" not "The error occurred." Never deflects.
  */
 
-import { getDb } from './db';
+import { getAdapter } from './db';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -222,9 +222,9 @@ export function getErrorVulnerabilityPrompt(): string {
 /**
  * Initialize the presence tracking table.
  */
-export function initializePresenceTable(): void {
-  const db = getDb();
-  db.exec(`
+export async function initializePresenceTable(): Promise<void> {
+  const db = await getAdapter();
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS presence_profiles (
       user_id INTEGER PRIMARY KEY,
       last_task_completed_at TEXT DEFAULT (datetime('now')),
@@ -239,15 +239,15 @@ export function initializePresenceTable(): void {
 /**
  * Update presence profile after a completed task.
  */
-export function updatePresenceProfile(
+export async function updatePresenceProfile(
   userId: number,
   taskDuration: number,
   hadError: boolean,
-): PresenceProfile {
-  const db = getDb();
+): Promise<PresenceProfile> {
+  const db = await getAdapter();
 
   // Upsert profile
-  db.prepare(`
+  await db.run(`
     INSERT INTO presence_profiles (user_id, last_task_completed_at, last_task_duration, total_tasks_completed, consecutive_errors)
     VALUES (?, datetime('now'), ?, 1, ?)
     ON CONFLICT(user_id) DO UPDATE SET
@@ -255,31 +255,31 @@ export function updatePresenceProfile(
       last_task_duration = ?,
       total_tasks_completed = total_tasks_completed + 1,
       consecutive_errors = CASE WHEN ? THEN consecutive_errors + 1 ELSE 0 END
-  `).run(userId, taskDuration, hadError ? 1 : 0, taskDuration, hadError ? 1 : 0);
+  `, [userId, taskDuration, hadError ? 1 : 0, taskDuration, hadError ? 1 : 0]);
 
-  return db.prepare('SELECT * FROM presence_profiles WHERE user_id = ?').get(userId) as PresenceProfile;
+  return (await db.get<PresenceProfile>('SELECT * FROM presence_profiles WHERE user_id = ?', [userId]))!;
 }
 
 /**
  * Get presence profile for a user.
  */
-export function getPresenceProfile(userId: number): PresenceProfile | null {
-  const db = getDb();
-  return (db.prepare('SELECT * FROM presence_profiles WHERE user_id = ?').get(userId) as PresenceProfile) || null;
+export async function getPresenceProfile(userId: number): Promise<PresenceProfile | null> {
+  const db = await getAdapter();
+  return (await db.get<PresenceProfile>('SELECT * FROM presence_profiles WHERE user_id = ?', [userId])) || null;
 }
 
 /**
  * Assemble the full Phase 5 presence injection for a turn.
  * Combines all 4 sub-features based on current context.
  */
-export function getPresenceInjection(
+export async function getPresenceInjection(
   userId: number,
   taskDuration: number,
   changedFiles: number,
   isFirstTask: boolean,
   isMilestone: boolean,
-): string {
-  const profile = getPresenceProfile(userId);
+): Promise<string> {
+  const profile = await getPresenceProfile(userId);
   const totalTasks = (profile?.totalTasksCompleted ?? 0) + 1;
 
   const parts: string[] = [];

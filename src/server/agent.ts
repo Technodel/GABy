@@ -20,7 +20,7 @@ import { createGroq } from '@ai-sdk/groq';
 import { createDeepSeek } from '@ai-sdk/deepseek';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import type { LanguageModel } from 'ai';
-import { getDb } from './db';
+import { getAdapter } from './db';
 
 // -- Types -----------------------------------------------------------------------
 
@@ -38,33 +38,28 @@ interface KeyEntry {
 
 // -- DB helpers ------------------------------------------------------------------
 
-export function isCachingEnabled(): boolean {
-  const row = getDb()
-    .prepare("SELECT value FROM app_settings WHERE key = 'prompt_caching_enabled'")
-    .get() as { value: string } | undefined;
+export async function isCachingEnabled(): Promise<boolean> {
+  const db = await getAdapter();
+  const row = await db.get<{ value: string }>("SELECT value FROM app_settings WHERE key = 'prompt_caching_enabled'");
   return row?.value === 'true';
 }
 
 export type EditFormat = 'tool-call' | 'diff' | 'whole' | 'architect';
 
-export function getEditFormat(): EditFormat {
-  const row = getDb()
-    .prepare("SELECT value FROM app_settings WHERE key = 'edit_format'")
-    .get() as { value: string } | undefined;
+export async function getEditFormat(): Promise<EditFormat> {
+  const db = await getAdapter();
+  const row = await db.get<{ value: string }>("SELECT value FROM app_settings WHERE key = 'edit_format'");
   const val = row?.value ?? 'tool-call';
   return (['tool-call', 'diff', 'whole', 'architect'].includes(val) ? val : 'tool-call') as EditFormat;
 }
 
-export function getKeysForMode(mode: string): KeyEntry[] {
-  return getDb()
-    .prepare('SELECT key_value, provider, model_id_override, priority FROM api_keys WHERE mode = ? AND is_active = 1 ORDER BY priority ASC')
-    .all(mode) as KeyEntry[];
-}
+export async function getKeysForMode(mode: string): Promise<KeyEntry[]> {
+  const db = await getAdapter();
+  return db.all<KeyEntry[]>('SELECT key_value, provider, model_id_override, priority FROM api_keys WHERE mode = ? AND is_active = 1 ORDER BY priority ASC', [mode]);
 
-export function getModelForMode(mode: string): string {
-  const row = getDb()
-    .prepare('SELECT model_id FROM pricing_modes WHERE mode = ?')
-    .get(mode) as { model_id: string } | undefined;
+export async function getModelForMode(mode: string): Promise<string> {
+  const db = await getAdapter();
+  const row = await db.get<{ model_id: string }>('SELECT model_id FROM pricing_modes WHERE mode = ?', [mode]);
   return row?.model_id || 'deepseek-chat';
 }
 
@@ -95,10 +90,11 @@ const VISION_MODEL_MAP: Record<string, string[]> = {
  * Returns entries sorted by priority (primary keys first) so the agent loop
  * can use fallback iteration.
  */
-export function getVisionCapableModels(): Array<{ model: LanguageModel; provider: string }> {
-  const allKeys = getDb()
-    .prepare('SELECT key_value, provider, model_id_override, priority FROM api_keys WHERE is_active = 1 ORDER BY priority ASC')
-    .all() as Array<{ key_value: string; provider: string; model_id_override: string | null; priority: number }>;
+export async function getVisionCapableModels(): Promise<Array<{ model: LanguageModel; provider: string }>> {
+  const db = await getAdapter();
+  const allKeys = await db.all<Array<{ key_value: string; provider: string; model_id_override: string | null; priority: number }>>(
+    'SELECT key_value, provider, model_id_override, priority FROM api_keys WHERE is_active = 1 ORDER BY priority ASC'
+  );
 
   const results: Array<{ model: LanguageModel; provider: string }> = [];
   const seen = new Set<string>();
@@ -176,10 +172,10 @@ export function buildLanguageModel(key: KeyEntry, modelId: string): LanguageMode
 /**
  * Get all available models for a mode (sorted by priority) for fallback iteration.
  */
-export function getModelsForMode(mode: string): Array<{ model: LanguageModel; provider: string }> {
-  const keys = getKeysForMode(mode);
+export async function getModelsForMode(mode: string): Promise<Array<{ model: LanguageModel; provider: string }>> {
+  const keys = await getKeysForMode(mode);
   if (keys.length === 0) throw new Error(`No active API key configured for mode "${mode}"`);
-  const modeModel = getModelForMode(mode);
+  const modeModel = await getModelForMode(mode);
   return keys.map((key) => ({
     model: buildLanguageModel(key, key.model_id_override ?? modeModel),
     provider: key.provider,

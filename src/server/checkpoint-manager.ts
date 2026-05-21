@@ -6,7 +6,7 @@
  * metadata alongside git commits for rich UI timelines.
  */
 
-import { getDb } from './db';
+import { getAdapter } from './db';
 import {
   gitAutoCommit,
   createCheckpoint as gitCreateCheckpoint,
@@ -44,9 +44,9 @@ export interface CheckpointCreateRequest {
 
 // ── Database ────────────────────────────────────────────────────────────────
 
-function ensureTable(): void {
-  const db = getDb();
-  db.exec(`
+async function ensureTable(): Promise<void> {
+  const db = await getAdapter();
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS checkpoints (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
@@ -98,12 +98,12 @@ export async function createCheckpointRecord(
     }
 
     // Store in DB
-    ensureTable();
-    const db = getDb();
-    const result = db.prepare(`
+    await ensureTable();
+    const db = await getAdapter();
+    const result = await db.run(`
       INSERT INTO checkpoints (user_id, project_id, session_id, sha, label, tags, turn_index, metadata_json)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
+    `,
       userId,
       projectId ?? null,
       sessionId ?? null,
@@ -114,7 +114,7 @@ export async function createCheckpointRecord(
       JSON.stringify(metadata || {}),
     );
 
-    return getCheckpointById(result.lastInsertRowid as number);
+    return await getCheckpointById(result.lastInsertRowid as number);
   } catch (err) {
     console.warn('[checkpoint-manager] createCheckpointRecord failed:', (err as Error).message);
     return null;
@@ -152,46 +152,49 @@ export async function autoCheckpoint(
 
 // ── Query operations ────────────────────────────────────────────────────────
 
-export function getCheckpointById(id: number): CheckpointRecord | null {
-  ensureTable();
-  const db = getDb();
-  return db.prepare('SELECT * FROM checkpoints WHERE id = ?').get(id) as CheckpointRecord | null;
+export async function getCheckpointById(id: number): Promise<CheckpointRecord | null> {
+  await ensureTable();
+  const db = await getAdapter();
+  return await db.get<CheckpointRecord>('SELECT * FROM checkpoints WHERE id = ?', [id]) ?? null;
 }
 
-export function getCheckpointsByUser(
+export async function getCheckpointsByUser(
   userId: number,
   projectId?: number,
   limit = 50,
-): CheckpointRecord[] {
-  ensureTable();
-  const db = getDb();
+): Promise<CheckpointRecord[]> {
+  await ensureTable();
+  const db = await getAdapter();
   if (projectId) {
-    return db.prepare(
-      'SELECT * FROM checkpoints WHERE user_id = ? AND project_id = ? ORDER BY id DESC LIMIT ?'
-    ).all(userId, projectId, limit) as CheckpointRecord[];
+    return await db.all<CheckpointRecord>(
+      'SELECT * FROM checkpoints WHERE user_id = ? AND project_id = ? ORDER BY id DESC LIMIT ?',
+      [userId, projectId, limit],
+    );
   }
-  return db.prepare(
-    'SELECT * FROM checkpoints WHERE user_id = ? ORDER BY id DESC LIMIT ?'
-  ).all(userId, limit) as CheckpointRecord[];
+  return await db.all<CheckpointRecord>(
+    'SELECT * FROM checkpoints WHERE user_id = ? ORDER BY id DESC LIMIT ?',
+    [userId, limit],
+  );
 }
 
-export function getCheckpointsBySession(
+export async function getCheckpointsBySession(
   sessionId: string,
   limit = 50,
-): CheckpointRecord[] {
-  ensureTable();
-  const db = getDb();
-  return db.prepare(
-    'SELECT * FROM checkpoints WHERE session_id = ? ORDER BY id ASC LIMIT ?'
-  ).all(sessionId, limit) as CheckpointRecord[];
+): Promise<CheckpointRecord[]> {
+  await ensureTable();
+  const db = await getAdapter();
+  return await db.all<CheckpointRecord>(
+    'SELECT * FROM checkpoints WHERE session_id = ? ORDER BY id ASC LIMIT ?',
+    [sessionId, limit],
+  );
 }
 
-export function getCheckpointTimeline(
+export async function getCheckpointTimeline(
   userId: number,
   projectId?: number,
   limit = 20,
-): Array<CheckpointRecord & { gitSha?: string; filesChanged?: number }> {
-  const records = getCheckpointsByUser(userId, projectId ?? undefined, limit);
+): Promise<Array<CheckpointRecord & { gitSha?: string; filesChanged?: number }>> {
+  const records = await getCheckpointsByUser(userId, projectId ?? undefined, limit);
   return records.map(r => ({
     ...r,
     gitSha: r.sha,
@@ -201,27 +204,28 @@ export function getCheckpointTimeline(
 
 // ── Tag management ──────────────────────────────────────────────────────────
 
-export function tagCheckpoint(checkpointId: number, tags: string[]): void {
-  ensureTable();
-  const db = getDb();
-  const record = getCheckpointById(checkpointId);
+export async function tagCheckpoint(checkpointId: number, tags: string[]): Promise<void> {
+  await ensureTable();
+  const db = await getAdapter();
+  const record = await getCheckpointById(checkpointId);
   if (!record) return;
 
   const existingTags = record.tags ? record.tags.split(',').filter(Boolean) : [];
   const merged = [...new Set([...existingTags, ...tags])];
-  db.prepare('UPDATE checkpoints SET tags = ? WHERE id = ?').run(merged.join(','), checkpointId);
+  await db.run('UPDATE checkpoints SET tags = ? WHERE id = ?', [merged.join(','), checkpointId]);
 }
 
-export function getCheckpointsByTag(
+export async function getCheckpointsByTag(
   userId: number,
   tag: string,
   limit = 50,
-): CheckpointRecord[] {
-  ensureTable();
-  const db = getDb();
-  return db.prepare(
-    'SELECT * FROM checkpoints WHERE user_id = ? AND tags LIKE ? ORDER BY id DESC LIMIT ?'
-  ).all(userId, `%${tag}%`, limit) as CheckpointRecord[];
+): Promise<CheckpointRecord[]> {
+  await ensureTable();
+  const db = await getAdapter();
+  return await db.all<CheckpointRecord>(
+    'SELECT * FROM checkpoints WHERE user_id = ? AND tags LIKE ? ORDER BY id DESC LIMIT ?',
+    [userId, `%${tag}%`, limit],
+  );
 }
 
 // ── Rollback (with DB record) ───────────────────────────────────────────────
@@ -231,7 +235,7 @@ export async function rollbackWithRecord(
   projectPath: string,
   checkpointId: number,
 ): Promise<{ success: boolean; sha: string; message: string }> {
-  const record = getCheckpointById(checkpointId);
+  const record = await getCheckpointById(checkpointId);
   if (!record || record.user_id !== userId) {
     return { success: false, sha: '', message: 'Checkpoint not found or access denied.' };
   }
@@ -254,17 +258,17 @@ export async function rollbackWithRecord(
 
 // ── Cleanup ─────────────────────────────────────────────────────────────────
 
-export function deleteOldCheckpoints(
+export async function deleteOldCheckpoints(
   userId: number,
   keepCount: number,
-): number {
-  ensureTable();
-  const db = getDb();
-  const result = db.prepare(`
+): Promise<number> {
+  await ensureTable();
+  const db = await getAdapter();
+  const result = await db.run(`
     DELETE FROM checkpoints WHERE id IN (
       SELECT id FROM checkpoints WHERE user_id = ?
       ORDER BY id DESC LIMIT -1 OFFSET ?
     )
-  `).run(userId, keepCount);
+  `, [userId, keepCount]);
   return result.changes;
 }

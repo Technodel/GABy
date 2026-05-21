@@ -12,7 +12,7 @@
  *   "My style is minimal CSS"         → rule: "Prefer minimal CSS, avoid heavy frameworks"
  */
 
-import { getDb } from './db';
+import { getAdapter } from './db';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -29,9 +29,9 @@ export interface DesignIntent {
 
 // ── Initialization ────────────────────────────────────────────────────────────
 
-export function initializeDesignIntentTable(): void {
-  const db = getDb();
-  db.exec(`
+export async function initializeDesignIntentTable(): Promise<void> {
+  const db = await getAdapter();
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS design_intents (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
@@ -265,34 +265,30 @@ export function extractDesignIntents(message: string): Array<{ intent: string; c
  * Store extracted design intents for a user. Deduplicates by (user_id, intent).
  * Returns the number of NEW intents stored.
  */
-export function storeDesignIntents(
+export async function storeDesignIntents(
   userId: number,
   intents: Array<{ intent: string; category: string; sourceMessage: string }>,
-): number {
-  const db = getDb();
+): Promise<number> {
+  const db = await getAdapter();
   let stored = 0;
-
-  const insert = db.prepare(`
-    INSERT OR IGNORE INTO design_intents (user_id, intent, category, source_message, confidence)
-    VALUES (?, ?, ?, ?, 1.0)
-  `);
-
-  const bumpConfidence = db.prepare(`
-    UPDATE design_intents
-    SET confidence = MIN(1.0, confidence + 0.1),
-        application_count = application_count + 1,
-        source_message = ?
-    WHERE user_id = ? AND intent = ?
-  `);
 
   for (const di of intents) {
     // Try insert — if it already exists, bump confidence
-    const insertResult = insert.run(userId, di.intent, di.category, di.sourceMessage);
+    const insertResult = await db.run(`
+      INSERT OR IGNORE INTO design_intents (user_id, intent, category, source_message, confidence)
+      VALUES (?, ?, ?, ?, 1.0)
+    `, [userId, di.intent, di.category, di.sourceMessage]);
     if (insertResult.changes > 0) {
       stored++;
     } else {
       // Already exists — bump confidence since user re-stated it
-      bumpConfidence.run(di.sourceMessage, userId, di.intent);
+      await db.run(`
+        UPDATE design_intents
+        SET confidence = MIN(1.0, confidence + 0.1),
+            application_count = application_count + 1,
+            source_message = ?
+        WHERE user_id = ? AND intent = ?
+      `, [di.sourceMessage, userId, di.intent]);
     }
   }
 
@@ -306,11 +302,12 @@ export function storeDesignIntents(
 /**
  * Get all design intents for a user, sorted by confidence.
  */
-export function getDesignIntents(userId: number): DesignIntent[] {
-  const db = getDb();
-  return db.prepare(
+export async function getDesignIntents(userId: number): Promise<DesignIntent[]> {
+  const db = await getAdapter();
+  return db.all<DesignIntent[]>(
     'SELECT * FROM design_intents WHERE user_id = ? ORDER BY confidence DESC, category',
-  ).all(userId) as DesignIntent[];
+    [userId],
+  );
 }
 
 /**
@@ -351,17 +348,17 @@ export function formatDesignIntentsForPrompt(intents: DesignIntent[]): string {
  * Full pipeline: extract + store intents from a user message.
  * Returns the formatted prompt injection string for immediate use.
  */
-export function processDesignIntents(
+export async function processDesignIntents(
   userId: number,
   message: string,
-): string {
+): Promise<string> {
   const extracted = extractDesignIntents(message);
   if (extracted.length === 0) return '';
 
-  storeDesignIntents(userId, extracted);
+  await storeDesignIntents(userId, extracted);
 
   // Return the intents for this turn's prompt
-  const allIntents = getDesignIntents(userId);
+  const allIntents = await getDesignIntents(userId);
   return formatDesignIntentsForPrompt(allIntents);
 }
 
@@ -369,7 +366,7 @@ export function processDesignIntents(
  * Get formatted design intents for prompt injection (without extraction).
  * Used at the START of a turn to inject previously-learned preferences.
  */
-export function getDesignIntentsPrompt(userId: number): string {
-  const intents = getDesignIntents(userId);
+export async function getDesignIntentsPrompt(userId: number): Promise<string> {
+  const intents = await getDesignIntents(userId);
   return formatDesignIntentsForPrompt(intents);
 }

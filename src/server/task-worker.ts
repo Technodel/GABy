@@ -40,7 +40,7 @@ export function registerTaskHandler(taskType: string, handler: TaskHandler): voi
 
 registerTaskHandler('prune_memories', async (ctx) => {
   const threshold = (ctx.payload?.threshold as number) ?? 5;
-  const result = pruneLowValueMemories(ctx.userId, threshold);
+  const result = await pruneLowValueMemories(ctx.userId, threshold);
   console.log(
     `[task-worker] prune_memories #${ctx.id}: removed ${result.totalRemoved} entries ` +
     `(${result.removedFailures} failures, ${result.removedBlueprints} blueprints, ${result.removedMemories} memories)`,

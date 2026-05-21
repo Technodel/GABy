@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { requireAdmin } from './auth';
-import { getDb } from './db';
+import { getAdapter } from './db';
 import { getAllFeatureFlags, setFeatureFlag } from './feature-flags';
 import { getAgentMetricsSummary, getRecentTurns } from './metrics';
 
@@ -13,12 +13,12 @@ router.use(requireAdmin);
 
 // ── Users ─────────────────────────────────────────────────────────────────────
 
-router.get('/users', (_req: Request, res: Response) => {
-  const db = getDb();
-  const users = db.prepare(`
+router.get('/users', async (_req: Request, res: Response) => {
+  const db = await getAdapter();
+  const users = await db.all(`
     SELECT id, username, balance, wallet_balance, wallet_auto_spend, is_active, selected_mode, created_at, max_tokens_per_session
     FROM users ORDER BY created_at DESC
-  `).all();
+  `);
   res.json(users);
 });
 
@@ -29,7 +29,7 @@ const CreateUserSchema = z.object({
   max_tokens_per_session: z.number().int().nullable().optional(),
 });
 
-router.post('/users', (req: Request, res: Response) => {
+router.post('/users', async (req: Request, res: Response) => {
   const parsed = CreateUserSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
@@ -37,12 +37,12 @@ router.post('/users', (req: Request, res: Response) => {
   }
   const { username, password, balance, max_tokens_per_session } = parsed.data;
   const hash = bcrypt.hashSync(password, 12);
-  const db = getDb();
+  const db = await getAdapter();
   try {
-    const result = db.prepare(`
+    const result = await db.run(`
       INSERT INTO users (username, password_hash, balance, max_tokens_per_session)
       VALUES (?, ?, ?, ?)
-    `).run(username, hash, balance, max_tokens_per_session ?? null);
+    `, [username, hash, balance, max_tokens_per_session ?? null]);
     res.json({ success: true, id: result.lastInsertRowid });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : '';
@@ -63,7 +63,7 @@ const UpdateUserSchema = z.object({
   max_tokens_per_session: z.number().int().nullable().optional(),
 });
 
-router.patch('/users/:id', (req: Request, res: Response) => {
+router.patch('/users/:id', async (req: Request, res: Response) => {
   const userId = parseInt(req.params.id, 10);
   if (isNaN(userId)) { res.status(400).json({ error: 'Invalid user id' }); return; }
 
@@ -73,44 +73,45 @@ router.patch('/users/:id', (req: Request, res: Response) => {
     return;
   }
   const data = parsed.data;
-  const db = getDb();
+  const db = await getAdapter();
 
   if (typeof data.balance_delta === 'number') {
-    db.prepare('UPDATE users SET balance = MAX(0, balance + ?) WHERE id = ?').run(data.balance_delta, userId);
+    await db.run('UPDATE users SET balance = MAX(0, balance + ?) WHERE id = ?', [data.balance_delta, userId]);
   }
   if (typeof data.balance_set === 'number') {
-    db.prepare('UPDATE users SET balance = ? WHERE id = ?').run(data.balance_set, userId);
+    await db.run('UPDATE users SET balance = ? WHERE id = ?', [data.balance_set, userId]);
   }
   if (typeof data.wallet_balance_set === 'number') {
-    db.prepare('UPDATE users SET wallet_balance = ? WHERE id = ?').run(data.wallet_balance_set, userId);
+    await db.run('UPDATE users SET wallet_balance = ? WHERE id = ?', [data.wallet_balance_set, userId]);
   }
   if (data.password) {
     const hash = bcrypt.hashSync(data.password, 12);
-    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, userId);
+    await db.run('UPDATE users SET password_hash = ? WHERE id = ?', [hash, userId]);
   }
   if (typeof data.is_active === 'boolean') {
-    db.prepare('UPDATE users SET is_active = ? WHERE id = ?').run(data.is_active ? 1 : 0, userId);
+    await db.run('UPDATE users SET is_active = ? WHERE id = ?', [data.is_active ? 1 : 0, userId]);
   }
   if (data.max_tokens_per_session !== undefined) {
-    db.prepare('UPDATE users SET max_tokens_per_session = ? WHERE id = ?').run(data.max_tokens_per_session, userId);
+    await db.run('UPDATE users SET max_tokens_per_session = ? WHERE id = ?', [data.max_tokens_per_session, userId]);
   }
 
   res.json({ success: true });
 });
 
-router.delete('/users/:id', (req: Request, res: Response) => {
+router.delete('/users/:id', async (req: Request, res: Response) => {
   const userId = parseInt(req.params.id, 10);
   if (isNaN(userId)) { res.status(400).json({ error: 'Invalid user id' }); return; }
-  getDb().prepare('UPDATE users SET is_active = 0 WHERE id = ?').run(userId);
+  (await getAdapter()).run('UPDATE users SET is_active = 0 WHERE id = ?', [userId]);
   res.json({ success: true });
 });
 
 // ── API Keys ───────────────────────────────────────────────────────────────────
 
-router.get('/api-keys', (_req: Request, res: Response) => {
-  const keys = getDb().prepare(`
+router.get('/api-keys', async (_req: Request, res: Response) => {
+  const db = await getAdapter();
+  const keys = await db.all(`
     SELECT id, provider, mode, is_active, label, priority, model_id_override FROM api_keys ORDER BY priority ASC, id DESC
-  `).all();
+  `);
   // Never return key_value to frontend
   res.json(keys);
 });
@@ -124,35 +125,36 @@ const CreateKeySchema = z.object({
   model_id_override: z.string().max(150).optional(),
 });
 
-router.post('/api-keys', (req: Request, res: Response) => {
+router.post('/api-keys', async (req: Request, res: Response) => {
   const parsed = CreateKeySchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
     return;
   }
   const { provider, key_value, mode, label, priority, model_id_override } = parsed.data;
-  const db = getDb();
+  const db = await getAdapter();
   // Only deactivate existing keys if this is priority 1 (primary)
   if ((priority ?? 1) === 1) {
-    db.prepare('UPDATE api_keys SET is_active = 0 WHERE mode = ? AND priority = 1').run(mode);
+    await db.run('UPDATE api_keys SET is_active = 0 WHERE mode = ? AND priority = 1', [mode]);
   }
-  const result = db.prepare(`
+  const result = await db.run(`
     INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)
-  `).run(provider, key_value, mode, label ?? null, priority ?? 1, model_id_override ?? null);
+  `, [provider, key_value, mode, label ?? null, priority ?? 1, model_id_override ?? null]);
   res.json({ success: true, id: result.lastInsertRowid });
 });
 
-router.delete('/api-keys/:id', (req: Request, res: Response) => {
+router.delete('/api-keys/:id', async (req: Request, res: Response) => {
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: 'Invalid id' }); return; }
-  getDb().prepare('DELETE FROM api_keys WHERE id = ?').run(id);
+  (await getAdapter()).run('DELETE FROM api_keys WHERE id = ?', [id]);
   res.json({ success: true });
 });
 
 // ── Pricing ────────────────────────────────────────────────────────────────────
 
-router.get('/pricing', (_req: Request, res: Response) => {
-  const modes = getDb().prepare('SELECT * FROM pricing_modes ORDER BY id').all();
+router.get('/pricing', async (_req: Request, res: Response) => {
+  const db = await getAdapter();
+  const modes = await db.all('SELECT * FROM pricing_modes ORDER BY id');
   res.json(modes);
 });
 
@@ -167,7 +169,7 @@ const UpdatePricingSchema = z.object({
   description: z.string().max(200).optional(),
 });
 
-router.patch('/pricing/:mode', (req: Request, res: Response) => {
+router.patch('/pricing/:mode', async (req: Request, res: Response) => {
   const mode = req.params.mode;
   if (!['free', 'fast', 'pro'].includes(mode)) {
     res.status(400).json({ error: 'Invalid mode' });
@@ -179,7 +181,7 @@ router.patch('/pricing/:mode', (req: Request, res: Response) => {
     return;
   }
   const data = parsed.data;
-  const db = getDb();
+  const db = await getAdapter();
   const fields: string[] = ["updated_at = datetime('now')"];
   const values: unknown[] = [];
   if (data.markup_formula !== undefined) { fields.push('markup_formula = ?'); values.push(data.markup_formula); }
@@ -190,14 +192,14 @@ router.patch('/pricing/:mode', (req: Request, res: Response) => {
   if (data.display_name !== undefined) { fields.push('display_name = ?'); values.push(data.display_name); }
   if (data.description !== undefined) { fields.push('description = ?'); values.push(data.description); }
   values.push(mode);
-  db.prepare(`UPDATE pricing_modes SET ${fields.join(', ')} WHERE mode = ?`).run(...values);
+  await db.run(`UPDATE pricing_modes SET ${fields.join(', ')} WHERE mode = ?`, values);
   res.json({ success: true });
 });
 
 // ── Usage Stats / Reports ──────────────────────────────────────────────────────
 
-router.get('/usage-stats', (req: Request, res: Response) => {
-  const db = getDb();
+router.get('/usage-stats', async (req: Request, res: Response) => {
+  const db = await getAdapter();
   const { from, to, user_id, mode } = req.query as Record<string, string>;
 
   const conditions: string[] = [];
@@ -208,7 +210,7 @@ router.get('/usage-stats', (req: Request, res: Response) => {
   if (mode)    { conditions.push('ul.mode = ?'); params.push(mode); }
   const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
 
-  const summary = db.prepare(`
+  const summary = await db.get(`
     SELECT
       COUNT(DISTINCT ul.user_id)            AS total_users,
       COUNT(*)                              AS total_sessions,
@@ -220,10 +222,10 @@ router.get('/usage-stats', (req: Request, res: Response) => {
       ROUND(SUM(ul.charged_cost), 6)        AS total_charged,
       ROUND(SUM(ul.charged_cost) - SUM(ul.raw_cost), 6) AS total_profit
     FROM usage_log ul ${where}
-  `).get(...params);
+  `, params);
 
   // Per-user breakdown (collapsed across all modes)
-  const perUser = db.prepare(`
+  const perUser = await db.all(`
     SELECT
       u.id                                  AS user_id,
       u.username,
@@ -243,10 +245,10 @@ router.get('/usage-stats', (req: Request, res: Response) => {
     ${where}
     GROUP BY ul.user_id
     ORDER BY charged DESC
-  `).all(...params);
+  `, params);
 
   // Per-mode breakdown (joined with pricing_modes to get model_id)
-  const perMode = db.prepare(`
+  const perMode = await db.all(`
     SELECT
       ul.mode,
       pm.display_name,
@@ -264,12 +266,12 @@ router.get('/usage-stats', (req: Request, res: Response) => {
     ${where}
     GROUP BY ul.mode
     ORDER BY charged DESC
-  `).all(...params);
+  `, params);
 
   // Recent individual calls (last 50)
   const recentConditions = conditions.map(c => c.replace('ul.', '')); // strip alias for subquery
   const recentWhere = recentConditions.length > 0 ? `WHERE ${recentConditions.join(' AND ')}`.replace(/ul\./g, '') : '';
-  const recent = db.prepare(`
+  const recent = await db.all(`
     SELECT
       ul.id,
       u.username,
@@ -287,10 +289,10 @@ router.get('/usage-stats', (req: Request, res: Response) => {
     ${where}
     ORDER BY ul.timestamp DESC
     LIMIT 100
-  `).all(...params);
+  `, params);
 
   // Daily trend (last 30 days or filtered range)
-  const perDay = db.prepare(`
+  const perDay = await db.all(`
     SELECT
       DATE(ul.timestamp)                     AS day,
       COUNT(*)                               AS sessions,
@@ -304,15 +306,16 @@ router.get('/usage-stats', (req: Request, res: Response) => {
     GROUP BY DATE(ul.timestamp)
     ORDER BY day DESC
     LIMIT 90
-  `).all(...params);
+  `, params);
 
   res.json({ summary, perUser, perMode, recent, perDay });
 });
 
 // ── Settings ───────────────────────────────────────────────────────────────────
 
-router.get('/settings', (_req: Request, res: Response) => {
-  const rows = getDb().prepare('SELECT key, value FROM app_settings').all() as { key: string; value: string }[];
+router.get('/settings', async (_req: Request, res: Response) => {
+  const db = await getAdapter();
+  const rows = await db.all<Array<{ key: string; value: string }>>('SELECT key, value FROM app_settings');
   const settings: Record<string, string> = {};
   for (const row of rows) settings[row.key] = row.value;
   res.json(settings);
@@ -330,16 +333,15 @@ const SettingsSchema = z.object({
   daily_token_limit: z.number().int().min(0).nullable().optional(),
 });
 
-router.patch('/settings', (req: Request, res: Response) => {
+router.patch('/settings', async (req: Request, res: Response) => {
   const parsed = SettingsSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: 'Invalid input' });
     return;
   }
-  const db = getDb();
-  const update = db.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)');
+  const db = await getAdapter();
   for (const [key, value] of Object.entries(parsed.data)) {
-    if (value !== undefined) update.run(key, String(value));
+    if (value !== undefined) await db.run('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)', [key, String(value)]);
   }
   res.json({ success: true });
 });
@@ -348,7 +350,7 @@ const ChangePasswordSchema = z.object({
   new_password: z.string().min(6).max(100),
 });
 
-router.post('/settings/change-password', (req: Request, res: Response) => {
+router.post('/settings/change-password', async (req: Request, res: Response) => {
   const parsed = ChangePasswordSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: 'Invalid input' });
@@ -356,16 +358,17 @@ router.post('/settings/change-password', (req: Request, res: Response) => {
   }
   // Admin password lives only in env — this updates the env var at runtime (VPS restart required for full persistence)
   // For a more persistent solution, store hashed admin password in app_settings
-  const db = getDb();
+  const db = await getAdapter();
   const hash = bcrypt.hashSync(parsed.data.new_password, 12);
-  db.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)').run('admin_password_hash', hash);
+  await db.run('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)', ['admin_password_hash', hash]);
   res.json({ success: true, note: 'Password hash updated. Old SUNY_ADMIN_PASSWORD env var still works until restart.' });
 });
 
 // ── Contact Info ───────────────────────────────────────────────────────────────
 
-router.get('/contact', (_req: Request, res: Response) => {
-  const info = getDb().prepare('SELECT * FROM contact_info WHERE id = 1').get();
+router.get('/contact', async (_req: Request, res: Response) => {
+  const db = await getAdapter();
+  const info = await db.get('SELECT * FROM contact_info WHERE id = 1');
   res.json(info || {});
 });
 
@@ -377,21 +380,21 @@ const ContactSchema = z.object({
   support_message: z.string().max(300).optional(),
 });
 
-router.patch('/contact', (req: Request, res: Response) => {
+router.patch('/contact', async (req: Request, res: Response) => {
   const parsed = ContactSchema.safeParse(req.body);
   if (!parsed.success) {
     res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
     return;
   }
   const data = parsed.data;
-  const db = getDb();
+  const db = await getAdapter();
   const fields: string[] = ["updated_at = datetime('now')"];
   const values: unknown[] = [];
   for (const [key, val] of Object.entries(data)) {
     if (val !== undefined) { fields.push(`${key} = ?`); values.push(val); }
   }
   values.push(1);
-  db.prepare(`UPDATE contact_info SET ${fields.join(', ')} WHERE id = ?`).run(...values);
+  await db.run(`UPDATE contact_info SET ${fields.join(', ')} WHERE id = ?`, values);
   res.json({ success: true });
 });
 
@@ -433,9 +436,10 @@ router.get('/models', async (_req: Request, res: Response) => {
     }
 
     // Live: which providers have at least one active key? (case-insensitive match)
-    const activeRows = getDb().prepare(
+    const activeDb = await getAdapter();
+    const activeRows = await activeDb.all<Array<{ p: string }>>(
       'SELECT DISTINCT LOWER(provider) as p FROM api_keys WHERE is_active = 1'
-    ).all() as { p: string }[];
+    );
     const activeSet = new Set(activeRows.map(r => r.p));
 
     const result: ModelEntry[] = baseList.map(m => ({

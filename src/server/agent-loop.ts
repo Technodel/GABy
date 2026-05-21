@@ -267,8 +267,8 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
   // When imageData is present, prefer vision-capable models across all modes
   const isVisionRequest = !!imageData;
   const modelEntries = isVisionRequest
-    ? (() => {
-        const vision = getVisionCapableModels();
+    ? await (async () => {
+        const vision = await getVisionCapableModels();
         if (vision.length > 0) {
           console.log(`[agent-loop] Using vision-capable models: ${vision.map(v => v.provider).join(', ')}`);
           return vision;
@@ -277,7 +277,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
         // Return empty list to trigger the no-vision-model error below
         return [];
       })()
-    : getModelsForMode(resolvedMode);
+    : await getModelsForMode(resolvedMode);
   let lastError: Error = new Error('No models available');
 
   // Track files changed during this turn (for git auto-commit + cache invalidation)
@@ -305,7 +305,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
 
   // Determine edit format (needs bridgeConnected, must come before fullSystem)
   const bridgeConnected = isBridgeConnected(userId);
-  const editFormat = (bridgeConnected && projectPath && !talkMode) ? getEditFormat() : 'tool-call';
+  const editFormat = (bridgeConnected && projectPath && !talkMode) ? await getEditFormat() : 'tool-call';
 
   // For text-based formats (diff / whole), drop tool calls and inject format instructions
   const textFormat = editFormat === 'diff' || editFormat === 'whole';
@@ -429,7 +429,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
         },
       });
       // ── Additional SUNy tools (memory, symbol, prompt, discovery, delegation, healing) ──
-      const memoryTools = createMemoryTools({ userId, projectPath });
+      const memoryTools = await createMemoryTools({ userId, projectPath });
       const symbolReaderTool = createSymbolReaderTool({ userId, projectPath });
       const promptRegistryTool = createPromptRegistryTool({ userId });
       const fileDiscoveryTool = createFileDiscoveryTool({ userId, projectPath });
@@ -495,7 +495,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
       // Resolve Pro model for reasoning-heavy hypothesis strategies
       let proModel: LanguageModel | undefined;
       try {
-        const proEntries = getModelsForMode('pro');
+        const proEntries = await getModelsForMode('pro');
         if (proEntries.length > 0) proModel = proEntries[0].model as LanguageModel;
       } catch { /* pro model unavailable — fall through, hypothesis uses primaryModel */ }
       const hypResult = await runHypothesisStrategies({
@@ -576,7 +576,7 @@ If your tools are not working, say:
       }
 
       // Inject Anthropic cache breakpoints when caching is enabled
-      const cachingEnabled = isCachingEnabled();
+      const cachingEnabled = await isCachingEnabled();
       const useAnthropicCache = cachingEnabled && provider === 'Anthropic';
       const { messages: finalMessages, useSystemParam } = useAnthropicCache
         ? buildAnthropicCachedMessages(messages, fullSystem)

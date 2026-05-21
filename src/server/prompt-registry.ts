@@ -10,7 +10,7 @@
 
 import { tool } from 'ai';
 import { z } from 'zod';
-import { getDb } from './db';
+import { getAdapter } from './db';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Built-in template contexts
@@ -89,11 +89,12 @@ export interface PromptTemplate {
  * Get a prompt template by key for a given user.
  * Falls back to built-in default if no user template exists.
  */
-export function getPromptTemplate(userId: number, key: string): PromptTemplate | null {
-  const db = getDb();
-  const row = db.prepare(
+export async function getPromptTemplate(userId: number, key: string): Promise<PromptTemplate | null> {
+  const db = await getAdapter();
+  const row = await db.get<PromptTemplate>(
     'SELECT * FROM prompt_templates WHERE user_id = ? AND key = ? AND is_active = 1',
-  ).get(userId, key) as PromptTemplate | undefined;
+    [userId, key],
+  );
 
   if (row) return row;
 
@@ -119,41 +120,45 @@ export function getPromptTemplate(userId: number, key: string): PromptTemplate |
  * Set a prompt template for a given user and key.
  * Creates or updates the template.
  */
-export function setPromptTemplate(
+export async function setPromptTemplate(
   userId: number,
   key: string,
   content: string,
   description?: string,
-): PromptTemplate {
-  const db = getDb();
+): Promise<PromptTemplate> {
+  const db = await getAdapter();
   const trimmedKey = key.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '');
   if (!trimmedKey) throw new Error('Invalid template key');
 
-  const existing = db.prepare(
+  const existing = await db.get<{ id: number }>(
     'SELECT id FROM prompt_templates WHERE user_id = ? AND key = ?',
-  ).get(userId, trimmedKey) as { id: number } | undefined;
+    [userId, trimmedKey],
+  );
 
   if (existing) {
-    db.prepare(
+    await db.run(
       'UPDATE prompt_templates SET content = ?, description = COALESCE(?, description), updated_at = datetime(\'now\') WHERE id = ?',
-    ).run(content, description ?? null, existing.id);
+      [content, description ?? null, existing.id],
+    );
   } else {
-    db.prepare(
+    await db.run(
       'INSERT INTO prompt_templates (user_id, key, content, description) VALUES (?, ?, ?, ?)',
-    ).run(userId, trimmedKey, content, description ?? '');
+      [userId, trimmedKey, content, description ?? ''],
+    );
   }
 
-  return getPromptTemplate(userId, trimmedKey)!;
+  return (await getPromptTemplate(userId, trimmedKey))!;
 }
 
 /**
  * List all prompt templates for a user, including built-in defaults.
  */
-export function listPromptTemplates(userId: number): PromptTemplate[] {
-  const db = getDb();
-  const rows = db.prepare(
+export async function listPromptTemplates(userId: number): Promise<PromptTemplate[]> {
+  const db = await getAdapter();
+  const rows = await db.all<PromptTemplate[]>(
     'SELECT * FROM prompt_templates WHERE user_id = ? ORDER BY key',
-  ).all(userId) as PromptTemplate[];
+    [userId],
+  );
 
   const seen = new Set(rows.map((r) => r.key));
   const builtIns: PromptTemplate[] = Object.entries(TEMPLATE_CONTEXTS)
@@ -175,11 +180,12 @@ export function listPromptTemplates(userId: number): PromptTemplate[] {
 /**
  * Delete a prompt template by key.
  */
-export function deletePromptTemplate(userId: number, key: string): boolean {
-  const db = getDb();
-  const result = db.prepare(
+export async function deletePromptTemplate(userId: number, key: string): Promise<boolean> {
+  const db = await getAdapter();
+  const result = await db.run(
     'DELETE FROM prompt_templates WHERE user_id = ? AND key = ?',
-  ).run(userId, key);
+    [userId, key],
+  );
   return result.changes > 0;
 }
 
@@ -208,7 +214,7 @@ export function createPromptRegistryTool(ctx: PromptRegistryContext) {
         .describe('The template context key'),
     }),
     execute: async ({ key }) => {
-      const template = getPromptTemplate(ctx.userId, key);
+      const template = await getPromptTemplate(ctx.userId, key);
       if (!template) {
         return `No template found for context "${key}". Available contexts: ${Object.keys(TEMPLATE_CONTEXTS).join(', ')}`;
       }

@@ -863,7 +863,7 @@ router.get('/projects/:id/vector-stats', (req: Request, res: Response) => {
   if (isNaN(projectId)) { res.status(400).json({ error: 'Invalid project id' }); return; }
   const proj = getDb().prepare('SELECT id FROM projects WHERE id = ? AND user_id = ?').get(projectId, user.id);
   if (!proj) { res.status(404).json({ error: 'Project not found' }); return; }
-  res.json(getChunkStats(projectId));
+  res.json(await getChunkStats(projectId));
 });
 
 router.post('/projects/:id/reindex', async (req: Request, res: Response) => {
@@ -875,15 +875,15 @@ router.post('/projects/:id/reindex', async (req: Request, res: Response) => {
   if (!proj) { res.status(404).json({ error: 'Project not found' }); return; }
   res.json({ ok: true, message: 'Re-indexing started in background' });
   // Fire-and-forget
-  setImmediate(() => {
+  setImmediate(async () => {
     try {
       // Clear old index keys so next message re-indexes
       getDb().prepare("DELETE FROM app_settings WHERE key IN (?, ?)")
         .run(`indexed:${proj.local_path}`, `chunk_indexed:${proj.local_path}`);
       // Run symbol index first, then chunk vectors
       indexProject(proj.local_path);
-      clearChunkIndex(projectId);
-      const stats = buildChunkVectors(proj.local_path, projectId);
+      await clearChunkIndex(projectId);
+      const stats = await buildChunkVectors(proj.local_path, projectId);
       getDb().prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, 'true')").run(`indexed:${proj.local_path}`);
       getDb().prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, 'true')").run(`chunk_indexed:${proj.local_path}`);
       console.log(`[reindex] Project ${projectId}: ${stats.chunksIndexed} chunks across ${stats.filesProcessed} files`);

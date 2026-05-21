@@ -13,7 +13,7 @@
  *      operates with full memory of past design decisions.
  */
 
-import { getDb } from './db';
+import { getAdapter } from './db';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -72,7 +72,7 @@ function extractIntent(userMessage: string): string {
 
 // ── Store a blueprint entry ───────────────────────────────────────────────────
 
-export function storeBlueprintEntry(entry: {
+export async function storeBlueprintEntry(entry: {
   userId: number;
   projectId: number | null;
   sessionId: string;
@@ -81,25 +81,26 @@ export function storeBlueprintEntry(entry: {
   details?: string;
   intent?: string;
   affectedFiles?: string[];
-}): BlueprintEntry {
-  const db = getDb();
+}): Promise<BlueprintEntry> {
+  const db = await getAdapter();
   const category = classifyCategory(entry.summary, entry.affectedFiles ?? [], entry.intent ?? '');
   const intent = entry.intent ?? extractIntent(entry.summary);
   const filesJson = entry.affectedFiles?.length ? JSON.stringify(entry.affectedFiles) : null;
 
-  const result = db.prepare(`
-    INSERT INTO blueprint_entries (user_id, project_id, session_id, turn_index, category, summary, details, intent, affected_files)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(
-    entry.userId,
-    entry.projectId,
-    entry.sessionId,
-    entry.turnIndex,
-    category,
-    entry.summary.slice(0, 500),
-    entry.details?.slice(0, 2000) ?? null,
-    intent.slice(0, 300),
-    filesJson,
+  const result = await db.run(
+    `INSERT INTO blueprint_entries (user_id, project_id, session_id, turn_index, category, summary, details, intent, affected_files)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      entry.userId,
+      entry.projectId,
+      entry.sessionId,
+      entry.turnIndex,
+      category,
+      entry.summary.slice(0, 500),
+      entry.details?.slice(0, 2000) ?? null,
+      intent.slice(0, 300),
+      filesJson,
+    ],
   );
 
   return {
@@ -119,13 +120,13 @@ export function storeBlueprintEntry(entry: {
 
 // ── Query blueprint entries ───────────────────────────────────────────────────
 
-export function getBlueprintEntries(options: {
+export async function getBlueprintEntries(options: {
   userId: number;
   projectId?: number;
   limit?: number;
   categories?: BlueprintCategory[];
-}): BlueprintEntry[] {
-  const db = getDb();
+}): Promise<BlueprintEntry[]> {
+  const db = await getAdapter();
   const conditions: string[] = ['user_id = ?'];
   const params: unknown[] = [options.userId];
 
@@ -147,7 +148,7 @@ export function getBlueprintEntries(options: {
   `;
   params.push(options.limit ?? 20);
 
-  return db.prepare(sql).all(...params) as BlueprintEntry[];
+  return await db.all<BlueprintEntry>(sql, params);
 }
 
 // ── Get compact context string for system prompt injection ────────────────────
@@ -160,12 +161,12 @@ export function getBlueprintEntries(options: {
  * labels, summaries, and intents. This keeps token overhead low while giving
  * the AI full design memory continuity.
  */
-export function getBlueprintContext(options: {
+export async function getBlueprintContext(options: {
   userId: number;
   projectId?: number;
   maxEntries?: number;
-}): string {
-  const entries = getBlueprintEntries({
+}): Promise<string> {
+  const entries = await getBlueprintEntries({
     userId: options.userId,
     projectId: options.projectId,
     limit: options.maxEntries ?? 5,
@@ -201,11 +202,11 @@ export function getBlueprintContext(options: {
  * Returns a high-level "design trajectory" summary — the categories of decisions
  * made and how many entries each has. Gives the AI a sense of thematic focus.
  */
-export function getBlueprintSummary(options: {
+export async function getBlueprintSummary(options: {
   userId: number;
   projectId?: number;
-}): string {
-  const db = getDb();
+}): Promise<string> {
+  const db = await getAdapter();
   const conditions: string[] = ['user_id = ?'];
   const params: unknown[] = [options.userId];
 
@@ -214,13 +215,14 @@ export function getBlueprintSummary(options: {
     params.push(options.projectId);
   }
 
-  const rows = db.prepare(`
-    SELECT category, COUNT(*) as count
+  const rows = await db.all<{ category: string; count: number }>(
+    `SELECT category, COUNT(*) as count
     FROM blueprint_entries
     WHERE ${conditions.join(' AND ')}
     GROUP BY category
-    ORDER BY count DESC
-  `).all(...params) as { category: string; count: number }[];
+    ORDER BY count DESC`,
+    params,
+  );
 
   if (rows.length === 0) return '';
 
@@ -240,11 +242,11 @@ export function getBlueprintSummary(options: {
  * When the same file is changed 3+ times for similar intent categories, extract a
  * rule that guides SUNy's future behavior with that file.
  */
-export function generateRulesFromPatterns(options: {
+export async function generateRulesFromPatterns(options: {
   userId: number;
   projectId: number | null;
-}): { generated: number; reason: string } {
-  const db = getDb();
+}): Promise<{ generated: number; reason: string }> {
+  const db = await getAdapter();
   const conditions: string[] = ['be.user_id = ?'];
   const params: unknown[] = [options.userId];
 
@@ -254,15 +256,16 @@ export function generateRulesFromPatterns(options: {
   }
 
   // Find files that appear in 3+ blueprint entries
-  const repeatedFiles = db.prepare(`
-    SELECT be.affected_files, be.category, COUNT(*) as cnt
+  const repeatedFiles = await db.all<{ affected_files: string; category: string; cnt: number }>(
+    `SELECT be.affected_files, be.category, COUNT(*) as cnt
     FROM blueprint_entries be
     WHERE ${conditions.join(' AND ')} AND be.affected_files IS NOT NULL
     GROUP BY be.affected_files
     HAVING cnt >= 3
     ORDER BY cnt DESC
-    LIMIT 10
-  `).all(...params) as { affected_files: string; category: string; cnt: number }[];
+    LIMIT 10`,
+    params,
+  );
 
   let generated = 0;
 
@@ -273,15 +276,17 @@ export function generateRulesFromPatterns(options: {
       const ruleText = `File "${fileList}" has been modified ${row.cnt} times in context of "${row.category}" — verify imports and dependents when touching it`;
 
       // Check if rule already exists
-      const existing = db.prepare(
-        `SELECT id FROM behavioral_rules WHERE user_id = ? AND rule_text = ?`
-      ).get(options.userId, ruleText) as { id: number } | undefined;
+      const existing = await db.get<{ id: number }>(
+        'SELECT id FROM behavioral_rules WHERE user_id = ? AND rule_text = ?',
+        [options.userId, ruleText],
+      );
 
       if (!existing) {
-        db.prepare(
+        await db.run(
           `INSERT INTO behavioral_rules (user_id, project_id, category, rule_text, trigger_context, source_score, confidence, application_count)
            VALUES (?, ?, 'neutral', ?, ?, 6, 0.6, 1)`,
-        ).run(options.userId, options.projectId, ruleText, `when working in this project (pattern detected from ${row.cnt} turns)`);
+          [options.userId, options.projectId, ruleText, `when working in this project (pattern detected from ${row.cnt} turns)`],
+        );
         generated++;
         console.log(`[blueprint→rule] Generated rule: ${ruleText.slice(0, 100)}`);
       }

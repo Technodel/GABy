@@ -20,16 +20,17 @@ export interface MemoryToolContext {
   projectPath?: string;
 }
 
-export function createMemoryTools(ctx: MemoryToolContext) {
+export async function createMemoryTools(ctx: MemoryToolContext) {
   const { userId, projectPath } = ctx;
-  const db = getDb();
 
   // Determine project_id if we have a project path
   let projectId: number | null = null;
   if (projectPath) {
-    const row = db
-      .prepare('SELECT id FROM projects WHERE user_id = ? AND local_path = ?')
-      .get(userId, projectPath) as { id: number } | undefined;
+    const db = await getAdapter();
+    const row = await db.get<{ id: number }>(
+      'SELECT id FROM projects WHERE user_id = ? AND local_path = ?',
+      [userId, projectPath],
+    );
     if (row) projectId = row.id;
   }
 
@@ -56,9 +57,11 @@ export function createMemoryTools(ctx: MemoryToolContext) {
     execute: async ({ fact, category }) => {
       const tagged = category !== 'general' ? `[${category}] ${fact}` : fact;
 
-      db.prepare(
+      const db = await getAdapter();
+      await db.run(
         'INSERT INTO user_memories (user_id, project_id, content) VALUES (?, ?, ?)',
-      ).run(userId, projectId, tagged);
+        [userId, projectId, tagged],
+      );
 
       return `✅ Saved: "${fact}"`;
     },
@@ -77,20 +80,19 @@ export function createMemoryTools(ctx: MemoryToolContext) {
         ),
     }),
     execute: async ({ category }) => {
+      const db = await getAdapter();
       let rows: Array<{ id: number; content: string; created_at: string }>;
 
       if (projectId) {
-        rows = db
-          .prepare(
-            'SELECT id, content, created_at FROM user_memories WHERE user_id = ? AND (project_id = ? OR project_id IS NULL) ORDER BY created_at DESC',
-          )
-          .all(userId, projectId) as typeof rows;
+        rows = await db.all<{ id: number; content: string; created_at: string }>(
+          'SELECT id, content, created_at FROM user_memories WHERE user_id = ? AND (project_id = ? OR project_id IS NULL) ORDER BY created_at DESC',
+          [userId, projectId],
+        );
       } else {
-        rows = db
-          .prepare(
-            'SELECT id, content, created_at FROM user_memories WHERE user_id = ? ORDER BY created_at DESC',
-          )
-          .all(userId) as typeof rows;
+        rows = await db.all<{ id: number; content: string; created_at: string }>(
+          'SELECT id, content, created_at FROM user_memories WHERE user_id = ? ORDER BY created_at DESC',
+          [userId],
+        );
       }
 
       if (category) {
@@ -117,11 +119,9 @@ export function createMemoryTools(ctx: MemoryToolContext) {
       id: z.number().int().positive().describe('The ID of the memory to delete.'),
     }),
     execute: async ({ id }) => {
-      const result = db
-        .prepare('DELETE FROM user_memories WHERE id = ? AND user_id = ?')
-        .run(id, userId);
-      if (result.changes > 0) return `✅ Deleted memory #${id}.`;
-      return `⚠️ Memory #${id} not found.`;
+      const db = await getAdapter();
+      await db.run('DELETE FROM user_memories WHERE id = ? AND user_id = ?', [id, userId]);
+      return `✅ Deleted memory #${id}.`;
     },
   });
 

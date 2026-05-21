@@ -14,7 +14,7 @@
 
 import { Router, Request, Response } from 'express';
 import crypto from 'crypto';
-import { getDb } from './db';
+import { getAdapter } from './db';
 import { signToken } from './auth';
 import { isBridgeSetupCodesEnabled } from './feature-flags';
 import { logOperation } from './operation-audit';
@@ -67,7 +67,7 @@ interface BridgeSetupCodeRequest extends Request {
   userId?: number;
 }
 
-router.post('/setup-code', (req: BridgeSetupCodeRequest, res: Response) => {
+router.post('/setup-code', async (req: BridgeSetupCodeRequest, res: Response) => {
   if (!isBridgeSetupCodesEnabled()) {
     res.status(503).json({ error: 'Bridge setup codes are currently disabled' });
     return;
@@ -87,10 +87,11 @@ router.post('/setup-code', (req: BridgeSetupCodeRequest, res: Response) => {
   }
 
   // Clean expired pending codes for this user (older than 30min)
-  const db = getDb();
-  db.prepare(
+  const db = await getAdapter();
+  await db.run(
     "DELETE FROM bridge_setup_codes WHERE user_id = ? AND status = 'pending' AND created_at < datetime('now', '-30 minutes')",
-  ).run(userId);
+    [userId],
+  );
 
   // Generate unique code
   let code: string;
@@ -102,14 +103,15 @@ router.post('/setup-code', (req: BridgeSetupCodeRequest, res: Response) => {
       res.status(500).json({ error: 'Failed to generate unique code' });
       return;
     }
-  } while (db.prepare('SELECT 1 FROM bridge_setup_codes WHERE code = ?').get(code));
+  } while (await db.get<{ '1': number }>('SELECT 1 FROM bridge_setup_codes WHERE code = ?', [code]));
 
   const serverUrl = `${req.protocol}://${req.get('host') || 'localhost:3000'}`;
 
-  db.prepare(
+  await db.run(
     `INSERT INTO bridge_setup_codes (user_id, code, status, server_url)
      VALUES (?, ?, 'pending', ?)`,
-  ).run(userId, code, serverUrl);
+    [userId, code, serverUrl],
+  );
 
   logOperation({
     userId,
@@ -123,7 +125,7 @@ router.post('/setup-code', (req: BridgeSetupCodeRequest, res: Response) => {
 
 // ── POST /api/bridge/activate — Redeem a setup code (called by bridge CLI) ──
 
-router.post('/activate', (req: Request, res: Response) => {
+router.post('/activate', async (req: Request, res: Response) => {
   if (!isBridgeSetupCodesEnabled()) {
     res.status(503).json({ error: 'Bridge setup codes are currently disabled' });
     return;
@@ -135,10 +137,11 @@ router.post('/activate', (req: Request, res: Response) => {
     return;
   }
 
-  const db = getDb();
-  const record = db.prepare(
+  const db = await getAdapter();
+  const record = await db.get<{ id: number; user_id: number }>(
     "SELECT * FROM bridge_setup_codes WHERE code = ? AND status = 'pending'",
-  ).get(code) as { id: number; user_id: number } | undefined;
+    [code],
+  );
 
   if (!record) {
     res.status(404).json({ error: 'Invalid or expired setup code' });
@@ -146,12 +149,13 @@ router.post('/activate', (req: Request, res: Response) => {
   }
 
   // Mark as redeemed
-  db.prepare(
+  await db.run(
     "UPDATE bridge_setup_codes SET status = 'redeemed', redeemed_at = datetime('now') WHERE id = ?",
-  ).run(record.id);
+    [record.id],
+  );
 
   // Look up username for the token payload
-  const userRecord = db.prepare('SELECT username FROM users WHERE id = ?').get(record.user_id) as { username: string } | undefined;
+  const userRecord = await db.get<{ username: string }>('SELECT username FROM users WHERE id = ?', [record.user_id]);
   const username = userRecord?.username || 'unknown';
 
   // Generate a scoped bridge token (valid for 30 days)
@@ -210,21 +214,22 @@ interface BridgeSetupCodesRequest extends Request {
   userId?: number;
 }
 
-router.get('/setup-codes', (req: BridgeSetupCodesRequest, res: Response) => {
+router.get('/setup-codes', async (req: BridgeSetupCodesRequest, res: Response) => {
   const userId = req.userId;
   if (!userId) {
     res.status(401).json({ error: 'Authentication required' });
     return;
   }
 
-  const db = getDb();
-  const codes = db.prepare(
+  const db = await getAdapter();
+  const codes = await db.all(
     `SELECT id, code, status, server_url, created_at, redeemed_at
      FROM bridge_setup_codes
      WHERE user_id = ?
      ORDER BY created_at DESC
      LIMIT 10`,
-  ).all(userId);
+    [userId],
+  );
 
   res.json({ codes });
 });

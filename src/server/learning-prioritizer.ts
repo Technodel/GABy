@@ -12,7 +12,7 @@
  * Feature flag: ff_learning_prioritizer
  */
 
-import { getDb } from './db';
+import { getAdapter } from './db';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -131,30 +131,33 @@ function scoreUserMemory(row: {
 /**
  * Get scored memories for a user, sorted by value (highest first).
  */
-export function getPrioritizedMemories(userId: number, limit: number = 50): MemoryScore[] {
-  const db = getDb();
+export async function getPrioritizedMemories(userId: number, limit: number = 50): Promise<MemoryScore[]> {
+  const db = await getAdapter();
   const scores: MemoryScore[] = [];
 
   // Score failure memories
-  const failures = db.prepare(
-    'SELECT id, recurrence_count, fix_succeeded, created_at FROM failure_memory WHERE user_id = ?'
-  ).all(userId) as Array<{ id: number; recurrence_count: number; fix_succeeded: number; created_at: string }>;
+  const failures = await db.all<{ id: number; recurrence_count: number; fix_succeeded: number; created_at: string }>(
+    'SELECT id, recurrence_count, fix_succeeded, created_at FROM failure_memory WHERE user_id = ?',
+    [userId],
+  );
   for (const row of failures) {
     scores.push(scoreFailureMemory(row));
   }
 
   // Score blueprint entries
-  const blueprints = db.prepare(
-    'SELECT id, category, created_at FROM blueprint_entries WHERE user_id = ?'
-  ).all(userId) as Array<{ id: number; category: string; created_at: string }>;
+  const blueprints = await db.all<{ id: number; category: string; created_at: string }>(
+    'SELECT id, category, created_at FROM blueprint_entries WHERE user_id = ?',
+    [userId],
+  );
   for (const row of blueprints) {
     scores.push(scoreBlueprintEntry(row));
   }
 
   // Score user memories
-  const memories = db.prepare(
-    'SELECT id, content, created_at FROM user_memories WHERE user_id = ?'
-  ).all(userId) as Array<{ id: number; content: string; created_at: string }>;
+  const memories = await db.all<{ id: number; content: string; created_at: string }>(
+    'SELECT id, content, created_at FROM user_memories WHERE user_id = ?',
+    [userId],
+  );
   for (const row of memories) {
     scores.push(scoreUserMemory(row));
   }
@@ -169,47 +172,50 @@ export function getPrioritizedMemories(userId: number, limit: number = 50): Memo
  * Prune low-value memories for a user.
  * Returns count of removed entries and details.
  */
-export function pruneLowValueMemories(userId: number, thresholdScore: number = SCORE_WEIGHTS.MIN_RETENTION_SCORE): PruningResult {
-  const db = getDb();
+export async function pruneLowValueMemories(userId: number, thresholdScore: number = SCORE_WEIGHTS.MIN_RETENTION_SCORE): Promise<PruningResult> {
+  const db = await getAdapter();
   const details: string[] = [];
   let removedFailures = 0;
   let removedBlueprints = 0;
   let removedMemories = 0;
 
   // Score and prune failure memories
-  const failures = db.prepare(
-    'SELECT id, recurrence_count, fix_succeeded, created_at FROM failure_memory WHERE user_id = ?'
-  ).all(userId) as Array<{ id: number; recurrence_count: number; fix_succeeded: number; created_at: string }>;
+  const failures = await db.all<{ id: number; recurrence_count: number; fix_succeeded: number; created_at: string }>(
+    'SELECT id, recurrence_count, fix_succeeded, created_at FROM failure_memory WHERE user_id = ?',
+    [userId],
+  );
   for (const row of failures) {
     const scored = scoreFailureMemory(row);
     if (scored.score < thresholdScore) {
-      db.prepare('DELETE FROM failure_memory WHERE id = ? AND user_id = ?').run(row.id, userId);
+      await db.run('DELETE FROM failure_memory WHERE id = ? AND user_id = ?', [row.id, userId]);
       removedFailures++;
       details.push(`Removed failure_memory #${row.id} (score=${scored.score}, ${scored.reason})`);
     }
   }
 
   // Score and prune blueprint entries
-  const blueprints = db.prepare(
-    'SELECT id, category, created_at FROM blueprint_entries WHERE user_id = ?'
-  ).all(userId) as Array<{ id: number; category: string; created_at: string }>;
+  const blueprints = await db.all<{ id: number; category: string; created_at: string }>(
+    'SELECT id, category, created_at FROM blueprint_entries WHERE user_id = ?',
+    [userId],
+  );
   for (const row of blueprints) {
     const scored = scoreBlueprintEntry(row);
     if (scored.score < thresholdScore) {
-      db.prepare('DELETE FROM blueprint_entries WHERE id = ? AND user_id = ?').run(row.id, userId);
+      await db.run('DELETE FROM blueprint_entries WHERE id = ? AND user_id = ?', [row.id, userId]);
       removedBlueprints++;
       details.push(`Removed blueprint_entries #${row.id} (score=${scored.score}, ${scored.reason})`);
     }
   }
 
   // Score and prune user memories
-  const memories = db.prepare(
-    'SELECT id, content, created_at FROM user_memories WHERE user_id = ?'
-  ).all(userId) as Array<{ id: number; content: string; created_at: string }>;
+  const memories = await db.all<{ id: number; content: string; created_at: string }>(
+    'SELECT id, content, created_at FROM user_memories WHERE user_id = ?',
+    [userId],
+  );
   for (const row of memories) {
     const scored = scoreUserMemory(row);
     if (scored.score < thresholdScore) {
-      db.prepare('DELETE FROM user_memories WHERE id = ? AND user_id = ?').run(row.id, userId);
+      await db.run('DELETE FROM user_memories WHERE id = ? AND user_id = ?', [row.id, userId]);
       removedMemories++;
       details.push(`Removed user_memories #${row.id} (score=${scored.score}, ${scored.reason})`);
     }

@@ -11,7 +11,7 @@
  *   and failing tests so SUNy starts the conversation with awareness.
  */
 
-import { getDb } from './db';
+import { getAdapter } from './db';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -86,20 +86,20 @@ export function formatDigestForPrompt(digest: ProjectDigest): string {
 /**
  * Check if digest has already been generated for this project.
  */
-export function isDigestCached(projectPath: string): boolean {
-  const db = getDb();
+export async function isDigestCached(projectPath: string): Promise<boolean> {
+  const db = await getAdapter();
   const key = `project_digest:${projectPath}`;
-  const row = db.prepare("SELECT value FROM app_settings WHERE key = ?").get(key) as { value: string } | undefined;
+  const row = await db.get<{ value: string }>("SELECT value FROM app_settings WHERE key = ?", [key]);
   return !!row?.value;
 }
 
 /**
  * Mark digest as generated so we don't regenerate every turn.
  */
-export function markDigestCached(projectPath: string): void {
-  const db = getDb();
+export async function markDigestCached(projectPath: string): Promise<void> {
+  const db = await getAdapter();
   const key = `project_digest:${projectPath}`;
-  db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, datetime('now'))").run(key);
+  await db.run("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, datetime('now'))", [key]);
 }
 
 // ── 3.2: Architecture Graph ───────────────────────────────────────────────────

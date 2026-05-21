@@ -2,21 +2,23 @@
  * Unit tests for code-chunks.ts — semantic chunk search, prompt formatting, stats
  *
  * Uses an in-memory SQLite database to isolate tests.
- * Mocks getDb() and filesystem operations.
+ * Mocks getAdapter() with a SqliteAdapter wrapping an in-memory DB.
  */
 import 'dotenv/config';
-import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeAll, vi } from 'vitest';
 import Database from 'better-sqlite3';
+import { SqliteAdapter } from './db-sqlite';
+import type { DbAdapter } from './db-types';
 
-// ── Mutable holder for the test DB reference ───────────────────────────────────
-const mockDbHolder: { db: Database.Database | null } = { db: null };
+// ── Mutable holder for the test adapter reference ──────────────────────────────
+const mockAdapterHolder: { adapter: DbAdapter | null } = { adapter: null };
 
 vi.mock('./db', () => ({
-  getDb: () => {
-    if (!mockDbHolder.db) {
-      throw new Error('Test DB not initialized');
+  getAdapter: () => {
+    if (!mockAdapterHolder.adapter) {
+      throw new Error('Test adapter not initialized');
     }
-    return mockDbHolder.db;
+    return mockAdapterHolder.adapter;
   },
 }));
 
@@ -25,8 +27,8 @@ import { textToVector, serializeVector } from './vectors';
 
 const VECTOR_DIMS = 2000;
 
-function createTables(db: Database.Database): void {
-  db.exec(`
+async function createTables(adapter: DbAdapter): Promise<void> {
+  await adapter.exec(`
     CREATE TABLE IF NOT EXISTS code_chunks (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       project_id INTEGER NOT NULL,
@@ -48,12 +50,7 @@ function createTables(db: Database.Database): void {
   `);
 }
 
-function seedChunks(db: Database.Database, projectId: number, count: number): void {
-  const insert = db.prepare(`
-    INSERT OR IGNORE INTO code_chunks (project_id, file_path, symbol_name, symbol_type, start_line, end_line, content, content_hash, vector_b64)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
+async function seedChunks(adapter: DbAdapter, projectId: number, count: number): Promise<void> {
   const samples = [
     { file: 'src/server/index.ts', sym: 'main', type: 'function', content: 'function main() { const app = express(); app.listen(3500); }' },
     { file: 'src/server/db.ts', sym: 'getDb', type: 'function', content: 'function getDb() { if (!db) { db = new Database(path); db.pragma("journal_mode=WAL"); } return db; }' },
@@ -66,27 +63,34 @@ function seedChunks(db: Database.Database, projectId: number, count: number): vo
     const s = samples[i];
     const vec = serializeVector(textToVector(s.content, VECTOR_DIMS));
     const hash = 'test_hash_' + i;
-    insert.run(projectId, s.file, s.sym, s.type, 1, 20, s.content, hash, vec);
+    await adapter.run(
+      `INSERT OR IGNORE INTO code_chunks (project_id, file_path, symbol_name, symbol_type, start_line, end_line, content, content_hash, vector_b64)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [projectId, s.file, s.sym, s.type, 1, 20, s.content, hash, vec],
+    );
   }
 }
 
 describe('getChunkStats', () => {
-  beforeAll(() => {
+  let adapter: DbAdapter;
+
+  beforeAll(async () => {
     const db = new Database(':memory:');
-    createTables(db);
-    mockDbHolder.db = db;
+    adapter = new SqliteAdapter(':memory:', db);
+    mockAdapterHolder.adapter = adapter;
+    await createTables(adapter);
   });
 
-  it('returns zero stats when table is empty', () => {
-    const stats = getChunkStats(1);
+  it('returns zero stats when table is empty', async () => {
+    const stats = await getChunkStats(1);
     expect(stats.total).toBe(0);
     expect(stats.files).toBe(0);
     expect(stats.indexed_at).toBeNull();
   });
 
-  it('returns correct counts after seeding chunks', () => {
-    seedChunks(mockDbHolder.db!, 999, 3);
-    const stats = getChunkStats(999);
+  it('returns correct counts after seeding chunks', async () => {
+    await seedChunks(adapter, 999, 3);
+    const stats = await getChunkStats(999);
     expect(stats.total).toBe(3);
     expect(stats.files).toBeGreaterThanOrEqual(1);
     expect(stats.indexed_at).toBeTruthy();
@@ -94,28 +98,29 @@ describe('getChunkStats', () => {
 });
 
 describe('searchChunks', () => {
-  beforeAll(() => {
+  beforeAll(async () => {
     const db = new Database(':memory:');
-    createTables(db);
-    mockDbHolder.db = db;
-    seedChunks(db, 42, 5);
+    const adapter = new SqliteAdapter(':memory:', db);
+    mockAdapterHolder.adapter = adapter;
+    await createTables(adapter);
+    await seedChunks(adapter, 42, 5);
   });
 
-  it('returns empty array for project with no chunks', () => {
-    const results = searchChunks('test', 9999, 3);
+  it('returns empty array for project with no chunks', async () => {
+    const results = await searchChunks('test', 9999, 3);
     expect(results).toEqual([]);
   });
 
-  it('returns relevant results for project with chunks', () => {
-    const results = searchChunks('database connection', 42, 3);
+  it('returns relevant results for project with chunks', async () => {
+    const results = await searchChunks('database connection', 42, 3);
     expect(results.length).toBeGreaterThan(0);
     expect(results.length).toBeLessThanOrEqual(3);
     // The first result should be semantically relevant
     expect(results[0].score).toBeGreaterThan(0.05);
   });
 
-  it('includes expected fields in results', () => {
-    const results = searchChunks('express server', 42, 2);
+  it('includes expected fields in results', async () => {
+    const results = await searchChunks('express server', 42, 2);
     if (results.length > 0) {
       expect(results[0]).toHaveProperty('filePath');
       expect(results[0]).toHaveProperty('symbolName');
@@ -127,34 +132,37 @@ describe('searchChunks', () => {
     }
   });
 
-  it('respects topK parameter', () => {
-    const results = searchChunks('test', 42, 1);
+  it('respects topK parameter', async () => {
+    const results = await searchChunks('test', 42, 1);
     expect(results.length).toBeLessThanOrEqual(1);
   });
 });
 
 describe('clearChunkIndex', () => {
-  beforeAll(() => {
+  let adapter: DbAdapter;
+
+  beforeAll(async () => {
     const db = new Database(':memory:');
-    createTables(db);
-    mockDbHolder.db = db;
-    seedChunks(db, 7, 3);
+    adapter = new SqliteAdapter(':memory:', db);
+    mockAdapterHolder.adapter = adapter;
+    await createTables(adapter);
+    await seedChunks(adapter, 7, 3);
   });
 
-  it('removes all chunks for the project', () => {
-    expect(getChunkStats(7).total).toBe(3);
-    clearChunkIndex(7);
-    expect(getChunkStats(7).total).toBe(0);
+  it('removes all chunks for the project', async () => {
+    expect((await getChunkStats(7)).total).toBe(3);
+    await clearChunkIndex(7);
+    expect((await getChunkStats(7)).total).toBe(0);
   });
 
-  it('does not affect other projects', () => {
-    seedChunks(mockDbHolder.db!, 7, 2);
-    seedChunks(mockDbHolder.db!, 8, 1);
-    expect(getChunkStats(7).total).toBe(2);
-    expect(getChunkStats(8).total).toBe(1);
-    clearChunkIndex(7);
-    expect(getChunkStats(7).total).toBe(0);
-    expect(getChunkStats(8).total).toBe(1);
+  it('does not affect other projects', async () => {
+    await seedChunks(adapter, 7, 2);
+    await seedChunks(adapter, 8, 1);
+    expect((await getChunkStats(7)).total).toBe(2);
+    expect((await getChunkStats(8)).total).toBe(1);
+    await clearChunkIndex(7);
+    expect((await getChunkStats(7)).total).toBe(0);
+    expect((await getChunkStats(8)).total).toBe(1);
   });
 });
 
