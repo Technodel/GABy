@@ -105,7 +105,7 @@ Keep it under 150 words. Respond with the message text only, no JSON.`,
 
   res.status(201).json({
     ticket: { ...ticket, messages: JSON.parse(ticket.messages || '[]') },
-    link: `${req.protocol}://${req.get('host')}/client-ticket/${uid}`,
+    link: `${req.protocol}://${req.get('host')}/client-link/${uid}`,
   });
 });
 

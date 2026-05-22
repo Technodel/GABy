@@ -328,14 +328,14 @@ export default function ClientTickets({ onBack }: { onBack: () => void }) {
                       <input
                         type="text"
                         readOnly
-                        value={`${window.location.origin}/client-ticket/${ticket.uid}`}
+                        value={`${window.location.origin}/client-link/${ticket.uid}`}
                         style={{ flex: 1, fontSize: 11 }}
                         onClick={e => (e.target as HTMLInputElement).select()}
                       />
-                      <button className="btn btn-primary btn-sm" onClick={() => copyLink(`${window.location.origin}/client-ticket/${ticket.uid}`)}>
+                      <button className="btn btn-primary btn-sm" onClick={() => copyLink(`${window.location.origin}/client-link/${ticket.uid}`)}>
                         Copy Link
                       </button>
-                      <a href={`/client-ticket/${ticket.uid}`} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 3, textDecoration: 'none' }}>
+                      <a href={`/client-link/${ticket.uid}`} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 3, textDecoration: 'none' }}>
                         <ExternalLink size={12} /> Open
                       </a>
                     </div>
