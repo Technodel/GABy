@@ -44,8 +44,12 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
   const [taskInterruptionBehavior, setTaskInterruptionBehavior] = useState<'interrupt' | 'queue'>('interrupt');
   const [maxTokens, setMaxTokens] = useState<string>('');
   const [displayName, setDisplayName] = useState('');
+  const [companyName, setCompanyName] = useState(() => {
+    try { return localStorage.getItem('suny_company_name') || ''; } catch { return ''; }
+  });
   const [saved, setSaved] = useState(false);
   const [nameSaved, setNameSaved] = useState(false);
+  const [companyNameSaved, setCompanyNameSaved] = useState(false);
   const [walletAmount, setWalletAmount] = useState('');
   const [walletBusy, setWalletBusy] = useState(false);
   const [walletMsg, setWalletMsg] = useState('');
@@ -278,6 +282,37 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
         </div>
 
         <div className="card" style={{ marginBottom: 14 }}>
+          <h3 style={{ fontWeight: 600, marginBottom: 12 }}>🏢 Company / Personal Name</h3>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 10, lineHeight: 1.5 }}>
+            Required for Client Link feature. This name will be shown to your clients when you send them a ticket link.
+          </p>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input
+              type="text"
+              value={companyName}
+              onChange={e => setCompanyName(e.target.value)}
+              placeholder="e.g. Acme Corp or John Doe"
+              maxLength={100}
+              style={{ flex: 1 }}
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  localStorage.setItem('suny_company_name', companyName.trim());
+                  setCompanyNameSaved(true);
+                  setTimeout(() => setCompanyNameSaved(false), 2000);
+                }
+              }}
+            />
+            <button className="btn btn-primary btn-sm" onClick={() => {
+              localStorage.setItem('suny_company_name', companyName.trim());
+              setCompanyNameSaved(true);
+              setTimeout(() => setCompanyNameSaved(false), 2000);
+            }}>
+              {companyNameSaved ? '✓ Saved!' : 'Save'}
+            </button>
+          </div>
+        </div>
+
+        <div className="card" style={{ marginBottom: 14 }}>
           <h3 style={{ fontWeight: 600, marginBottom: 16 }}>🎨 Look & Feel</h3>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
             <div>
@@ -442,7 +477,7 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
             <div>
               <div style={{ fontWeight: 500, fontSize: 14 }}>⚡ Interrupt current task</div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
-                SUNy stops what it's doing and picks up your new request immediately. The interrupted task is lost.
+                SUNy stops the current run and immediately follows your latest request. Context is preserved, so edits/additions/corrections are treated as updates to the same task.
               </div>
             </div>
           </label>

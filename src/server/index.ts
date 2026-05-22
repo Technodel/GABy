@@ -540,13 +540,17 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         return;
       }
 
-      // Interrupt: cancel current work and queue the new message
+      // Interrupt: cancel current work, then process the latest user update.
+      // Conversation context/history is preserved; only the in-flight run is superseded.
       if (currentAbortController) {
-        currentAbortController.abort(new Error('Request aborted — new user message received'));
+        currentAbortController.abort(new Error('Request superseded by newer user message'));
         currentAbortController = null;
         killBridgeRequest(userId, (msg.requestId as string) || '');
       }
       queuedMessage = raw;
+      userClientManager.pushToUser(userId, 'suny:narration', {
+        message: "Got your update. I'm switching to your latest request and keeping the task context.",
+      });
       return;
     }
 

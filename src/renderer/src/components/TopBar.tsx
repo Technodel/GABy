@@ -1,4 +1,4 @@
-import { Home, Eraser, BarChart2, HelpCircle, Settings, Phone, LogOut } from 'lucide-react';
+import { Home, Eraser, BarChart2, HelpCircle, Settings, Phone, LogOut, Ticket } from 'lucide-react';
 import BalanceBadge from './BalanceBadge';
 import BridgeStatusBadge from './BridgeStatusBadge';
 import ModeSelector from './ModeSelector';
@@ -30,6 +30,9 @@ interface TopBarProps {
   loadUsageStats: (days: number) => void;
   usageDays: number;
   setShowHelp: React.Dispatch<React.SetStateAction<boolean>>;
+  isMobile?: boolean;
+  uiTheme: string;
+  setUiTheme: (t: string) => void;
 }
 
 function routingIcon(mode: string): string {
@@ -52,7 +55,13 @@ export default function TopBar(props: TopBarProps) {
     bridgeConnected, sessLimit, sessUsed, messagesLength,
     toggleSidebar, changeMode, clearChat, onOpenSettings, navigate,
     handleLogout, setShowBridgeTip, setShowUsage, loadUsageStats, usageDays, setShowHelp,
+    isMobile, uiTheme, setUiTheme,
   } = props;
+
+  const normalizedRouting = (routingReason || '').trim().toLowerCase();
+  const showRoutingBadge = Boolean(
+    routingReason && normalizedRouting && normalizedRouting !== selectedMode.toLowerCase() && normalizedRouting !== 'auto'
+  );
 
   return (
     <div className="topbar" style={{
@@ -99,7 +108,7 @@ export default function TopBar(props: TopBarProps) {
         {modes.length > 0 && (
           <ModeSelector modes={modes} selected={selectedMode} onChange={changeMode} noBalance={noBalance} />
         )}
-        {routingReason && (
+        {showRoutingBadge && (
           <div
             style={{
               display: 'flex', alignItems: 'center', gap: 5, padding: '3px 8px',
@@ -131,32 +140,72 @@ export default function TopBar(props: TopBarProps) {
             <Eraser size={15} />
           </button>
         )}
-        <BridgeStatusBadge connected={bridgeConnected} onClick={async () => {
-          if (bridgeConnected) {
-            if (!confirm('🔌 Disconnect the SUNy Bridge?\n\nSUNy will no longer be able to read/write files or run commands on your machine. You can reconnect by clicking the bridge button again.')) return;
-            try {
-              await fetch('/api/bridge/disconnect', { method: 'POST', credentials: 'include' });
-            } catch { /* ignore */ }
-          }
-          setShowBridgeTip(t => !t);
-        }} />
+        {!isMobile && (
+          <BridgeStatusBadge connected={bridgeConnected} onClick={async () => {
+            if (bridgeConnected) {
+              if (!confirm('🔌 Disconnect the SUNy Bridge?\n\nSUNy will no longer be able to read/write files or run commands on your machine. You can reconnect by clicking the bridge button again.')) return;
+              try {
+                await fetch('/api/bridge/disconnect', { method: 'POST', credentials: 'include' });
+              } catch { /* ignore */ }
+            }
+            setShowBridgeTip(t => !t);
+          }} />
+        )}
+        {isMobile && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginRight: 4 }}>
+            {['matrix', 'pro', 'suny'].map(t => (
+              <button
+                key={t}
+                onClick={() => {
+                  setUiTheme(t);
+                  localStorage.setItem('suny_ui_theme', t);
+                  localStorage.setItem('suny_dark_mode', String(t === 'matrix'));
+                  document.body.classList.remove('theme-matrix', 'theme-pro', 'theme-suny', 'light-mode');
+                  document.documentElement.classList.remove('theme-matrix', 'theme-pro', 'theme-suny');
+                  if (t === 'pro') document.body.classList.add('theme-pro');
+                  else if (t === 'suny') document.body.classList.add('theme-suny');
+                  else document.body.classList.add('theme-matrix');
+                }}
+                style={{
+                  background: uiTheme === t ? 'var(--accent)' : 'var(--surface)',
+                  border: `1px solid ${uiTheme === t ? 'var(--accent)' : 'var(--border)'}`,
+                  borderRadius: 4, cursor: 'pointer', padding: '2px 6px',
+                  fontSize: 10, fontWeight: 600, color: uiTheme === t ? '#000' : 'var(--text-muted)',
+                  lineHeight: '1.5',
+                }}
+                title={`${t.charAt(0).toUpperCase() + t.slice(1)} theme`}
+              >
+                {t === 'matrix' ? '🌐' : t === 'pro' ? '⚪' : '🌙'}
+              </button>
+            ))}
+          </div>
+        )}
         <BalanceBadge
           balance={balance} walletBalance={walletBalance}
           remainingTokens={sessLimit == null ? null : Math.max(0, sessLimit - sessUsed)}
           onOpenWalletSettings={() => onOpenSettings('wallet', 'Opened Wallet Transfer in Settings')}
         />
-        <button className="btn btn-icon btn-secondary" onClick={() => { setShowUsage(true); loadUsageStats(usageDays); }} title="Usage stats">
-          <BarChart2 size={15} />
-        </button>
-        <button className="btn btn-icon btn-secondary" onClick={() => setShowHelp(true)} title="Keyboard shortcuts & help">
-          <HelpCircle size={15} />
-        </button>
+        {!isMobile && (
+          <button className="btn btn-icon btn-secondary" onClick={() => { setShowUsage(true); loadUsageStats(usageDays); }} title="Usage stats">
+            <BarChart2 size={15} />
+          </button>
+        )}
+        {!isMobile && (
+          <button className="btn btn-icon btn-secondary" onClick={() => setShowHelp(true)} title="Keyboard shortcuts & help">
+            <HelpCircle size={15} />
+          </button>
+        )}
         <button className="btn btn-icon btn-secondary" onClick={() => onOpenSettings()} title="Settings">
           <Settings size={15} />
         </button>
-        <button className="btn btn-icon btn-secondary" onClick={() => navigate('/contact')} title="Contact Us">
-          <Phone size={15} />
+        <button className="btn btn-icon btn-secondary" onClick={() => navigate('/client-tickets')} title="Client Tickets">
+          <Ticket size={15} />
         </button>
+        {!isMobile && (
+          <button className="btn btn-icon btn-secondary" onClick={() => navigate('/contact')} title="Contact Us">
+            <Phone size={15} />
+          </button>
+        )}
         <button className="btn btn-icon btn-secondary" onClick={handleLogout} title="Sign out">
           <LogOut size={15} />
         </button>

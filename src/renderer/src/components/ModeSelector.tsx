@@ -19,8 +19,10 @@ export default function ModeSelector({ modes, selected, onChange, noBalance = fa
   return (
     <div style={{ display: 'flex', gap: 6 }}>
       {modes.map(m => {
+        const isFreeLike = ['free', 'starter'].includes(m.mode.toLowerCase()) || /free|starter/i.test(m.display_name);
+        const displayName = isFreeLike ? '⚡ Free' : m.display_name;
         const noKey = m.has_active_key === false;
-        const lockedByBalance = noBalance && m.mode !== 'free';
+        const lockedByBalance = noBalance && !isFreeLike;
         const disabled = noKey || lockedByBalance;
         const title = noKey
           ? 'No active API key for this mode — ask your admin to add one'
@@ -48,7 +50,7 @@ export default function ModeSelector({ modes, selected, onChange, noBalance = fa
               fontFamily: 'inherit',
             }}
           >
-            {m.display_name}{noKey ? ' 🔑' : lockedByBalance ? ' 🔒' : ''}
+            {displayName}{noKey ? ' 🔑' : lockedByBalance ? ' 🔒' : ''}
           </button>
         );
       })}

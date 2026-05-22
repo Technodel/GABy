@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useRef, useCallback } from 'react';
-import { Plus, Trash2, Settings, LogOut, Edit3, RotateCcw, X, BarChart2, User, HelpCircle, Sparkles, Home, Eraser, Phone, ChevronRight, ChevronDown, FolderOpen, Folder, Play, FileText, GitBranch } from 'lucide-react';
+import { Plus, Trash2, Settings, LogOut, Edit3, RotateCcw, X, BarChart2, User, HelpCircle, Sparkles, Home, Eraser, Phone, ChevronRight, ChevronDown, FolderOpen, Folder, Play, FileText, GitBranch, Archive, ArchiveRestore } from 'lucide-react';
 
 import ReportBadgeButton, { ReportMetrics } from '../components/ReportBadgeButton';
 import { useWebSocket } from '../hooks/useWebSocket';
@@ -33,6 +33,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
   const [showBridgeTip, setShowBridgeTip] = useState(false);
   const [crossDeviceMemoryEnabled, setCrossDeviceMemoryEnabled] = useState(false);
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
+  const [globalAutoApprove, setGlobalAutoApprove] = useState(true);
   const [projectStateReady, setProjectStateReady] = useState(false);
   const [globalIntroLine, setGlobalIntroLine] = useState('');
 
@@ -268,6 +269,19 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     }
   }
 
+  async function saveProjectAutoExecuteOverride(enabled: boolean | null) {
+    if (!activeProject) return;
+    const res = await fetch(`/api/projects/${activeProject.id}/auto-execute`, {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled }),
+    });
+    if (!res.ok) return;
+    setProjects(ps => ps.map(p => p.id === activeProject.id ? { ...p, auto_execute_override: enabled } : p));
+    setActiveProject(prev => prev ? { ...prev, auto_execute_override: enabled } : prev);
+  }
+
   // ── Usage stats ──────────────────────────────────────────────────────────
   interface UsageDay { day: string; input_tokens: number; output_tokens: number; cache_read_tokens: number; charged_cost: number; }
   interface UsageMode { mode: string; input_tokens: number; output_tokens: number; charged_cost: number; }
@@ -444,6 +458,43 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
   function toggleSidebar() { setSidebarOpen(s => !s); }
   function closeSidebar() { setSidebarOpen(false); }
 
+  // ── Mobile detection ───────────────────────────────────────────────────
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  // ── UI theme state (synced with localStorage) ─────────────────────────
+  const [uiTheme, setUiTheme] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('suny_ui_theme');
+      if (saved === 'matrix' || saved === 'pro' || saved === 'suny') return saved;
+      return localStorage.getItem('suny_dark_mode') === 'false' ? 'pro' : 'matrix';
+    } catch { return 'matrix'; }
+  });
+
+  // On mobile, default to PRO theme if no explicit theme was ever set
+  useEffect(() => {
+    if (isMobile) {
+      const explicitTheme = localStorage.getItem('suny_ui_theme');
+      if (!explicitTheme || explicitTheme === 'matrix') {
+        const fromDarkMode = localStorage.getItem('suny_dark_mode');
+        if (!fromDarkMode || fromDarkMode !== 'false') {
+          // No explicit theme — default to PRO on mobile
+          const t = 'pro';
+          setUiTheme(t);
+          localStorage.setItem('suny_ui_theme', t);
+          localStorage.setItem('suny_dark_mode', 'false');
+          document.body.classList.remove('theme-matrix', 'theme-pro', 'theme-suny', 'light-mode');
+          document.body.classList.add('theme-pro');
+        }
+      }
+    }
+  }, [isMobile]);
+
   // ── Onboarding ───────────────────────────────────────────────────────────
   const [showOnboarding, setShowOnboarding] = useState<boolean>(() => {
     try { return localStorage.getItem('suny_onboarded') !== '1'; } catch { return true; }
@@ -564,7 +615,9 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
 
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
     projects: true,
+    archived: true,
     memories: true,
+    autoExecute: true,
     rules: true,
     persona: true,
   });
@@ -587,7 +640,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
 
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'l') {
         e.preventDefault();
-        if (!thinking) clearChat();
+        if (!thinking) clearChat({ requireConfirm: false });
         return;
       }
     };
@@ -909,7 +962,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
   function storageKey(projectId: number) { return `suny_chat_${projectId}`; }
 
   // ── Multiple global chat tabs ─────────────────────────────────────────────
-  interface GlobalTab { id: string; name: string; }
+  interface GlobalTab { id: string; name: string; archived?: boolean; }
 
   const [globalTabs, setGlobalTabs] = useState<GlobalTab[]>(() => {
     try {
@@ -965,6 +1018,51 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       const msgs = (() => { try { const r = localStorage.getItem(globalTabKey(newActiveId)); return r ? (JSON.parse(r) as Message[]).slice(-200).map((m, idx) => normalizeMessage(m, idx)) : []; } catch { return []; } })();
       setMessages(msgs);
     }
+  }
+
+  function archiveGlobalTab(tabId: string) {
+    const tab = globalTabs.find(t => t.id === tabId);
+    if (!tab) return;
+    const updatedTabs = globalTabs.map(t => t.id === tabId ? { ...t, archived: true } : t);
+    setGlobalTabs(updatedTabs);
+    saveGlobalTabs(updatedTabs);
+    // Switch to another active tab if we archived the current one
+    const activeNonArchived = updatedTabs.find(t => !t.archived);
+    if (tabId === activeTabId && activeNonArchived) {
+      switchGlobalTab(activeNonArchived.id);
+    } else if (tabId === activeTabId) {
+      setMessages([]);
+      setActiveTabId('');
+      try { localStorage.removeItem('suny_active_tab'); } catch {}
+    }
+  }
+
+  function unarchiveGlobalTab(tabId: string) {
+    const updatedTabs = globalTabs.map(t => t.id === tabId ? { ...t, archived: false } : t);
+    setGlobalTabs(updatedTabs);
+    saveGlobalTabs(updatedTabs);
+  }
+
+  function deleteArchivedTab(tabId: string) {
+    const updatedTabs = globalTabs.filter(t => t.id !== tabId);
+    setGlobalTabs(updatedTabs);
+    saveGlobalTabs(updatedTabs);
+    try { localStorage.removeItem(globalTabKey(tabId)); } catch {}
+    if (activeTabId === tabId) {
+      const newActiveId = updatedTabs.length > 0 ? updatedTabs[0].id : 'default';
+      setActiveTabId(newActiveId);
+      try { localStorage.setItem('suny_active_tab', newActiveId); } catch {}
+      const msgs = (() => { try { const r = localStorage.getItem(globalTabKey(newActiveId)); return r ? (JSON.parse(r) as Message[]).slice(-200).map((m, idx) => normalizeMessage(m, idx)) : []; } catch { return []; } })();
+      setMessages(msgs);
+    }
+  }
+
+  function renameGlobalTab(tabId: string, name: string) {
+    const nextName = name.trim();
+    if (!nextName) return;
+    const updatedTabs = globalTabs.map(t => (t.id === tabId ? { ...t, name: nextName } : t));
+    setGlobalTabs(updatedTabs);
+    saveGlobalTabs(updatedTabs);
   }
 
   function switchGlobalTab(tabId: string) {
@@ -1334,8 +1432,16 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       setBridgePreviouslyConnected(Boolean(data.bridge_previously_connected));
       setCrossDeviceMemoryEnabled(Boolean(data.cross_device_memory_enabled));
       setShowTechnicalDetails(Boolean(data.chat_show_technical_details));
+      setGlobalAutoApprove(data.auto_approve !== false);
       if (data.max_tokens_per_session != null) setSessLimit(data.max_tokens_per_session);
     }
+  }
+
+  function getEffectiveAutoExecute(projectId?: number): boolean {
+    if (!projectId) return globalAutoApprove;
+    const proj = projects.find(p => p.id === projectId);
+    if (!proj || proj.auto_execute_override == null) return globalAutoApprove;
+    return proj.auto_execute_override;
   }
 
   async function loadProjects() {
@@ -1438,6 +1544,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     let effectiveTalkMode = opts?.forceWriteMode ? false : talkMode;
     let effectiveMode = selectedMode;
     const effectiveProjectId = opts?.projectIdOverride ?? activeProject?.id;
+    const effectiveAutoExecute = getEffectiveAutoExecute(effectiveProjectId);
     const noCredits = balance <= 0 && walletBalance <= 0;
 
     if (talkMode && opts?.forceWriteMode) {
@@ -1451,6 +1558,13 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       effectiveTalkMode = true;
       if (looksLikeExecutionTask) {
         addMessage('system', 'Credits are empty, so SUNy is staying in free talk mode. It can explain the steps, but it will not run file or shell actions until you top up.');
+      }
+    }
+
+    if (!effectiveAutoExecute && !noCredits) {
+      effectiveTalkMode = true;
+      if (looksLikeExecutionTask) {
+        addMessage('system', 'Auto-Execute is OFF for this project, so SUNy will explain steps without running file or shell actions. Turn Auto-Execute ON in this project to allow full execution.');
       }
     }
 
@@ -1568,7 +1682,12 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     if (activeProject?.id === id) setActiveProject(null);
   }
 
-  function clearChat() {
+  function clearChat(opts?: { requireConfirm?: boolean }) {
+    const requireConfirm = opts?.requireConfirm !== false;
+    if (requireConfirm && messages.length > 0) {
+      const ok = window.confirm('Clear this chat? This will remove the current conversation from the chat view.');
+      if (!ok) return;
+    }
     // Save conversation as a memory before clearing
     if (activeProject && messages.length > 0) {
       const userMsgs = messages.filter(m => m.type === 'user').map(m => m.content);
@@ -1789,7 +1908,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                 setActiveProject(null);
                 setMessages([]);
               }}
-              title="Home � back to global chat"
+              title="Home — back to global chat"
             >
               <Home size={15} />
             </button>
@@ -1823,42 +1942,79 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
               }} />
             </button>
           )}
-          <BridgeStatusBadge
-            connected={bridgeConnected}
-            onClick={async () => {
-              if (bridgeConnected) {
-                if (!confirm('🔌 Disconnect the SUNy Bridge?\n\nSUNy will no longer be able to read/write files or run commands on your machine. You can reconnect by clicking the bridge button again.')) return;
-                try {
-                  await fetch('/api/bridge/disconnect', { method: 'POST', credentials: 'include' });
-                  setBridgeConnected(false);
-                } catch { /* ignore */ }
-              } else {
-                setShowBridgeTip(t => !t);
-              }
-            }}
-          />
+          {!isMobile && (
+            <BridgeStatusBadge
+              connected={bridgeConnected}
+              onClick={async () => {
+                if (bridgeConnected) {
+                  if (!confirm('🔌 Disconnect the SUNy Bridge?\n\nSUNy will no longer be able to read/write files or run commands on your machine. You can reconnect by clicking the bridge button again.')) return;
+                  try {
+                    await fetch('/api/bridge/disconnect', { method: 'POST', credentials: 'include' });
+                    setBridgeConnected(false);
+                  } catch { /* ignore */ }
+                } else {
+                  setShowBridgeTip(t => !t);
+                }
+              }}
+            />
+          )}
+          {isMobile && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginRight: 4 }}>
+              {['matrix', 'pro', 'suny'].map(t => (
+                <button
+                  key={t}
+                  onClick={() => {
+                    setUiTheme(t);
+                    localStorage.setItem('suny_ui_theme', t);
+                    localStorage.setItem('suny_dark_mode', String(t === 'matrix'));
+                    document.body.classList.remove('theme-matrix', 'theme-pro', 'theme-suny', 'light-mode');
+                    document.documentElement.classList.remove('theme-matrix', 'theme-pro', 'theme-suny');
+                    if (t === 'pro') document.body.classList.add('theme-pro');
+                    else if (t === 'suny') document.body.classList.add('theme-suny');
+                    else document.body.classList.add('theme-matrix');
+                  }}
+                  style={{
+                    background: uiTheme === t ? 'var(--accent)' : 'var(--surface)',
+                    border: `1px solid ${uiTheme === t ? 'var(--accent)' : 'var(--border)'}`,
+                    borderRadius: 4, cursor: 'pointer', padding: '2px 6px',
+                    fontSize: 10, fontWeight: 600, color: uiTheme === t ? '#000' : 'var(--text-muted)',
+                    lineHeight: '1.5',
+                  }}
+                  title={`${t.charAt(0).toUpperCase() + t.slice(1)} theme`}
+                >
+                  {t === 'matrix' ? '🌐' : t === 'pro' ? '⚪' : '🌙'}
+                </button>
+              ))}
+            </div>
+          )}
           <BalanceBadge
             balance={balance}
             walletBalance={walletBalance}
             remainingTokens={sessLimit == null ? null : Math.max(0, sessLimit - sessUsed)}
             onOpenWalletSettings={() => onOpenSettings('wallet', 'Opened Wallet Transfer in Settings')}
           />
-          <button
-            className="btn btn-icon btn-secondary"
-            onClick={() => { setShowUsage(true); loadUsageStats(usageDays); }}
-            title="Usage stats"
-          >
-            <BarChart2 size={15} />
-          </button>
-          <button className="btn btn-icon btn-secondary" onClick={() => setShowHelp(true)} title="Keyboard shortcuts & help">
-            <HelpCircle size={15} />
-          </button>
+          {!isMobile && (
+            <button
+              className="btn btn-icon btn-secondary"
+              onClick={() => { setShowUsage(true); loadUsageStats(usageDays); }}
+              title="Usage stats"
+            >
+              <BarChart2 size={15} />
+            </button>
+          )}
+          {!isMobile && (
+            <button className="btn btn-icon btn-secondary" onClick={() => setShowHelp(true)} title="Keyboard shortcuts & help">
+              <HelpCircle size={15} />
+            </button>
+          )}
           <button className="btn btn-icon btn-secondary" onClick={() => onOpenSettings()} title="Settings">
             <Settings size={15} />
           </button>
-          <button className="btn btn-icon btn-secondary" onClick={() => navigate('/contact')} title="Contact Us">
-            <Phone size={15} />
-          </button>
+          {!isMobile && (
+            <button className="btn btn-icon btn-secondary" onClick={() => navigate('/contact')} title="Contact Us">
+              <Phone size={15} />
+            </button>
+          )}
           <button className="btn btn-icon btn-secondary" onClick={handleLogout} title="Sign out">
             <LogOut size={15} />
           </button>
@@ -1967,8 +2123,82 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
             </>
           )}
 
+          {/* Client Tickets navigation link */}
+          <div style={{ borderTop: '1px solid var(--border)', marginTop: 4 }}>
+            <div
+              onClick={() => navigate('/client-tickets')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '10px 12px', cursor: 'pointer',
+                fontSize: 13, color: 'var(--text-secondary)',
+                transition: 'background 0.15s, color 0.15s',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--hover)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
+              title="Manage client tickets"
+            >
+              <span style={{ fontSize: 14, lineHeight: 1 }}>🔗</span>
+              <span>Client Tickets</span>
+            </div>
+          </div>
+
+          {/* Archived tabs section */}
+          {(() => {
+            const archivedTabs = globalTabs.filter(t => t.archived);
+            if (archivedTabs.length === 0) return null;
+            return (
+              <div style={{ borderTop: '1px solid var(--border)', marginTop: 4 }}>
+                <div style={{ padding: '12px 12px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span
+                    style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                    onClick={() => setCollapsedSections(s => ({ ...s, archived: !s.archived }))}
+                  >
+                    {collapsedSections.archived ? <ChevronRight size={11} /> : <ChevronDown size={11} />}
+                    Archived ({archivedTabs.length})
+                  </span>
+                </div>
+                {!collapsedSections.archived && (
+                  <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                    {archivedTabs.map(tab => (
+                      <div
+                        key={tab.id}
+                        style={{
+                          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                          padding: '6px 12px', borderBottom: '1px solid var(--border)',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
+                          <ArchiveRestore size={11} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                          <span style={{ fontSize: 12, color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {tab.name}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+                          <button
+                            onClick={e => { e.stopPropagation(); unarchiveGlobalTab(tab.id); }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', padding: 2 }}
+                            title="Unarchive tab"
+                          >
+                            <ArchiveRestore size={11} />
+                          </button>
+                          <button
+                            onClick={e => { e.stopPropagation(); deleteArchivedTab(tab.id); }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 2 }}
+                            title="Delete archived tab"
+                          >
+                            <Trash2 size={11} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
           {/* Memories section */}
-          {activeProject && (
+          {activeProject && !isMobile && (
             <>
               <div style={{
                 padding: '16px 12px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -2067,8 +2297,51 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
             </>
           )}
 
+          {/* Project Auto-Execute section */}
+          {activeProject && !isMobile && (
+            <div style={{ borderTop: '1px solid var(--border)', marginTop: 4 }}>
+              <div style={{ padding: '12px 12px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span
+                  style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                  onClick={() => setCollapsedSections(s => ({ ...s, autoExecute: !s.autoExecute }))}
+                >
+                  {collapsedSections.autoExecute ? <ChevronRight size={11} /> : <ChevronDown size={11} />}
+                  Auto-Execute
+                </span>
+              </div>
+              {!collapsedSections.autoExecute && (
+                <div style={{ padding: '0 12px 10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                      {activeProject.auto_execute_override == null
+                        ? `Using global setting: ${globalAutoApprove ? 'ON' : 'OFF'}`
+                        : `Project override: ${activeProject.auto_execute_override ? 'ON' : 'OFF'}`}
+                    </div>
+                    <input
+                      type="checkbox"
+                      className="toggle"
+                      checked={activeProject.auto_execute_override == null ? globalAutoApprove : activeProject.auto_execute_override}
+                      onChange={e => saveProjectAutoExecuteOverride(e.target.checked)}
+                      title="Toggle auto-execute for this project"
+                    />
+                  </div>
+                  {activeProject.auto_execute_override != null && (
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={() => saveProjectAutoExecuteOverride(null)}
+                      style={{ marginTop: 8, fontSize: 10, padding: '3px 8px' }}
+                      title="Use global default for this project"
+                    >
+                      Use global default
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Project Rules (.suny-rules) section */}
-          {activeProject && (
+          {activeProject && !isMobile && (
             <div style={{ borderTop: '1px solid var(--border)', marginTop: 4 }}>
               <div style={{ padding: '12px 12px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span
@@ -2093,14 +2366,14 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                 </div>
               ) : (
                 <p style={{ padding: '0 12px 8px', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                  No rules set. Click ?? to add coding guidelines for this project.
+                  No rules set. Click the edit icon to add coding guidelines for this project.
                 </p>
               ))}
             </div>
           )}
 
           {/* Persona section */}
-          {activeProject && (
+          {activeProject && !isMobile && (
             <div style={{ borderTop: '1px solid var(--border)', marginTop: 4 }}>
               <div style={{ padding: '12px 12px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span
@@ -2125,14 +2398,14 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                 </div>
               ) : (
                 <p style={{ padding: '0 12px 8px', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                  No persona. Click ?? to give SUNy a role for this project.
+                  No persona. Click the user icon to give SUNy a role for this project.
                 </p>
               ))}
             </div>
           )}
 
           {/* Blueprint Memory Graph section */}
-          {activeProject && blueprintEntries.length > 0 && (
+          {activeProject && !isMobile && blueprintEntries.length > 0 && (
             <div style={{ borderTop: '1px solid var(--border)', marginTop: 4 }}>
               <div style={{ padding: '12px 12px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span
@@ -2184,7 +2457,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
           )}
 
           {/* File Browser section */}
-          {activeProject && showFileBrowser && (
+          {activeProject && !isMobile && showFileBrowser && (
             <div style={{ borderTop: '1px solid var(--border)', marginTop: 4 }}>
               <div style={{ padding: '12px 12px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -2258,7 +2531,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
           )}
 
           {/* Live Server section */}
-          {activeProject && bridgeConnected && (
+          {activeProject && !isMobile && bridgeConnected && (
             <div style={{ borderTop: '1px solid var(--border)', marginTop: 4 }}>
               <div style={{ padding: '12px 12px 8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
@@ -2314,7 +2587,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
           )}
 
           {/* Checkpoints section */}
-          {activeProject && checkpoints.length > 0 && (
+          {activeProject && !isMobile && checkpoints.length > 0 && (
             <div style={{ borderTop: '1px solid var(--border)', marginTop: 4 }}>
               <div style={{ padding: '12px 12px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -2417,6 +2690,9 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
             switchGlobalTab={switchGlobalTab}
             closeGlobalTab={closeGlobalTab}
             addGlobalTab={addGlobalTab}
+            archiveGlobalTab={archiveGlobalTab}
+            deleteArchivedTab={deleteArchivedTab}
+            renameGlobalTab={renameGlobalTab}
             setShowBridgeTip={setShowBridgeTip}
             openProject={openProject}
             copyProofReportToClipboard={copyProofReportToClipboard}
@@ -2623,7 +2899,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                   color: newProjectMode === 'link' ? '#fff' : 'var(--text-muted)',
                 }}
               >
-                ?? Link Existing
+                Link Existing
               </button>
               <button
                 onClick={() => setNewProjectMode('scratch')}
@@ -2633,7 +2909,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                   color: newProjectMode === 'scratch' ? '#fff' : 'var(--text-muted)',
                 }}
               >
-                ? Build with SUNy
+                Build with SUNy
               </button>
             </div>
 
@@ -2649,7 +2925,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                 />
               </div>
               <div>
-                <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>?? Project Folder</label>
+                <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Project Folder</label>
                 {/* Primary: big folder pick button */}
                 <button
                   type="button"
@@ -2703,7 +2979,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                 />
               </div>
               <div>
-                <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>?? Where to create it</label>
+                <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Where to create it</label>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <input
                     value={newProjectPath}
@@ -2718,7 +2994,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                     title="Browse parent folder"
                     onClick={() => pickFolderPath(setNewProjectPath)}
                   >
-                    ??
+                    Browse
                   </button>
                 </div>
                 {newProjectPathError && (
