@@ -1,7 +1,8 @@
 import { IncomingMessage } from 'http';
 import WebSocket, { WebSocketServer } from 'ws';
-import { authenticateBridgeToken, registerBridge, isBridgeConnected } from './bridge-manager';
+import { authenticateBridgeToken, registerBridge, registerPathForUser } from './bridge-manager';
 import { userClientManager } from './user-client-manager';
+import { getDb } from './db';
 
 /**
  * Attach the /bridge WebSocket endpoint to an HTTP server.
@@ -40,4 +41,31 @@ export function handleBridgeUpgrade(ws: WebSocket, req: IncomingMessage): void {
 
   // Notify user's browser tab that bridge is now connected
   userClientManager.pushToUser(userId, 'bridge:connected', { connected: true });
+
+  // Send all of this user's project paths to the bridge so the sandbox
+  // allows file operations immediately — even if the paths were registered
+  // while the bridge was offline and never reached the bridge process.
+  // Fired asynchronously so the handshake isn't blocked.
+  (async () => {
+    try {
+      const db = getDb();
+      const projects = db.prepare(
+        'SELECT local_path FROM projects WHERE user_id = ?'
+      ).all(userId) as Array<{ local_path: string }>;
+
+      for (const proj of projects) {
+        if (proj.local_path) {
+          try {
+            await registerPathForUser(userId, proj.local_path);
+          } catch { /* individual path may fail; continue with others */ }
+        }
+      }
+
+      if (projects.length > 0) {
+        console.log(`[bridge-routes] Sent ${projects.length} project path(s) to bridge for user ${userId} on connect`);
+      }
+    } catch (err) {
+      console.warn(`[bridge-routes] Failed to send project paths on bridge connect: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  })();
 }
