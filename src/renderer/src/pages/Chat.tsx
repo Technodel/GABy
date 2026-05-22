@@ -1198,6 +1198,14 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
           `then re-send your message.`,
         );
         playSound('error');
+      } else if (msg.event === 'suny:out_of_balance') {
+        const reason = String(msg.reason ?? 'no_credits');
+        const message = typeof msg.message === 'string' && msg.message
+          ? msg.message
+          : 'Your balance is empty. I can still chat in free mode, but coding actions need credits.';
+        const title = reason === 'daily_limit' ? '⏳ Daily limit reached' : '💳 Out of credits';
+        addMessage('suny', `${title}\n\n${message}\n\n_Ask an admin to top up your wallet, or keep chatting in free mode._`);
+        playSound('error');
       } else if (msg.event === 'suny:tool_call') {
         const toolName = String(msg.tool ?? 'unknown_tool');
         pushToolToProof(toolName);

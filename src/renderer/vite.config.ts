@@ -15,5 +15,18 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined;
+          if (id.includes('monaco-editor')) return 'editor';
+          if (id.includes('react-markdown') || id.includes('remark-') || id.includes('rehype-') || id.includes('micromark') || id.includes('mdast')) return 'markdown';
+          if (id.includes('react-dom') || id.includes('/react/') || id.includes('scheduler') || id.includes('react-router')) return 'vendor-react';
+          if (id.includes('lucide-react') || id.includes('@radix-ui') || id.includes('framer-motion')) return 'vendor-ui';
+          return 'vendor';
+        },
+      },
+    },
   },
 });

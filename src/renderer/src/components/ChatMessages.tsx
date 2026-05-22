@@ -201,6 +201,28 @@ export default function ChatMessages(props: ChatMessagesProps) {
               ))}
             </div>
           )}
+          {projects.length === 0 && (
+            <div style={{
+              maxWidth: 460, margin: '0 auto 24px', textAlign: 'left',
+              background: 'var(--surface)', border: '1px solid var(--border)',
+              borderRadius: 12, padding: '16px 20px',
+            }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 10 }}>
+                👋 First time here? Three steps to get coding:
+              </p>
+              <ol style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7, paddingLeft: 20, margin: 0 }}>
+                <li>
+                  <strong>Install the Bridge</strong> on your computer so I can read & edit files locally.{' '}
+                  <button
+                    onClick={() => setShowBridgeTip(true)}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', fontSize: 12, padding: 0, textDecoration: 'underline' }}
+                  >Show me how</button>
+                </li>
+                <li><strong>Register a project</strong> — point the Bridge at any folder on your machine.</li>
+                <li><strong>Ask me anything</strong> — "fix this bug", "add a login page", "explain this code". I'll handle the rest.</li>
+              </ol>
+            </div>
+          )}
           {!bridgeConnected && (
             <p style={{ fontSize: 12, color: 'var(--text-muted)', opacity: 0.7 }}>
               <button

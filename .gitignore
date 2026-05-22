@@ -17,6 +17,7 @@ bridge/node_modules/
 # Temp and scratch files
 temp_*
 tmp_*
+tmp-*
 _temp_*
 _*.cjs
 _*.mjs
@@ -53,6 +54,7 @@ scripts/*
 
 # Prevent secret leaks
 .aider.input.history
+.aider-desk/
 suny-vps.env
 cleanup-*.*
 vps-cleanup*

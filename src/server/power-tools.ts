@@ -106,9 +106,27 @@ export function createPowerTools(ctx: PowerToolContext): ToolSet {
       try {
         const result = await sendToBridge(userId, 'exec:read_file', {
           path: abs, withLines: input.withLines, lineOffset: input.lineOffset, lineLimit: input.lineLimit,
-        }, 30000);
+        }, 30000) as { content?: string } | string;
         readFiles.add(abs);
-        return result as string;
+        // Bridge returns { content, encoding } — extract raw string so the
+        // model sees file contents directly (not JSON-wrapped).
+        let content = typeof result === 'string'
+          ? result
+          : (result?.content ?? '');
+        // Apply line slicing server-side (bridge ignores withLines/lineOffset/lineLimit).
+        const offset = input.lineOffset ?? 0;
+        const limit = input.lineLimit ?? 1000;
+        if (offset > 0 || content.split('\n').length > limit || input.withLines) {
+          const allLines = content.split('\n');
+          const sliced = allLines.slice(offset, offset + limit);
+          content = input.withLines
+            ? sliced.map((l, i) => `${String(offset + i + 1).padStart(5, ' ')}: ${l}`).join('\n')
+            : sliced.join('\n');
+          if (allLines.length > offset + limit) {
+            content += `\n\n[... truncated: showing lines ${offset + 1}–${offset + sliced.length} of ${allLines.length}. Use lineOffset=${offset + sliced.length} to read more.]`;
+          }
+        }
+        return content;
       } catch (e) {
         throw new Error(`Error reading '${input.filePath}': ${e instanceof Error ? e.message : String(e)}`);
       }
@@ -141,8 +159,9 @@ Include enough context to uniquely identify the location. Do not use escape char
       return withFileLock(abs, async () => {
         try {
           // Read current content from bridge
-          const rawContent = await sendToBridge(userId, 'exec:read_file', { path: abs }, 30000);
-          let fileContent = (rawContent as string).replace(/\r\n/g, '\n');
+          const rawContent = await sendToBridge(userId, 'exec:read_file', { path: abs }, 30000) as { content?: string } | string;
+          const contentStr = typeof rawContent === 'string' ? rawContent : (rawContent?.content ?? '');
+          let fileContent = contentStr.replace(/\r\n/g, '\n');
 
           let modifiedContent: string;
           if (input.isRegex) {

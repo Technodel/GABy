@@ -129,7 +129,20 @@ function getLoopDetector(userId: number): LoopDetector {
   return detector;
 }
 
-const MAX_STEPS = 24;
+/**
+ * Per-tier step budget. Pro users get a much bigger budget because the
+ * model is strong enough to use it well; free/fast get tighter limits to
+ * prevent runaway costs / loops on weak models.
+ */
+const STEP_BUDGET: Record<string, number> = {
+  free: 8,
+  fast: 16,
+  pro: 40,
+};
+function stepBudgetFor(mode: string): number {
+  return STEP_BUDGET[mode] ?? 24;
+}
+const MAX_STEPS = 24; // legacy fallback / used by tests
 const MAX_LINT_RETRIES = 3;  // max extra AI passes to fix lint errors
 const MAX_TEST_RETRIES = 5;  // max extra AI passes to fix test failures ("consider it done")
 
@@ -702,7 +715,7 @@ If your tools are not working, say:
         system: useSystemParam ? fullSystem : undefined,
         messages: finalMessages,
         tools: effectiveTools,
-        stopWhen: stepCountIs(MAX_STEPS), // v5 API: enables multi-step tool-use loop
+        stopWhen: stepCountIs(stepBudgetFor(resolvedMode)), // v5 API: enables multi-step tool-use loop
         abortSignal: signal,
         prepareStep: forceToolStep0
           ? ({ stepNumber }) => (stepNumber === 0 ? { toolChoice: 'required' as const } : undefined)
@@ -812,12 +825,13 @@ If your tools are not working, say:
       }
 
       // ── Step exhaustion check ──────────────────────────────────────────────
-      const stepsExhausted = steps >= MAX_STEPS;
+      const tierBudget = stepBudgetFor(resolvedMode);
+      const stepsExhausted = steps >= tierBudget;
       if (stepsExhausted) {
         const upgradeHint = buildUpgradeHint(resolvedMode, 'Step limit reached.');
-        const warning = `\n\n[⚠️ Step limit reached (${MAX_STEPS} steps). The task may be incomplete. Consider splitting it into smaller subtasks or asking me to continue.]${upgradeHint}\n\n`;
+        const warning = `\n\n[⚠️ Step limit reached (${tierBudget} steps on ${resolvedMode} tier). The task may be incomplete. Consider splitting it into smaller subtasks or asking me to continue.]${upgradeHint}\n\n`;
         fullText += warning;
-        console.warn(`[agent-loop] STEP EXHAUSTION: hit ${MAX_STEPS} step limit — appended warning to output (mode=${resolvedMode})`);
+        console.warn(`[agent-loop] STEP EXHAUSTION: hit ${tierBudget} step limit — appended warning to output (mode=${resolvedMode})`);
         const sug = suggestUpgrade(resolvedMode);
         if (sug) {
           userClientManager.pushToUser(userId, 'suny:suggest_tier_upgrade', {
@@ -873,7 +887,7 @@ If your tools are not working, say:
               messages: trimRetry,
               tools: effectiveTools,
               stopWhen: stepCountIs(4),
-              maxTokens: 2000,
+              maxTokens: 8000,
               abortSignal: signal,
             });
 
@@ -1189,7 +1203,7 @@ If your tools are not working, say:
           system: execUseSystem ? execSystem : undefined,
           messages: execMessages,
           tools: tools, // use tool-call for execution if available
-          stopWhen: stepCountIs(MAX_STEPS),
+          stopWhen: stepCountIs(stepBudgetFor(resolvedMode)),
           abortSignal: signal,
           onStepFinish: ({ usage: u, text, toolCalls, toolResults }) => {
             steps++;
@@ -1328,7 +1342,7 @@ If your tools are not working, say:
             system: lintUseSystem ? fullSystem : undefined,
             messages: trimmedLint,
             tools,
-            stopWhen: stepCountIs(MAX_STEPS),
+            stopWhen: stepCountIs(stepBudgetFor(resolvedMode)),
             abortSignal: signal,
             onStepFinish: ({ usage, text, toolCalls, toolResults }) => {
               steps++;
@@ -1482,7 +1496,7 @@ If your tools are not working, say:
               system: testUseSystem ? fullSystem : undefined,
               messages: trimmedTest,
               tools,
-              stopWhen: stepCountIs(MAX_STEPS),
+              stopWhen: stepCountIs(stepBudgetFor(resolvedMode)),
               abortSignal: signal,
               onStepFinish: ({ usage: u, text, toolCalls, toolResults }) => {
                 steps++;

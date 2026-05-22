@@ -37,6 +37,7 @@ interface BackgroundProcessRecord {
 }
 
 const MAX_BG_LOG_LINES = 500;
+const MAX_BG_PROCESSES_PER_USER = 5;
 const backgroundProcesses = new Map<string, BackgroundProcessRecord>();
 
 // Map: userId → active bridge connection
@@ -235,6 +236,19 @@ export function sendToBridgeBackground(
     const conn = activeBridges.get(userId);
     if (!conn || conn.ws.readyState !== WebSocket.OPEN) {
       reject(new Error('Bridge not connected'));
+      return;
+    }
+
+    // Enforce per-user cap on simultaneous background processes to prevent a
+    // runaway agent from spawning many servers.
+    const liveCount = Array.from(backgroundProcesses.values()).filter(
+      p => p.userId === userId && (p.status === 'starting' || p.status === 'ready'),
+    ).length;
+    if (liveCount >= MAX_BG_PROCESSES_PER_USER) {
+      reject(new Error(
+        `Too many background processes (${liveCount}/${MAX_BG_PROCESSES_PER_USER}). ` +
+        `Stop one with stop_server before starting another (use list_servers to see them).`,
+      ));
       return;
     }
 

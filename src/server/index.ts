@@ -212,7 +212,24 @@ app.get('/api/health', (_req, res) => {
 });
 
 // ── Prometheus metrics endpoint (for Grafana scraping) ─────────────────────────
-app.get('/metrics', prometheusMetricsHandler);
+// Protected: require a static token from SUNY_METRICS_TOKEN (set in .env on the
+// VPS) or admin JWT. Prevents leaking user counts/usage to anyone with the URL.
+app.get('/metrics', (req, res, next) => {
+  const expected = process.env.SUNY_METRICS_TOKEN;
+  if (expected && expected.length >= 16) {
+    const provided = (req.headers['x-metrics-token'] as string | undefined)
+      || (req.query.token as string | undefined);
+    if (provided && provided === expected) return prometheusMetricsHandler(req, res, next);
+    res.status(401).type('text/plain').send('metrics: unauthorized');
+    return;
+  }
+  // No token configured → only allow loopback (Prometheus on same host).
+  const ip = req.ip || req.socket?.remoteAddress || '';
+  if (ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1') {
+    return prometheusMetricsHandler(req, res, next);
+  }
+  res.status(401).type('text/plain').send('metrics: configure SUNY_METRICS_TOKEN to enable remote scraping');
+});
 
 // ── Feature flags API (public read, admin write via admin-routes) ────────────
 
@@ -583,6 +600,20 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       const dailyLimitReached = dailyCapApplies && dailyTokenLimit > 0 && todayUsed.total_used >= dailyTokenLimit;
       const freeTalkOnly = noCredits || dailyLimitReached;
       const effectiveMode = freeTalkOnly ? 'free' : requestedMode;
+
+      // Surface the reason to the UI as a one-off banner so the user knows
+      // why they're locked to free-talk mode (instead of silently downgrading).
+      if (noCredits && requestedMode !== 'free') {
+        userClientManager.pushToUser(userId, 'suny:out_of_balance', {
+          reason: 'no_credits',
+          message: 'Your balance is empty. I can still chat in free mode, but coding actions need credits. Ask an admin to top you up.',
+        });
+      } else if (dailyLimitReached) {
+        userClientManager.pushToUser(userId, 'suny:out_of_balance', {
+          reason: 'daily_limit',
+          message: `You've used today's free tokens (${todayUsed.total_used}/${dailyTokenLimit}). It resets at midnight, or top up to keep going.`,
+        });
+      }
 
       // Generate routing reason (why this tier was selected — no model names)
       let routingReason = '';
