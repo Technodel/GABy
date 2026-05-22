@@ -1197,6 +1197,11 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           'to act, the tool call must come FIRST and the tool result must come back BEFORE',
           'you describe the outcome. Never invent ports, URLs, or success messages.',
           'If the action is risky and you want confirmation, ASK — do not pretend you ran it.',
+          '',
+          'You also have a `bash` tool. It can do anything a shell can do: run servers,',
+          'install packages, AND open URLs in the user\'s browser via `start <url>` on',
+          'Windows or `xdg-open <url>` on Linux / `open <url>` on macOS. Do NOT say',
+          '"I don\'t have a browser tool" — call bash with the right command for the OS.',
         ] : [
           !bridgeOnline
             ? 'The bridge is currently offline — file/shell tools are NOT available.'

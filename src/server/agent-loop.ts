@@ -663,14 +663,16 @@ If your tools are not working, say:
       // look at the project, force step 0 to make a tool call. Subsequent
       // steps return to 'auto' so the model can synthesize the final answer.
       const projectTurn = bridgeConnected && !!projectPath && !talkMode && toolCount > 0;
-      const isInfoSeeking = projectTurn
-        && /\b(what|how|why|where|which|explain|describe|tell me|summari[sz]e|overview|show me|look|read|check|scan|analy[sz]e|review|find|search|list|inspect|understand|app|project|code|repo|file|folder|structure|architecture|do(es)?|work)\b/i.test(userMessage);
-      // Action verbs: user is telling SUNy to *do* something. The model has been
-      // observed hallucinating "Got it running!" without ever calling bash/file_write.
-      // Force step 0 to make a real tool call so it cannot claim work it didn't do.
-      const isActionRequest = projectTurn
-        && /\b(run|start|launch|exec(ute)?|invoke|install|build|compile|deploy|publish|push|pull|test|lint|format|fix|patch|edit|change|update|modify|refactor|rename|move|copy|delete|remove|add|create|make|generate|write|implement|setup|configure|init|do it|go ahead|proceed)\b/i.test(userMessage);
-      const forceToolStep0 = isInfoSeeking || isActionRequest;
+      // DeepSeek under our 60KB+ system prompt has been observed narrating
+      // "Let me check..." / "Got it running!" without ever calling a tool.
+      // In a project context the right answer is almost always grounded in a
+      // tool call, so force step 0 to make one — UNLESS the message is pure
+      // chitchat (greetings, short acks, thanks). After step 0 we return to
+      // 'auto' so the model can synthesize the final answer.
+      const trimmedMsg = userMessage.trim();
+      const isPureChitchat = /^(hi|hello|hey|yo|sup|thanks?|thx|ty|ok|okay|cool|nice|great|good|fine|yes|no|nope|yep|yeah|bye|cya|lol|haha)[\s!.?]*$/i.test(trimmedMsg)
+        || (trimmedMsg.length <= 3);
+      const forceToolStep0 = projectTurn && !isPureChitchat;
 
       const result = streamText({
         model: model as LanguageModel,
