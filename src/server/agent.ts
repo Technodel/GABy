@@ -81,7 +81,7 @@ const VISION_MODEL_MAP: Record<string, string[]> = {
     'google/gemini-2.0-flash-exp:free',
   ],
   OpenAI: ['gpt-4o-mini', 'gpt-4o'],
-  Anthropic: ['claude-3-haiku-20240307', 'claude-3-5-sonnet-20241022'],
+  Anthropic: ['claude-3-5-haiku-20241022', 'claude-sonnet-4-20250514'],
   Gemini: ['gemini-2.0-flash-lite', 'gemini-2.0-flash'],
   HuggingFace: ['meta-llama/Llama-3.2-11B-Vision-Instruct'],
 };
