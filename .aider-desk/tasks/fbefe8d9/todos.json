@@ -1,16 +1,12 @@
 {
-  "initialUserPrompt": "every time i refresh the page the bridge is discconnected and instead oof asking user to connect bridge it says friendly copy-paste message",
+  "initialUserPrompt": "1 year of training, spending, coding, still unable to do 1 task!! also, in client tickets, projects should show in the drop down menu",
   "items": [
     {
-      "name": "Push bridge status to user client on reconnect (fixes 'disconnected' on refresh)",
+      "name": "Fix client tickets projects dropdown - API returns array but code expects data.projects",
       "completed": false
     },
     {
-      "name": "Strengthen offline-bridge system prompt so AI tells user to reconnect instead of using web tools",
-      "completed": false
-    },
-    {
-      "name": "Build & deploy to VPS",
+      "name": "Deploy fix to VPS and git",
       "completed": false
     }
   ]

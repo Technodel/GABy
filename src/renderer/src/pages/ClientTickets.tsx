@@ -33,7 +33,7 @@ export default function ClientTickets({ onBack }: { onBack: () => void }) {
     // Load projects for the form
     fetch('/api/projects', { credentials: 'include' })
       .then(r => r.ok ? r.json() : [])
-      .then(data => setProjects(data.projects || []))
+      .then(data => setProjects(Array.isArray(data) ? data : (data.projects || [])))
       .catch(() => {});
   }, []);
 
