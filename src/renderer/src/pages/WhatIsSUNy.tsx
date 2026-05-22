@@ -1,5 +1,19 @@
 import { Link } from 'react-router-dom';
 
+// Theme-aware glow color
+const GLOW_COLORS: Record<string, string> = {
+  matrix: '41,255,122',
+  suny:   '255,184,51',
+  pro:    '36,93,255',
+};
+function getGlowColor(): string {
+  try {
+    const theme = localStorage.getItem('suny_ui_theme') || 'matrix';
+    return GLOW_COLORS[theme] || GLOW_COLORS.matrix;
+  } catch { return GLOW_COLORS.matrix; }
+}
+const glowRgb = getGlowColor();
+
 const howItWorks = [
   { step: '01', title: 'You describe the goal', desc: 'Plain English. No commands, no file paths, no setup. Just tell SUNy what needs to happen.' },
   { step: '02', title: 'SUNy maps the project', desc: 'It reads the repo, understands the architecture, identifies affected files, and builds a plan.' },
@@ -29,6 +43,7 @@ const visibleWins = [
   { title: '🌐 Browser Automation', text: 'SUNy navigates web pages, takes screenshots, fills forms, and extracts live data. Perfect for testing and site verification.' },
   { title: '⏰ Scheduled Agents', text: 'Set it and forget it. Schedule SUNy to run daily code reviews, weekly dependency audits, or hourly health checks automatically.' },
   { title: '🏪 MCP Marketplace', text: 'Discover and install community MCP servers in one click. Databases, search, Docker, Slack, GitHub — all at your fingertips.' },
+  { title: '🔗 Client Link (PRO)', text: 'Generate a secure, shareable URL for non-technical clients. They describe the change in plain language — you review, approve, and SUNy executes. Perfect for freelancers and agencies.' },
 ];
 
 const coreWins = [
@@ -74,7 +89,7 @@ export default function WhatIsSUNy() {
           <Link to="/about" className="btn btn-secondary" style={{ textDecoration: 'none' }}>About Page</Link>
         </div>
 
-        <section className="whatis-reveal whatis-r1" style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '28px 26px', marginBottom: 28, background: 'linear-gradient(180deg, rgba(41,255,122,0.10) 0%, rgba(41,255,122,0.02) 60%, transparent 100%)' }}>
+        <section className="whatis-reveal whatis-r1" style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: '28px 26px', marginBottom: 28, background: `linear-gradient(180deg, rgba(${glowRgb},0.10) 0%, rgba(${glowRgb},0.02) 60%, transparent 100%)` }}>
           <div style={{ fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.14em', color: 'var(--accent)', marginBottom: 10 }}>What is SUNy?</div>
           <h1 className="whatis-hero-title" style={{ fontSize: 36, lineHeight: 1.15, marginBottom: 14 }}>SUNy is not just AI chat. It is an execution engine for real project work.</h1>
           <p className="whatis-hero-copy" style={{ fontSize: 16, color: 'var(--text-secondary)', lineHeight: 1.75, maxWidth: 880 }}>
@@ -148,7 +163,7 @@ export default function WhatIsSUNy() {
             <Link to="/contact" className="btn btn-secondary" style={{ textDecoration: 'none' }}>Contact Team</Link>
           </div>
 
-          <div style={{ marginTop: 14, padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'rgba(41,255,122,0.04)', color: 'var(--text-secondary)', fontSize: 12, lineHeight: 1.65 }}>
+          <div style={{ marginTop: 14, padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: `rgba(${glowRgb},0.04)`, color: 'var(--text-secondary)', fontSize: 12, lineHeight: 1.65 }}>
             Prefer predictable spend? SUNy uses credit-based execution, so lightweight fixes stay low-cost and bigger deliverables scale with real work only.
           </div>
         </section>
