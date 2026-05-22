@@ -24,10 +24,21 @@ function expandTilde(p: string): string {
   return p;
 }
 
+// Detects an absolute path for EITHER posix or Windows, regardless of host OS.
+// The server may run on Linux while operating on a Windows bridge (or vice versa),
+// so node's host-specific `path.isAbsolute` is not safe here.
+function isAbsoluteCross(p: string): boolean {
+  return path.posix.isAbsolute(p) || path.win32.isAbsolute(p);
+}
+
 function resolvePath(filePath: string, projectPath: string): string {
   const expanded = expandTilde(filePath);
-  if (path.isAbsolute(expanded)) return expanded;
-  return path.resolve(projectPath, expanded);
+  if (isAbsoluteCross(expanded)) return expanded;
+  // Choose the path flavor that matches the project path so we don't mix separators.
+  const isWinProject = path.win32.isAbsolute(projectPath);
+  return isWinProject
+    ? path.win32.resolve(projectPath, expanded)
+    : path.posix.resolve(projectPath, expanded);
 }
 
 /** File lock map -- prevents race conditions on concurrent edits to the same file */
