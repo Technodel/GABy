@@ -210,13 +210,18 @@ async function extractSymbols(userId: number, projectPath: string): Promise<Symb
 
     // Run it — pass projectPath as forward-slash for cross-platform compat
     const normalizedPath = projectPath.replace(/\\/g, '/').replace(/"/g, '\\"');
-    const raw = await sendToBridge(userId, 'exec:shell', {
+    const result = await sendToBridge(userId, 'exec:shell', {
       command: `node ".suny-repomap.js" "${normalizedPath}"`,
       cwd: projectPath,
       requiresConfirmation: false,
-    }, 25_000) as string;
+    }, 25_000) as { stdout?: string; stderr?: string; exitCode?: number };
 
-    return JSON.parse(raw.trim());
+    const raw = (result?.stdout ?? '').trim();
+    if (!raw) {
+      const stderr = (result?.stderr ?? '').trim();
+      throw new Error(`Repomap script produced no output${stderr ? ': ' + stderr.slice(0, 200) : ''}`);
+    }
+    return JSON.parse(raw);
   } finally {
     // Always clean up temp script
     sendToBridge(userId, 'exec:delete_file', { path: scriptPath }, 5_000).catch(() => {});
