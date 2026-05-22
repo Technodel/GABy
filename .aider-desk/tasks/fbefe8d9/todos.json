@@ -1,21 +1,17 @@
 {
-  "initialUserPrompt": "Bug 1 — Find and fix the Assignment to constant variable crash. Bug 2 — Fix file tool access so agent reads real files instead of hallucinating. Bug 3 — Rename GABy to SUNy everywhere.",
+  "initialUserPrompt": "every time i refresh the page the bridge is discconnected and instead oof asking user to connect bridge it says friendly copy-paste message",
   "items": [
     {
-      "name": "Bug 1: Fix 'Assignment to constant variable' crash — find const reassignments",
-      "completed": true
+      "name": "Push bridge status to user client on reconnect (fixes 'disconnected' on refresh)",
+      "completed": false
     },
     {
-      "name": "Bug 2: Fix file tool access — add error logging to read_file, make failures throw real errors",
-      "completed": true
-    },
-    {
-      "name": "Bug 3: Rename GABy → SUNy across all files (UI, server, README, narrator)",
-      "completed": true
+      "name": "Strengthen offline-bridge system prompt so AI tells user to reconnect instead of using web tools",
+      "completed": false
     },
     {
       "name": "Build & deploy to VPS",
-      "completed": true
+      "completed": false
     }
   ]
 }

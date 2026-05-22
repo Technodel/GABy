@@ -4905,6 +4905,1392 @@
       "promptContext": {
         "id": "401508dc-2204-4b33-8356-285ee50604fa"
       }
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "PowerShell uses `;` not `&&`. Let me fix it."
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "call_00_77WNDstUvGZTCEBh7CKt0558",
+          "toolName": "power---bash",
+          "input": {
+            "command": "git add -A; git commit -m \"fix: Bug 1 const reassign crash, Bug 2 file tools throw errors, Bug 3 rename GABy to SUNy globally\"",
+            "cwd": "D:\\Projects\\GABy",
+            "timeout": 30000
+          }
+        }
+      ],
+      "id": "4de2f042-1a7c-46bd-a56b-a573a8b2d313",
+      "usageReport": {
+        "model": "deepseek/deepseek-v4-pro",
+        "sentTokens": 137,
+        "receivedTokens": 140,
+        "cacheReadTokens": 57856,
+        "messageCost": 0.0091147,
+        "agentTotalCost": 33.735564243999896
+      },
+      "promptContext": {
+        "id": "401508dc-2204-4b33-8356-285ee50604fa"
+      }
+    },
+    {
+      "role": "tool",
+      "content": [
+        {
+          "type": "tool-result",
+          "toolCallId": "call_00_77WNDstUvGZTCEBh7CKt0558",
+          "toolName": "power---bash",
+          "output": {
+            "type": "json",
+            "value": {
+              "stdout": "[main 06efdbef] fix: Bug 1 const reassign crash, Bug 2 file tools throw errors, Bug 3 rename GABy to SUNy globally\n 35 files changed, 5217 insertions(+), 90 deletions(-)\n create mode 100644 .aider-desk/tasks/fbefe8d9/context.json\n create mode 100644 .aider-desk/tasks/fbefe8d9/settings.json\n create mode 100644 .aider-desk/tasks/fbefe8d9/todos.json\n create mode 100644 .aider-desk/tmp/images/image-001.png\n",
+              "stderr": "warning: in the working copy of 'AGENT_PROJECT_GUIDE.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'DEPLOYMENT.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'bridge/README.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'bridge/dist/bridge.js', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'bridge/src/bridge.ts', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'docs/SUNy_Training_Roadmap.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'packages/gaby-sdk/README.md', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'packages/gaby-sdk/package.json', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'packages/gaby-sdk/src/auth.ts', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'packages/gaby-sdk/src/billing.ts', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'packages/gaby-sdk/src/extension.ts', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'packages/gaby-sdk/src/index.ts', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'packages/gaby-sdk/src/memory.ts', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'packages/gaby-sdk/src/tool.ts', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'scripts/vps/check_img.ps1', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'src/renderer/package-lock.json', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'src/renderer/src/App.tsx', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'src/renderer/src/components/NarratedMessage.tsx', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'src/renderer/src/pages/About.tsx', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'src/renderer/src/pages/WhatIsSUNy.tsx', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'src/renderer/src/types.ts', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'src/server/agent-loop.ts', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'src/server/db-migrations.ts', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'src/server/hypothesis-engine.ts', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'src/server/index.ts', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'src/server/power-tools.ts', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'src/server/symbol-reader.ts', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'src/server/user-routes.ts', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'test-sandbox/hello.txt', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'tests/start-bridge-and-test.ps1', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of 'tmp_deploy/tmp_debug.js', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.aider-desk/tasks/fbefe8d9/context.json', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.aider-desk/tasks/fbefe8d9/settings.json', LF will be replaced by CRLF the next time Git touches it\nwarning: in the working copy of '.aider-desk/tasks/fbefe8d9/todos.json', LF will be replaced by CRLF the next time Git touches it\n",
+              "exitCode": 0
+            }
+          }
+        }
+      ],
+      "id": "4863479b-44e6-4ade-9833-5f7b41d6cf03",
+      "promptContext": {
+        "id": "401508dc-2204-4b33-8356-285ee50604fa"
+      }
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "Committed. Now push and deploy to VPS."
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "call_00_R75rOP1b2CF9sJAsNNgy6721",
+          "toolName": "power---bash",
+          "input": {
+            "command": "git push origin main 2>&1",
+            "cwd": "D:\\Projects\\GABy",
+            "timeout": 30000
+          }
+        }
+      ],
+      "id": "905d9ffe-5998-4829-a33d-9a6987f19d95",
+      "usageReport": {
+        "model": "deepseek/deepseek-v4-pro",
+        "sentTokens": 1266,
+        "receivedTokens": 104,
+        "cacheReadTokens": 58112,
+        "messageCost": 0.010991,
+        "agentTotalCost": 33.74655524399989
+      },
+      "promptContext": {
+        "id": "401508dc-2204-4b33-8356-285ee50604fa"
+      }
+    },
+    {
+      "role": "tool",
+      "content": [
+        {
+          "type": "tool-result",
+          "toolCallId": "call_00_R75rOP1b2CF9sJAsNNgy6721",
+          "toolName": "power---bash",
+          "output": {
+            "type": "json",
+            "value": {
+              "stdout": "",
+              "stderr": "git : To https://github.com/Technodel/GABy.git\r\nAt line:1 char:1\r\n+ git push origin main 2>&1\r\n+ ~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (To https://github.com/Technodel/GABy.git:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError\r\n \r\n   20795fd3..06efdbef  main -> main\r\n",
+              "exitCode": 1
+            }
+          }
+        }
+      ],
+      "id": "7233d879-f018-44ce-bbbc-1eee9882f425",
+      "promptContext": {
+        "id": "401508dc-2204-4b33-8356-285ee50604fa"
+      }
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "Push succeeded despite the PS error (it says `20795fd3..06efdbef  main -> main`). Now deploy to VPS. Let me SSH in, git pull, rebuild, and restart PM2."
+        },
+        {
+          "type": "text",
+          "text": "Pushed. Step 4: Deploy to VPS — git pull, rebuild, restart:"
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "call_00_r77dZfXhC9mqaDAHkbXL9433",
+          "toolName": "power---bash",
+          "input": {
+            "command": "ssh -p 2222 -o StrictHostKeyChecking=no root@72.62.235.63 \"cd /var/www/suny/current-new-2 && git pull origin main && node scripts/build.js && cd src/renderer && npx vite build && pm2 restart suny\" 2>&1",
+            "cwd": "D:\\Projects\\GABy",
+            "timeout": 120000
+          }
+        }
+      ],
+      "id": "21d55e35-0082-4e2c-b5d0-5a3943afd68f",
+      "usageReport": {
+        "model": "deepseek/deepseek-v4-pro",
+        "sentTokens": 220,
+        "receivedTokens": 217,
+        "cacheReadTokens": 59392,
+        "messageCost": 0.0097498,
+        "agentTotalCost": 33.756305043999895
+      },
+      "promptContext": {
+        "id": "401508dc-2204-4b33-8356-285ee50604fa"
+      }
+    },
+    {
+      "role": "tool",
+      "content": [
+        {
+          "type": "tool-result",
+          "toolCallId": "call_00_r77dZfXhC9mqaDAHkbXL9433",
+          "toolName": "power---bash",
+          "output": {
+            "type": "json",
+            "value": {
+              "stdout": "Updating 20795fd..06efdbe\nFast-forward\n .aider-desk/tasks/fbefe8d9/context.json         | 4916 +++++++++++++++++++++++\n .aider-desk/tasks/fbefe8d9/settings.json        |   28 +\n .aider-desk/tasks/fbefe8d9/todos.json           |   21 +\n .aider-desk/tmp/images/image-001.png            |  Bin 0 -> 24934 bytes\n AGENT_PROJECT_GUIDE.md                          |   26 +-\n DEPLOYMENT.md                                   |    6 +-\n bridge/README.md                                |    2 +-\n bridge/dist/bridge.js                           |    6 +-\n bridge/src/bridge.ts                            |    6 +-\n docs/SUNy_Training_Roadmap.md                   |    2 +-\n packages/gaby-sdk/README.md                     |    8 +-\n packages/gaby-sdk/package.json                  |    5 +-\n packages/gaby-sdk/src/auth.ts                   |    2 +-\n packages/gaby-sdk/src/billing.ts                |    2 +-\n packages/gaby-sdk/src/extension.ts              |    4 +-\n packages/gaby-sdk/src/index.ts                  |    4 +-\n packages/gaby-sdk/src/memory.ts                 |    2 +-\n packages/gaby-sdk/src/tool.ts                   |    2 +-\n scripts/vps/check_img.ps1                       |    2 +-\n src/renderer/package-lock.json                  |    4 +-\n src/renderer/src/App.tsx                        |    9 +\n src/renderer/src/components/NarratedMessage.tsx |   20 +-\n src/renderer/src/pages/About.tsx                |    6 +-\n src/renderer/src/pages/WhatIsSUNy.tsx           |    2 +-\n src/renderer/src/types.ts                       |    2 +\n src/server/agent-loop.ts                        |    2 +-\n src/server/db-migrations.ts                     |   89 +\n src/server/hypothesis-engine.ts                 |    3 +\n src/server/index.ts                             |   54 +-\n src/server/power-tools.ts                       |   20 +-\n src/server/symbol-reader.ts                     |    4 +-\n src/server/user-routes.ts                       |   40 +-\n test-sandbox/hello.txt                          |    2 +-\n tests/start-bridge-and-test.ps1                 |    4 +-\n tmp_deploy/tmp_debug.js                         |    2 +-\n 35 files changed, 5217 insertions(+), 90 deletions(-)\n create mode 100644 .aider-desk/tasks/fbefe8d9/context.json\n create mode 100644 .aider-desk/tasks/fbefe8d9/settings.json\n create mode 100644 .aider-desk/tasks/fbefe8d9/todos.json\n create mode 100644 .aider-desk/tmp/images/image-001.png\nFound 93 files to compile\n........................................\n40 files compiled\n........................................\n80 files compiled\n.............\n\nBuild complete: 93 files compiled, 0 errors\nvite v5.4.21 building for production...\ntransforming...\n✓ 1503 modules transformed.\nrendering chunks...\ncomputing gzip size...\ndist/index.html                   1.41 kB │ gzip:   0.64 kB\ndist/assets/index-D4Om9zAb.css   15.79 kB │ gzip:   4.05 kB\ndist/assets/index-CwaH7hc0.js   458.67 kB │ gzip: 125.97 kB\n✓ built in 2.57s\nUse --update-env to update environment variables\n[PM2] Applying action restartProcessId on app [suny](ids: [ 7 ])\n[PM2] [suny](7) ✓\n┌────┬──────────────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐\n│ id │ name                 │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │\n├────┼──────────────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤\n│ 3  │ GMM                  │ default     │ 1.0.0   │ fork    │ 250909   │ 27h    │ 1    │ online    │ 0%       │ 76.7mb   │ root     │ disabled │\n│ 1  │ all-mall-guardian    │ default     │ N/A     │ fork    │ 1284812  │ 2h     │ 5    │ online    │ 0%       │ 151.9mb  │ root     │ disabled │\n│ 17 │ all-mall-web         │ default     │ N/A     │ fork    │ 1284783  │ 2h     │ 18   │ online    │ 0%       │ 72.2mb   │ root     │ disabled │\n│ 5  │ chrome-9223          │ default     │ 2.0.0   │ fork    │ 251045   │ 27h    │ 1    │ online    │ 0%       │ 2.0mb    │ root     │ disabled │\n│ 0  │ gwp                  │ default     │ 2.0.0   │ cluster │ 250880   │ 27h    │ 1    │ online    │ 0%       │ 95.3mb   │ root     │ disabled │\n│ 2  │ promogen-gcg         │ default     │ 0.0.0   │ fork    │ 250895   │ 27h    │ 1    │ online    │ 0%       │ 58.5mb   │ root     │ disabled │\n│ 7  │ suny                 │ default     │ 1.0.0   │ fork    │ 1395680  │ 0s     │ 301  │ online    │ 0%       │ 23.1mb   │ root     │ disabled │\n│ 9  │ technodel-new        │ default     │ N/A     │ fork    │ 1382218  │ 20m    │ 42   │ online    │ 0%       │ 69.7mb   │ root     │ disabled │\n└────┴──────────────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘\n",
+              "stderr": "ssh : From https://github.com/Technodel/GABy\r\nAt line:1 char:1\r\n+ ssh -p 2222 -o StrictHostKeyChecking=no root@72.62.235.63 \"cd /var/ww ...\r\n+ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\r\n    + CategoryInfo          : NotSpecified: (From https://github.com/Technodel/GABy:String) [], RemoteException\r\n    + FullyQualifiedErrorId : NativeCommandError\r\n \r\n * branch            main       -> FETCH_HEAD\r\n   20795fd..06efdbe  main       -> origin/main\r\n",
+              "exitCode": 1
+            }
+          }
+        }
+      ],
+      "id": "299fb567-17bc-449e-a9c9-7b630585bacd",
+      "promptContext": {
+        "id": "401508dc-2204-4b33-8356-285ee50604fa"
+      }
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "Everything deployed successfully despite the PS NativeCommandError (which is just PowerShell treating git's stderr output as an error). Let me verify the key results:\n\n1. Git pull: `Updating 20795fd..06efdbe Fast-forward` ✓\n2. Server build: `Build complete: 93 files compiled, 0 errors` ✓\n3. Renderer build: `✓ built in 2.57s` ✓\n4. PM2 restart: `[PM2] [suny](7) ✓` with `status: online` ✓\n\nLet me now verify the health endpoint."
+        },
+        {
+          "type": "text",
+          "text": "Deployed. Let me verify health:"
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "call_00_49JFN3SRo7LvggejpV2h6692",
+          "toolName": "power---bash",
+          "input": {
+            "command": "ssh -p 2222 -o StrictHostKeyChecking=no root@72.62.235.63 \"curl -s http://localhost:3500/api/health\" 2>&1",
+            "cwd": "D:\\Projects\\GABy",
+            "timeout": 15000
+          }
+        }
+      ],
+      "id": "8bc069e8-4ab7-43b6-ac42-b01cd4704d09",
+      "usageReport": {
+        "model": "deepseek/deepseek-v4-pro",
+        "sentTokens": 1763,
+        "receivedTokens": 259,
+        "cacheReadTokens": 59776,
+        "messageCost": 0.012636459999999999,
+        "agentTotalCost": 33.7689415039999
+      },
+      "promptContext": {
+        "id": "401508dc-2204-4b33-8356-285ee50604fa"
+      }
+    },
+    {
+      "role": "tool",
+      "content": [
+        {
+          "type": "tool-result",
+          "toolCallId": "call_00_49JFN3SRo7LvggejpV2h6692",
+          "toolName": "power---bash",
+          "output": {
+            "type": "json",
+            "value": {
+              "stdout": "{\"status\":\"ok\",\"uptime\":8.918487439,\"db\":\"connected\",\"timestamp\":\"2026-05-22T16:16:30.347Z\",\"version\":\"3.0\"}",
+              "stderr": "",
+              "exitCode": 0
+            }
+          }
+        }
+      ],
+      "id": "d50f89eb-57ab-4aca-9402-856ba563b50c",
+      "promptContext": {
+        "id": "401508dc-2204-4b33-8356-285ee50604fa"
+      }
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "Health check passed:\n- `status: ok` ✓\n- `db: connected` ✓\n- `uptime: ~9s` (fresh restart) ✓\n- `version: 3.0` ✓\n\nLet me now store relevant memory about this deployment and provide a final summary."
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "call_00_9okv0dgFxeKUwuGyiOpd1121",
+          "toolName": "memory---store_memory",
+          "input": {
+            "type": "task",
+            "content": "SUNy VPS deploy process: (1) Build locally: node scripts/build.js && cd src/renderer && npx vite build (2) git add/commit/push to GitHub Technodel/GABy.git (3) SSH root@72.62.235.63 -p 2222, cd /var/www/suny/current-new-2, git pull origin main, node scripts/build.js, cd src/renderer && npx vite build, pm2 restart suny. Verify: curl localhost:3500/api/health. PM2 process name: \"suny\". Primary SUNY_PORT/SUNY_ALLOWED_ORIGIN env vars with GABY_PORT/GABY_ALLOWED_ORIGIN fallbacks for backward compat."
+          }
+        }
+      ],
+      "id": "3586820d-bd04-4c3d-950d-43a50bcb4f4b",
+      "usageReport": {
+        "model": "deepseek/deepseek-v4-pro",
+        "sentTokens": 179,
+        "receivedTokens": 284,
+        "cacheReadTokens": 61696,
+        "messageCost": 0.0102457,
+        "agentTotalCost": 33.779187203999896
+      },
+      "promptContext": {
+        "id": "401508dc-2204-4b33-8356-285ee50604fa"
+      }
+    },
+    {
+      "role": "tool",
+      "content": [
+        {
+          "type": "tool-result",
+          "toolCallId": "call_00_9okv0dgFxeKUwuGyiOpd1121",
+          "toolName": "memory---store_memory",
+          "output": {
+            "type": "text",
+            "value": "Memory stored successfully"
+          }
+        }
+      ],
+      "id": "7ae160c2-3cf3-4ded-9cfe-b0756008b4f6",
+      "promptContext": {
+        "id": "401508dc-2204-4b33-8356-285ee50604fa"
+      }
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "**Deployed ✅** \n\nHealth check: `{\"status\":\"ok\",\"db\":\"connected\",\"version\":\"3.0\"}`\n\nAll 3 bugs live on VPS:\n- **Bug 1**: `const` → `let` in agent-loop — no more `Assignment to constant variable` crash\n- **Bug 2**: All 12 tools now `throw Error(...)` instead of returning error strings — AI will see real failures instead of hallucinating\n- **Bug 3**: GABy → SUNy across 20+ files, `@suny/sdk` package name, `.suny/` config path"
+        }
+      ],
+      "id": "7235621d-b1b6-4792-99d6-ac0a72fd3a37",
+      "usageReport": {
+        "model": "deepseek/deepseek-v4-pro",
+        "sentTokens": 94,
+        "receivedTokens": 131,
+        "cacheReadTokens": 62080,
+        "messageCost": 0.009621039999999999,
+        "agentTotalCost": 33.788808243999895
+      },
+      "promptContext": {
+        "id": "401508dc-2204-4b33-8356-285ee50604fa"
+      }
+    },
+    {
+      "id": "e39244e0-b4d0-427f-ad63-938584ce645f",
+      "role": "user",
+      "content": "every time i refresh the page the bridge is discconnected\n\nand instead oof asking user to connect bridge it says\nLet me look at the project files now to give you a proper answer.\n\nAlright, let me check out those key files!Hmm, still can't reach those files directly — the file system tools aren't connected in this session.\n\nBut you know what? I can still help! If you just **copy and paste** the contents of README.md and package.json here, I'll give you a complete breakdown of what this app does, what technologies it uses, and how it all works together.\n\nThat's the quickest way to get your answer right now! 😊",
+      "promptContext": {
+        "id": "e39244e0-b4d0-427f-ad63-938584ce645f"
+      }
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "The user is reporting two issues:\n\n1. Every time they refresh the page, the bridge disconnects\n2. Instead of asking the user to connect the bridge, the AI says things like \"Hmm, still can't reach those files directly — the file system tools aren't connected in this session\" and \"But you know what? I can still help! If you just copy and paste...\"\n\nThis sounds like:\n- The bridge connection is lost on page refresh (expected if it's WebSocket-based and the page reload tears down the connection)\n- More importantly, the AI is NOT properly reporting file tool errors — instead of saying \"I can't read files because the bridge is disconnected\", it's giving friendly but incorrect responses\n\nWait — this contradicts what I just fixed. I made all tools throw errors instead of returning strings. But the issue is that when the bridge is disconnected, the `sendToBridge` function itself might throw a timeout error or something similar, and the AI SDK might be handling it differently than expected.\n\nLet me think about this more carefully:\n\n1. The bridge disconnect on refresh is probably a separate issue — the VPS recently had bridge session handling issues. Let me check if there's something in the bridge connection handling that's wrong.\n\n2. The AI message \"Hmm, still can't reach those files directly\" is actually the AI interpreting the situation. It's possible that:\n   - The tools ARE throwing errors now (my fix)\n   - But the AI SDK wraps those errors and presents them to the model as `tool-error` parts\n   - The model is responding to those errors with this friendly message instead of properly reporting the bridge disconnection\n\nThe real problem might be that the AI is not being instructed to tell the user to reconnect the bridge. Let me check:\n- What does the system prompt say about bridge disconnection?\n- Does the agent-loop detect when bridge is disconnected?\n- Is there a specific instruction for the AI about what to do when tools fail?\n\nLet me also look at the bridge connection handling — specifically, does the bridge connection survive page refreshes?\n\nLet me start by investigating the code."
+        },
+        {
+          "type": "text",
+          "text": "Two issues to investigate. Let me understand the root cause."
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "call_00_XbLMmnhkztZcbQV9wOQu4704",
+          "toolName": "todo---set_items",
+          "input": {
+            "items": [
+              {
+                "name": "Bridge disconnect on page refresh",
+                "completed": false
+              },
+              {
+                "name": "AI wrong response when bridge disconnected — should tell user to reconnect, not ask for copy-paste",
+                "completed": false
+              }
+            ],
+            "initialUserPrompt": "every time i refresh the page the bridge is discconnected and instead oof asking user to connect bridge it says friendly copy-paste message"
+          }
+        }
+      ],
+      "id": "2871e389-2b9d-40ea-bdc2-f8087083e1c2",
+      "usageReport": {
+        "model": "deepseek/deepseek-v4-pro",
+        "sentTokens": 6553,
+        "receivedTokens": 582,
+        "cacheReadTokens": 55552,
+        "messageCost": 0.02148262,
+        "agentTotalCost": 33.810290863999896
+      },
+      "promptContext": {
+        "id": "e39244e0-b4d0-427f-ad63-938584ce645f"
+      }
+    },
+    {
+      "role": "tool",
+      "content": [
+        {
+          "type": "tool-result",
+          "toolCallId": "call_00_XbLMmnhkztZcbQV9wOQu4704",
+          "toolName": "todo---set_items",
+          "output": {
+            "type": "text",
+            "value": "Todo items set successfully."
+          }
+        }
+      ],
+      "id": "92a32a3b-7425-403b-9a11-24ce3fc3501f",
+      "promptContext": {
+        "id": "e39244e0-b4d0-427f-ad63-938584ce645f"
+      }
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "Let me investigate the two issues:\n\n1. Bridge disconnect on refresh — need to look at bridge-manager.ts and how sessions are handled\n2. AI wrong response when bridge is disconnected — need to look at the agent-loop.ts and system prompt to understand what instructions the AI gets about bridge disconnection, and whether my error-throwing change is being handled correctly.\n\nLet me search for bridge connection handling and system prompt instructions."
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "call_00_3lj2XrytoyhSLwKNDdYs4583",
+          "toolName": "power---semantic_search",
+          "input": {
+            "query": "bridge disconnected reconnect session prompt",
+            "path": "D:\\Projects\\GABy",
+            "allowTests": false,
+            "exact": false,
+            "maxResults": 10,
+            "maxTokens": 5000
+          }
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "call_01_szmmhsNXjrww7J9gRcIx0289",
+          "toolName": "power---grep",
+          "input": {
+            "filePattern": "src/server/bridge-manager.ts",
+            "searchTerm": "disconnect|connected|onClose|session",
+            "contextLines": 2,
+            "caseSensitive": false,
+            "maxResults": 30
+          }
+        }
+      ],
+      "id": "e05fcc3c-b96d-4774-a343-e3604210ffe1",
+      "usageReport": {
+        "model": "deepseek/deepseek-v4-pro",
+        "sentTokens": 618,
+        "receivedTokens": 291,
+        "cacheReadTokens": 62080,
+        "messageCost": 0.011089599999999998,
+        "agentTotalCost": 33.821380463999894
+      },
+      "promptContext": {
+        "id": "e39244e0-b4d0-427f-ad63-938584ce645f"
+      }
+    },
+    {
+      "role": "tool",
+      "content": [
+        {
+          "type": "tool-result",
+          "toolCallId": "call_01_szmmhsNXjrww7J9gRcIx0289",
+          "toolName": "power---grep",
+          "output": {
+            "type": "text",
+            "value": "## Grep Results: `disconnect|connected|onClose|session` in `src/server/bridge-manager.ts` (18 matches)\n\n### src\\server\\bridge-manager.ts (18 matches)\n- **L11:** `  connectedAt: Date;`\n  ```\n    userId: number;\n    username: string;\n    connectedAt: Date;\n    lastPing: Date;\n  }\n  ```\n- **L29:** `  // IMPORTANT: Disconnect existing bridge FIRST (before activeBridges.set).`\n  ```\n  \n  export function registerBridge(userId: number, username: string, ws: WebSocket): void {\n    // IMPORTANT: Disconnect existing bridge FIRST (before activeBridges.set).\n    // Getting the existing after .set() would return the new connection instead.\n    const existing = activeBridges.get(userId);\n  ```\n- **L33:** `    existing.ws.send(JSON.stringify({ type: 'bridge:disconnect', payload: { reason: 'replaced_by_new_connection' } }));`\n  ```\n    const existing = activeBridges.get(userId);\n    if (existing && existing.ws !== ws && existing.ws.readyState === WebSocket.OPEN) {\n      existing.ws.send(JSON.stringify({ type: 'bridge:disconnect', payload: { reason: 'replaced_by_new_connection' } }));\n      existing.ws.close();\n    }\n  ```\n- **L39:** `  const conn: BridgeConnection = { ws, userId, username, connectedAt: new Date(), lastPing: new Date() };`\n  ```\n    // Set up the new bridge connection — handlers are attached synchronously\n    // so they're ready before any async operation (e.g. DB write below).\n    const conn: BridgeConnection = { ws, userId, username, connectedAt: new Date(), lastPing: new Date() };\n    activeBridges.set(userId, conn);\n  \n  ```\n- **L44:** `    console.log(\\`[bridge-manager] Bridge DISCONNECTED for user ${userId} (code=${code}, reason=${reason?.toString() || 'none'})\\`);`\n  ```\n    ws.on('message', (raw) => handleBridgeMessage(userId, raw.toString()));\n    ws.on('close', (code, reason) => {\n      console.log(`[bridge-manager] Bridge DISCONNECTED for user ${userId} (code=${code}, reason=${reason?.toString() || 'none'})`);\n      // Only clean up if this ws is still the active connection — prevents a\n      // stale close handler from a replaced bridge from deleting the new bridge.\n  ```\n- **L51:** `    rejectAllPendingForUser(userId, 'Bridge disconnected');`\n  ```\n        activeBridges.delete(userId);\n      }\n      rejectAllPendingForUser(userId, 'Bridge disconnected');\n    });\n    ws.on('error', (err) => {\n  ```\n- **L62:** `  console.log(\\`[bridge-manager] Bridge CONNECTED for user ${userId} (${username})\\`);`\n  ```\n    });\n  \n    console.log(`[bridge-manager] Bridge CONNECTED for user ${userId} (${username})`);\n  \n    // Mark user as having ever connected a bridge (fire-and-forget)\n  ```\n- **L64:** `  // Mark user as having ever connected a bridge (fire-and-forget)`\n  ```\n    console.log(`[bridge-manager] Bridge CONNECTED for user ${userId} (${username})`);\n  \n    // Mark user as having ever connected a bridge (fire-and-forget)\n    try { getAdapter().run('UPDATE users SET bridge_ever_connected = 1 WHERE id = ?', [userId]); } catch { /* best-effort */ }\n  }\n  ```\n- **L65:** `  try { getAdapter().run('UPDATE users SET bridge_ever_connected = 1 WHERE id = ?', [userId]); } catch { /* best-effort */ }`\n  ```\n  \n    // Mark user as having ever connected a bridge (fire-and-forget)\n    try { getAdapter().run('UPDATE users SET bridge_ever_connected = 1 WHERE id = ?', [userId]); } catch { /* best-effort */ }\n  }\n  \n  ```\n- **L108:** `      reject(new Error('Bridge not connected'));`\n  ```\n      const conn = activeBridges.get(userId);\n      if (!conn || conn.ws.readyState !== WebSocket.OPEN) {\n        reject(new Error('Bridge not connected'));\n        return;\n      }\n  ```\n- **L125:** `export function isBridgeConnected(userId: number): boolean {`\n  ```\n  }\n  \n  export function isBridgeConnected(userId: number): boolean {\n    const conn = activeBridges.get(userId);\n    if (!conn) return false;\n  ```\n- **L180:** ` * Gracefully disconnect a user's bridge and tell it to stop reconnecting.`\n  ```\n   */\n  /**\n   * Gracefully disconnect a user's bridge and tell it to stop reconnecting.\n   * Returns true if a bridge was actually disconnected.\n   */\n  ```\n- **L181:** ` * Returns true if a bridge was actually disconnected.`\n  ```\n  /**\n   * Gracefully disconnect a user's bridge and tell it to stop reconnecting.\n   * Returns true if a bridge was actually disconnected.\n   */\n  export function disconnectBridge(userId: number): boolean {\n  ```\n- **L183:** `export function disconnectBridge(userId: number): boolean {`\n  ```\n   * Returns true if a bridge was actually disconnected.\n   */\n  export function disconnectBridge(userId: number): boolean {\n    const conn = activeBridges.get(userId);\n    if (!conn || conn.ws.readyState !== WebSocket.OPEN) {\n  ```\n- **L186:** `    // Not connected — remove stale entry if any`\n  ```\n    const conn = activeBridges.get(userId);\n    if (!conn || conn.ws.readyState !== WebSocket.OPEN) {\n      // Not connected — remove stale entry if any\n      if (conn) activeBridges.delete(userId);\n      return false;\n  ```\n- **L192:** `  conn.ws.send(JSON.stringify({ type: 'bridge:disconnect', payload: { reason: 'user_disconnected' } }));`\n  ```\n  \n    // Tell the bridge to stop (sets this.stopped = true so it won't reconnect)\n    conn.ws.send(JSON.stringify({ type: 'bridge:disconnect', payload: { reason: 'user_disconnected' } }));\n    conn.ws.close(1000, 'User requested disconnect');\n    activeBridges.delete(userId);\n  ```\n- **L193:** `  conn.ws.close(1000, 'User requested disconnect');`\n  ```\n    // Tell the bridge to stop (sets this.stopped = true so it won't reconnect)\n    conn.ws.send(JSON.stringify({ type: 'bridge:disconnect', payload: { reason: 'user_disconnected' } }));\n    conn.ws.close(1000, 'User requested disconnect');\n    activeBridges.delete(userId);\n    rejectAllPendingForUser(userId, 'Bridge disconnected by user');\n  ```\n- **L195:** `  rejectAllPendingForUser(userId, 'Bridge disconnected by user');`\n  ```\n    conn.ws.close(1000, 'User requested disconnect');\n    activeBridges.delete(userId);\n    rejectAllPendingForUser(userId, 'Bridge disconnected by user');\n    return true;\n  }\n  ```\n"
+          }
+        },
+        {
+          "type": "tool-result",
+          "toolCallId": "call_00_3lj2XrytoyhSLwKNDdYs4583",
+          "toolName": "power---semantic_search",
+          "output": {
+            "type": "text",
+            "value": "---\nFile: D:\\Projects\\GABy\\AGENT_PROJECT_GUIDE.md\n\n1    # SUNy / SUNy — Complete Agent Project Guide\n...\n508  ## 6. Tools & Bridges\n509  \n510  ### 6.1 Bridge Architecture\n511  \n512  The Bridge is a WebSocket connection from the user's local machine to the SUNy server.\n513  \n514  **Bridge connection lifecycle:**\n515  1. User downloads/installs bridge agent (Node.js script or binary)\n516  2. Bridge generates setup code (or user enters one)\n517  3. Bridge connects to `wss://suny.technodel.tech/bridge`\n518  4. Server registers in `bridgeManager` (keyed by userId)\n519  5. All file/shell tool calls are forwarded to bridge\n520  6. Bridge executes on user's machine, returns result\n521  7. Bridge auto-reconnects on disconnect\n\n---\nFile: D:\\Projects\\GABy\\bridge\\src\\bridge.ts\n\n21   export class SunyBridge {\n...\n76     updateToken(newToken: string): void {\n...\n84       // Reconnect immediately with new token\n85       if (!this.stopped) {\n86         this.reconnectDelay = RECONNECT_DELAY;\n87         this.connect();\n88       }\n89     }\n90   \n91     private connect(): void {\n...\n102      this.ws.on('open', () => {\n103        this.log('[SUNy Bridge] Connected to SUNy server ✓');\n104        this.reconnectDelay = RECONNECT_DELAY;\n105        this.startHeartbeat();\n106  \n107        // Auto-register startup on first successful connection\n108        // so the bridge comes back after reboot without user intervention.\n...\n119      this.ws.on('close', (code, reason) => {\n120        this.clearTimers();\n121        if (code === 4001) {\n122          this.log('[SUNy Bridge] Authentication failed (code 4001).');\n123          this.startTokenRefreshFlow();\n124          // Keep waiting for a fresh token until the user explicitly disconnects.\n125          return;\n126        }\n127        if (!this.stopped) {\n128          this.log(`[SUNy Bridge] Disconnected (code ${code}). Reconnecting in ${this.reconnectDelay / 1000}s...`);\n129          this.scheduleReconnect();\n...\n136    } // function connect\n137  \n138    private handleMessage(raw: string): void {\n...\n152      if (type === 'bridge:disconnect') {\n153        const reason = (payload as { reason?: string })?.reason || 'unknown';\n154        if (reason === 'user_disconnected') {\n155          this.log('[SUNy Bridge] User requested disconnect. Stopping bridge.');\n...\n161        this.log('[SUNy Bridge] Server requested disconnect:', reason, '— reconnecting...');\n162        this.ws?.close();\n163        return;\n164      }\n165  \n166      if (type === 'bridge:token_expired') {\n167        this.log('[SUNy Bridge] Session token expired.');\n168        this.startTokenRefreshFlow();\n169        return;\n170      }\n171  \n172      if (type === 'bridge:ping') {\n173        this.send({ type: 'bridge:pong' });\n174        return;\n175      }\n176  \n177      // Register a project directory path so the sandbox allows file operations\n178      if (type === 'bridge:register_path' && payload?.path) {\n179        const targetPath = payload.path as string;\n180        registerPath(targetPath);\n181        this.log(`[SUNy Bridge] Registered project path: ${targetPath}`);\n182        if (id) {\n183          this.send({ type: 'bridge:ack', id, payload: { success: true } });\n...\n191    } // function handleMessage\n...\n206      this.reconnectTimer = setTimeout(() => {\n207        if (!this.stopped) this.connect();\n208      }, this.reconnectDelay);\n209      // Exponential backoff with cap\n210      this.reconnectDelay = Math.min(this.reconnectDelay * 2, MAX_RECONNECT_DELAY);\n211    }\n212  \n213    private clearTimers(): void {\n214      if (this.heartbeatTimer) { clearInterval(this.heartbeatTimer); this.heartbeatTimer = null; }\n215      if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }\n216      if (this.tokenRefreshTimer) { clearTimeout(this.tokenRefreshTimer); this.tokenRefreshTimer = null; }\n217    }\n...\n246    private startTokenRefreshFlow(): void {\n247      if (this.awaitingTokenRefresh) return; // already in progress\n248      this.awaitingTokenRefresh = true;\n249      this.tokenRefreshAttempts = 0;\n250  \n251      const loginUrl = this.server.replace(/^wss?:\\/\\//, 'https://').replace('/bridge', '/login');\n252      this.log('[SUNy Bridge] ──────────────────────────────────────────');\n253      this.log('[SUNy Bridge] Session expired.  To reconnect:');\n254      this.log('[SUNy Bridge]');\n255      this.log(`[SUNy Bridge]   1. Visit: ${loginUrl}`);\n256      this.log('[SUNy Bridge]   2. Log in and copy your bridge token.');\n257      this.log(`[SUNy Bridge]   3. Write the new token to: ${TOKEN_REFRESH_FILE}`);\n258      this.log('[SUNy Bridge]      e.g.  echo \"YOUR_TOKEN\" > ~/.suny/refresh_token');\n259      this.log('[SUNy Bridge]      OR restart the bridge with the new token flag.');\n260      this.log('[SUNy Bridge]');\n261      this.log(`[SUNy Bridge] Checking for new token every ${TOKEN_REFRESH_POLL_INTERVAL / 1000}s until you disconnect...`);\n262      this.log('[SUNy Bridge] ──────────────────────────────────────────');\n263  \n264      this.openBrowserForReauth();\n265      this.scheduleTokenRefreshPoll();\n266    }\n...\n273    private pollForNewToken(): void {\n...\n279      try {\n...\n286            this.log(`[SUNy Bridge] New token found in ${TOKEN_REFRESH_FILE} — reconnecting...`);\n287          }\n288        }\n289      } catch { /* ignore fs errors */ }\n...\n296          this.log('[SUNy Bridge] New token found in SUNY_TOKEN env var — reconnecting...');\n...\n303        this.reconnectDelay = RECONNECT_DELAY;\n304        this.connect();\n305        return;\n306      }\n307  \n308      this.log(`[SUNy Bridge] Waiting for new token... attempt ${this.tokenRefreshAttempts}`);\n309      this.scheduleTokenRefreshPoll();\n310    } // function pollForNewToken\n\n---\nFile: D:\\Projects\\GABy\\bridge\\src\\executor.ts\n\n176  async function execShell(id: string, payload: Record<string, unknown>, send: SendFn): Promise<void> {\n...\n190    send({ type: 'bridge:ack', id });\n...\n197      (line, stream) => send({ type: 'bridge:stream', id, payload: { line, stream } }),\n198      (exitCode) => send({ type: 'bridge:done', id, payload: { exitCode, success: exitCode === 0 } })\n199    );\n200  \n201    // Local timeout: if the server-side timeout fails to reach us (e.g. reconnect),\n202    // kill the process locally so it doesn't hang forever.\n203    setTimeout(() => {\n204      if (processManager.isRunning(id)) {\n205        processManager.kill(id);\n206        send({ type: 'bridge:error', id, payload: { message: `Command timed out after ${timeoutMs / 1000}s` } });\n207      }\n208    }, timeoutMs);\n209  } // async function execShell(id: s...\n\n---\nFile: D:\\Projects\\GABy\\src\\renderer\\src\\components\\BridgeInstallInstructions.tsx\n\n9    export default function BridgeInstallInstructions({ autoCopy = false, previouslyConnected }: Props) {\n...\n16     // Reconnect command (works when the saved bridge token is still valid)\n17     const restartCmd = 'suny-bridge start --silent';\n18   \n19     // Show smart reconnect for users who already set up the bridge\n20     const isReconnect = previouslyConnected === true;\n21   \n22     function buildSetupCommands(token: string): void {\n23       const wsProto = window.location.protocol === 'https:' ? 'wss' : 'ws';\n24       const serverUrl = import.meta.env.DEV ? 'ws://localhost:3500' : `${wsProto}://${window.location.host}`;\n25       const tgzUrl = `${window.location.protocol}//${window.location.host}/bridge/suny-bridge.tgz`;\n26       const c = `npm install -g ${tgzUrl} ; npx suny-bridge start --token ${token} --server ${serverUrl}`;\n27       const exeUrl = `${window.location.protocol}//${window.location.host}/bridge/suny-bridge.exe`;\n28       const winCmd = `@echo off\\r\\ntitle SUNy Bridge Setup\\r\\ncolor 0A\\r\\nset BRIDGE_DIR=%APPDATA%\\\\suny-bridge\\r\\nif not exist \"%BRIDGE_DIR%\" mkdir \"%BRIDGE_DIR%\"\\r\\necho ============================================\\r\\necho SUNy is preparing your local Bridge\\r\\necho ============================================\\r\\necho.\\r\\nif not exist \"%BRIDGE_DIR%\\\\suny-bridge.exe\" (\\r\\n  echo [1/3] Downloading SUNy Bridge...\\r\\n  echo       This can take up to 1 minute on slow internet.\\r\\n  powershell -NoProfile -ExecutionPolicy Bypass -Command \"$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri '${exeUrl}' -OutFile '%APPDATA%\\\\\\\\suny-bridge\\\\\\\\suny-bridge.exe' -UseBasicParsing\"\\r\\n  if errorlevel 1 (\\r\\n    echo.\\r\\n    echo SUNy could not download the Bridge.\\r\\n    echo Please check your internet connection and try again.\\r\\n    pause\\r\\n    exit /b 1\\r\\n  )\\r\\n  echo [2/3] Download complete.\\r\\n) else (\\r\\n  echo [1/3] Bridge already installed.\\r\\n  echo [2/3] Reusing existing Bridge.\\r\\n)\\r\\necho [3/3] Starting Bridge in background...\\r\\npowershell -NoProfile -ExecutionPolicy Bypass -Command \"Start-Process -FilePath '%APPDATA%\\\\\\\\suny-bridge\\\\\\\\suny-bridge.exe' -ArgumentList '--token ${token} --server ${serverUrl}' -WindowStyle Hidden\"\\r\\nif errorlevel 1 (\\r\\n  echo.\\r\\n  echo SUNy could not start the Bridge.\\r\\n  echo Please run the installer again.\\r\\n  pause\\r\\n  exit /b 1\\r\\n)\\r\\necho.\\r\\necho SUNy Bridge started successfully.\\r\\necho You can close this window now.\\r\\ntimeout /t 2 >nul\\r\\n`;\n29       setCmd(c);\n30       setWinInstallerCmd(winCmd);\n31       if (autoCopy && !isReconnect) {\n32         navigator.clipboard.writeText(c).then(() => { setCopied(true); setTimeout(() => setCopied(false), 3000); }).catch(() => {});\n33       }\n34     }\n...\n47     useEffect(() => {\n48       if (isReconnect) {\n...\n56     }, [autoCopy, isReconnect, restartCmd]);\n57   \n58     function copy() {\n59       const text = isReconnect ? restartCmd : cmd;\n60       if (!text) return;\n61       navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });\n62     }\n...\n82         <div>\n83           <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.5 }}>\n84             Bridge disconnected. Reconnect with one click:\n...\n227  } // export default function Bridge...\n\n---\nFile: D:\\Projects\\GABy\\src\\renderer\\src\\hooks\\useWebSocket.ts\n\n8    interface UseWebSocketOptions {\n9      onMessage: (msg: WSMessage) => void;\n10     onConnect?: () => void;\n11     onDisconnect?: () => void;\n12   }\n13   \n14   export function useWebSocket(options: UseWebSocketOptions) {\n15     const ws = useRef<WebSocket | null>(null);\n16     const reconnectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);\n17     const reconnectDelay = useRef(3000);\n18     // Incremented on every intentional close. Each connection captures its own\n19     // generation value — if it differs at close time, the close was intentional\n20     // (cleanup / StrictMode unmount) and we must NOT reconnect.\n21     const connectionGen = useRef(0);\n22     // Always-current options ref — prevents stale closures when state changes\n23     const optionsRef = useRef(options);\n24     optionsRef.current = options;\n25     // ── Message queue: buffer messages sent while disconnected ───────────\n26     const pendingMessages = useRef<Record<string, unknown>[]>([]);\n27     const [isConnected, setIsConnected] = useState(false);\n28     const [pendingCount, setPendingCount] = useState(0);\n29   \n30     // ── Flush queued messages on reconnect ───────────────────────────────\n31     function flushPending() {\n...\n37       // avoid flooding the server on reconnect\n...\n47     }\n48   \n49     const connect = useCallback(() => {\n...\n56       newWs.onopen = () => {\n57         reconnectDelay.current = 3000;\n58         setIsConnected(true);\n59         optionsRef.current.onConnect?.();\n60         // Flush any messages that were queued while disconnected\n...\n73       newWs.onclose = () => {\n74         setIsConnected(false);\n75         optionsRef.current.onDisconnect?.();\n76         // Generation mismatch means cleanup already ran — do NOT reconnect\n77         if (connectionGen.current !== myGen) return;\n78         reconnectTimer.current = setTimeout(() => {\n79           reconnectDelay.current = Math.min(reconnectDelay.current * 1.5, 30000);\n80           connect();\n81         }, reconnectDelay.current);\n...\n89     useEffect(() => {\n90       connect();\n91       return () => {\n92         connectionGen.current++; // invalidate this connection's onclose handler\n93         if (reconnectTimer.current) clearTimeout(reconnectTimer.current);\n...\n99     const send = useCallback((msg: Record<string, unknown>) => {\n100      if (ws.current?.readyState === WebSocket.OPEN) {\n101        ws.current.send(JSON.stringify(msg));\n102      } else {\n103        // Queue the message for replay when the WebSocket reconnects\n...\n116  } // export function useWebSocket(o...\n\n---\nFile: D:\\Projects\\GABy\\src\\renderer\\src\\pages\\Chat.tsx\n\n18   // ── File browser tree node ──────────────────────────────────────────────────\n19   export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: ChatProps) {\n...\n1131   const { send: wsSend, isConnected, pendingCount, clearPending } = useWebSocket({\n...\n1370     onConnect: () => {\n1371       // Reset stale state on reconnect � avoids forever-spinning thinking indicator\n...\n1808     <div className=\"chat-root\" style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg)' }}>\n1809       {/* Top bar */}\n1810       <div className=\"topbar\" style={{\n...\n1901         {/* RIGHT: action buttons */}\n1902         <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1, justifyContent: 'flex-end' }}>\n...\n1941                 background: 'var(--accent)', border: '1px solid var(--bg)',\n1942               }} />\n1943             </button>\n1944           )}\n1945           {!isMobile && (\n1946             <BridgeStatusBadge\n1947               connected={bridgeConnected}\n1948               onClick={async () => {\n1949                 if (bridgeConnected) {\n1950                   if (!confirm('🔌 Disconnect the SUNy Bridge?\\n\\nSUNy will no longer be able to read/write files or run commands on your machine. You can reconnect by clicking the bridge button again.')) return;\n1951                   try {\n1952                     await fetch('/api/bridge/disconnect', { method: 'POST', credentials: 'include' });\n1953                     setBridgeConnected(false);\n1954                   } catch { /* ignore */ }\n1955                 } else {\n1956                   setShowBridgeTip(t => !t);\n...\n3354 } // export default function Chat({...\n\n---\nFile: D:\\Projects\\GABy\\src\\server\\bridge-manager.ts\n\n28   export function registerBridge(userId: number, username: string, ws: WebSocket): void {\n...\n43     ws.on('close', (code, reason) => {\n44       console.log(`[bridge-manager] Bridge DISCONNECTED for user ${userId} (code=${code}, reason=${reason?.toString() || 'none'})`);\n45       // Only clean up if this ws is still the active connection — prevents a\n46       // stale close handler from a replaced bridge from deleting the new bridge.\n47       const current = activeBridges.get(userId);\n48       if (current && current.ws === ws) {\n49         activeBridges.delete(userId);\n50       }\n51       rejectAllPendingForUser(userId, 'Bridge disconnected');\n...\n66   } // export function registerBridge...\n...\n179  /**\n180   * Gracefully disconnect a user's bridge and tell it to stop reconnecting.\n181   * Returns true if a bridge was actually disconnected.\n182   */\n183  export function disconnectBridge(userId: number): boolean {\n...\n191    // Tell the bridge to stop (sets this.stopped = true so it won't reconnect)\n192    conn.ws.send(JSON.stringify({ type: 'bridge:disconnect', payload: { reason: 'user_disconnected' } }));\n193    conn.ws.close(1000, 'User requested disconnect');\n194    activeBridges.delete(userId);\n195    rejectAllPendingForUser(userId, 'Bridge disconnected by user');\n196    return true;\n197  }\n\n---\nFile: D:\\Projects\\GABy\\src\\server\\bridge-onboarding.ts\n\n239  router.post('/disconnect', (req: BridgeStatusRequest, res: Response) => {\n...\n246    try {\n247      // eslint-disable-next-line @typescript-eslint/no-var-requires\n248      const { disconnectBridge } = require('./bridge-manager');\n249      const ok = disconnectBridge(userId);\n250      if (ok) {\n251        logOperation({ userId, operation: 'bridge_disconnect', status: 'success' });\n252        res.json({ success: true, message: 'Bridge disconnected' });\n253      } else {\n254        res.json({ success: false, message: 'Bridge was not connected' });\n255      }\n256    } catch (err) {\n257      res.status(500).json({ error: 'Failed to disconnect bridge' });\n258    }\n\n---\nFile: D:\\Projects\\GABy\\src\\server\\index.ts\n\n433  function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void {\n...\n461    ws.on('close', () => {\n462      if (currentAbortController) {\n463        currentAbortController.abort(new Error('cancelled_by_disconnect'));\n...\n2468 } // function handleUserClientUpgra...\n\n---\nFile: D:\\Projects\\GABy\\src\\server\\mcp-manager.ts\n\n45   export type MCPServerStatus =\n46     | 'disconnected'\n47     | 'connecting'\n48     | 'connected'\n49     | 'error';\n...\n120  // -- Singleton Manager --------------------------------------------------------\n121  \n122  class McpManager {\n...\n204    async disconnect(name: string): Promise<void> {\n...\n220    }\n221  \n222    disconnectAll(): void {\n223      for (const name of this.servers.keys()) {\n224        this.disconnect(name);\n225      }\n226    }\n\nFound 20 search results\nTotal bytes returned: 15162\nTotal tokens returned: 4271\n\nLimits applied:\n  Max tokens: 5000\n\nSkipped files due to limits: 825\n\nRemaining files not shown:\n  D:\\Projects\\GABy\\AGENT_PROJECT_GUIDE.md <5> <64>\n  D:\\Projects\\GABy\\src\\server\\index.ts <5> <61>\n  D:\\Projects\\GABy\\src\\renderer\\src\\pages\\Chat.tsx <5> <33>\n  D:\\Projects\\GABy\\src\\server\\bridge-manager.ts <5> <19>\n  D:\\Projects\\GABy\\src\\server\\prompt-variants.ts <5> <18>\n  D:\\Projects\\GABy\\src\\server\\user-routes.ts <5> <18>\n  D:\\Projects\\GABy\\bridge\\install-startup.js <5> <16>\n  D:\\Projects\\GABy\\src\\server\\power-tools.ts <5> <14>\n  D:\\Projects\\GABy\\src\\renderer\\src\\components\\modals\\ChatModals.tsx <5> <14>\n  D:\\Projects\\GABy\\src\\server\\bridge-onboarding.ts <5> <14>\n  D:\\Projects\\GABy\\src\\server\\prompt-registry.ts <5> <13>\n  D:\\Projects\\GABy\\src\\server\\git-manager.ts <5> <12>\n  D:\\Projects\\GABy\\docs\\SUNy_Training_Roadmap.md <5> <12>\n  D:\\Projects\\GABy\\bridge\\src\\executor.ts <5> <11>\n  D:\\Projects\\GABy\\bridge\\src\\bridge.ts <5> <11>\n  D:\\Projects\\GABy\\src\\renderer\\src\\pages\\BridgeSetup.tsx <5> <11>\n  D:\\Projects\\GABy\\src\\server\\injection-guard.ts <5> <10>\n  D:\\Projects\\GABy\\bridge\\README.md <5> <10>\n  D:\\Projects\\GABy\\src\\server\\session-replay.ts <5> <10>\n  D:\\Projects\\GABy\\src\\server\\project-lock.ts <5> <10>\n  D:\\Projects\\GABy\\src\\renderer\\src\\pages\\AdminUsageStats.tsx <5> <9>\n  D:\\Projects\\GABy\\src\\server\\session-benchmark.ts <5> <9>\n  D:\\Projects\\GABy\\src\\server\\operation-audit.ts <5> <9>\n  D:\\Projects\\GABy\\src\\server\\presence-engineering.ts <5> <9>\n  D:\\Projects\\GABy\\src\\renderer\\src\\components\\BridgeInstallInstructions.tsx <5> <9>\n  D:\\Projects\\GABy\\src\\server\\training-scorer.ts <5> <8>\n  D:\\Projects\\GABy\\src\\server\\test-runner.ts <5> <8>\n  D:\\Projects\\GABy\\src\\server\\execution-tracer.ts <5> <8>\n  D:\\Projects\\GABy\\src\\renderer\\src\\pages\\UserSettings.tsx <5> <7>\n  D:\\Projects\\GABy\\src\\server\\checkpoint-manager.ts <5> <7>\n  D:\\Projects\\GABy\\skills\\context-engineering\\SKILL.md <5> <7>\n  D:\\Projects\\GABy\\src\\server\\db-migrations.ts <5> <7>\n  D:\\Projects\\GABy\\src\\server\\confidence-scorer.ts <5> <7>\n  D:\\Projects\\GABy\\src\\server\\admin-routes.ts <5> <7>\n  D:\\Projects\\GABy\\src\\renderer\\src\\pages\\AdminUsers.tsx <5> <7>\n  D:\\Projects\\GABy\\bridge\\src\\index.ts <5> <7>\n  D:\\Projects\\GABy\\src\\server\\browser-automation.ts <5> <7>\n  D:\\Projects\\GABy\\src\\server\\verification-obsession.ts <5> <7>\n  D:\\Projects\\GABy\\src\\server\\project-digest.ts <5> <7>\n  D:\\Projects\\GABy\\src\\renderer\\src\\pages\\About.tsx <5> <6>\n  D:\\Projects\\GABy\\src\\server\\lint-runner.ts <5> <6>\n  D:\\Projects\\GABy\\README.md <5> <6>\n  D:\\Projects\\GABy\\src\\server\\design-intent.ts <5> <6>\n  D:\\Projects\\GABy\\src\\server\\agent-loop.ts <5> <6>\n  D:\\Projects\\GABy\\src\\server\\scheduled-agents.ts <5> <6>\n  D:\\Projects\\GABy\\skills\\planning-and-task-breakdown\\SKILL.md <5> <5>\n  D:\\Projects\\GABy\\docs\\SUNy_FineTune_Colab.ipynb <5> <5>\n  D:\\Projects\\GABy\\skills\\security-and-hardening\\SKILL.md <5> <5>\n  D:\\Projects\\GABy\\src\\server\\client-ticket-routes.ts <5> <5>\n  D:\\Projects\\GABy\\src\\server\\bridge-routes.ts <5> <5>\n  D:\\Projects\\GABy\\src\\server\\blueprint-memory.ts <5> <5>\n  D:\\Projects\\GABy\\src\\server\\subtask-delegator.ts <5> <5>\n  D:\\Projects\\GABy\\src\\renderer\\src\\pages\\WhatIsSUNy.tsx <5> <5>\n  D:\\Projects\\GABy\\src\\server\\verifier.ts <5> <5>\n  D:\\Projects\\GABy\\src\\server\\code-chunks.ts <5> <5>\n  D:\\Projects\\GABy\\src\\server\\cross-project-learning.ts <5> <4>\n  D:\\Projects\\GABy\\bridge\\src\\startup.ts <5> <4>\n  D:\\Projects\\GABy\\src\\server\\hypothesis-engine.ts <5> <4>\n  D:\\Projects\\GABy\\src\\renderer\\src\\pages\\AdminSettings.tsx <5> <4>\n  D:\\Projects\\GABy\\src\\server\\mcp-routes.ts <5> <4>\n  D:\\Projects\\GABy\\src\\server\\skill-loader.ts <5> <4>\n  D:\\Projects\\GABy\\src\\renderer\\src\\components\\BridgeStatusBadge.tsx <5> <4>\n  D:\\Projects\\GABy\\src\\server\\scheduler-routes.ts <5> <4>\n  D:\\Projects\\GABy\\docs\\SUNy_Easy_StepByStep_Plan.md <5> <3>\n  D:\\Projects\\GABy\\bridge\\start-silent.js <5> <3>\n  D:\\Projects\\GABy\\packages\\gaby-sdk\\src\\index.ts <5> <3>\n  D:\\Projects\\GABy\\src\\server\\stage-manager.ts <5> <3>\n  D:\\Projects\\GABy\\src\\server\\repo-map.ts <5> <3>\n  D:\\Projects\\GABy\\src\\renderer\\src\\types.ts <5> <3>\n  D:\\Projects\\GABy\\src\\server\\feature-flags.ts <5> <3>\n  D:\\Projects\\GABy\\src\\server\\benchmark.ts <5> <3>\n  D:\\Projects\\GABy\\DEPLOYMENT.md <5> <3>\n  D:\\Projects\\GABy\\src\\renderer\\src\\components\\TopBar.tsx <5> <3>\n  D:\\Projects\\GABy\\THE_ENGINE.md <5> <3>\n  D:\\Projects\\GABy\\src\\server\\file-discovery.ts <5> <2>\n  D:\\Projects\\GABy\\src\\server\\context-manager.ts <5> <2>\n  D:\\Projects\\GABy\\src\\server\\agent.ts <5> <2>\n  D:\\Projects\\GABy\\src\\server\\sanitizer.ts <5> <2>\n  D:\\Projects\\GABy\\src\\server\\metrics.ts <5> <2>\n  D:\\Projects\\GABy\\src\\renderer\\src\\components\\SidebarContent.tsx <5> <2>\n  D:\\Projects\\GABy\\src\\server\\auth.ts <5> <2>\n  D:\\Projects\\GABy\\skills\\spec-driven-development\\SKILL.md <5> <2>\n  D:\\Projects\\GABy\\src\\server\\behavioral-rules.ts <5> <2>\n  D:\\Projects\\GABy\\src\\renderer\\src\\components\\ChatInput.tsx <5> <2>\n  D:\\Projects\\GABy\\src\\server\\context-summarizer.ts <5> <2>\n  D:\\Projects\\GABy\\src\\server\\agent-check.js <5> <2>\n  D:\\Projects\\GABy\\src\\renderer\\src\\components\\ModeSelector.tsx <5> <2>\n  D:\\Projects\\GABy\\src\\renderer\\src\\components\\ChatMessages.tsx <5> <2>\n  D:\\Projects\\GABy\\src\\server\\reviewer.ts <5> <2>\n  D:\\Projects\\GABy\\src\\renderer\\src\\pages\\PricingPlans.tsx <5> <2>\n  D:\\Projects\\GABy\\src\\server\\hook-system.ts <5> <2>\n  D:\\Projects\\GABy\\packages\\gaby-sdk\\src\\auth.ts <5> <2>\n  D:\\Projects\\GABy\\src\\server\\goal-tracker.ts <5> <2>\n  D:\\Projects\\GABy\\src\\server\\billing.ts <5> <2>\n  D:\\Projects\\GABy\\tmp-check-db.js <5> <2>\n  D:\\Projects\\GABy\\src\\server\\symbol-reader.ts <5> <2>\n  D:\\Projects\\GABy\\src\\renderer\\src\\pages\\Updates.tsx <5> <1>\n  D:\\Projects\\GABy\\src\\server\\mcp-manager.ts <5> <1>\n\n💡 Hint: <uniq> = unique search terms matched, <all> = total match blocks\n\n💡 To get more results from this search query, repeat it with the same params and use --session with the session ID shown above\n\n💡 Tip: Try using synonyms or making your search more general if you don't find what you're looking for\n"
+          }
+        }
+      ],
+      "id": "e265c5a1-8483-429d-9020-5b81ee5fa0c9",
+      "promptContext": {
+        "id": "e39244e0-b4d0-427f-ad63-938584ce645f"
+      }
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "Now I understand the architecture. Let me trace the two issues:\n\n**Issue 1: Bridge disconnects on page refresh**\n\nLooking at the architecture:\n- The bridge (user's machine) connects via WebSocket to the server\n- The web UI (renderer) connects via a separate WebSocket to the server\n- When the user refreshes the page, the web UI's WebSocket disconnects and reconnects\n- But the bridge should NOT be affected by page refresh — it's a separate process\n\nBut the user says the bridge disconnects on page refresh. This could be:\n- The bridge process is tied to the browser session somehow\n- There's a server-side issue where the user client WebSocket disconnect triggers bridge disconnect\n\nLet me look at `handleUserClientUpgrade` in index.ts to see what happens when the user's web client disconnects.\n\nLet me also check how the bridge status is reported to the client. It might be that the bridge status is updated incorrectly on page refresh.\n\n**Issue 2: AI gives wrong response when bridge disconnected**\n\nNow with my fix (throwing errors), when the bridge is disconnected:\n- `sendToBridge` will reject with `'Bridge not connected'`\n- The tool's catch block was changed to `throw new Error(...)` \n- But wait — the catch block catches the error and throws a NEW error. But the original `sendToBridge` already throws/rejects with 'Bridge not connected'.\n\nLet me trace the flow:\n1. AI calls `file_read` tool\n2. `fileReadTool.execute()` calls `sendToBridge(userId, 'exec:read_file', ...)`\n3. `sendToBridge` checks `isBridgeConnected(userId)` — returns false\n4. `sendToBridge` rejects with `new Error('Bridge not connected')`\n5. The `catch (e)` in `fileReadTool` catches this and throws `new Error(\\`Error reading '${input.filePath}': Bridge not connected\\`)` \n6. This error propagates up to the AI SDK, which wraps it as a `tool-error` part\n7. The model receives the tool-error and...\n\nThe problem is: what does the model do with this tool-error? Does it have system prompt instructions about what to do when bridge tools fail? Let me check the system prompt and agent-loop for bridge-related instructions.\n\nLet me look at the system prompt in `prompt-variants.ts` or wherever it's constructed."
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "call_00_gjpqbh7yGOX2YZ2ZCPKk9179",
+          "toolName": "power---semantic_search",
+          "input": {
+            "query": "system prompt bridge disconnected tool error reconnect instruction",
+            "path": "D:\\Projects\\GABy",
+            "allowTests": false,
+            "exact": false,
+            "maxResults": 10,
+            "maxTokens": 5000
+          }
+        }
+      ],
+      "id": "79e311c3-edd1-476f-9d97-7125a8a0136f",
+      "usageReport": {
+        "model": "deepseek/deepseek-v4-pro",
+        "sentTokens": 9055,
+        "receivedTokens": 663,
+        "cacheReadTokens": 62592,
+        "messageCost": 0.02713878,
+        "agentTotalCost": 33.848519243999895
+      },
+      "promptContext": {
+        "id": "e39244e0-b4d0-427f-ad63-938584ce645f"
+      }
+    },
+    {
+      "role": "tool",
+      "content": [
+        {
+          "type": "tool-result",
+          "toolCallId": "call_00_gjpqbh7yGOX2YZ2ZCPKk9179",
+          "toolName": "power---semantic_search",
+          "output": {
+            "type": "text",
+            "value": "---\nFile: D:\\Projects\\GABy\\AGENT_PROJECT_GUIDE.md\n\n1    # SUNy / SUNy — Complete Agent Project Guide\n...\n508  ## 6. Tools & Bridges\n509  \n510  ### 6.1 Bridge Architecture\n511  \n512  The Bridge is a WebSocket connection from the user's local machine to the SUNy server.\n513  \n514  **Bridge connection lifecycle:**\n515  1. User downloads/installs bridge agent (Node.js script or binary)\n516  2. Bridge generates setup code (or user enters one)\n517  3. Bridge connects to `wss://suny.technodel.tech/bridge`\n518  4. Server registers in `bridgeManager` (keyed by userId)\n519  5. All file/shell tool calls are forwarded to bridge\n520  6. Bridge executes on user's machine, returns result\n521  7. Bridge auto-reconnects on disconnect\n\n---\nFile: D:\\Projects\\GABy\\bridge\\src\\bridge.ts\n\n21   export class SunyBridge {\n...\n76     updateToken(newToken: string): void {\n...\n84       // Reconnect immediately with new token\n85       if (!this.stopped) {\n86         this.reconnectDelay = RECONNECT_DELAY;\n87         this.connect();\n88       }\n89     }\n90   \n91     private connect(): void {\n...\n102      this.ws.on('open', () => {\n103        this.log('[SUNy Bridge] Connected to SUNy server ✓');\n104        this.reconnectDelay = RECONNECT_DELAY;\n105        this.startHeartbeat();\n106  \n107        // Auto-register startup on first successful connection\n108        // so the bridge comes back after reboot without user intervention.\n...\n119      this.ws.on('close', (code, reason) => {\n120        this.clearTimers();\n121        if (code === 4001) {\n122          this.log('[SUNy Bridge] Authentication failed (code 4001).');\n123          this.startTokenRefreshFlow();\n124          // Keep waiting for a fresh token until the user explicitly disconnects.\n125          return;\n126        }\n127        if (!this.stopped) {\n128          this.log(`[SUNy Bridge] Disconnected (code ${code}). Reconnecting in ${this.reconnectDelay / 1000}s...`);\n129          this.scheduleReconnect();\n...\n136    } // function connect\n137  \n138    private handleMessage(raw: string): void {\n...\n152      if (type === 'bridge:disconnect') {\n153        const reason = (payload as { reason?: string })?.reason || 'unknown';\n154        if (reason === 'user_disconnected') {\n155          this.log('[SUNy Bridge] User requested disconnect. Stopping bridge.');\n...\n161        this.log('[SUNy Bridge] Server requested disconnect:', reason, '— reconnecting...');\n162        this.ws?.close();\n163        return;\n164      }\n165  \n166      if (type === 'bridge:token_expired') {\n167        this.log('[SUNy Bridge] Session token expired.');\n168        this.startTokenRefreshFlow();\n169        return;\n170      }\n171  \n172      if (type === 'bridge:ping') {\n173        this.send({ type: 'bridge:pong' });\n174        return;\n175      }\n176  \n177      // Register a project directory path so the sandbox allows file operations\n178      if (type === 'bridge:register_path' && payload?.path) {\n179        const targetPath = payload.path as string;\n180        registerPath(targetPath);\n181        this.log(`[SUNy Bridge] Registered project path: ${targetPath}`);\n182        if (id) {\n183          this.send({ type: 'bridge:ack', id, payload: { success: true } });\n...\n191    } // function handleMessage\n...\n206      this.reconnectTimer = setTimeout(() => {\n207        if (!this.stopped) this.connect();\n208      }, this.reconnectDelay);\n209      // Exponential backoff with cap\n210      this.reconnectDelay = Math.min(this.reconnectDelay * 2, MAX_RECONNECT_DELAY);\n211    }\n212  \n213    private clearTimers(): void {\n214      if (this.heartbeatTimer) { clearInterval(this.heartbeatTimer); this.heartbeatTimer = null; }\n215      if (this.reconnectTimer) { clearTimeout(this.reconnectTimer); this.reconnectTimer = null; }\n216      if (this.tokenRefreshTimer) { clearTimeout(this.tokenRefreshTimer); this.tokenRefreshTimer = null; }\n217    }\n...\n246    private startTokenRefreshFlow(): void {\n247      if (this.awaitingTokenRefresh) return; // already in progress\n248      this.awaitingTokenRefresh = true;\n249      this.tokenRefreshAttempts = 0;\n250  \n251      const loginUrl = this.server.replace(/^wss?:\\/\\//, 'https://').replace('/bridge', '/login');\n252      this.log('[SUNy Bridge] ──────────────────────────────────────────');\n253      this.log('[SUNy Bridge] Session expired.  To reconnect:');\n254      this.log('[SUNy Bridge]');\n255      this.log(`[SUNy Bridge]   1. Visit: ${loginUrl}`);\n256      this.log('[SUNy Bridge]   2. Log in and copy your bridge token.');\n257      this.log(`[SUNy Bridge]   3. Write the new token to: ${TOKEN_REFRESH_FILE}`);\n258      this.log('[SUNy Bridge]      e.g.  echo \"YOUR_TOKEN\" > ~/.suny/refresh_token');\n259      this.log('[SUNy Bridge]      OR restart the bridge with the new token flag.');\n260      this.log('[SUNy Bridge]');\n261      this.log(`[SUNy Bridge] Checking for new token every ${TOKEN_REFRESH_POLL_INTERVAL / 1000}s until you disconnect...`);\n262      this.log('[SUNy Bridge] ──────────────────────────────────────────');\n263  \n264      this.openBrowserForReauth();\n265      this.scheduleTokenRefreshPoll();\n266    }\n...\n273    private pollForNewToken(): void {\n...\n279      try {\n...\n286            this.log(`[SUNy Bridge] New token found in ${TOKEN_REFRESH_FILE} — reconnecting...`);\n287          }\n288        }\n289      } catch { /* ignore fs errors */ }\n...\n296          this.log('[SUNy Bridge] New token found in SUNY_TOKEN env var — reconnecting...');\n...\n303        this.reconnectDelay = RECONNECT_DELAY;\n304        this.connect();\n305        return;\n306      }\n307  \n308      this.log(`[SUNy Bridge] Waiting for new token... attempt ${this.tokenRefreshAttempts}`);\n309      this.scheduleTokenRefreshPoll();\n310    } // function pollForNewToken\n\n---\nFile: D:\\Projects\\GABy\\bridge\\src\\executor.ts\n\n14   export async function handleExec(\n15     type: string,\n16     id: string,\n17     payload: Record<string, unknown>,\n18     send: SendFn\n19   ): Promise<void> {\n20     try {\n21       switch (type) {\n...\n56           send({ type: 'bridge:error', id, payload: { message: `Unknown instruction type: ${type}` } });\n57       }\n58     } catch (err) {\n59       const msg = err instanceof SandboxError\n60         ? err.message\n61         : 'Operation failed';\n62       send({ type: 'bridge:error', id, payload: { message: msg } });\n63     } // try {\n64   } // export async function handleEx...\n...\n176  async function execShell(id: string, payload: Record<string, unknown>, send: SendFn): Promise<void> {\n...\n190    send({ type: 'bridge:ack', id });\n...\n197      (line, stream) => send({ type: 'bridge:stream', id, payload: { line, stream } }),\n198      (exitCode) => send({ type: 'bridge:done', id, payload: { exitCode, success: exitCode === 0 } })\n199    );\n200  \n201    // Local timeout: if the server-side timeout fails to reach us (e.g. reconnect),\n202    // kill the process locally so it doesn't hang forever.\n203    setTimeout(() => {\n204      if (processManager.isRunning(id)) {\n205        processManager.kill(id);\n206        send({ type: 'bridge:error', id, payload: { message: `Command timed out after ${timeoutMs / 1000}s` } });\n207      }\n208    }, timeoutMs);\n209  } // async function execShell(id: s...\n\n---\nFile: D:\\Projects\\GABy\\src\\renderer\\src\\components\\BridgeInstallInstructions.tsx\n\n9    export default function BridgeInstallInstructions({ autoCopy = false, previouslyConnected }: Props) {\n...\n16     // Reconnect command (works when the saved bridge token is still valid)\n17     const restartCmd = 'suny-bridge start --silent';\n18   \n19     // Show smart reconnect for users who already set up the bridge\n20     const isReconnect = previouslyConnected === true;\n21   \n22     function buildSetupCommands(token: string): void {\n23       const wsProto = window.location.protocol === 'https:' ? 'wss' : 'ws';\n24       const serverUrl = import.meta.env.DEV ? 'ws://localhost:3500' : `${wsProto}://${window.location.host}`;\n25       const tgzUrl = `${window.location.protocol}//${window.location.host}/bridge/suny-bridge.tgz`;\n26       const c = `npm install -g ${tgzUrl} ; npx suny-bridge start --token ${token} --server ${serverUrl}`;\n27       const exeUrl = `${window.location.protocol}//${window.location.host}/bridge/suny-bridge.exe`;\n28       const winCmd = `@echo off\\r\\ntitle SUNy Bridge Setup\\r\\ncolor 0A\\r\\nset BRIDGE_DIR=%APPDATA%\\\\suny-bridge\\r\\nif not exist \"%BRIDGE_DIR%\" mkdir \"%BRIDGE_DIR%\"\\r\\necho ============================================\\r\\necho SUNy is preparing your local Bridge\\r\\necho ============================================\\r\\necho.\\r\\nif not exist \"%BRIDGE_DIR%\\\\suny-bridge.exe\" (\\r\\n  echo [1/3] Downloading SUNy Bridge...\\r\\n  echo       This can take up to 1 minute on slow internet.\\r\\n  powershell -NoProfile -ExecutionPolicy Bypass -Command \"$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri '${exeUrl}' -OutFile '%APPDATA%\\\\\\\\suny-bridge\\\\\\\\suny-bridge.exe' -UseBasicParsing\"\\r\\n  if errorlevel 1 (\\r\\n    echo.\\r\\n    echo SUNy could not download the Bridge.\\r\\n    echo Please check your internet connection and try again.\\r\\n    pause\\r\\n    exit /b 1\\r\\n  )\\r\\n  echo [2/3] Download complete.\\r\\n) else (\\r\\n  echo [1/3] Bridge already installed.\\r\\n  echo [2/3] Reusing existing Bridge.\\r\\n)\\r\\necho [3/3] Starting Bridge in background...\\r\\npowershell -NoProfile -ExecutionPolicy Bypass -Command \"Start-Process -FilePath '%APPDATA%\\\\\\\\suny-bridge\\\\\\\\suny-bridge.exe' -ArgumentList '--token ${token} --server ${serverUrl}' -WindowStyle Hidden\"\\r\\nif errorlevel 1 (\\r\\n  echo.\\r\\n  echo SUNy could not start the Bridge.\\r\\n  echo Please run the installer again.\\r\\n  pause\\r\\n  exit /b 1\\r\\n)\\r\\necho.\\r\\necho SUNy Bridge started successfully.\\r\\necho You can close this window now.\\r\\ntimeout /t 2 >nul\\r\\n`;\n29       setCmd(c);\n30       setWinInstallerCmd(winCmd);\n31       if (autoCopy && !isReconnect) {\n32         navigator.clipboard.writeText(c).then(() => { setCopied(true); setTimeout(() => setCopied(false), 3000); }).catch(() => {});\n33       }\n34     }\n...\n47     useEffect(() => {\n48       if (isReconnect) {\n...\n56     }, [autoCopy, isReconnect, restartCmd]);\n57   \n58     function copy() {\n59       const text = isReconnect ? restartCmd : cmd;\n60       if (!text) return;\n61       navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });\n62     }\n63   \n64     function downloadWindowsInstaller() {\n...\n70       a.download = 'install-suny-bridge.cmd';\n...\n77     }\n78   \n79     // ── Reconnect view (already installed) ──────────────────────────────────\n80     if (isReconnect) {\n81       return (\n82         <div>\n83           <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.5 }}>\n84             Bridge disconnected. Reconnect with one click:\n...\n162      <div>\n...\n221        <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 10, lineHeight: 1.5 }}>\n222          💡 After the first connection, the bridge will <strong>auto-start on every boot</strong>.\n223          Next time you just need to run <code style={{ fontSize: 11 }}>suny-bridge start --silent</code> to reconnect.\n224        </p>\n225      </div>\n226    );\n227  } // export default function Bridge...\n\n---\nFile: D:\\Projects\\GABy\\src\\renderer\\src\\pages\\Chat.tsx\n\n18   // ── File browser tree node ──────────────────────────────────────────────────\n19   export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: ChatProps) {\n...\n1808     <div className=\"chat-root\" style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg)' }}>\n1809       {/* Top bar */}\n1810       <div className=\"topbar\" style={{\n...\n1901         {/* RIGHT: action buttons */}\n1902         <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1, justifyContent: 'flex-end' }}>\n...\n1946             <BridgeStatusBadge\n1947               connected={bridgeConnected}\n1948               onClick={async () => {\n1949                 if (bridgeConnected) {\n1950                   if (!confirm('🔌 Disconnect the SUNy Bridge?\\n\\nSUNy will no longer be able to read/write files or run commands on your machine. You can reconnect by clicking the bridge button again.')) return;\n1951                   try {\n1952                     await fetch('/api/bridge/disconnect', { method: 'POST', credentials: 'include' });\n1953                     setBridgeConnected(false);\n1954                   } catch { /* ignore */ }\n1955                 } else {\n1956                   setShowBridgeTip(t => !t);\n...\n3354 } // export default function Chat({...\n\n---\nFile: D:\\Projects\\GABy\\src\\server\\bridge-manager.ts\n\n28   export function registerBridge(userId: number, username: string, ws: WebSocket): void {\n...\n43     ws.on('close', (code, reason) => {\n44       console.log(`[bridge-manager] Bridge DISCONNECTED for user ${userId} (code=${code}, reason=${reason?.toString() || 'none'})`);\n45       // Only clean up if this ws is still the active connection — prevents a\n46       // stale close handler from a replaced bridge from deleting the new bridge.\n47       const current = activeBridges.get(userId);\n48       if (current && current.ws === ws) {\n49         activeBridges.delete(userId);\n50       }\n51       rejectAllPendingForUser(userId, 'Bridge disconnected');\n...\n66   } // export function registerBridge...\n...\n179  /**\n180   * Gracefully disconnect a user's bridge and tell it to stop reconnecting.\n181   * Returns true if a bridge was actually disconnected.\n182   */\n183  export function disconnectBridge(userId: number): boolean {\n...\n191    // Tell the bridge to stop (sets this.stopped = true so it won't reconnect)\n192    conn.ws.send(JSON.stringify({ type: 'bridge:disconnect', payload: { reason: 'user_disconnected' } }));\n193    conn.ws.close(1000, 'User requested disconnect');\n194    activeBridges.delete(userId);\n195    rejectAllPendingForUser(userId, 'Bridge disconnected by user');\n196    return true;\n197  }\n\n---\nFile: D:\\Projects\\GABy\\src\\server\\bridge-onboarding.ts\n\n239  router.post('/disconnect', (req: BridgeStatusRequest, res: Response) => {\n240    const userId = req.userId;\n241    if (!userId) {\n242      res.status(401).json({ error: 'Authentication required' });\n243      return;\n244    }\n245  \n246    try {\n247      // eslint-disable-next-line @typescript-eslint/no-var-requires\n248      const { disconnectBridge } = require('./bridge-manager');\n249      const ok = disconnectBridge(userId);\n250      if (ok) {\n251        logOperation({ userId, operation: 'bridge_disconnect', status: 'success' });\n252        res.json({ success: true, message: 'Bridge disconnected' });\n253      } else {\n254        res.json({ success: false, message: 'Bridge was not connected' });\n255      }\n256    } catch (err) {\n257      res.status(500).json({ error: 'Failed to disconnect bridge' });\n258    }\n\n---\nFile: D:\\Projects\\GABy\\src\\server\\index.ts\n\n433  function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void {\n...\n461    ws.on('close', () => {\n462      if (currentAbortController) {\n463        currentAbortController.abort(new Error('cancelled_by_disconnect'));\n...\n2468 } // function handleUserClientUpgra...\n\n---\nFile: D:\\Projects\\GABy\\src\\server\\mcp-manager.ts\n\n45   export type MCPServerStatus =\n46     | 'disconnected'\n47     | 'connecting'\n48     | 'connected'\n49     | 'error';\n...\n120  // -- Singleton Manager --------------------------------------------------------\n121  \n122  class McpManager {\n...\n204    async disconnect(name: string): Promise<void> {\n205      const instance = this.servers.get(name);\n206      if (!instance) return;\n207  \n208      // Remove all tools from this server\n209      for (const [normName, reg] of this.toolMap.entries()) {\n210        if (reg.serverName === name) this.toolMap.delete(normName);\n211      }\n212  \n213      if (instance.client) {\n214        try {\n215          await instance.client.close();\n216        } catch { /* ignore close errors */ }\n217      }\n218  \n219      this.servers.delete(name);\n220    }\n221  \n222    disconnectAll(): void {\n223      for (const name of this.servers.keys()) {\n224        this.disconnect(name);\n225      }\n226    }\n\n---\nFile: D:\\Projects\\GABy\\src\\server\\subtask-delegator.ts\n\n87   export async function runSubtask(\n88     ctx: SubtaskContext,\n89     input: SubtaskInput,\n90   ): Promise<SubtaskResult> {\n91     const { userId, projectPath, model, provider, signal } = ctx;\n92     const { task, files, goal, success_criteria, max_steps = 5 } = input;\n93   \n94     if (!files.length) {\n95       return {\n96         success: false,\n97         summary: 'No files specified for sub-task.',\n98         changed_files: [],\n99         errors: ['No file paths provided.'],\n...\n108    const errors: string[] = [];\n109  \n110    // Create limited tools for sub-agent (bridge tools only — no web/search/memory)\n111    const subTools = createPowerTools({\n112      userId,\n113      projectPath,\n114      signal,\n115      onToolCall: (name, inputData) => {\n116        console.log(`[subtask] tool call: ${name}`, inputData);\n...\n123    // Build the sub-agent prompt\n...\n132    try {\n133      const result = await generateText({\n134        model,\n135        system: SUBAGENT_SYSTEM,\n136        messages,\n137        tools: subTools,\n...\n149      return {\n150        success: errors.length === 0 && changed.length > 0,\n151        summary,\n152        changed_files: changed,\n153        errors,\n...\n159      const errorMsg = err instanceof Error ? err.message : String(err);\n160      errors.push(errorMsg);\n161  \n162      return {\n163        success: false,\n164        summary: errorMsg.slice(0, 500),\n165        changed_files: Array.from(subChangedFiles),\n166        errors,\n167        details: errorMsg,\n168        input_tokens: 0,\n169        output_tokens: 0,\n170      };\n171    } // try {\n172  } // export async function runSubta...\n\nFound 20 search results\nTotal bytes returned: 15425\nTotal tokens returned: 4423\n\nLimits applied:\n  Max tokens: 5000\n\nSkipped files due to limits: 1281\n\nRemaining files not shown:\n  D:\\Projects\\GABy\\AGENT_PROJECT_GUIDE.md <8> <91>\n  D:\\Projects\\GABy\\src\\server\\index.ts <8> <82>\n  D:\\Projects\\GABy\\src\\renderer\\src\\pages\\Chat.tsx <8> <71>\n  D:\\Projects\\GABy\\src\\server\\user-routes.ts <8> <42>\n  D:\\Projects\\GABy\\skills\\browser-testing-with-devtools\\SKILL.md <8> <28>\n  D:\\Projects\\GABy\\src\\server\\power-tools.ts <8> <24>\n  D:\\Projects\\GABy\\src\\server\\verifier.ts <8> <22>\n  D:\\Projects\\GABy\\src\\server\\bridge-manager.ts <8> <21>\n  D:\\Projects\\GABy\\docs\\SUNy_Training_Roadmap.md <8> <19>\n  D:\\Projects\\GABy\\src\\server\\prompt-variants.ts <8> <19>\n  D:\\Projects\\GABy\\bridge\\install-startup.js <8> <18>\n  D:\\Projects\\GABy\\skills\\deprecation-and-migration\\SKILL.md <8> <18>\n  D:\\Projects\\GABy\\src\\renderer\\src\\components\\modals\\ChatModals.tsx <8> <18>\n  D:\\Projects\\GABy\\src\\server\\hypothesis-engine.ts <8> <16>\n  D:\\Projects\\GABy\\THE_ENGINE.md <8> <16>\n  D:\\Projects\\GABy\\src\\server\\test-runner.ts <8> <16>\n  D:\\Projects\\GABy\\src\\server\\mcp-manager.ts <8> <16>\n  D:\\Projects\\GABy\\skills\\context-engineering\\SKILL.md <8> <16>\n  D:\\Projects\\GABy\\src\\server\\prompt-registry.ts <8> <15>\n  D:\\Projects\\GABy\\src\\server\\failure-memory.ts <8> <14>\n  D:\\Projects\\GABy\\src\\server\\mcp-marketplace.ts <8> <13>\n  D:\\Projects\\GABy\\skills\\api-and-interface-design\\SKILL.md <8> <13>\n  D:\\Projects\\GABy\\src\\server\\admin-routes.ts <8> <13>\n  D:\\Projects\\GABy\\src\\server\\verification-obsession.ts <8> <13>\n  D:\\Projects\\GABy\\src\\server\\bridge-onboarding.ts <8> <13>\n  D:\\Projects\\GABy\\src\\server\\presence-engineering.ts <8> <13>\n  D:\\Projects\\GABy\\src\\server\\design-intent.ts <8> <13>\n  D:\\Projects\\GABy\\src\\server\\client-ticket-routes.ts <8> <13>\n  D:\\Projects\\GABy\\skills\\security-and-hardening\\SKILL.md <8> <13>\n  D:\\Projects\\GABy\\src\\server\\tool-parser.ts <8> <13>\n  D:\\Projects\\GABy\\src\\server\\git-manager.ts <8> <13>\n  D:\\Projects\\GABy\\docs\\SUNy_FineTune_Colab.ipynb <8> <13>\n  D:\\Projects\\GABy\\skills\\shipping-and-launch\\SKILL.md <8> <12>\n  D:\\Projects\\GABy\\skills\\debugging-and-error-recovery\\SKILL.md <8> <12>\n  D:\\Projects\\GABy\\src\\server\\browser-automation.ts <8> <12>\n  D:\\Projects\\GABy\\bridge\\src\\executor.ts <8> <12>\n  D:\\Projects\\GABy\\skills\\frontend-ui-engineering\\SKILL.md <8> <11>\n  D:\\Projects\\GABy\\bridge\\src\\bridge.ts <8> <11>\n  D:\\Projects\\GABy\\src\\renderer\\src\\pages\\BridgeSetup.tsx <8> <11>\n  D:\\Projects\\GABy\\src\\server\\stage-manager.ts <8> <11>\n  D:\\Projects\\GABy\\src\\server\\injection-guard.ts <8> <11>\n  D:\\Projects\\GABy\\task-exec-test\\test-files\\run-tests.js <8> <11>\n  D:\\Projects\\GABy\\src\\server\\loop-detector.ts <8> <11>\n  D:\\Projects\\GABy\\src\\server\\cross-project-learning.ts <8> <10>\n  D:\\Projects\\GABy\\bridge\\README.md <8> <10>\n  D:\\Projects\\GABy\\src\\server\\behavioral-rules.ts <8> <10>\n  D:\\Projects\\GABy\\src\\server\\mcp-routes.ts <8> <10>\n  D:\\Projects\\GABy\\src\\server\\agent-loop.ts <8> <10>\n  D:\\Projects\\GABy\\packages\\gaby-sdk\\src\\tool.ts <8> <10>\n  D:\\Projects\\GABy\\skills\\code-simplification\\SKILL.md <8> <9>\n  D:\\Projects\\GABy\\src\\server\\lint-runner.ts <8> <9>\n  D:\\Projects\\GABy\\src\\server\\scheduler-routes.ts <8> <9>\n  D:\\Projects\\GABy\\src\\server\\skill-loader.ts <8> <8>\n  D:\\Projects\\GABy\\src\\server\\edit-format-parser.ts <8> <8>\n  D:\\Projects\\GABy\\_SUNY_ENGINE_INJECTION.md <8> <8>\n  D:\\Projects\\GABy\\src\\server\\scheduled-agents.ts <8> <8>\n  D:\\Projects\\GABy\\src\\server\\hook-system.ts <8> <8>\n  D:\\Projects\\GABy\\src\\server\\agent.ts <8> <8>\n  D:\\Projects\\GABy\\bridge\\src\\index.ts <8> <7>\n  D:\\Projects\\GABy\\src\\server\\auth.ts <8> <7>\n  D:\\Projects\\GABy\\src\\server\\subtask-delegator.ts <8> <7>\n  D:\\Projects\\GABy\\src\\server\\session-replay.ts <8> <7>\n  D:\\Projects\\GABy\\src\\renderer\\src\\components\\NarratedMessage.tsx <8> <7>\n  D:\\Projects\\GABy\\src\\renderer\\src\\components\\BridgeInstallInstructions.tsx <8> <7>\n  D:\\Projects\\GABy\\src\\server\\operation-audit.ts <8> <7>\n  D:\\Projects\\GABy\\src\\server\\error-corrector.ts <8> <6>\n  D:\\Projects\\GABy\\src\\server\\dev-server-validator.ts <8> <6>\n  D:\\Projects\\GABy\\src\\server\\training-scorer.ts <8> <6>\n  D:\\Projects\\GABy\\README.md <8> <6>\n  D:\\Projects\\GABy\\src\\server\\metrics.ts <8> <6>\n  D:\\Projects\\GABy\\src\\server\\session-benchmark.ts <8> <6>\n  D:\\Projects\\GABy\\src\\renderer\\src\\components\\BridgeStatusBadge.tsx <8> <5>\n  D:\\Projects\\GABy\\packages\\gaby-sdk\\src\\index.ts <8> <5>\n  D:\\Projects\\GABy\\src\\server\\user-memory.ts <8> <5>\n  D:\\Projects\\GABy\\src\\server\\sanitizer.ts <8> <5>\n  D:\\Projects\\GABy\\src\\server\\file-discovery.ts <8> <5>\n  D:\\Projects\\GABy\\src\\server\\bridge-routes.ts <8> <5>\n  D:\\Projects\\GABy\\bridge\\src\\sandbox.ts <8> <5>\n  D:\\Projects\\GABy\\src\\server\\prometheus-metrics.ts <8> <4>\n  D:\\Projects\\GABy\\bridge\\src\\startup.ts <8> <4>\n  D:\\Projects\\GABy\\src\\server\\checkpoint-routes.ts <8> <4>\n  D:\\Projects\\GABy\\src\\renderer\\src\\types.ts <8> <4>\n  D:\\Projects\\GABy\\src\\renderer\\src\\pages\\Updates.tsx <8> <4>\n  D:\\Projects\\GABy\\packages\\gaby-sdk\\src\\extension.ts <8> <4>\n  D:\\Projects\\GABy\\packages\\gaby-sdk\\README.md <8> <4>\n  D:\\Projects\\GABy\\src\\server\\reviewer.ts <8> <4>\n  D:\\Projects\\GABy\\src\\server\\context-summarizer.ts <8> <4>\n  D:\\Projects\\GABy\\src\\server\\repo-map.ts <8> <3>\n  D:\\Projects\\GABy\\src\\renderer\\src\\pages\\AdminSettings.tsx <8> <3>\n  D:\\Projects\\GABy\\src\\server\\symbol-reader.ts <8> <3>\n  D:\\Projects\\GABy\\skills\\performance-optimization\\SKILL.md <8> <3>\n  D:\\Projects\\GABy\\src\\renderer\\src\\components\\TopBar.tsx <8> <3>\n  D:\\Projects\\GABy\\src\\renderer\\src\\hooks\\useWebSocket.ts <8> <2>\n  D:\\Projects\\GABy\\src\\renderer\\src\\components\\ChatInput.tsx <8> <2>\n  D:\\Projects\\GABy\\src\\renderer\\src\\components\\ChatMessages.tsx <8> <2>\n  D:\\Projects\\GABy\\src\\renderer\\src\\pages\\AdminApiKeys.tsx <8> <1>\n  D:\\Projects\\GABy\\src\\renderer\\src\\pages\\ClientTickets.tsx <8> <1>\n  D:\\Projects\\GABy\\src\\renderer\\src\\pages\\AdminFeatureFlags.tsx <8> <1>\n  D:\\Projects\\GABy\\src\\renderer\\src\\pages\\CheckpointTimeline.tsx <8> <1>\n  D:\\Projects\\GABy\\src\\renderer\\src\\pages\\Login.tsx <8> <1>\n\n💡 Hint: <uniq> = unique search terms matched, <all> = total match blocks\n\n💡 To get more results from this search query, repeat it with the same params and use --session with the session ID shown above\n\n💡 Tip: Try using synonyms or making your search more general if you don't find what you're looking for\n"
+          }
+        }
+      ],
+      "id": "8e3240dc-fcc0-43ef-a8fe-76fe611c6bc4",
+      "promptContext": {
+        "id": "e39244e0-b4d0-427f-ad63-938584ce645f"
+      }
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "I'm not finding the system prompt. Let me look at the system prompt construction in the agent-loop.ts and prompt-variants.ts to understand what the AI is told about the bridge and tool failures.\n\nI need to focus on two things:\n1. What causes the bridge to disconnect on page refresh\n2. What the AI is told about what to do when tools fail\n\nLet me look at the system prompt and the agent loop."
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "call_00_3dpdCdzQWVjtaa9hlEPA0923",
+          "toolName": "power---grep",
+          "input": {
+            "filePattern": "src/server/agent-loop.ts",
+            "searchTerm": "bridge|disconnect|tool.error|system_prompt|systemPrompt",
+            "contextLines": 2,
+            "caseSensitive": false,
+            "maxResults": 30
+          }
+        }
+      ],
+      "id": "9184ed60-90dd-4757-b6fc-0cb7365fb389",
+      "usageReport": {
+        "model": "deepseek/deepseek-v4-pro",
+        "sentTokens": 7396,
+        "receivedTokens": 222,
+        "cacheReadTokens": 72192,
+        "messageCost": 0.02410944,
+        "agentTotalCost": 33.87262868399989
+      },
+      "promptContext": {
+        "id": "e39244e0-b4d0-427f-ad63-938584ce645f"
+      }
+    },
+    {
+      "role": "tool",
+      "content": [
+        {
+          "type": "tool-result",
+          "toolCallId": "call_00_3dpdCdzQWVjtaa9hlEPA0923",
+          "toolName": "power---grep",
+          "output": {
+            "type": "text",
+            "value": "## Grep Results: `bridge|disconnect|tool.error|system_prompt|systemPrompt` in `src/server/agent-loop.ts` (24 matches)\n\n### src\\server\\agent-loop.ts (24 matches)\n- **L27:** `import { isBridgeConnected } from './bridge-manager';`\n  ```\n  import { mcpManager } from './mcp-manager';\n  import { userClientManager } from './user-client-manager';\n  import { isBridgeConnected } from './bridge-manager';\n  import { invalidateRepoMap } from './repo-map';\n  import { gitAutoCommit, createCheckpoint } from './git-manager';\n  ```\n- **L85:** `  systemPrompt: string,`\n  ```\n  function buildAnthropicCachedMessages(\n    messages: CoreMessage[],\n    systemPrompt: string,\n  ): { messages: CoreMessage[]; useSystemParam: false } {\n    const CACHE = { anthropic: { cacheControl: { type: 'ephemeral' as const } } };\n  ```\n- **L92:** `    content: systemPrompt,`\n  ```\n    const systemMsg: CoreMessage = {\n      role: 'system',\n      content: systemPrompt,\n      providerOptions: CACHE,\n    };\n  ```\n- **L139:** `  systemPrompt: string;`\n  ```\n    userId: number;\n    mode: string;\n    systemPrompt: string;\n    projectId?: number;\n    projectPath?: string;\n  ```\n- **L298:** `  const { userId, mode, systemPrompt, projectId, projectPath, history, userMessage, imageData, sessionId, talkMode, signal, onChunk } = req;`\n  ```\n  \n  export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResult> {\n    const { userId, mode, systemPrompt, projectId, projectPath, history, userMessage, imageData, sessionId, talkMode, signal, onChunk } = req;\n    const startedAt = Date.now();\n  \n  ```\n- **L357:** `  // Determine edit format (needs bridgeConnected, must come before fullSystem)`\n  ```\n    ];\n  \n    // Determine edit format (needs bridgeConnected, must come before fullSystem)\n    const bridgeConnected = isBridgeConnected(userId);\n    const editFormat = (bridgeConnected && projectPath && !talkMode) ? await getEditFormat() : 'tool-call';\n  ```\n- **L358:** `  const bridgeConnected = isBridgeConnected(userId);`\n  ```\n  \n    // Determine edit format (needs bridgeConnected, must come before fullSystem)\n    const bridgeConnected = isBridgeConnected(userId);\n    const editFormat = (bridgeConnected && projectPath && !talkMode) ? await getEditFormat() : 'tool-call';\n  \n  ```\n- **L359:** `  const editFormat = (bridgeConnected && projectPath && !talkMode) ? await getEditFormat() : 'tool-call';`\n  ```\n    // Determine edit format (needs bridgeConnected, must come before fullSystem)\n    const bridgeConnected = isBridgeConnected(userId);\n    const editFormat = (bridgeConnected && projectPath && !talkMode) ? await getEditFormat() : 'tool-call';\n  \n    // For text-based formats (diff / whole), drop tool calls and inject format instructions\n  ```\n- **L375:** `    ? \\`${systemPrompt}\\n\\n${ARCHITECT_PLAN_INSTRUCTIONS}\\n\\n<WorkingDirectory>${projectPath ?? '(no project)'}</WorkingDirectory>\\``\n  ```\n    // For architect mode, the first pass uses a planning-only prompt\n    const architectPlanSystem = editFormat === 'architect'\n      ? `${systemPrompt}\\n\\n${ARCHITECT_PLAN_INSTRUCTIONS}\\n\\n<WorkingDirectory>${projectPath ?? '(no project)'}</WorkingDirectory>`\n      : null;\n  \n  ```\n- **L382:** `  // systemPrompt first in index.ts. Dynamic parts (repo map, hyp block,`\n  ```\n    // explicit cache_control markers needed (unlike Anthropic). The static\n    // portions (behavioral rules, project guide, pinned files) are built into\n    // systemPrompt first in index.ts. Dynamic parts (repo map, hyp block,\n    // tool mandate) are appended below. This keeps the cacheable prefix as\n    // large and stable as possible. Cache hit on Flash: $0.003/M input (98%\n  ```\n- **L387:** `    ? \\`${systemPrompt}${formatSystemAddition}\\n\\n<WorkingDirectory>${projectPath}</WorkingDirectory>\\nAll relative file paths are resolved against this directory.\\``\n  ```\n    // off the $0.14/M miss rate).\n    let fullSystem = architectPlanSystem ?? (projectPath\n      ? `${systemPrompt}${formatSystemAddition}\\n\\n<WorkingDirectory>${projectPath}</WorkingDirectory>\\nAll relative file paths are resolved against this directory.`\n      : systemPrompt + formatSystemAddition);\n  \n  ```\n- **L388:** `    : systemPrompt + formatSystemAddition);`\n  ```\n    let fullSystem = architectPlanSystem ?? (projectPath\n      ? `${systemPrompt}${formatSystemAddition}\\n\\n<WorkingDirectory>${projectPath}</WorkingDirectory>\\nAll relative file paths are resolved against this directory.`\n      : systemPrompt + formatSystemAddition);\n  \n    // ── Runtime skill classification: inject relevant skill instructions ─────\n  ```\n- **L433:** `  // Build tools (only if bridge is connected, project is set, and NOT in talk mode)`\n  ```\n    }\n  \n    // Build tools (only if bridge is connected, project is set, and NOT in talk mode)\n    // MCP tools from connected servers are merged automatically\n    // ── Model references (set inside model loop, used by lazy-getter tools) ──\n  ```\n- **L439:** `  // ── Web tools (always available — server-side, no bridge needed) ────────`\n  ```\n    let currentProvider: string = '';\n  \n    // ── Web tools (always available — server-side, no bridge needed) ────────\n    const webSearch = createWebSearchTool();\n    const urlFetch = createUrlFetchTool(userId);\n  ```\n- **L446:** `    if (bridgeConnected && projectPath && !talkMode) {`\n  ```\n    const mcpToolsAvailable = mcpManager.availableToolCount > 0;\n    const tools = await (async () => {\n      if (bridgeConnected && projectPath && !talkMode) {\n        const powerTools = createPowerTools({\n          userId,\n  ```\n- **L495:** `        getSystemPrompt: () => fullSystem,`\n  ```\n            signal,\n          }),\n          getSystemPrompt: () => fullSystem,\n          getHistory: () => history,\n        });\n  ```\n- **L522:** `    // Bridge offline, no project, or talk mode — still provide web tools`\n  ```\n        return merged;\n      }\n      // Bridge offline, no project, or talk mode — still provide web tools\n      const reasons: string[] = [];\n      if (!bridgeConnected) reasons.push('bridge offline');\n  ```\n- **L524:** `    if (!bridgeConnected) reasons.push('bridge offline');`\n  ```\n      // Bridge offline, no project, or talk mode — still provide web tools\n      const reasons: string[] = [];\n      if (!bridgeConnected) reasons.push('bridge offline');\n      if (!projectPath) reasons.push('no project path');\n      if (talkMode) reasons.push('talk mode');\n  ```\n- **L543:** `  if (isFeatureEnabled('ff_hypothesis_engine') && bridgeConnected && projectPath && !talkMode && projectId && userMessage.length > 80 && modelEntries.length > 0 && classifyAutoMode(userMessage) !== 'free') {`\n  ```\n    // Each strategy runs independently. The winner's branch is merged, losers discarded.\n    // Emits suny:hypothesis_winner event for the frontend.\n    if (isFeatureEnabled('ff_hypothesis_engine') && bridgeConnected && projectPath && !talkMode && projectId && userMessage.length > 80 && modelEntries.length > 0 && classifyAutoMode(userMessage) !== 'free') {\n      try {\n        const primaryModel = modelEntries[0].model as LanguageModel;\n  ```\n- **L575:** `  if (!textFormat && !talkMode && bridgeConnected && projectPath) {`\n  ```\n    // (immediately before the user message) is where models pay most\n    // attention and is hardest to overlook.\n    if (!textFormat && !talkMode && bridgeConnected && projectPath) {\n      const toolNames = Object.keys(effectiveTools || {});\n      if (toolNames.length > 0) {\n  ```\n- **L605:** `  if (bridgeConnected && projectPath && !talkMode) {`\n  ```\n  \n    // Create a git checkpoint BEFORE any file changes so the user can roll back\n    if (bridgeConnected && projectPath && !talkMode) {\n      createCheckpoint(userId, projectPath, userMessage).catch(() => {});\n    }\n  ```\n- **L779:** `      const isCodingTask = bridgeConnected && projectPath && !talkMode;`\n  ```\n        // than silently returning empty output. Retry up to 2 times.\n        const isEmptyOutput = fullText.length === 0 && toolCallNames.size === 0;\n        const isCodingTask = bridgeConnected && projectPath && !talkMode;\n        if (isEmptyOutput && isCodingTask) {\n          console.warn('[agent-loop] AUTO-RETRY: empty output with no tools — re-invoking with stronger mandate');\n  ```\n- **L1087:** `      if (editFormat === 'architect' && projectPath && bridgeConnected) {`\n  ```\n        // First pass (above) was the planning pass. Now run a second pass that\n        // actually applies edits using diff format (or tool-call if tools available).\n        if (editFormat === 'architect' && projectPath && bridgeConnected) {\n          userClientManager.pushToUser(userId, 'suny:stage', { stage: 'executing', label: 'Plan ready — now executing...' });\n          userClientManager.pushToUser(userId, 'suny:narration', {\n  ```\n- **L1094:** `        const execSystem = \\`${systemPrompt}${execFormatInstructions}\\n\\n<WorkingDirectory>${projectPath}</WorkingDirectory>\\nAll relative file paths are resolved against this directory.\\`;`\n  ```\n  \n          const execFormatInstructions = tools ? '' : '\\n\\n' + DIFF_FORMAT_INSTRUCTIONS;\n          const execSystem = `${systemPrompt}${execFormatInstructions}\\n\\n<WorkingDirectory>${projectPath}</WorkingDirectory>\\nAll relative file paths are resolved against this directory.`;\n  \n          const rawExecMessages: CoreMessage[] = [\n  ```\n"
+          }
+        }
+      ],
+      "id": "bbce00c0-0752-43ea-9142-c5fe74ec782e",
+      "promptContext": {
+        "id": "e39244e0-b4d0-427f-ad63-938584ce645f"
+      }
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "Now I need to find where the system prompt is built to see what instructions the AI gets about bridge connection and tool failures. Let me look at `prompt-variants.ts` or `index.ts` where the system prompt is assembled.\n\nThe key issue I noticed:\n1. `bridgeConnected` is checked once at the start of the agent loop (line 358)\n2. If disconnected, no power tools are provided — only web tools (line 522-523: \"Bridge offline, no project, or talk mode — still provide web tools\")\n3. So when the bridge is disconnected, the AI only has web_search and url_fetch tools, NO file tools\n\nThis means the AI tries to use the tools it has (web_search, url_fetch) or its own knowledge, and gives the response the user sees: \"Let me look at the project files now... Hmm, still can't reach those files...\"\n\nBut the AI should be instructed to tell the user to reconnect the bridge! Let me find the system prompt to see if there's an instruction about this.\n\nActually wait — the problem is more fundamental. When the bridge is offline:\n- The AI only has `web_search` and `url_fetch` tools\n- The system prompt doesn't tell the AI to ask the user to reconnect\n- The AI simply doesn't know about the bridge or that it should tell the user\n\nLet me also check: when the page refreshes, does the user-client WebSocket disconnect cause the bridge to disconnect? Let me look at `handleUserClientUpgrade`."
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "call_00_7WeqGr7cK9cPBjAJoq1w3257",
+          "toolName": "power---file_read",
+          "input": {
+            "filePath": "src/server/index.ts",
+            "withLines": true,
+            "lineOffset": 433,
+            "lineLimit": 40
+          }
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "call_01_KESQbb10tYeNOCwfNinS6881",
+          "toolName": "power---grep",
+          "input": {
+            "filePattern": "src/server/prompt-variants.ts",
+            "searchTerm": "bridge|systemPrompt|system_prompt|cannot read|tool.*fail|reconnect",
+            "contextLines": 2,
+            "caseSensitive": false,
+            "maxResults": 30
+          }
+        }
+      ],
+      "id": "90148671-a86b-479f-b339-5557c2916cc3",
+      "usageReport": {
+        "model": "deepseek/deepseek-v4-pro",
+        "sentTokens": 2437,
+        "receivedTokens": 549,
+        "cacheReadTokens": 79744,
+        "messageCost": 0.01771378,
+        "agentTotalCost": 33.89034246399989
+      },
+      "promptContext": {
+        "id": "e39244e0-b4d0-427f-ad63-938584ce645f"
+      }
+    },
+    {
+      "role": "tool",
+      "content": [
+        {
+          "type": "tool-result",
+          "toolCallId": "call_00_7WeqGr7cK9cPBjAJoq1w3257",
+          "toolName": "power---file_read",
+          "output": {
+            "type": "text",
+            "value": "434|  const url = new URL(req.url || '', 'http://localhost');\n435|  const token = url.searchParams.get('token') ||\n436|    req.headers.cookie?.split(';').find(c => c.trim().startsWith('suny_token='))?.split('=')[1];\n437|\n438|  if (!token) {\n439|    ws.close(4001, 'Missing token');\n440|    return;\n441|  }\n442|\n443|  const payload = verifyToken(decodeURIComponent(token));\n444|  if (!payload) {\n445|    ws.close(4001, 'Invalid token');\n446|    return;\n447|  }\n448|\n449|  const userId = payload.id as number;\n450|  userClientManager.register(userId, ws);\n451|  ws.send(JSON.stringify({ event: 'connected', message: 'SUNy is ready!' }));\n452|\n453|  // ── Track active requests for cancellation ──────────────────────────────\n454|  let currentAbortController: AbortController | null = null;\n455|  let isProcessing = false;\n456|  let queuedMessage: Buffer | null = null;\n457|\n458|  // ── WebSocket close: abort any in-flight request ────────────────────────\n459|  // Without this, a disconnected user stays in \"thinking\" forever because\n460|  // the agent loop keeps running and pushChatContent silently fails (WS gone).\n461|  ws.on('close', () => {\n462|    if (currentAbortController) {\n463|      currentAbortController.abort(new Error('cancelled_by_disconnect'));\n464|      currentAbortController = null;\n465|    }\n466|    isProcessing = false;\n467|    queuedMessage = null;\n468|  });\n469|\n470|  ws.on('message', async (raw: Buffer) => {\n471|    // Rate limit check\n472|    if (!checkWsRateLimit(userId)) {\n473|      userClientManager.pushChatContent(userId, 'suny:stream_end', {\n...\nTotal lines in the file: 2561"
+          }
+        },
+        {
+          "type": "tool-result",
+          "toolCallId": "call_01_KESQbb10tYeNOCwfNinS6881",
+          "toolName": "power---grep",
+          "output": {
+            "type": "text",
+            "value": "No matches found for pattern 'bridge|systemPrompt|system_prompt|cannot read|tool.*fail|reconnect' in files matching 'src/server/prompt-variants.ts'."
+          }
+        }
+      ],
+      "id": "5cd3a2b6-de97-4087-99d2-6e0e29fbb62f",
+      "promptContext": {
+        "id": "e39244e0-b4d0-427f-ad63-938584ce645f"
+      }
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "OK, so the user client WebSocket is separate from the bridge WebSocket. The page refresh disconnects the user client WS, but the bridge WS should stay connected since it's a separate process on the user's machine.\n\nBut the user says the bridge disconnects on refresh. Let me think about what could cause this...\n\nWait, maybe the issue is that `bridgeConnected` state in the frontend gets reset on page refresh, and the frontend doesn't automatically check/restore the bridge status on reconnect. Let me check how the frontend checks bridge status.\n\nLet me look at the Chat.tsx around the bridgeConnected state and how it's initialized/polled.\n\nActually, let me also re-read the user's message more carefully: \"every time i refresh the page the bridge is discconnected\". This could mean:\n1. The bridge actually disconnects (the process stops) \n2. Or the UI shows \"disconnected\" because it doesn't properly re-check the status\n\nLet me look at how bridge status is reported and queried."
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "call_00_FJ6NCO2kvkO3nKbJO1308929",
+          "toolName": "power---grep",
+          "input": {
+            "filePattern": "src/renderer/src/pages/Chat.tsx",
+            "searchTerm": "bridgeConnected|setBridgeConnected|bridge.*status|isBridgeConnected",
+            "contextLines": 2,
+            "caseSensitive": false,
+            "maxResults": 30
+          }
+        }
+      ],
+      "id": "215e5514-4d28-4b91-b06d-dc60b5f303b0",
+      "usageReport": {
+        "model": "deepseek/deepseek-v4-pro",
+        "sentTokens": 559,
+        "receivedTokens": 358,
+        "cacheReadTokens": 82688,
+        "messageCost": 0.014208259999999999,
+        "agentTotalCost": 33.90455072399989
+      },
+      "promptContext": {
+        "id": "e39244e0-b4d0-427f-ad63-938584ce645f"
+      }
+    },
+    {
+      "role": "tool",
+      "content": [
+        {
+          "type": "tool-result",
+          "toolCallId": "call_00_FJ6NCO2kvkO3nKbJO1308929",
+          "toolName": "power---grep",
+          "output": {
+            "type": "text",
+            "value": "## Grep Results: `bridgeConnected|setBridgeConnected|bridge.*status|isBridgeConnected` in `src/renderer/src/pages/Chat.tsx` (20 matches)\n\n### src\\renderer\\src\\pages\\Chat.tsx (20 matches)\n- **L10:** `import BridgeStatusBadge from '../components/BridgeStatusBadge';`\n  ```\n  import ModeSelector from '../components/ModeSelector';\n  import BridgeInstallInstructions from '../components/BridgeInstallInstructions';\n  import BridgeStatusBadge from '../components/BridgeStatusBadge';\n  import TopBar from '../components/TopBar';\n  import SidebarContent from '../components/SidebarContent';\n  ```\n- **L31:** `  const [bridgeConnected, setBridgeConnected] = useState(false);`\n  ```\n    const streamingContentRef = useRef('');\n    const [thinkingStatus, setThinkingStatus] = useState('');\n    const [bridgeConnected, setBridgeConnected] = useState(false);\n    const [bridgePreviouslyConnected, setBridgePreviouslyConnected] = useState(false);\n    const [showBridgeTip, setShowBridgeTip] = useState(false);\n  ```\n- **L1367:** `        setBridgeConnected(true);`\n  ```\n        } else if (msg.event === 'bridge:connected') {\n          clearThinkingTimeout();\n          setBridgeConnected(true);\n        }\n      },\n  ```\n- **L1379:** `    onDisconnect: () => { setBridgeConnected(false); },`\n  ```\n        activeProofIdRef.current = null;\n      },\n      onDisconnect: () => { setBridgeConnected(false); },\n    });\n  \n  ```\n- **L1384:** `  // Bridge status resilience: poll /api/bridge/status every 30s as a fallback`\n  ```\n    useEffect(() => { loadUserData(); loadProjects(); return () => clearThinkingTimeout(); }, []);\n  \n    // Bridge status resilience: poll /api/bridge/status every 30s as a fallback\n    // in case a WS bridge:connected/disconnected event is missed (e.g. tab was\n    // backgrounded). Cheap (single bool fetch) and keeps the badge accurate.\n  ```\n- **L1391:** `        const res = await fetch('/api/bridge/status', { credentials: 'include' });`\n  ```\n      const tick = async () => {\n        try {\n          const res = await fetch('/api/bridge/status', { credentials: 'include' });\n          if (!cancelled && res.ok) {\n            const data = await res.json();\n  ```\n- **L1394:** `          if (typeof data.connected === 'boolean') setBridgeConnected(data.connected);`\n  ```\n          if (!cancelled && res.ok) {\n            const data = await res.json();\n            if (typeof data.connected === 'boolean') setBridgeConnected(data.connected);\n          }\n        } catch { /* ignore transient network errors */ }\n  ```\n- **L1431:** `      setBridgeConnected(data.bridge_connected);`\n  ```\n        setWalletBalance(data.wallet_balance);\n        setSelectedMode(data.selected_mode);\n        setBridgeConnected(data.bridge_connected);\n        setBridgePreviouslyConnected(Boolean(data.bridge_previously_connected));\n        setCrossDeviceMemoryEnabled(Boolean(data.cross_device_memory_enabled));\n  ```\n- **L1571:** `    if (effectiveProjectId && !bridgeConnected && looksLikeExecutionTask) {`\n  ```\n      }\n  \n      if (effectiveProjectId && !bridgeConnected && looksLikeExecutionTask) {\n        addMessage('system', 'Bridge is offline, so SUNy cannot create files or run commands right now. Reconnect the bridge to execute this task end-to-end.');\n      }\n  ```\n- **L1946:** `            <BridgeStatusBadge`\n  ```\n            )}\n            {!isMobile && (\n              <BridgeStatusBadge\n                connected={bridgeConnected}\n                onClick={async () => {\n  ```\n- **L1947:** `              connected={bridgeConnected}`\n  ```\n            {!isMobile && (\n              <BridgeStatusBadge\n                connected={bridgeConnected}\n                onClick={async () => {\n                  if (bridgeConnected) {\n  ```\n- **L1949:** `                if (bridgeConnected) {`\n  ```\n                connected={bridgeConnected}\n                onClick={async () => {\n                  if (bridgeConnected) {\n                    if (!confirm('🔌 Disconnect the SUNy Bridge?\\n\\nSUNy will no longer be able to read/write files or run commands on your machine. You can reconnect by clicking the bridge button again.')) return;\n                    try {\n  ```\n- **L1953:** `                    setBridgeConnected(false);`\n  ```\n                    try {\n                      await fetch('/api/bridge/disconnect', { method: 'POST', credentials: 'include' });\n                      setBridgeConnected(false);\n                    } catch { /* ignore */ }\n                  } else {\n  ```\n- **L2052:** `                    if (!bridgeConnected) { setShowBridgeTip(true); return; }`\n  ```\n                    className=\"btn btn-icon btn-secondary btn-sm\"\n                    onClick={() => {\n                      if (!bridgeConnected) { setShowBridgeTip(true); return; }\n                      setShowFileBrowser(v => { const next = !v; if (!v && activeProject) loadFileBrowser(activeProject.id); return next; });\n                    }}\n  ```\n- **L2055:** `                  title={showFileBrowser ? 'Hide file browser' : (bridgeConnected ? 'Show file browser' : 'Bridge required � click to connect')}`\n  ```\n                      setShowFileBrowser(v => { const next = !v; if (!v && activeProject) loadFileBrowser(activeProject.id); return next; });\n                    }}\n                    title={showFileBrowser ? 'Hide file browser' : (bridgeConnected ? 'Show file browser' : 'Bridge required � click to connect')}\n                  >\n                    {showFileBrowser ? <FolderOpen size={12} /> : <Folder size={12} />}\n  ```\n- **L2534:** `          {activeProject && !isMobile && bridgeConnected && (`\n  ```\n  \n            {/* Live Server section */}\n            {activeProject && !isMobile && bridgeConnected && (\n              <div style={{ borderTop: '1px solid var(--border)', marginTop: 4 }}>\n                <div style={{ padding: '12px 12px 8px' }}>\n  ```\n- **L2574:** `                      onClick={() => { if (!bridgeConnected) { setShowBridgeTip(true); return; } startDevServer(); }}`\n  ```\n                        className=\"btn btn-secondary btn-sm\"\n                        style={{ fontSize: 11, padding: '4px 10px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}\n                        onClick={() => { if (!bridgeConnected) { setShowBridgeTip(true); return; } startDevServer(); }}\n                        disabled={devServerLoading}\n                      >\n  ```\n- **L2682:** `            bridgeConnected={bridgeConnected}`\n  ```\n              globalIntroLine={globalIntroLine}\n              projects={projects}\n              bridgeConnected={bridgeConnected}\n              expandedRunIds={expandedRunIds}\n              msgEndRef={msgEndRef}\n  ```\n- **L2710:** `            bridgeConnected={bridgeConnected}`\n  ```\n              selectedMode={selectedMode}\n              activeProject={activeProject}\n              bridgeConnected={bridgeConnected}\n              talkMode={talkMode}\n              noBalance={noBalance}\n  ```\n- **L2733:** `            {bridgeConnected ? (`\n  ```\n          <div className=\"modal-overlay\" onClick={() => setShowBridgeTip(false)}>\n            <div className=\"modal\" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>\n              {bridgeConnected ? (\n                <>\n                  <div style={{ textAlign: 'center', padding: '12px 0 8px' }}>\n  ```\n"
+          }
+        }
+      ],
+      "id": "9e116e46-d524-4416-bce0-6d396fb13335",
+      "promptContext": {
+        "id": "e39244e0-b4d0-427f-ad63-938584ce645f"
+      }
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "Now I can see the issue more clearly. Let me trace it:\n\n1. On page refresh, `bridgeConnected` initializes to `false` (line 31: `useState(false)`)\n2. There's a 30-second polling fallback for bridge status (line 1384-1394)\n3. The `bridge:connected` WS event sets it to true (line 1367)\n4. On WS disconnect, it sets `bridgeConnected = false` (line 1379)\n\nThe problem is: on page refresh, the user-client WS reconnects (useWebSocket auto-reconnects), and the bridge WS is still connected (it's a separate process). But `bridgeConnected` resets to `false` and needs the `bridge:connected` event to set it back. The polling fallback runs every 30s.\n\nBut the user says \"every time i refresh the page the bridge is discconnected\" — so even after waiting, it stays disconnected. This means the bridge might actually be disconnecting. \n\nLet me investigate why. The bridge WebSocket is separate — it shouldn't be affected by browser refresh. But maybe there's something on the server side that disconnects the bridge when the user client disconnects? Let me look at the `ws.on('close')` handler in `handleUserClientUpgrade` more carefully.\n\nActually, looking at line 461:\n```\nws.on('close', () => {\n    if (currentAbortController) {\n      currentAbortController.abort(new Error('cancelled_by_disconnect'));\n      currentAbortController = null;\n    }\n    isProcessing = false;\n    queuedMessage = null;\n  });\n```\n\nThis just aborts any in-flight request. It doesn't disconnect the bridge.\n\nBut wait — at line 1379: `onDisconnect: () => { setBridgeConnected(false); }`. This sets bridgeConnected to false when the user-client WS disconnects. Then the 30s polling should fix it. But maybe the polling isn't working properly, or there's a race condition.\n\nLet me also check: when the user-client WS reconnects after page refresh, does the server push a `bridge:connected` event? Let me check `userClientManager` for how it handles new connections and bridge status.\n\nActually, let me focus on the more critical issue: the AI response when bridge is disconnected. The user says:\n\"Hmm, still can't reach those files directly — the file system tools aren't connected in this session. But you know what? I can still help! If you just copy and paste...\"\n\nThis is the AI trying to use web_search or url_fetch tools (the only tools available when bridge is offline) and then giving up. The system prompt doesn't tell the AI it needs to ask the user to reconnect the bridge.\n\nNow there's already a client-side message: \n```ts\nif (effectiveProjectId && !bridgeConnected && looksLikeExecutionTask) {\n    addMessage('system', 'Bridge is offline, so SUNy cannot create files or run commands right now. Reconnect the bridge to execute this task end-to-end.');\n}\n```\n\nBut the AI itself doesn't know to say this. Let me look at the system prompt to see if there's a bridge-related instruction.\n\nLet me look at the prompt-registry or where the system prompt is assembled."
+        },
+        {
+          "type": "text",
+          "text": "Let me look at where the system prompt is built and if it tells the AI about bridge connectivity:"
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "call_00_bdcNlfDs6mi718PYNHPw1981",
+          "toolName": "power---grep",
+          "input": {
+            "filePattern": "src/server/*.ts",
+            "searchTerm": "bridge.*offline|no.*bridge|bridge.*not.*connect|reconnect.*bridge|ask.*user.*bridge",
+            "contextLines": 3,
+            "caseSensitive": false,
+            "maxResults": 30
+          }
+        }
+      ],
+      "id": "2d3ced34-46a9-48e4-b040-6edae9e47e76",
+      "usageReport": {
+        "model": "deepseek/deepseek-v4-pro",
+        "sentTokens": 1713,
+        "receivedTokens": 865,
+        "cacheReadTokens": 83584,
+        "messageCost": 0.0181105,
+        "agentTotalCost": 33.92266122399989
+      },
+      "promptContext": {
+        "id": "e39244e0-b4d0-427f-ad63-938584ce645f"
+      }
+    },
+    {
+      "role": "tool",
+      "content": [
+        {
+          "type": "tool-result",
+          "toolCallId": "call_00_bdcNlfDs6mi718PYNHPw1981",
+          "toolName": "power---grep",
+          "output": {
+            "type": "text",
+            "value": "## Grep Results: `bridge.*offline|no.*bridge|bridge.*not.*connect|reconnect.*bridge|ask.*user.*bridge` in `src/server/*.ts` (25 matches)\n\n### src\\server\\web-search.ts (1 match)\n- **L9:** ` * Registered as a server-side tool (does NOT use the bridge).`\n  ```\n   *   2. SerpAPI (requires SERPAPI_KEY env var)\n   *   3. Fallback: DuckDuckGo HTML scrape (no key needed, limited)\n   *\n   * Registered as a server-side tool (does NOT use the bridge).\n   */\n  \n  import { tool } from 'ai';\n  ```\n\n### src\\server\\verifier.ts (1 match)\n- **L152:** `    return { path: filePath, success: false, attempts: 1, error: 'Bridge not connected' };\r`\n  ```\n    signal?: AbortSignal,\r\n  ): Promise<WriteVerifyResult> {\r\n    if (!isBridgeConnected(userId)) {\r\n      return { path: filePath, success: false, attempts: 1, error: 'Bridge not connected' };\r\n    }\r\n  \r\n    const absPath = filePath.startsWith('/') ? filePath : `${projectPath}/${filePath}`;\r\n  ```\n\n### src\\server\\user-routes.ts (3 matches)\n- **L769:** `  if (!isBridgeConnected(user.id as number)) { res.status(503).json({ error: 'Bridge not connected' }); return; }`\n  ```\n    const proj = getDb().prepare('SELECT local_path FROM projects WHERE id = ? AND user_id = ?')\n      .get(projectId, user.id) as { local_path: string } | undefined;\n    if (!proj) { res.status(404).json({ error: 'Project not found' }); return; }\n    if (!isBridgeConnected(user.id as number)) { res.status(503).json({ error: 'Bridge not connected' }); return; }\n    try {\n      const raw = await sendToBridge(user.id as number, 'exec:shell', {\n        command: `node -e \"\n  ```\n- **L812:** `  if (!isBridgeConnected(user.id as number)) { res.status(503).json({ error: 'Bridge not connected' }); return; }`\n  ```\n    const proj = getDb().prepare('SELECT local_path FROM projects WHERE id = ? AND user_id = ?')\n      .get(projectId, user.id) as { local_path: string } | undefined;\n    if (!proj) { res.status(404).json({ error: 'Project not found' }); return; }\n    if (!isBridgeConnected(user.id as number)) { res.status(503).json({ error: 'Bridge not connected' }); return; }\n  \n    // Detect what starter command to use\n    const fs = await import('fs');\n  ```\n- **L849:** `  // Best-effort: kill any node/vite/python dev server processes via bridge`\n  ```\n  router.post('/projects/:id/dev-server/stop', async (req: Request, res: Response) => {\n    const user = (req as AuthRequest).user;\n    devServers.delete(user.id as number);\n    // Best-effort: kill any node/vite/python dev server processes via bridge\n    if (isBridgeConnected(user.id as number)) {\n      sendToBridge(user.id as number, 'exec:shell', {\n        command: process.platform === 'win32'\n  ```\n\n### src\\server\\url-fetch.ts (1 match)\n- **L8:** ` * Registered as a server-side tool (does NOT use the bridge).\r`\n  ```\n   * No external dependencies: uses native fetch() (Node 18+) and regex-based\r\n   * HTML-to-text conversion.\r\n   *\r\n   * Registered as a server-side tool (does NOT use the bridge).\r\n   */\r\n  \r\n  import { tool } from 'ai';\r\n  ```\n\n### src\\server\\test-runner.ts (1 match)\n- **L85:** ` * Returns null if no test runner is detected or bridge is offline.\r`\n  ```\n  \r\n  /**\r\n   * Run the full test suite for the project.\r\n   * Returns null if no test runner is detected or bridge is offline.\r\n   */\r\n  export async function runTests(\r\n    userId: number,\r\n  ```\n\n### src\\server\\symbol-reader.ts (1 match)\n- **L214:** `        throw new Error('Bridge not connected. Cannot read file.');`\n  ```\n      }),\n      execute: async ({ filePath }) => {\n        if (!isBridgeConnected(userId)) {\n          throw new Error('Bridge not connected. Cannot read file.');\n        }\n  \n        const absPath = filePath.startsWith('/') || filePath.startsWith('~')\n  ```\n\n### src\\server\\power-tools.ts (2 matches)\n- **L8:** ` *   - filterIgnoredFiles removed (bridge handles sandboxing)`\n  ```\n   * Extracted from the original implementation with:\n   *   - task.* replaced by direct bridge calls\n   *   - approvalManager removed (auto-approve in server mode)\n   *   - filterIgnoredFiles removed (bridge handles sandboxing)\n   *   - file_edit: read + server-side search/replace + write (no extra bridge command needed)\n   */\n  \n  ```\n- **L9:** ` *   - file_edit: read + server-side search/replace + write (no extra bridge command needed)`\n  ```\n   *   - task.* replaced by direct bridge calls\n   *   - approvalManager removed (auto-approve in server mode)\n   *   - filterIgnoredFiles removed (bridge handles sandboxing)\n   *   - file_edit: read + server-side search/replace + write (no extra bridge command needed)\n   */\n  \n  import path from 'path';\n  ```\n\n### src\\server\\lint-runner.ts (1 match)\n- **L61:** ` * Returns null if no suitable command is found or bridge is offline.\r`\n  ```\n  \r\n  /**\r\n   * Run the auto-detected lint command for the project.\r\n   * Returns null if no suitable command is found or bridge is offline.\r\n   */\r\n  export async function runLint(\r\n    userId: number,\r\n  ```\n\n### src\\server\\index.ts (7 matches)\n- **L137:** `  lines.push('If you want, I can now scan inside a specific folder (for example: src, bridge, or tests).');`\n  ```\n    lines.push(`Found ${dirs.length} folders and ${files.length} files at the top level.`);\n    if (topDirs.length) lines.push(`Folders: ${topDirs.join(', ')}`);\n    if (topFiles.length) lines.push(`Files: ${topFiles.join(', ')}`);\n    lines.push('If you want, I can now scan inside a specific folder (for example: src, bridge, or tests).');\n    return lines.join('\\n\\n');\n  }\n  \n  ```\n- **L360:** `      detail: 'The bridge package files are not deployed on this server. Contact the administrator or run the bridge from source.',`\n  ```\n    if (req.path === '/bridge/suny-bridge.tgz' || req.path === '/bridge/suny-bridge.exe') {\n      res.status(404).json({\n        error: 'Bridge binary not found on server',\n        detail: 'The bridge package files are not deployed on this server. Contact the administrator or run the bridge from source.',\n        files_required: ['public/bridge/suny-bridge.tgz', 'public/bridge/suny-bridge.exe'],\n        source_dir: 'bridge/',\n        build_commands: [\n  ```\n- **L854:** `          : '<capabilities>The user\\'s local bridge is currently offline, so file/shell tools are unavailable. SUNy can still reason, review code snippets, answer questions, and help plan solutions.</capabilities>',`\n  ```\n          '',\n          bridgeOnline\n            ? '<capabilities>SUNy has native tools to read, write, edit files, run shell commands, search code, and list directories via the Bridge.</capabilities>'\n            : '<capabilities>The user\\'s local bridge is currently offline, so file/shell tools are unavailable. SUNy can still reason, review code snippets, answer questions, and help plan solutions.</capabilities>',\n          '',\n          '<bridge>',\n          'The SUNy Bridge is a small background process that connects the user\\'s local machine to this server',\n  ```\n- **L1126:** `            ? 'The bridge is currently offline — file/shell tools are NOT available.'`\n  ```\n            'If you say you are going to scan — you MUST call find_files or glob.',\n          ] : [\n            !bridgeOnline\n              ? 'The bridge is currently offline — file/shell tools are NOT available.'\n              : 'No project is selected — file/shell tools are NOT available.',\n            'If the user asks you to \"scan\" or \"analyze\" the project, do NOT say you will scan and then stop.',\n            'Instead, tell them clearly: the bridge needs to be connected and a project selected before you can access files.',\n  ```\n- **L1962:** `        // Project selected but bridge offline — tell user to connect the bridge`\n  ```\n          }\n        }\n        if (hasScanIntent && projectPath && !isBridgeConnected(userId)) {\n          // Project selected but bridge offline — tell user to connect the bridge\n          userClientManager.pushChatContent(userId, 'suny:stream_end', {\n            content: 'I found your project \"' + projectPath + '\" but the **bridge is currently offline** (red pill indicator).\\n\\n' +\n              'To scan and work with files, the bridge needs to be running on your machine:\\n' +\n  ```\n- **L1964:** `          content: 'I found your project \"' + projectPath + '\" but the **bridge is currently offline** (red pill indicator).\\n\\n' +`\n  ```\n        if (hasScanIntent && projectPath && !isBridgeConnected(userId)) {\n          // Project selected but bridge offline — tell user to connect the bridge\n          userClientManager.pushChatContent(userId, 'suny:stream_end', {\n            content: 'I found your project \"' + projectPath + '\" but the **bridge is currently offline** (red pill indicator).\\n\\n' +\n              'To scan and work with files, the bridge needs to be running on your machine:\\n' +\n              '1. Click the bridge pill in the top bar.\\n' +\n              '2. Download and run the bridge if you haven\\'t already.\\n' +\n  ```\n- **L2415:** `        friendly = 'I hit a temporary execution issue while scanning. I can still do a direct scan for you now — say: scan root, scan src, or scan bridge.';`\n  ```\n        }\n        // Also handle the old specific error for backward compatibility\n        if (errMsg.toLowerCase().includes('await is not defined')) {\n          friendly = 'I hit a temporary execution issue while scanning. I can still do a direct scan for you now — say: scan root, scan src, or scan bridge.';\n          errorCategory = 'runtime';\n        }\n        if (errMsg.toLowerCase().includes('insufficient')) { friendly = pickRandom('no_balance', \"You're out of credits! Reach out and we'll top you right up 😊\"); errorCategory = 'credits'; }\n  ```\n\n### src\\server\\db-migrations.ts (1 match)\n- **L244:** `        CREATE TABLE IF NOT EXISTS bridge_setup_codes (`\n  ```\n            expires_at TEXT NOT NULL\n          );\n  \n          CREATE TABLE IF NOT EXISTS bridge_setup_codes (\n            id INTEGER PRIMARY KEY AUTOINCREMENT,\n            user_id INTEGER NOT NULL,\n            code TEXT NOT NULL UNIQUE,\n  ```\n\n### src\\server\\bridge-routes.ts (1 match)\n- **L41:** `  // Notify user's browser tab that bridge is now connected\r`\n  ```\n    // Acknowledge successful connection\r\n    ws.send(JSON.stringify({ type: 'bridge:authenticated', userId, username: payload.username }));\r\n  \r\n    // Notify user's browser tab that bridge is now connected\r\n    userClientManager.pushToUser(userId, 'bridge:connected', { connected: true });\r\n  }\r\n  \n  ```\n\n### src\\server\\bridge-onboarding.ts (1 match)\n- **L254:** `      res.json({ success: false, message: 'Bridge was not connected' });`\n  ```\n        logOperation({ userId, operation: 'bridge_disconnect', status: 'success' });\n        res.json({ success: true, message: 'Bridge disconnected' });\n      } else {\n        res.json({ success: false, message: 'Bridge was not connected' });\n      }\n    } catch (err) {\n      res.status(500).json({ error: 'Failed to disconnect bridge' });\n  ```\n\n### src\\server\\bridge-manager.ts (1 match)\n- **L108:** `      reject(new Error('Bridge not connected'));`\n  ```\n    return new Promise((resolve, reject) => {\n      const conn = activeBridges.get(userId);\n      if (!conn || conn.ws.readyState !== WebSocket.OPEN) {\n        reject(new Error('Bridge not connected'));\n        return;\n      }\n  \n  ```\n\n### src\\server\\agent-loop.ts (3 matches)\n- **L439:** `  // ── Web tools (always available — server-side, no bridge needed) ────────`\n  ```\n    let currentModel: LanguageModel | undefined;\n    let currentProvider: string = '';\n  \n    // ── Web tools (always available — server-side, no bridge needed) ────────\n    const webSearch = createWebSearchTool();\n    const urlFetch = createUrlFetchTool(userId);\n    const alwaysTools: Record<string, any> = { web_search: webSearch, url_fetch: urlFetch };\n  ```\n- **L522:** `    // Bridge offline, no project, or talk mode — still provide web tools`\n  ```\n        }\n        return merged;\n      }\n      // Bridge offline, no project, or talk mode — still provide web tools\n      const reasons: string[] = [];\n      if (!bridgeConnected) reasons.push('bridge offline');\n      if (!projectPath) reasons.push('no project path');\n  ```\n- **L524:** `    if (!bridgeConnected) reasons.push('bridge offline');`\n  ```\n      }\n      // Bridge offline, no project, or talk mode — still provide web tools\n      const reasons: string[] = [];\n      if (!bridgeConnected) reasons.push('bridge offline');\n      if (!projectPath) reasons.push('no project path');\n      if (talkMode) reasons.push('talk mode');\n      console.log(`[agent-loop] Full tools unavailable (${reasons.join(', ') || 'unknown'}); web_search + url_fetch only`);\n  ```\n"
+          }
+        }
+      ],
+      "id": "1059a6c4-91f9-4d8d-bea1-629fbc00791b",
+      "promptContext": {
+        "id": "e39244e0-b4d0-427f-ad63-938584ce645f"
+      }
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "Now I found the key piece! Look at `src/server/index.ts` line 854 and 1126:\n\nLine 854 (in the system prompt):\n```ts\n: '<capabilities>The user\\'s local bridge is currently offline, so file/shell tools are unavailable. SUNy can still reason, review code snippets, answer questions, and help plan solutions.</capabilities>',\n```\n\nLine 1126:\n```ts\n!bridgeOnline\n  ? 'The bridge is currently offline — file/shell tools are NOT available.'\n  : 'No project is selected — file/shell tools are NOT available.',\n'If the user asks you to \"scan\" or \"analyze\" the project, do NOT say you will scan and then stop.',\n'Instead, tell them clearly: the bridge needs to be connected and a project selected before you can access files.',\n```\n\nSo the system prompt DOES tell the AI about the bridge being offline! But the issue is that:\n1. The system prompt says \"SUNy can still reason, review code snippets, answer questions, and help plan solutions\" — this ENCOURAGES the AI to try to help without the bridge\n2. It doesn't explicitly say \"Tell the user to reconnect the bridge\"\n3. The AI then tries web_search and url_fetch tools (which are still available) and when those fail to find what it needs, it gives the friendly copy-paste response\n\nThe fix should be to make the system prompt MORE explicit about what to say when the bridge is offline. The AI should immediately tell the user to reconnect the bridge instead of trying to use web tools.\n\nNow for the page refresh issue: let me look at how `bridgeOnline` is set in index.ts."
+        },
+        {
+          "type": "text",
+          "text": "Found the root cause. Let me see the full system prompt construction:"
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "call_00_WVVP7htvRU52wAJhKzvR9994",
+          "toolName": "power---file_read",
+          "input": {
+            "filePath": "src/server/index.ts",
+            "withLines": true,
+            "lineOffset": 840,
+            "lineLimit": 50
+          }
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "call_01_IsLHoEpOEdcB1XwEuqgW7254",
+          "toolName": "power---file_read",
+          "input": {
+            "filePath": "src/server/index.ts",
+            "withLines": true,
+            "lineOffset": 1115,
+            "lineLimit": 30
+          }
+        }
+      ],
+      "id": "5de904a8-5099-48b0-a3a4-777a64f9e46b",
+      "usageReport": {
+        "model": "deepseek/deepseek-v4-pro",
+        "sentTokens": 3290,
+        "receivedTokens": 557,
+        "cacheReadTokens": 86144,
+        "messageCost": 0.02015384,
+        "agentTotalCost": 33.94281506399989
+      },
+      "promptContext": {
+        "id": "e39244e0-b4d0-427f-ad63-938584ce645f"
+      }
+    },
+    {
+      "role": "tool",
+      "content": [
+        {
+          "type": "tool-result",
+          "toolCallId": "call_00_WVVP7htvRU52wAJhKzvR9994",
+          "toolName": "power---file_read",
+          "output": {
+            "type": "text",
+            "value": "841|        'NEVER say these phrases or anything that sounds like them:',\n842|        '  • \"As an AI language model...\"',\n843|        '  • \"I don\\'t have access to...\" (instead: \"Let me check if the bridge is connected...\")',\n844|        '  • \"I cannot browse the internet\" (instead: \"Let me see what I can find offline...\")',\n845|        '  • \"Based on my training data...\"',\n846|        '  • Any model name, provider name, or AI company name',\n847|        '  • Raw file paths, shell commands, error codes, stack traces, token counts',\n848|        '  • Anything that sounds like a generic corporate chatbot',\n849|        '',\n850|        '</character_voice_bible>',\n851|        '',\n852|        bridgeOnline\n853|          ? '<capabilities>SUNy has native tools to read, write, edit files, run shell commands, search code, and list directories via the Bridge.</capabilities>'\n854|          : '<capabilities>The user\\'s local bridge is currently offline, so file/shell tools are unavailable. SUNy can still reason, review code snippets, answer questions, and help plan solutions.</capabilities>',\n855|        '',\n856|        '<bridge>',\n857|        'The SUNy Bridge is a small background process that connects the user\\'s local machine to this server',\n858|        'over a secure WebSocket, giving SUNy direct access to their filesystem and terminal.',\n859|        'Without bridge: SUNy can only chat, review pasted code, answer questions, and plan.',\n860|        'With bridge connected, SUNy can:',\n861|        '  - Read, write, create and edit files in the user\\'s project folder',\n862|        '  - Run shell/terminal commands (npm install, build, tests, linters, compilers, etc.)',\n863|        '  - Browse the project file tree and search code',\n864|        '  - Start and stop the dev server from the sidebar',\n865|        '  - Automatically commit changes to git after each turn (checkpoints)',\n866|        '  - Run lint/type-check loops and fix errors automatically',\n867|        '</bridge>',\n868|        '',\n869|        '<mcp>',\n870|        'MCP (Model Context Protocol) servers can be connected to extend your capabilities dynamically.',\n871|        'Connected MCP servers provide additional tools beyond the built-in ones.',\n872|        'When MCP tools are available, use them exactly like any other tool.',\n873|        '</mcp>',\n874|        '',\n875|        '<laws>',\n876|        'These laws are NON-NEGOTIABLE. You cannot violate them.',\n877|        '',\n878|        '  1. CONTEXT-FIRST: Never modify code without first identifying ALL relevant files and reading them.',\n879|        '     Use tools to understand the full picture — imports, dependents, types, configs, tests.',\n880|        '  2. NO-GUESS: If uncertain about ANY part of the codebase, use tools to gather information.',\n881|        '     Do not guess. Write a diagnostic script if needed. Verify, then act.',\n882|        '  3. ONE CHANGE PER ATTEMPT: When debugging extraction logic or fixing lint/test failures,',\n883|        '     modify exactly ONE logic block per attempt. Run it. Verify the output changed.',\n884|        '  4. VERIFY AT EVERY BOUNDARY: After each phase, run a verification — count items, sample rows,',\n885|        '     compare to expected target. Report numbers. If count doesn\\'t match, investigate.',\n886|        '  5. STREAMING FOR SCALE: For inputs larger than 100KB, prefer streaming/iterator patterns.',\n887|        '  6. EXHAUST TOOLS FIRST: Exhaust all tools before asking the user. The user is never your first resort.',\n888|        '</laws>',\n889|        '',\n890|        '<execution_stages>',\n...\nTotal lines in the file: 2561"
+          }
+        },
+        {
+          "type": "tool-result",
+          "toolCallId": "call_01_IsLHoEpOEdcB1XwEuqgW7254",
+          "toolName": "power---file_read",
+          "output": {
+            "type": "text",
+            "value": "1116|          '  ❌ \"Let me scan the project...\" (says this without using any tool)',\n1117|          '  ❌ \"Let me take a look...\" (says this and stops)',\n1118|          '  ✅ \"Let me scan the project...\" *calls find_files*',\n1119|          '  ✅ *reads files, greps for patterns, lists directories, delivers findings*',\n1120|          '',\n1121|          'The phrase \"let me scan\" is NARRATION that must ACCOMPANY a tool call.',\n1122|          'It is NEVER a complete response on its own.',\n1123|          'If you say you are going to scan — you MUST call find_files or glob.',\n1124|        ] : [\n1125|          !bridgeOnline\n1126|            ? 'The bridge is currently offline — file/shell tools are NOT available.'\n1127|            : 'No project is selected — file/shell tools are NOT available.',\n1128|          'If the user asks you to \"scan\" or \"analyze\" the project, do NOT say you will scan and then stop.',\n1129|          'Instead, tell them clearly: the bridge needs to be connected and a project selected before you can access files.',\n1130|          'Do NOT narrate a scan you cannot perform.',\n1131|        ]),\n1132|        '',\n1133|        '─── IDENTITY IN ANSWERS ───',\n1134|        '',\n1135|        'When delivering answers from web search or your knowledge:',\n1136|        '  - Do NOT mention \"web search results\" or \"according to sources.\"',\n1137|        '  - Do NOT say \"I found this on the web.\"',\n1138|        '  - Just deliver the answer naturally, as if you know it.',\n1139|        '  - Your warmth and personality should still shine through.',\n1140|        '',\n1141|        'Example:',\n1142|        '  ❌ \"According to web search results, the capital of France is Paris.\"',\n1143|        '  ✅ \"Paris! Beautiful city — the capital of France. Here\\'s a bit more about it...\"',\n1144|        '',\n1145|        '</aiderdesk_dna>',\n...\nTotal lines in the file: 2561"
+          }
+        }
+      ],
+      "id": "3876b9cd-93ac-454e-9947-e36f65600f5c",
+      "promptContext": {
+        "id": "e39244e0-b4d0-427f-ad63-938584ce645f"
+      }
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "Now I see both issues clearly:\n\n**Issue 1 (Page refresh disconnects bridge):** \nLooking at line 854, `bridgeOnline` is what determines the system prompt. This is checked at the start of the agent loop. Let me trace where `bridgeOnline` is set in the request handler.\n\nBut actually, the user says \"every time i refresh the page the bridge is discconnected\" — this might be a separate issue from the AI response. Let me check if there's a bridge session issue where refreshing the browser page causes the bridge's WebSocket to be disconnected. \n\nWait — I think I found the issue! In `bridge-manager.ts` line 33:\n```ts\nif (existing && existing.ws !== ws && existing.ws.readyState === WebSocket.OPEN) {\n    existing.ws.send(JSON.stringify({ type: 'bridge:disconnect', payload: { reason: 'replaced_by_new_connection' } }));\n    existing.ws.close();\n}\n```\n\nThis disconnects an existing bridge when a NEW bridge connects. But the browser page refresh doesn't create a new bridge connection — the bridge is a separate process. So this shouldn't be triggered.\n\nBut wait — maybe the issue is that the **bridge process itself** is crashing or disconnecting. The bridge connects to `wss://suny.technodel.tech/bridge`, not to the browser. So page refresh shouldn't affect it at all.\n\nHowever, looking at the frontend code again:\n```ts\nonDisconnect: () => { setBridgeConnected(false); }\n```\n\nAnd the initial state:\n```ts\nconst [bridgeConnected, setBridgeConnected] = useState(false);\n```\n\nOn page refresh:\n1. `bridgeConnected` starts as `false`\n2. User-client WS connects, which triggers `onConnect`\n3. But does `onConnect` check bridge status? Let me check...\n\nActually, looking at line 1370:\n```ts\nonConnect: () => {\n    // Reset stale state on reconnect — avoids forever-spinning thinking indicator\n```\n\nThis doesn't check bridge status. The bridge status is only updated when:\n- A `bridge:connected` WS event arrives (line 1367)\n- The 30s polling timer fires (line 1391-1394)\n- User data is loaded (line 1431)\n\nSo on page refresh, the bridge status shows as disconnected until either:\n- The server pushes a `bridge:connected` event (should happen on WS connect if bridge is already connected)\n- The 30s poll fires\n\nLet me check if the server pushes `bridge:connected` when the user client connects and the bridge is already connected.\n\nLet me look at the connect handler in the WebSocket handler."
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "call_00_RpuK80HpLE0GYXwf910g6569",
+          "toolName": "power---file_read",
+          "input": {
+            "filePath": "src/server/index.ts",
+            "withLines": true,
+            "lineOffset": 446,
+            "lineLimit": 30
+          }
+        }
+      ],
+      "id": "1be9d6fb-a06b-45ba-95a9-9d462f0fa463",
+      "usageReport": {
+        "model": "deepseek/deepseek-v4-pro",
+        "sentTokens": 1418,
+        "receivedTokens": 671,
+        "cacheReadTokens": 89984,
+        "messageCost": 0.017850079999999997,
+        "agentTotalCost": 33.96066514399989
+      },
+      "promptContext": {
+        "id": "e39244e0-b4d0-427f-ad63-938584ce645f"
+      }
+    },
+    {
+      "role": "tool",
+      "content": [
+        {
+          "type": "tool-result",
+          "toolCallId": "call_00_RpuK80HpLE0GYXwf910g6569",
+          "toolName": "power---file_read",
+          "output": {
+            "type": "text",
+            "value": "447|  }\n448|\n449|  const userId = payload.id as number;\n450|  userClientManager.register(userId, ws);\n451|  ws.send(JSON.stringify({ event: 'connected', message: 'SUNy is ready!' }));\n452|\n453|  // ── Track active requests for cancellation ──────────────────────────────\n454|  let currentAbortController: AbortController | null = null;\n455|  let isProcessing = false;\n456|  let queuedMessage: Buffer | null = null;\n457|\n458|  // ── WebSocket close: abort any in-flight request ────────────────────────\n459|  // Without this, a disconnected user stays in \"thinking\" forever because\n460|  // the agent loop keeps running and pushChatContent silently fails (WS gone).\n461|  ws.on('close', () => {\n462|    if (currentAbortController) {\n463|      currentAbortController.abort(new Error('cancelled_by_disconnect'));\n464|      currentAbortController = null;\n465|    }\n466|    isProcessing = false;\n467|    queuedMessage = null;\n468|  });\n469|\n470|  ws.on('message', async (raw: Buffer) => {\n471|    // Rate limit check\n472|    if (!checkWsRateLimit(userId)) {\n473|      userClientManager.pushChatContent(userId, 'suny:stream_end', {\n474|        content: \"Too many messages — please slow down a bit! 😊\",\n475|        sess_used: null,\n476|        sess_limit: null,\n...\nTotal lines in the file: 2561"
+          }
+        }
+      ],
+      "id": "007fcaff-1d21-45ec-a187-b97dca02d2f2",
+      "promptContext": {
+        "id": "e39244e0-b4d0-427f-ad63-938584ce645f"
+      }
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "I see the issue! On page refresh, when the user client WS reconnects:\n1. `userClientManager.register(userId, ws)` is called\n2. `ws.send(JSON.stringify({ event: 'connected', message: 'SUNy is ready!' }))` is sent\n3. But the server does NOT push a `bridge:connected` event at this point\n\nThe bridge status is only pushed when the bridge actually connects (in `bridge-routes.ts` line 42). The server doesn't re-send bridge status when the user's browser reconnects.\n\nSo the fix for Issue 1 is: when the user client reconnects, the server should check if the bridge is connected and push the appropriate status.\n\nNow for Issue 2 (AI wrong response): The system prompt already has good instructions but they're not strong enough. Let me strengthen them.\n\nLet me fix both issues:\n\n**Issue 1**: In `handleUserClientUpgrade`, after registering the user, check bridge status and push a `bridge:connected` or `bridge:disconnected` event.\n\n**Issue 2**: Strengthen the system prompt when bridge is offline. Currently it says \"SUNy can still reason, review code snippets, answer questions, and help plan solutions\" — this ENCOURAGES the AI to try to help. It should say something more like \"Tell the user to reconnect the bridge. Do NOT try to use web search as a substitute for file access.\"\n\nLet me implement both fixes."
+        },
+        {
+          "type": "text",
+          "text": "Found both root causes. Let me fix them:\n\n**Issue 1**: On page refresh, server doesn't push bridge status to newly-connected client WS.\n\n**Issue 2**: System prompt tells AI \"you can still help\" when offline — AI tries web tools instead of asking user to reconnect."
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "call_00_UeN50fa7opdUOxF6nH2b7025",
+          "toolName": "todo---set_items",
+          "input": {
+            "items": [
+              {
+                "name": "Push bridge status to user client on reconnect (fixes 'disconnected' on refresh)",
+                "completed": false
+              },
+              {
+                "name": "Strengthen offline-bridge system prompt so AI tells user to reconnect instead of using web tools",
+                "completed": false
+              },
+              {
+                "name": "Build & deploy to VPS",
+                "completed": false
+              }
+            ],
+            "initialUserPrompt": "every time i refresh the page the bridge is discconnected and instead oof asking user to connect bridge it says friendly copy-paste message"
+          }
+        }
+      ],
+      "id": "dacb020d-23ab-4887-9927-d25b145381fb",
+      "usageReport": {
+        "model": "deepseek/deepseek-v4-pro",
+        "sentTokens": 26,
+        "receivedTokens": 536,
+        "cacheReadTokens": 92416,
+        "messageCost": 0.01531084,
+        "agentTotalCost": 33.97597598399989
+      },
+      "promptContext": {
+        "id": "16164c16-5305-4212-b966-63ebdfdb5312"
+      }
+    },
+    {
+      "role": "tool",
+      "content": [
+        {
+          "type": "tool-result",
+          "toolCallId": "call_00_UeN50fa7opdUOxF6nH2b7025",
+          "toolName": "todo---set_items",
+          "output": {
+            "type": "text",
+            "value": "Todo items set successfully."
+          }
+        }
+      ],
+      "id": "f39b6e92-e890-473a-9200-6bbd952ba630",
+      "promptContext": {
+        "id": "16164c16-5305-4212-b966-63ebdfdb5312"
+      }
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "Let me fix Issue 1 first. I need to add bridge status push when the user client connects."
+        },
+        {
+          "type": "text",
+          "text": "**Fix 1**: Push bridge status when user client reconnects:"
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "call_00_BTgNfh8iBt6ro6uaOwOW4019",
+          "toolName": "power---file_edit",
+          "input": {
+            "filePath": "src/server/index.ts",
+            "searchTerm": "  const userId = payload.id as number;\n  userClientManager.register(userId, ws);\n  ws.send(JSON.stringify({ event: 'connected', message: 'SUNy is ready!' }));",
+            "replacementText": "  const userId = payload.id as number;\n  userClientManager.register(userId, ws);\n  ws.send(JSON.stringify({ event: 'connected', message: 'SUNy is ready!' }));\n\n  // Push current bridge status so the UI doesn't show \"disconnected\" on page refresh\n  try {\n    const { isBridgeConnected } = require('./bridge-manager');\n    if (isBridgeConnected(userId)) {\n      userClientManager.pushToUser(userId, 'bridge:connected', { connected: true });\n    }\n  } catch { /* best-effort — bridge-manager might not be loaded yet */ }",
+            "isRegex": false,
+            "replaceAll": false
+          }
+        }
+      ],
+      "id": "21fd83c2-eb05-4831-ba51-26ec9d47ed74",
+      "usageReport": {
+        "model": "deepseek/deepseek-v4-pro",
+        "sentTokens": 571,
+        "receivedTokens": 325,
+        "cacheReadTokens": 92416,
+        "messageCost": 0.015524859999999998,
+        "agentTotalCost": 33.99150084399989
+      },
+      "promptContext": {
+        "id": "16164c16-5305-4212-b966-63ebdfdb5312"
+      }
+    },
+    {
+      "role": "tool",
+      "content": [
+        {
+          "type": "tool-result",
+          "toolCallId": "call_00_BTgNfh8iBt6ro6uaOwOW4019",
+          "toolName": "power---file_edit",
+          "output": {
+            "type": "text",
+            "value": "Successfully edited 'src/server/index.ts'."
+          }
+        }
+      ],
+      "id": "63a9d8be-9bcd-4b2f-9bec-5bfb3ad50af7",
+      "promptContext": {
+        "id": "16164c16-5305-4212-b966-63ebdfdb5312"
+      }
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "Now Fix 2: Improve the system prompt to be more forceful when bridge is offline. The key change is in the `<capabilities>` section and the `<aiderdesk_dna>` section. Let me also add an explicit instruction about what to do when tools fail."
+        },
+        {
+          "type": "text",
+          "text": "**Fix 2**: Strengthen offline-bridge prompts so AI tells user to reconnect:"
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "call_00_BDcfpfowaQQwetZ3I3cu2895",
+          "toolName": "power---file_edit",
+          "input": {
+            "filePath": "src/server/index.ts",
+            "searchTerm": "          : '<capabilities>The user\\'s local bridge is currently offline, so file/shell tools are unavailable. SUNy can still reason, review code snippets, answer questions, and help plan solutions.</capabilities>',",
+            "replacementText": "          : '<capabilities>CRITICAL — The bridge is OFFLINE. File and shell tools are NOT available. You CANNOT read, write, edit, or create files. You CANNOT run commands. Your FIRST response to ANY task involving files or code MUST be to ask the user to reconnect the bridge. Say: \"🔌 The bridge is disconnected. Please click the bridge pill at the top to reconnect, then I can access your files.\" Do NOT attempt workarounds — there are none. Do NOT offer to search the web for file contents.</capabilities>',",
+            "isRegex": false,
+            "replaceAll": false
+          }
+        }
+      ],
+      "id": "3d193c6b-5965-410c-bf4a-eec97db9bac6",
+      "usageReport": {
+        "model": "deepseek/deepseek-v4-pro",
+        "sentTokens": 21,
+        "receivedTokens": 355,
+        "cacheReadTokens": 93312,
+        "messageCost": 0.014802179999999998,
+        "agentTotalCost": 34.006303023999884
+      },
+      "promptContext": {
+        "id": "16164c16-5305-4212-b966-63ebdfdb5312"
+      }
+    },
+    {
+      "role": "tool",
+      "content": [
+        {
+          "type": "tool-result",
+          "toolCallId": "call_00_BDcfpfowaQQwetZ3I3cu2895",
+          "toolName": "power---file_edit",
+          "output": {
+            "type": "text",
+            "value": "Successfully edited 'src/server/index.ts'."
+          }
+        }
+      ],
+      "id": "ee9a0343-555b-4420-95f7-a0ce4f37ecbe",
+      "promptContext": {
+        "id": "16164c16-5305-4212-b966-63ebdfdb5312"
+      }
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "Now also strengthen the <aiderdesk_dna> section for the offline bridge scenario. The current text says \"Instead, tell them clearly: the bridge needs to be connected...\" which is good, but let me make it even more explicit. Let me also update the <bridge> section to emphasize what happens when tools fail."
+        },
+        {
+          "type": "text",
+          "text": "Now strengthen the `aiderdesk_dna` offline instructions:"
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "call_00_SiwbA2dVJOubUMyEqUq61437",
+          "toolName": "power---file_edit",
+          "input": {
+            "filePath": "src/server/index.ts",
+            "searchTerm": "          'If the user asks you to \"scan\" or \"analyze\" the project, do NOT say you will scan and then stop.',\n          'Instead, tell them clearly: the bridge needs to be connected and a project selected before you can access files.',\n          'Do NOT narrate a scan you cannot perform.',",
+            "replacementText": "          'If the user asks you to \"scan\" or \"analyze\" the project, do NOT say you will scan and then stop.',\n          'Instead, tell them clearly: the bridge needs to be connected and a project selected before you can access files.',\n          'Do NOT narrate a scan you cannot perform.',\n          'CRITICAL: When bridge is offline, do NOT try web_search or url_fetch as workarounds for file access.',\n          'Your ONLY valid response to file/code tasks is: \"🔌 The bridge is disconnected. Reconnect it from the top bar.\"',",
+            "isRegex": false,
+            "replaceAll": false
+          }
+        }
+      ],
+      "id": "aada6e0e-95fa-4a0e-ab4c-efd4901810f7",
+      "usageReport": {
+        "model": "deepseek/deepseek-v4-pro",
+        "sentTokens": 141,
+        "receivedTokens": 386,
+        "cacheReadTokens": 93568,
+        "messageCost": 0.01515598,
+        "agentTotalCost": 34.02145900399989
+      },
+      "promptContext": {
+        "id": "16164c16-5305-4212-b966-63ebdfdb5312"
+      }
+    },
+    {
+      "role": "tool",
+      "content": [
+        {
+          "type": "tool-result",
+          "toolCallId": "call_00_SiwbA2dVJOubUMyEqUq61437",
+          "toolName": "power---file_edit",
+          "output": {
+            "type": "text",
+            "value": "Successfully edited 'src/server/index.ts'."
+          }
+        }
+      ],
+      "id": "0ee8e95c-2b1a-48ee-a26f-9a8d8ee0f786",
+      "promptContext": {
+        "id": "16164c16-5305-4212-b966-63ebdfdb5312"
+      }
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "Now I also want to add a stronger instruction in the tool failure handling. Let me also update the `<tools>` section (if there is one) or add a general instruction about what to do when a tool returns an error.\n\nActually, let me also check if there's a section about tool errors in the system prompt. Let me search for it."
+        },
+        {
+          "type": "text",
+          "text": "Let me also add a tool-failure instruction in the system prompt:"
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "call_00_yn17T7zDo4GT2wbwqCWL6479",
+          "toolName": "power---grep",
+          "input": {
+            "filePattern": "src/server/index.ts",
+            "searchTerm": "tool.*error|tool.*fail|tool_error|tool-result",
+            "contextLines": 2,
+            "caseSensitive": false,
+            "maxResults": 10
+          }
+        }
+      ],
+      "id": "010bcc1b-91dd-46ef-bdad-2a308facb203",
+      "usageReport": {
+        "model": "deepseek/deepseek-v4-pro",
+        "sentTokens": 36,
+        "receivedTokens": 215,
+        "cacheReadTokens": 94080,
+        "messageCost": 0.014452439999999999,
+        "agentTotalCost": 34.035911443999886
+      },
+      "promptContext": {
+        "id": "16164c16-5305-4212-b966-63ebdfdb5312"
+      }
+    },
+    {
+      "role": "tool",
+      "content": [
+        {
+          "type": "tool-result",
+          "toolCallId": "call_00_yn17T7zDo4GT2wbwqCWL6479",
+          "toolName": "power---grep",
+          "output": {
+            "type": "text",
+            "value": "## Grep Results: `tool.*error|tool.*fail|tool_error|tool-result` in `src/server/index.ts` (2 matches)\n\n### src\\server\\index.ts (2 matches)\n- **L924:** `        'When a tool returns an error, classify it before retrying:',`\n  ```\n          '',\n          '<error_taxonomy>',\n          'When a tool returns an error, classify it before retrying:',\n          '  - CLASS A (missing_import): Missing module or dependency. Check imports + package.json. Install missing packages.',\n          '  - CLASS B (type_error): TypeScript type mismatch. Fix the annotation or the value.',\n  ```\n- **L2456:** `      // so the test suite can diagnose tool failures vs API failures vs config.`\n  ```\n        // know what actually broke, not just \"internal hiccup\". The friendly message\n        // is shown for known patterns; unknown errors reveal their real message\n        // so the test suite can diagnose tool failures vs API failures vs config.\n        const detailSuffix = errorCategory === 'unknown' && errMsg\n          ? `\\n\\n[Error details: ${errMsg.slice(0, 500)}]`\n  ```\n"
+          }
+        }
+      ],
+      "id": "2958719c-0de4-4489-a01b-fa4397acb210",
+      "promptContext": {
+        "id": "16164c16-5305-4212-b966-63ebdfdb5312"
+      }
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "Good, there's already an `<error_taxonomy>` section. Let me see the full section and add a bridge-offline specific error classification."
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "call_00_4FjzEdajkUFpoauOxdAe9478",
+          "toolName": "power---file_read",
+          "input": {
+            "filePath": "src/server/index.ts",
+            "withLines": true,
+            "lineOffset": 920,
+            "lineLimit": 30
+          }
+        }
+      ],
+      "id": "93b12e0e-d715-4671-84af-724039049cdf",
+      "usageReport": {
+        "model": "deepseek/deepseek-v4-pro",
+        "sentTokens": 392,
+        "receivedTokens": 131,
+        "cacheReadTokens": 94208,
+        "messageCost": 0.01479812,
+        "agentTotalCost": 34.05070956399989
+      },
+      "promptContext": {
+        "id": "16164c16-5305-4212-b966-63ebdfdb5312"
+      }
+    },
+    {
+      "role": "tool",
+      "content": [
+        {
+          "type": "tool-result",
+          "toolCallId": "call_00_4FjzEdajkUFpoauOxdAe9478",
+          "toolName": "power---file_read",
+          "output": {
+            "type": "text",
+            "value": "921|        '</mode_flags>',\n922|        '',\n923|        '<error_taxonomy>',\n924|        'When a tool returns an error, classify it before retrying:',\n925|        '  - CLASS A (missing_import): Missing module or dependency. Check imports + package.json. Install missing packages.',\n926|        '  - CLASS B (type_error): TypeScript type mismatch. Fix the annotation or the value.',\n927|        '  - CLASS C (syntax_error): Malformed code. Find and fix the syntax.',\n928|        '  - CLASS D (missing_file): File doesn\\'t exist. Create it or fix the reference.',\n929|        '  - CLASS E (port_conflict): Port in use. Kill existing process or use different port.',\n930|        '  - CLASS F (dependency_error): Package issue. Check package.json, update versions, reinstall.',\n931|        '  - CLASS G (permission_error): No write access. Try alternative approach without elevated permissions.',\n932|        '  - CLASS H (logic_error): Code compiles but produces wrong output. Re-read files, rethink approach.',\n933|        '  - CLASS I (timeout): Operation took too long. Try simpler approach or smaller batch.',\n934|        '  - CLASS J (unknown): Investigate by reading relevant files first.',\n935|        'Route each class to its specialized fix strategy. Never retry blindly.',\n936|        '',\n937|        'FRESH EYES RULE: If you encounter the same error 3+ times with the same approach,',\n938|        'STOP. Identify the ROOT CAUSE. Take a completely different approach that avoids it.',\n939|        '</error_taxonomy>',\n940|        '',\n941|        '<write_verify_rule>',\n942|        'After EVERY write_file or edit_file tool call:',\n943|        '  1. Immediately use read_file on the same path',\n944|        '  2. Confirm the key changes are present (function names, import paths, unique strings)',\n945|        '  3. Only then move to the next step',\n946|        'If the content doesn\\'t match — rewrite the file immediately.',\n947|        'Never assume a write succeeded. Always verify.',\n948|        '</write_verify_rule>',\n949|        '',\n950|        '<completion_criteria>',\n...\nTotal lines in the file: 2571"
+          }
+        }
+      ],
+      "id": "777a9c49-2422-4521-85e5-d1ee607559f7",
+      "promptContext": {
+        "id": "16164c16-5305-4212-b966-63ebdfdb5312"
+      }
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "Now let me add a BRIDGE_OFFLINE error class to the error taxonomy. Let me insert it as CLASS B0 or as a general instruction. Actually, the better approach is to add it to the `<bridge>` section or as a preamble to the error taxonomy. Let me add it as a special instruction at the top of the error taxonomy."
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "call_00_QWxWf3hiQw7d6FBEh7gJ6570",
+          "toolName": "power---file_edit",
+          "input": {
+            "filePath": "src/server/index.ts",
+            "searchTerm": "        '<error_taxonomy>',\n        'When a tool returns an error, classify it before retrying:',",
+            "replacementText": "        '<error_taxonomy>',\n        'BRIDGE OFFLINE RULE: If a file or shell tool fails with \"Bridge not connected\" or \"Bridge disconnected\",',\n        'do NOT retry. Do NOT try web_search. Immediately tell the user:',\n        '\"🔌 The bridge is disconnected. Click the bridge pill in the top bar to reconnect.\"',\n        '',\n        'When a tool returns an error, classify it before retrying:',",
+            "isRegex": false,
+            "replaceAll": false
+          }
+        }
+      ],
+      "id": "822fe3ae-5769-49ed-ab3a-67f023acaec0",
+      "usageReport": {
+        "model": "deepseek/deepseek-v4-pro",
+        "sentTokens": 540,
+        "receivedTokens": 308,
+        "cacheReadTokens": 94720,
+        "messageCost": 0.01574584,
+        "agentTotalCost": 34.06645540399989
+      },
+      "promptContext": {
+        "id": "16164c16-5305-4212-b966-63ebdfdb5312"
+      }
+    },
+    {
+      "role": "tool",
+      "content": [
+        {
+          "type": "tool-result",
+          "toolCallId": "call_00_QWxWf3hiQw7d6FBEh7gJ6570",
+          "toolName": "power---file_edit",
+          "output": {
+            "type": "text",
+            "value": "Successfully edited 'src/server/index.ts'."
+          }
+        }
+      ],
+      "id": "17f93ab6-12de-4b27-bb15-acb3b34f86aa",
+      "promptContext": {
+        "id": "16164c16-5305-4212-b966-63ebdfdb5312"
+      }
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "Now let me also strengthen the `<bridge>` section to be more directive:"
+        },
+        {
+          "type": "text",
+          "text": "Now strengthen the `<bridge>` section itself:"
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "call_00_UAlunipFVVIgEve8QUsX0323",
+          "toolName": "power---file_edit",
+          "input": {
+            "filePath": "src/server/index.ts",
+            "searchTerm": "        '<bridge>',\n        'The SUNy Bridge is a small background process that connects the user\\'s local machine to this server',\n        'over a secure WebSocket, giving SUNy direct access to their filesystem and terminal.',\n        'Without bridge: SUNy can only chat, review pasted code, answer questions, and plan.',\n        'With bridge connected, SUNy can:',\n        '  - Read, write, create and edit files in the user\\'s project folder',\n        '  - Run shell/terminal commands (npm install, build, tests, linters, compilers, etc.)',\n        '  - Browse the project file tree and search code',\n        '  - Start and stop the dev server from the sidebar',\n        '  - Automatically commit changes to git after each turn (checkpoints)',\n        '  - Run lint/type-check loops and fix errors automatically',\n        '</bridge>',",
+            "replacementText": "        '<bridge>',\n        'The SUNy Bridge is a small background process that connects the user\\'s local machine to this server',\n        'over a secure WebSocket, giving SUNy direct access to their filesystem and terminal.',\n        'When bridge is OFFLINE: Your ONLY job is to ask the user to reconnect it. Say:',\n        '\"🔌 The bridge is disconnected — I can\\'t access your files right now. Click the bridge pill in the top bar to reconnect, then I can jump in!\"',\n        'Do NOT try to help with code without the bridge. Do NOT search the web for the user\\'s file contents.',\n        'Do NOT ask the user to paste code. Just tell them to reconnect the bridge.',\n        'When bridge is ONLINE, SUNy can:',\n        '  - Read, write, create and edit files in the user\\'s project folder',\n        '  - Run shell/terminal commands (npm install, build, tests, linters, compilers, etc.)',\n        '  - Browse the project file tree and search code',\n        '  - Start and stop the dev server from the sidebar',\n        '  - Automatically commit changes to git after each turn (checkpoints)',\n        '  - Run lint/type-check loops and fix errors automatically',\n        '</bridge>',",
+            "isRegex": false,
+            "replaceAll": false
+          }
+        }
+      ],
+      "id": "fb2a953e-0c26-402b-91bf-6973c6701257",
+      "usageReport": {
+        "model": "deepseek/deepseek-v4-pro",
+        "sentTokens": 101,
+        "receivedTokens": 610,
+        "cacheReadTokens": 95488,
+        "messageCost": 0.0161443,
+        "agentTotalCost": 34.08259970399989
+      },
+      "promptContext": {
+        "id": "16164c16-5305-4212-b966-63ebdfdb5312"
+      }
+    },
+    {
+      "role": "tool",
+      "content": [
+        {
+          "type": "tool-result",
+          "toolCallId": "call_00_UAlunipFVVIgEve8QUsX0323",
+          "toolName": "power---file_edit",
+          "output": {
+            "type": "text",
+            "value": "Successfully edited 'src/server/index.ts'."
+          }
+        }
+      ],
+      "id": "d6697e7b-469f-4885-93b0-bbd8a407ae36",
+      "promptContext": {
+        "id": "16164c16-5305-4212-b966-63ebdfdb5312"
+      }
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "Now let me also update the `<capabilities>` section for the online bridge case to include the tool error handling. Wait, actually the online case is fine. \n\nLet me also bump the polling frequency from 30s to something faster or make the initial check immediate. Actually, the fix I made for Issue 1 (pushing bridge status on WS connect) should handle that.\n\nLet me now also check: does the bridge itself disconnect when the user refreshes the page? The bridge is a completely separate process, so it shouldn't. But let me also check if there's some other mechanism that could cause the bridge to disconnect.\n\nActually, I think the real issue is simpler: the bridge IS still connected on the server, but the frontend shows \"disconnected\" because:\n1. On page refresh, `bridgeConnected` initializes to `false`\n2. No `bridge:connected` event is pushed by the server to the newly-connected client\n3. The 30s poll would eventually fix it, but it takes up to 30s\n\nMy Fix 1 already addresses this by pushing `bridge:connected` on client reconnect.\n\nNow let me verify the build and deploy. But first, let me also check if there's anything that could make the bridge actually disconnect on page refresh. Let me look at if there's any disconnect-on-user-disconnect logic."
+        },
+        {
+          "type": "text",
+          "text": "Now build and verify:"
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "call_00_PdIcezQVRrXVL2dPaVuI3925",
+          "toolName": "power---bash",
+          "input": {
+            "command": "node scripts/build.js 2>&1",
+            "cwd": "D:\\Projects\\GABy",
+            "timeout": 30000
+          }
+        }
+      ],
+      "id": "84779877-5327-40fa-95f3-0f461f88b76e",
+      "usageReport": {
+        "model": "deepseek/deepseek-v4-pro",
+        "sentTokens": 92,
+        "receivedTokens": 376,
+        "cacheReadTokens": 96128,
+        "messageCost": 0.01540712,
+        "agentTotalCost": 34.09800682399989
+      },
+      "promptContext": {
+        "id": "16164c16-5305-4212-b966-63ebdfdb5312"
+      }
+    },
+    {
+      "role": "tool",
+      "content": [
+        {
+          "type": "tool-result",
+          "toolCallId": "call_00_PdIcezQVRrXVL2dPaVuI3925",
+          "toolName": "power---bash",
+          "output": {
+            "type": "json",
+            "value": {
+              "stdout": "Found 93 files to compile\n........................................\n40 files compiled\n........................................\n80 files compiled\n.............\n\nBuild complete: 93 files compiled, 0 errors\n",
+              "stderr": "",
+              "exitCode": 0
+            }
+          }
+        }
+      ],
+      "id": "2009e569-dd3f-4b47-9dd4-77d3a02561f1",
+      "promptContext": {
+        "id": "16164c16-5305-4212-b966-63ebdfdb5312"
+      }
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "reasoning",
+          "text": "Build successful. Now build the renderer, then push and deploy."
+        },
+        {
+          "type": "tool-call",
+          "toolCallId": "call_00_heXHosKcam3UeIiaZJi78412",
+          "toolName": "power---bash",
+          "input": {
+            "command": "npx vite build 2>&1",
+            "cwd": "D:\\Projects\\GABy\\src\\renderer",
+            "timeout": 60000
+          }
+        }
+      ],
+      "id": "f3b5cd23-cb95-4cc5-bf07-4063ad1ee885",
+      "usageReport": {
+        "model": "deepseek/deepseek-v4-pro",
+        "sentTokens": 146,
+        "receivedTokens": 112,
+        "cacheReadTokens": 96512,
+        "messageCost": 0.014638039999999998,
+        "agentTotalCost": 34.11264486399989
+      },
+      "promptContext": {
+        "id": "16164c16-5305-4212-b966-63ebdfdb5312"
+      }
+    },
+    {
+      "role": "tool",
+      "content": [
+        {
+          "type": "tool-result",
+          "toolCallId": "call_00_heXHosKcam3UeIiaZJi78412",
+          "toolName": "power---bash",
+          "output": {
+            "type": "json",
+            "value": {
+              "stdout": "\u001b[36mvite v5.4.21 \u001b[32mbuilding for production...\u001b[36m\u001b[39m\ntransforming...\n\u001b[32m✓\u001b[39m 1503 modules transformed.\nrendering chunks...\ncomputing gzip size...\n\u001b[2mdist/\u001b[22m\u001b[32mindex.html                 \u001b[39m\u001b[1m\u001b[2m  1.43 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   0.65 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[35massets/index-D4Om9zAb.css  \u001b[39m\u001b[1m\u001b[2m 15.79 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip:   4.05 kB\u001b[22m\n\u001b[2mdist/\u001b[22m\u001b[36massets/index-CwaH7hc0.js   \u001b[39m\u001b[1m\u001b[2m458.67 kB\u001b[22m\u001b[1m\u001b[22m\u001b[2m │ gzip: 125.97 kB\u001b[22m\n\u001b[32m✓ built in 9.31s\u001b[39m\n",
+              "stderr": "",
+              "exitCode": 0
+            }
+          }
+        }
+      ],
+      "id": "dbe98cd6-c054-4edd-b1c2-c148ab3a0551",
+      "promptContext": {
+        "id": "16164c16-5305-4212-b966-63ebdfdb5312"
+      }
     }
   ],
   "contextFiles": [
