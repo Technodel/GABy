@@ -376,6 +376,31 @@ export function getSkillSystemPrompt(): string {
 }
 
 /**
+ * Get a compact skill INDEX for the system prompt — name + one-line description
+ * only, no inlined process/rationalizations/red-flags. Cuts the skill block from
+ * ~50 KB to ~3 KB. The model can ask to read the full SKILL.md via file_read if
+ * needed (skills/<name>/SKILL.md).
+ */
+export function getSkillIndex(): string {
+  if (!registry.isLoaded()) return '';
+  const skills = registry.getAllSkills();
+  if (skills.length === 0) return '';
+  const lines: string[] = [
+    '─── ENGINEERING SKILLS (index) ───',
+    'Skill packs live on disk under `skills/<name>/SKILL.md`. Read the full file',
+    'with file_read when you actually need the detailed process for a skill.',
+    '',
+  ];
+  for (const skill of skills) {
+    const fm = skill.frontmatter;
+    const desc = (fm.description || '').replace(/\s+/g, ' ').trim();
+    const short = desc.length > 200 ? desc.slice(0, 200) + '…' : desc;
+    lines.push(`- ${fm.name}: ${short}`);
+  }
+  return lines.join('\n');
+}
+
+/**
  * Classify a user message into a task phase and recommended skill.
  */
 export function classifyTask(userMessage: string): Classification {

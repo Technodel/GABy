@@ -48,7 +48,7 @@ import { buildChunkVectors, searchChunks, formatChunksForPrompt, clearChunkIndex
 import { processDesignIntents, getDesignIntentsPrompt, initializeDesignIntentTable } from './design-intent';
 import { silentCodeReview, formatCodeReviewForPrompt, postMergeValidation, formatValidationForPrompt, analyzeInteractionPatterns, formatPatternAnalysisForPrompt, recordInteraction, initializeInteractionPatternsTable } from './verification-obsession';
 import { getPresenceInjection, updatePresenceProfile, getPresenceProfile, initializePresenceTable } from './presence-engineering';
-import { getSkillSystemPrompt, initSkillSystem } from './skill-loader';
+import { getSkillSystemPrompt, getSkillIndex, initSkillSystem } from './skill-loader';
 import { loadTrainingAndRules } from './training-loader';
 import { formatGoalContext, getCurrentGoal, addGoalEvidence, incrementGoalAttempt, tryAutoCompleteGoal } from './goal-tracker';
 import { recordAgentTurn } from './metrics';
@@ -1202,6 +1202,24 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           'install packages, AND open URLs in the user\'s browser via `start <url>` on',
           'Windows or `xdg-open <url>` on Linux / `open <url>` on macOS. Do NOT say',
           '"I don\'t have a browser tool" — call bash with the right command for the OS.',
+          '',
+          '─── LONG-RUNNING PROCESSES (CRITICAL) ───',
+          '',
+          'NEVER start a dev server / HTTP server / watcher with `bash`. The bash tool',
+          'returns only when the command exits, so a server started in bash is killed',
+          'the moment the call returns and is NEVER reachable.',
+          '',
+          'For ANY process that should keep running (npm run dev, node server.js, vite,',
+          'next dev, python app.py, watchers, daemons), use:',
+          '  • start_server({ command, readySignal?, timeoutSeconds? }) — returns processId',
+          '  • read_server_logs({ processId, lines? })                  — tail output',
+          '  • stop_server({ processId })                                — kill it',
+          '  • list_servers()                                            — see running processes',
+          '',
+          'After start_server, ALWAYS call read_server_logs to confirm the server is',
+          'actually listening (look for "Local:", "listening on", a port number, etc.)',
+          'BEFORE telling the user the URL is reachable. If logs show an error or no',
+          'listening message, report the EXACT log lines — do not invent success.',
         ] : [
           !bridgeOnline
             ? 'The bridge is currently offline — file/shell tools are NOT available.'
@@ -1235,8 +1253,8 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         '- Details only when: asked directly, reporting errors, or explaining complex findings.',
         '- Respond warmly but professionally.',
         '',
-        // ── Skill system: engineering workflow skills ─────────────────────
-        ...getSkillSystemPrompt().split('\n').filter(l => l !== ''),
+        // ── Skill system: engineering workflow skills (compact index) ────
+        ...getSkillIndex().split('\n').filter(l => l !== ''),
         // ── Training loader: injection files + behavioral rules ──────────
         ...(() => {
           const tl = trainingLoadResult;

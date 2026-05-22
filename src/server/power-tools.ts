@@ -12,7 +12,7 @@
 import path from 'path';
 import { tool, type ToolSet } from 'ai';
 import { z } from 'zod';
-import { sendToBridge, sendToBridgeWithNarration } from './bridge-manager';
+import { sendToBridge, sendToBridgeWithNarration, sendToBridgeBackground, stopBackgroundProcess, readBackgroundLogs, listBackgroundProcesses } from './bridge-manager';
 import { userClientManager } from './user-client-manager';
 
 // -- Helpers -------------------------------------------------------------------
@@ -274,7 +274,11 @@ Modes: 'create_only' (fail if exists), 'overwrite' (replace or create), 'append'
 
   // bash (shell command execution)
   const bashTool = tool({
-    description: 'Execute a shell command in the project directory.',
+    description: `Execute a foreground shell command and return its stdout/stderr.
+USE THIS FOR commands that finish quickly (build, lint, test, install, git, curl, ls, cat).
+DO NOT use this to start long-running servers — bash returns when the process exits,
+so a server started here gets killed at the end of the call. To start a dev server,
+HTTP server, watcher, or any process that should keep running, use start_server instead.`,
     inputSchema: z.object({
       command: z.string().min(1).describe('The shell command to run.'),
       cwd: z.string().optional().describe('Working directory (relative to WorkingDirectory). Default: WorkingDirectory.'),
@@ -287,11 +291,94 @@ Modes: 'create_only' (fail if exists), 'overwrite' (replace or create), 'append'
       try {
         const result = await sendToBridge(userId, 'exec:shell', {
           command: input.command, cwd, requiresConfirmation: false,
-        }, input.timeout + 5000);
-        return result as string;
+        }, input.timeout + 5000) as { exitCode?: number; success?: boolean; output?: string };
+        const out = (result?.output ?? '').toString();
+        const exit = result?.exitCode ?? 0;
+        // Return a single string the model can reason about. Always include the
+        // exit code so the model knows whether to trust the output.
+        const header = `[exit=${exit}]`;
+        return out.trim().length === 0
+          ? `${header} (no output)`
+          : `${header}\n${out}`;
       } catch (e) {
         throw new Error(`Error running command: ${e instanceof Error ? e.message : String(e)}`);
       }
+    },
+  });
+
+  // start_server — launch a long-running process (dev server, HTTP server, watcher).
+  const startServerTool = tool({
+    description: `Start a long-running process (dev server, HTTP server, watcher, etc.) in the background.
+Returns a processId you can use with stop_server and read_server_logs. The process keeps
+running across multiple tool calls. Resolves as soon as the readySignal is seen in output,
+or after timeoutSeconds if no ready signal is matched (you can still check logs).
+EXAMPLES: 'npm run dev', 'node dist/server.js', 'python app.py', 'vite', 'next dev'.`,
+    inputSchema: z.object({
+      command: z.string().min(1).describe('The command to start (e.g. "npm run dev").'),
+      cwd: z.string().optional().describe('Working directory (relative to WorkingDirectory). Default: WorkingDirectory.'),
+      readySignal: z.string().optional().describe('Substring to look for in output indicating readiness (e.g. "Local:", "listening on", "running on"). Default: "Local:".'),
+      timeoutSeconds: z.number().int().min(1).max(120).optional().default(30).describe('How long to wait for the ready signal before returning anyway. Default: 30.'),
+    }),
+    execute: async (input) => {
+      notify('start_server', input);
+      const cwd = input.cwd ? resolvePath(input.cwd, projectPath) : projectPath;
+      userClientManager.pushNarration(userId, 'Starting server...');
+      try {
+        const result = await sendToBridgeBackground(
+          userId,
+          input.command,
+          cwd,
+          input.readySignal,
+          input.timeoutSeconds ?? 30,
+        );
+        const status = result.status;
+        const head = `[processId=${result.processId} status=${status}]`;
+        const out = (result.output ?? '').trim();
+        return out.length === 0 ? `${head} (no output yet — use read_server_logs to tail)` : `${head}\n${out}`;
+      } catch (e) {
+        throw new Error(`Error starting server: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    },
+  });
+
+  // stop_server — stop a background process started by start_server.
+  const stopServerTool = tool({
+    description: 'Stop a background process previously started with start_server. Pass the processId returned by start_server.',
+    inputSchema: z.object({
+      processId: z.string().describe('The processId returned by start_server.'),
+    }),
+    execute: async (input) => {
+      notify('stop_server', input);
+      const killed = await stopBackgroundProcess(userId, input.processId);
+      return killed ? `Stopped process ${input.processId}.` : `No running process with id ${input.processId}.`;
+    },
+  });
+
+  // read_server_logs — tail logs of a background process.
+  const readServerLogsTool = tool({
+    description: 'Read the most recent log lines (stdout+stderr) from a process started with start_server. Use this to check if a server is actually serving requests or to debug startup errors.',
+    inputSchema: z.object({
+      processId: z.string().describe('The processId returned by start_server.'),
+      lines: z.number().int().min(1).max(500).optional().default(100).describe('How many lines from the end to return. Default: 100.'),
+    }),
+    execute: async (input) => {
+      notify('read_server_logs', input);
+      const info = readBackgroundLogs(userId, input.processId, input.lines ?? 100);
+      if (!info.found) return `No process with id ${input.processId}. Use start_server first or list_servers to see running processes.`;
+      const head = `[status=${info.status}${info.exitCode != null ? ` exitCode=${info.exitCode}` : ''} command=${info.command}]`;
+      return info.logs.trim().length === 0 ? `${head} (no output)` : `${head}\n${info.logs}`;
+    },
+  });
+
+  // list_servers — see what background processes are running.
+  const listServersTool = tool({
+    description: 'List background processes (started via start_server) for the current user. Use this to discover existing servers before starting a new one.',
+    inputSchema: z.object({}),
+    execute: async () => {
+      notify('list_servers', {});
+      const procs = listBackgroundProcesses(userId);
+      if (procs.length === 0) return 'No background processes running.';
+      return procs.map(p => `- ${p.processId} [${p.status}] ${p.command} (started ${p.startedAt})`).join('\n');
     },
   });
 
@@ -403,7 +490,8 @@ console.log(JSON.stringify(results));`.replace(/\n/g, ' ');
 
   const allTools: ToolSet = { file_read: fileReadTool, file_edit: fileEditTool, file_write: fileWriteTool, file_delete: fileDeleteTool,
     list_dir: listDirTool, mkdir: mkdirTool, path_exists: pathExistsTool,
-    bash: bashTool, glob: globTool, grep: grepTool };
+    bash: bashTool, glob: globTool, grep: grepTool,
+    start_server: startServerTool, stop_server: stopServerTool, read_server_logs: readServerLogsTool, list_servers: listServersTool };
 
   // Wrap each tool's execute to notify onToolResult after completion
   if (onToolResult) {
