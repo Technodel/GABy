@@ -283,27 +283,12 @@ export async function scoreAgentTurn(
   // Only score tasks that did actual work (file changes or tool calls)
   if (input.changedFiles.length === 0 && input.toolCallCount === 0) return;
 
-  try {
-    const scores = await evaluateWithJudge(input, null);
-    if (!scores) return;
-
-    await recordTrainingScore({
-      userId,
-      projectId,
-      sessionId,
-      taskMode: resolvedMode,
-      turnIndex,
-      ...scores,
-    });
-
-    console.log(
-      `[training-scorer] Phase-2.1 scored turn #${turnIndex}: ${scores.total}/50 ` +
-      `(correctness=${scores.correctness}, completeness=${scores.completeness}, ` +
-      `style=${scores.style}) — ${scores.category}`,
-    );
-  } catch (err) {
-    console.warn('[training-scorer] Phase-2.1 scoring failed:', (err as Error).message);
-  }
+  // Phase-2.1 scoring requires a configured judge model. Until one is wired
+  // up (a free/cheap model dedicated to scoring), skip silently instead of
+  // calling a missing function that throws on every turn.
+  // TODO: thread a judge LanguageModel through here, then call:
+  //   const scores = await scoreTaskExecution(judgeModel, input);
+  return;
 }
 
 // ── Query training scores ─────────────────────────────────────────────────────

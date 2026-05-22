@@ -137,6 +137,7 @@ function getLoopDetector(userId: number): LoopDetector {
 const STEP_BUDGET: Record<string, number> = {
   free: 8,
   fast: 16,
+  smart: 28,
   pro: 40,
 };
 function stepBudgetFor(mode: string): number {
@@ -154,7 +155,8 @@ const MAX_TEST_RETRIES = 5;  // max extra AI passes to fix test failures ("consi
 function suggestUpgrade(currentMode: string): { next: string; label: string } | null {
   switch (currentMode) {
     case 'free': return { next: 'fast', label: 'Fast' };
-    case 'fast': return { next: 'pro', label: 'Pro' };
+    case 'fast': return { next: 'smart', label: 'Smart' };
+    case 'smart': return { next: 'pro', label: 'Pro' };
     case 'auto': return { next: 'pro', label: 'Pro' };
     default: return null; // 'pro' or unknown — no upgrade
   }
