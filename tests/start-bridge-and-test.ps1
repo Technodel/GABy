@@ -15,10 +15,10 @@ param(
     [string]$ServerUrl = "https://suny.technodel.tech"
 )
 
-$ProjectRoot = "D:\Projects\GABy"
+$ProjectRoot = "D:\Projects\SUNy"
 $BridgeScript = Join-Path $ProjectRoot "bridge\start-silent.js"
 $TestRunner = Join-Path $ProjectRoot "run-task-test-production.js"
-$TokenFile = Join-Path $env:USERPROFILE ".gaby\refresh_token"
+$TokenFile = Join-Path $env:USERPROFILE ".suny\refresh_token"
 
 function Write-Step($msg) {
     Write-Host "`n==> $msg" -ForegroundColor Cyan

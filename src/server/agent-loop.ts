@@ -303,7 +303,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
 
   // When imageData is present, prefer vision-capable models across all modes
   const isVisionRequest = !!imageData;
-  const modelEntries = isVisionRequest
+  let modelEntries = isVisionRequest
     ? await (async () => {
         const vision = await getVisionCapableModels();
         if (vision.length > 0) {

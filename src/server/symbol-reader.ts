@@ -211,7 +211,7 @@ export function createSymbolReaderTool(ctx: { userId: number; projectPath: strin
     }),
     execute: async ({ filePath }) => {
       if (!isBridgeConnected(userId)) {
-        return 'Bridge not connected. Cannot read file.';
+        throw new Error('Bridge not connected. Cannot read file.');
       }
 
       const absPath = filePath.startsWith('/') || filePath.startsWith('~')
@@ -235,7 +235,7 @@ export function createSymbolReaderTool(ctx: { userId: number; projectPath: strin
 
         return formatSymbolMap(symbolMap);
       } catch (e) {
-        return `Error reading symbols from '${filePath}': ${e instanceof Error ? e.message : String(e)}`;
+        throw new Error(`Error reading symbols from '${filePath}': ${e instanceof Error ? e.message : String(e)}`);
       }
     },
   });

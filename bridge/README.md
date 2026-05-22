@@ -29,7 +29,7 @@ Before the bridge can access your project files, register the directory:
 suny-bridge --register /path/to/your/project
 ```
 
-This adds the path to `~/.gaby/config.json` so the sandbox allows file operations there.
+This adds the path to `~/.suny/config.json` so the sandbox allows file operations there.
 
 ### CLI Options
 

@@ -1,5 +1,5 @@
 /**
- * @gaby/sdk — Tool creation utilities.
+ * @suny/sdk — Tool creation utilities.
  * Define typed tools that integrate with the SUNy agent loop.
  */
 

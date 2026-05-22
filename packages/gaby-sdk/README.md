@@ -1,19 +1,19 @@
-# @gaby/sdk
+# @suny/sdk
 
-**The official SUNy/GABy Software Development Kit.**
+**The official SUNy Software Development Kit.**
 
 Build extensions, tools, and integrations for the SUNy platform.
 
 ## Installation
 
 ```bash
-npm install @gaby/sdk
+npm install @suny/sdk
 ```
 
 ## Quick Start
 
 ```ts
-import { createTool, createExtension } from '@gaby/sdk';
+import { createTool, createExtension } from '@suny/sdk';
 
 // Create a custom tool
 const weatherTool = createTool({

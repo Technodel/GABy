@@ -99,7 +99,7 @@ export function createPowerTools(ctx: PowerToolContext): ToolSet {
         readFiles.add(abs);
         return result as string;
       } catch (e) {
-        return `Error reading '${input.filePath}': ${e instanceof Error ? e.message : String(e)}`;
+        throw new Error(`Error reading '${input.filePath}': ${e instanceof Error ? e.message : String(e)}`);
       }
     },
   });
@@ -160,7 +160,7 @@ Include enough context to uniquely identify the location. Do not use escape char
           readFiles.add(abs); // post-edit content is now what model has seen
           return `Successfully edited '${input.filePath}'.`;
         } catch (e) {
-          return `Error editing '${input.filePath}': ${e instanceof Error ? e.message : String(e)}`;
+          throw new Error(`Error editing '${input.filePath}': ${e instanceof Error ? e.message : String(e)}`);
         }
       });
     },
@@ -202,7 +202,7 @@ Modes: 'create_only' (fail if exists), 'overwrite' (replace or create), 'append'
         knownNewFiles.add(abs);
         return `Successfully written to '${input.filePath}'.`;
       } catch (e) {
-        return `Error writing '${input.filePath}': ${e instanceof Error ? e.message : String(e)}`;
+        throw new Error(`Error writing '${input.filePath}': ${e instanceof Error ? e.message : String(e)}`);
       }
     },
   });
@@ -220,7 +220,7 @@ Modes: 'create_only' (fail if exists), 'overwrite' (replace or create), 'append'
         const result = await sendToBridge(userId, 'exec:list_dir', { path: abs }, 15000);
         return result;
       } catch (e) {
-        return `Error listing '${input.dirPath}': ${e instanceof Error ? e.message : String(e)}`;
+        throw new Error(`Error listing '${input.dirPath}': ${e instanceof Error ? e.message : String(e)}`);
       }
     },
   });
@@ -238,7 +238,7 @@ Modes: 'create_only' (fail if exists), 'overwrite' (replace or create), 'append'
         await sendToBridge(userId, 'exec:mkdir', { path: abs }, 10000);
         return `Created directory '${input.dirPath}'.`;
       } catch (e) {
-        return `Error creating '${input.dirPath}': ${e instanceof Error ? e.message : String(e)}`;
+        throw new Error(`Error creating '${input.dirPath}': ${e instanceof Error ? e.message : String(e)}`);
       }
     },
   });
@@ -256,7 +256,7 @@ Modes: 'create_only' (fail if exists), 'overwrite' (replace or create), 'append'
         const result = await sendToBridge(userId, 'exec:path_exists', { path: abs }, 10000);
         return result ? `'${input.filePath}' exists.` : `'${input.filePath}' does not exist.`;
       } catch (e) {
-        return `Error checking '${input.filePath}': ${e instanceof Error ? e.message : String(e)}`;
+        throw new Error(`Error checking '${input.filePath}': ${e instanceof Error ? e.message : String(e)}`);
       }
     },
   });
@@ -279,7 +279,7 @@ Modes: 'create_only' (fail if exists), 'overwrite' (replace or create), 'append'
         }, input.timeout + 5000);
         return result as string;
       } catch (e) {
-        return `Error running command: ${e instanceof Error ? e.message : String(e)}`;
+        throw new Error(`Error running command: ${e instanceof Error ? e.message : String(e)}`);
       }
     },
   });
@@ -298,7 +298,7 @@ Modes: 'create_only' (fail if exists), 'overwrite' (replace or create), 'append'
         onFileDeleted?.(abs);
         return `Successfully deleted '${input.filePath}'.`;
       } catch (e) {
-        return `Error deleting '${input.filePath}': ${e instanceof Error ? e.message : String(e)}`;
+        throw new Error(`Error deleting '${input.filePath}': ${e instanceof Error ? e.message : String(e)}`);
       }
     },
   });
@@ -324,7 +324,7 @@ Modes: 'create_only' (fail if exists), 'overwrite' (replace or create), 'append'
         }, 15000) as string;
         try { return JSON.parse(result.trim()); } catch { return result; }
       } catch (e) {
-        return `Error running glob '${input.pattern}': ${e instanceof Error ? e.message : String(e)}`;
+        throw new Error(`Error running glob '${input.pattern}': ${e instanceof Error ? e.message : String(e)}`);
       }
     },
   });
@@ -385,7 +385,7 @@ console.log(JSON.stringify(results));`.replace(/\n/g, ' ');
         if (parsed.length >= maxResults) out.push(`---\n[Limit of ${maxResults} reached. Refine pattern or increase maxResults.]`);
         return out.join('\n');
       } catch (e) {
-        return `Error during grep: ${e instanceof Error ? e.message : String(e)}`;
+        throw new Error(`Error during grep: ${e instanceof Error ? e.message : String(e)}`);
       }
     },
   });

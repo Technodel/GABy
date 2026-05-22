@@ -1,5 +1,5 @@
 /**
- * @gaby/sdk — Auth provider interface.
+ * @suny/sdk — Auth provider interface.
  * Custom authentication backends for SUNy instances.
  */
 

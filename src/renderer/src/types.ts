@@ -5,6 +5,7 @@ export interface Project {
   name: string;
   local_path: string;
   persona?: string | null;
+  auto_execute_override?: boolean | null;
 }
 
 export interface ProjectSpend {
@@ -26,6 +27,7 @@ export interface UserData {
   balance: number;
   wallet_balance: number;
   wallet_auto_spend: boolean;
+  auto_approve?: boolean;
   selected_mode: string;
   max_tokens_per_session?: number | null;
   cross_device_memory_enabled?: boolean;

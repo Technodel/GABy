@@ -1,5 +1,5 @@
 /**
- * @gaby/sdk — Memory adapter interface.
+ * @suny/sdk — Memory adapter interface.
  * Allows custom memory backends (e.g. Redis, PostgreSQL, Pinecone).
  */
 

@@ -1,9 +1,9 @@
-# SUNy / GABy — Complete Agent Project Guide
+# SUNy / SUNy — Complete Agent Project Guide
 
 > **Version:** 1.0.0  
-> **Project:** `D:\Projects\GABy`  
+> **Project:** `D:\Projects\SUNy`  
 > **Deployed:** `https://suny.technodel.tech` (VPS `72.62.235.63:2222`)  
-> **GitHub:** `https://github.com/Technodel/GABy.git`  
+> **GitHub:** `https://github.com/Technodel/SUNy.git`  
 > **SUNy =** Smart Unstoppable Navigator
 
 ---
@@ -27,7 +27,7 @@
 15. [Laws, Rules & Behavioral Patterns](#15-laws-rules--behavioral-patterns)
 16. [Troubleshooting & Common Fixes](#16-troubleshooting--common-fixes)
 17. [Skill System](#17-skill-system)
-18. [SDK Package (gaby-sdk)](#18-sdk-package-gaby-sdk)
+18. [SDK Package (suny-sdk)](#18-sdk-package-suny-sdk)
 
 ---
 
@@ -284,10 +284,10 @@ skills/
 
 Each SKILL.md has YAML frontmatter + markdown sections. Loaded by `skill-loader.ts`.
 
-### 2.4 SDK (`packages/gaby-sdk/`)
+### 2.4 SDK (`packages/suny-sdk/`)
 
 ```
-packages/gaby-sdk/src/
+packages/suny-sdk/src/
 ├── index.ts       # Public API exports
 ├── extension.ts   # Extension interface
 ├── tool.ts        # Tool interface
@@ -801,8 +801,8 @@ pm2 save  # save process list for auto-restart
 
 ### 10.1 Remotes
 ```
-origin  https://github.com/Technodel/GABy.git (fetch)
-origin  https://github.com/Technodel/GABy.git (push)
+origin  https://github.com/Technodel/SUNy.git (fetch)
+origin  https://github.com/Technodel/SUNy.git (push)
 ```
 
 ### 10.2 `.gitignore` Patterns
@@ -970,9 +970,9 @@ hasSufficientBalance(userId): boolean
 
 ### 14.1 Environment Variables
 ```
-SUNY_PORT / GABY_PORT         → Server port (default 3500)
+SUNY_PORT                     → Server port (default 3500)
 SUNY_DB_PATH                  → SQLite path (default ./data/suny.db)
-SUNY_ALLOWED_ORIGIN / GABY_ALLOWED_ORIGIN → CORS origin
+SUNY_ALLOWED_ORIGIN           → CORS origin
 NODE_ENV                      → 'production' or dev (affects rate limits, CORS)
 ```
 
@@ -1103,10 +1103,10 @@ Skills are activated based on task classification. The system selects relevant s
 
 ---
 
-## 18. SDK Package (gaby-sdk)
+## 18. SDK Package (suny-sdk)
 
 ### 18.1 Location
-`packages/gaby-sdk/`
+`packages/suny-sdk/`
 
 ### 18.2 Structure
 ```typescript
@@ -1179,5 +1179,5 @@ npx tsc --noEmit               # TypeScript check
 
 ---
 
-*This guide is maintained for AI agents working on the SUNy/GABy project.  
+*This guide is maintained for AI agents working on the SUNy/SUNy project.  
 Last updated: May 2026*

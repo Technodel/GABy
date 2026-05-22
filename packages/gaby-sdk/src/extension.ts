@@ -1,5 +1,5 @@
 /**
- * @gaby/sdk — Extension system for building SUNy plugins.
+ * @suny/sdk — Extension system for building SUNy plugins.
  *
  * Extensions allow third-party developers to add custom tools,
  * hooks, and behaviors to the SUNy agent loop.
@@ -63,7 +63,7 @@ export interface Extension {
  * ```ts
  * const slackExtension = createExtension({
  *   manifest: {
- *     name: '@gaby/slack',
+ *     name: '@suny/slack',
  *     displayName: 'Slack Integration',
  *     version: '1.0.0',
  *     description: 'Post SUNy results to Slack channels',

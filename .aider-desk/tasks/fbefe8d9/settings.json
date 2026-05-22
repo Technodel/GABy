@@ -1,0 +1,28 @@
+{
+  "id": "fbefe8d9",
+  "baseDir": "D:\\Projects\\GABy",
+  "name": "Review Project",
+  "archived": false,
+  "aiderTotalCost": 0,
+  "agentTotalCost": 33.716721203999896,
+  "mainModel": "",
+  "currentMode": "agent",
+  "weakModelLocked": false,
+  "parentId": null,
+  "lastAgentProviderMetadata": {
+    "deepseek": {
+      "promptCacheHitTokens": 57216,
+      "promptCacheMissTokens": 487
+    }
+  },
+  "autoApprove": true,
+  "provider": "deepseek",
+  "model": "deepseek-v4-pro",
+  "workingMode": "local",
+  "startedAt": "2026-05-22T16:13:58.023Z",
+  "state": "IN_PROGRESS",
+  "createdAt": "2026-05-14T01:41:09.320Z",
+  "updatedAt": "2026-05-22T16:15:54.058Z",
+  "completedAt": "2026-05-22T16:00:11.064Z",
+  "interruptedAt": "2026-05-22T01:18:40.624Z"
+}

@@ -1,8 +1,8 @@
 /**
- * @gaby/sdk — Official SUNy/GABy SDK for building extensions, tools, and integrations.
+ * @suny/sdk — Official SUNy SDK for building extensions, tools, and integrations.
  *
  * Usage:
- *   import { createTool, createExtension, type AgentRequest, type AgentResponse } from '@gaby/sdk';
+ *   import { createTool, createExtension, type AgentRequest, type AgentResponse } from '@suny/sdk';
  *
  * The SDK is framework-agnostic but works seamlessly with Vercel AI SDK tools.
  */

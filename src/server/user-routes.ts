@@ -187,8 +187,27 @@ router.patch('/me/mode', (req: Request, res: Response) => {
 
 router.get('/projects', (req: Request, res: Response) => {
   const user = (req as AuthRequest).user;
-  const projects = getDb().prepare('SELECT id, name, local_path, persona, created_at FROM projects WHERE user_id = ?').all(user.id);
-  res.json(projects);
+  let projects: Array<{
+    id: number;
+    name: string;
+    local_path: string;
+    persona: string | null;
+    auto_execute_override: number | null;
+    created_at: string;
+  }>;
+  try {
+    projects = getDb().prepare('SELECT id, name, local_path, persona, auto_execute_override, created_at FROM projects WHERE user_id = ?').all(user.id) as typeof projects;
+  } catch {
+    // Column may not exist on older DBs — fall back to query without it
+    const rows = getDb().prepare('SELECT id, name, local_path, persona, created_at FROM projects WHERE user_id = ?').all(user.id) as Array<{
+      id: number; name: string; local_path: string; persona: string | null; created_at: string;
+    }>;
+    projects = rows.map(r => ({ ...r, auto_execute_override: null }));
+  }
+  res.json(projects.map(p => ({
+    ...p,
+    auto_execute_override: p.auto_execute_override === null ? null : p.auto_execute_override === 1,
+  })));
 });
 
 router.get('/projects/spend', (req: Request, res: Response) => {
@@ -255,6 +274,21 @@ router.patch('/projects/:id/persona', (req: Request, res: Response) => {
   if (!proj) { res.status(404).json({ error: 'Project not found' }); return; }
   getDb().prepare('UPDATE projects SET persona = ? WHERE id = ?').run(parsed.data.persona?.trim() || null, id);
   res.json({ success: true });
+});
+
+/** Set project-level auto execute override (null = inherit global setting) */
+router.patch('/projects/:id/auto-execute', (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: 'Invalid id' }); return; }
+  const parsed = z.object({ enabled: z.boolean().nullable() }).safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: 'Invalid input' }); return; }
+  const proj = getDb().prepare('SELECT id FROM projects WHERE id = ? AND user_id = ?').get(id, user.id);
+  if (!proj) { res.status(404).json({ error: 'Project not found' }); return; }
+  const raw = parsed.data.enabled;
+  const dbValue = raw === null ? null : (raw ? 1 : 0);
+  getDb().prepare('UPDATE projects SET auto_execute_override = ? WHERE id = ?').run(dbValue, id);
+  res.json({ success: true, auto_execute_override: raw });
 });
 
 // ── Memories ───────────────────────────────────────────────────────────────────
@@ -865,7 +899,7 @@ router.delete('/projects/:id/pinned-files/:filePath', (req: Request, res: Respon
 
 // ── Vector Context: chunk stats + re-index ────────────────────────────────────
 
-router.get('/projects/:id/vector-stats', (req: Request, res: Response) => {
+router.get('/projects/:id/vector-stats', async (req: Request, res: Response) => {
   const user = (req as AuthRequest).user;
   const projectId = parseInt(req.params.id, 10);
   if (isNaN(projectId)) { res.status(400).json({ error: 'Invalid project id' }); return; }

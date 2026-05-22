@@ -50,7 +50,7 @@ const MAX_RECONNECT_DELAY = 60000;
 /** Seconds between token-refresh poll attempts after expiry */
 const TOKEN_REFRESH_POLL_INTERVAL = 30000;
 /** File path where a new token can be written for auto-pick-up */
-const TOKEN_REFRESH_FILE = path.join(os.homedir(), '.gaby', 'refresh_token');
+const TOKEN_REFRESH_FILE = path.join(os.homedir(), '.suny', 'refresh_token');
 class SunyBridge {
     constructor(token, server, options = {}) {
         this.ws = null;
@@ -252,7 +252,7 @@ class SunyBridge {
      * bridge can resume automatically without requiring a manual restart.
      *
      * New token pick-up priority:
-     *  1. `~/.gaby/refresh_token` file content (trimmed)
+     *  1. `~/.suny/refresh_token` file content (trimmed)
      *  2. `SUNY_TOKEN` environment variable (if changed externally)
      */
     startTokenRefreshFlow() {
@@ -267,7 +267,7 @@ class SunyBridge {
         this.log(`[SUNy Bridge]   1. Visit: ${loginUrl}`);
         this.log('[SUNy Bridge]   2. Log in and copy your bridge token.');
         this.log(`[SUNy Bridge]   3. Write the new token to: ${TOKEN_REFRESH_FILE}`);
-        this.log('[SUNy Bridge]      e.g.  echo "YOUR_TOKEN" > ~/.gaby/refresh_token');
+        this.log('[SUNy Bridge]      e.g.  echo "YOUR_TOKEN" > ~/.suny/refresh_token');
         this.log('[SUNy Bridge]      OR restart the bridge with the new token flag.');
         this.log('[SUNy Bridge]');
         this.log(`[SUNy Bridge] Checking for new token every ${TOKEN_REFRESH_POLL_INTERVAL / 1000}s until you disconnect...`);

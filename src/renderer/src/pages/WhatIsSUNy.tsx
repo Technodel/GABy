@@ -56,7 +56,7 @@ const coreWins = [
   { title: '🛡️ SUNy Code Conscience — Change Guardian', text: 'An intent-aware guardian that snapshots TypeScript signatures before changes and detects semantic drift automatically — catching unintended contract breaks before they ship.' },
   { title: 'Repository Memory Graph', text: 'SUNy keeps long-lived project memory about structure, style, and decisions to reduce re-discovery and drift.' },
   { title: 'Surgical Edit Discipline', text: 'Changes are applied with minimal, precise diffs to reduce regressions and preserve stable behavior.' },
-  { title: '📦 @gaby/sdk Plugin System', text: 'A full TypeScript SDK for building extensions. Custom tools, memory adapters, auth providers, and billing plugins with clean interfaces.' },
+  { title: '📦 @suny/sdk Plugin System', text: 'A full TypeScript SDK for building extensions. Custom tools, memory adapters, auth providers, and billing plugins with clean interfaces.' },
   { title: '📸 Rich Checkpoint Manager', text: 'Every change creates a DB-backed checkpoint with tags, file counts, and metadata. Full timeline UI with one-click rollback that works across projects.' },
   { title: '🔄 Integrated Scheduler Engine', text: 'Built-in cron scheduler that runs agent tasks at specified intervals. Hourly, daily, weekly, or custom cron expressions with run logs and failure tracking.' },
 ];

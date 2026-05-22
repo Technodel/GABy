@@ -85,6 +85,7 @@ const EXHAUSTED_REPLY_FALLBACKS = [
 ];
 
 const lastFallbackByUser = new Map<number, string>();
+const lockMessagesSent = new Set<string>();
 
 function pickNonRepeatingFallback(userId: number, choices: string[]): string {
   if (choices.length === 0) return '';
@@ -650,11 +651,19 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       let projectPersona: string | null = null;
       let projectAutoExecuteOverride: number | null = null;
       if (projectId) {
-        const proj = db.prepare('SELECT local_path, persona, auto_execute_override FROM projects WHERE id = ? AND user_id = ?')
-          .get(projectId, userId) as { local_path: string; persona: string | null; auto_execute_override: number | null } | undefined;
-        projectPath = proj?.local_path;
-        projectPersona = proj?.persona ?? null;
-        projectAutoExecuteOverride = proj?.auto_execute_override ?? null;
+        try {
+          const proj = db.prepare('SELECT local_path, persona, auto_execute_override FROM projects WHERE id = ? AND user_id = ?')
+            .get(projectId, userId) as { local_path: string; persona: string | null; auto_execute_override: number | null } | undefined;
+          projectPath = proj?.local_path;
+          projectPersona = proj?.persona ?? null;
+          projectAutoExecuteOverride = proj?.auto_execute_override ?? null;
+        } catch {
+          // Column may not exist on older DBs — fall back to query without it
+          const proj = db.prepare('SELECT local_path, persona FROM projects WHERE id = ? AND user_id = ?')
+            .get(projectId, userId) as { local_path: string; persona: string | null } | undefined;
+          projectPath = proj?.local_path;
+          projectPersona = proj?.persona ?? null;
+        }
       }
 
       const effectiveAutoExecute = projectAutoExecuteOverride === null
@@ -1885,13 +1894,21 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         const lockInfo = await getLockInfo(projectId!);
         const holder = lockInfo ? lockInfo.username : 'another session';
         const when = lockInfo ? lockInfo.lockedAt : 'unknown time';
+        // Track whether this session has already seen a lock message
+        const isRepeat = lockMessagesSent.has(sessionId);
+        lockMessagesSent.add(sessionId);
+        // Only push system_error toast on first occurrence — avoid spamming the user
+        if (!isRepeat) {
+          userClientManager.pushToUser(userId, 'suny:system_error', {
+            message: `⚠️ This project is locked by **${holder}** since ${when}. Please wait for their session to finish, or ask an admin to release the lock.`,
+          });
+        }
         // Embed lock details in the error message so the catch block can surface them.
-        const detail = `LOCK_HOLDER:${holder}|LOCKED_AT:${when}`;
-        userClientManager.pushToUser(userId, 'suny:system_error', {
-          message: `⚠️ This project is locked by **${holder}** since ${when}. Please wait for their session to finish, or ask an admin to release the lock.`,
-        });
+        const detail = `LOCK_HOLDER:${holder}|LOCKED_AT:${when}|REPEAT:${isRepeat ? '1' : '0'}`;
         throw new Error(`Project is locked by another session (${detail})`);
       }
+      // Lock acquired successfully — clear any stale repeat tracking
+      lockMessagesSent.delete(sessionId);
 
       // ── Log session start ────────────────────────────────────────────
       logOperation({
@@ -2025,6 +2042,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         // Release project lock
         if (projectId) {
           await releaseLock(projectId, sessionId);
+          lockMessagesSent.delete(sessionId);
         }
 
         // Log session end
@@ -2335,16 +2353,22 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       if (errMsg.includes('NO_VISION_MODEL_AVAILABLE')) { friendly = 'I\'m a text-only model and can\'t scan images. To analyze images, please add an API key for a vision-capable model (OpenAI, Anthropic, Groq, or OpenRouter) in the admin settings, then try again.'; errorCategory = 'no_vision_model'; }
       if (errMsg.includes('TURN_TIMEOUT_')) { friendly = 'This task took too long and was safely stopped. Please try again, or ask in smaller steps.'; errorCategory = 'timeout'; }
       if (errMsg.includes('Project is locked by another session')) {
-        // Extract lock holder details from the structured error message
+        // Extract lock holder details and repeat flag from the structured error message
         const holderMatch = errMsg.match(/LOCK_HOLDER:([^|]+)/);
         const whenMatch = errMsg.match(/LOCKED_AT:([^)]+)/);
+        const repeatMatch = errMsg.match(/REPEAT:(\d)/);
         const holder = holderMatch ? holderMatch[1] : 'another session';
         const when = whenMatch ? whenMatch[1] : 'unknown time';
-        friendly = `🔒 This project is locked by **${holder}** since ${when}.\n\n` +
-          'Only one session can work on a project at a time to prevent conflicts.\n' +
-          'Options:\n' +
-          '• Wait for their session to finish (the lock auto-expires after 5 minutes of inactivity).\n' +
-          '• If this is a stale lock from a crashed session, ask an admin to clear it from the project_locks table.';
+        const isRepeat = repeatMatch && repeatMatch[1] === '1';
+        if (isRepeat) {
+          friendly = `🔒 Still locked by **${holder}**. The lock auto-expires after 5 minutes of inactivity.`;
+        } else {
+          friendly = `🔒 This project is locked by **${holder}** since ${when}.\n\n` +
+            'Only one session can work on a project at a time to prevent conflicts.\n' +
+            'Options:\n' +
+            '• Wait for their session to finish (the lock auto-expires after 5 minutes of inactivity).\n' +
+            '• If this is a stale lock from a crashed session, ask an admin to clear it from the project_locks table.';
+        }
         errorCategory = 'lock';
       }
       if (errMsg.includes('Too many pending requests')) { friendly = 'You have too many active requests. Please wait for the current ones to finish, then try again.'; errorCategory = 'rate_limit'; }

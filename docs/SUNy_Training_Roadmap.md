@@ -491,7 +491,7 @@ The single highest-ROI action right now:
 # In WSL or any Linux environment with the Groq key:
 export OPENAI_API_KEY=YOUR_GROQ_API_KEY_HERE
 export OPENAI_BASE_URL=https://api.groq.com/openai/v1
-cd D:/Projects/GABy
+cd D:/Projects/SUNy
 python scripts/generate-suny-training-data.py --count 2000 --output ./suny-training-data-v3.jsonl --workers 8
 ```
 

@@ -16,6 +16,8 @@ import AdminSettings from './pages/AdminSettings';
 import AdminContactInfo from './pages/AdminContactInfo';
 import AdminFeatureFlags from './pages/AdminFeatureFlags';
 import PricingPlans from './pages/PricingPlans';
+import ClientRequest from './pages/ClientRequest';
+import ClientTickets from './pages/ClientTickets';
 
 type AuthState = 'loading' | 'user' | 'admin' | 'none';
 
@@ -92,6 +94,13 @@ function AppRoutes() {
       <Route path="/contact" element={<ContactUs />} />
       <Route path="/pricing" element={<PricingPlans />} />
       <Route path="/plans" element={<PricingPlans />} />
+      <Route path="/client-link/:uid" element={<ClientRequest />} />
+
+      {/* User Client Tickets */}
+      <Route path="/client-tickets" element={
+        auth === 'none' ? <Navigate to="/login" /> :
+        <ClientTickets onBack={() => navigate('/')} />
+      } />
 
       {/* User routes */}
       <Route path="/" element={

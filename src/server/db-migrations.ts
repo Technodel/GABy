@@ -453,6 +453,95 @@ const SCHEMA_MIGRATIONS: Migration[] = [
       }
     },
   },
+
+  // ── Migration 11: Client Link (PRO feature) ──────────────────────────────
+  {
+    version: 11,
+    name: 'Create client_links and client_requests tables for Client Link PRO feature',
+    up: async (adapter) => {
+      await adapter.exec(`
+        CREATE TABLE IF NOT EXISTS client_links (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          uid TEXT NOT NULL UNIQUE,
+          user_id INTEGER NOT NULL,
+          project_id INTEGER DEFAULT NULL,
+          project_name TEXT DEFAULT '',
+          title TEXT DEFAULT '',
+          description TEXT DEFAULT '',
+          status TEXT NOT NULL DEFAULT 'active',
+          created_at TEXT DEFAULT (datetime('now')),
+          expires_at TEXT DEFAULT NULL,
+          FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+
+        CREATE TABLE IF NOT EXISTS client_requests (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          link_uid TEXT NOT NULL,
+          client_name TEXT DEFAULT '',
+          client_email TEXT DEFAULT '',
+          description TEXT NOT NULL,
+          status TEXT NOT NULL DEFAULT 'pending',
+          admin_notes TEXT DEFAULT '',
+          created_at TEXT DEFAULT (datetime('now')),
+          FOREIGN KEY(link_uid) REFERENCES client_links(uid)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_client_links_user ON client_links(user_id);
+        CREATE INDEX IF NOT EXISTS idx_client_links_uid ON client_links(uid);
+        CREATE INDEX IF NOT EXISTS idx_client_requests_link ON client_requests(link_uid);
+        CREATE INDEX IF NOT EXISTS idx_client_requests_status ON client_requests(status);
+      `);
+      console.log('[db] Migration v11: Created client_links and client_requests tables');
+    },
+  },
+
+  // ── Migration 12: Client Tickets (redesigned Client Link) ─────────────────
+  {
+    version: 12,
+    name: 'Create client_tickets table for the redesigned Client Link ticket system',
+    up: async (adapter) => {
+      // Detect if we have the old v1 schema (title column) and nuke it
+      const hasOldSchema = await adapter.columnExists('client_tickets', 'title');
+      if (hasOldSchema) {
+        await adapter.exec('DROP TABLE IF EXISTS client_tickets');
+        console.log('[db] Migration v12: Dropped old client_tickets v1 schema');
+      }
+      await adapter.exec(`
+        CREATE TABLE IF NOT EXISTS client_tickets (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          uid TEXT NOT NULL UNIQUE,
+          user_id INTEGER NOT NULL,
+          project_id INTEGER DEFAULT NULL,
+          project_name TEXT DEFAULT '',
+          company_name TEXT DEFAULT '',
+          goal TEXT NOT NULL DEFAULT '',
+          messages TEXT DEFAULT '[]',
+          status TEXT NOT NULL DEFAULT 'open',
+          summary TEXT DEFAULT '',
+          suggestions TEXT DEFAULT '',
+          created_at TEXT DEFAULT (datetime('now')),
+          closed_at TEXT DEFAULT NULL,
+          FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_client_tickets_user ON client_tickets(user_id);
+        CREATE INDEX IF NOT EXISTS idx_client_tickets_uid ON client_tickets(uid);
+        CREATE INDEX IF NOT EXISTS idx_client_tickets_status ON client_tickets(status);
+      `);
+      console.log('[db] Migration v12: Created client_tickets table');
+    },
+  },
+
+  // ── Migration 13: Per-project auto execute override ──────────────────────
+  {
+    version: 13,
+    name: 'Add auto_execute_override column to projects table',
+    up: async (adapter) => {
+      if (!(await adapter.columnExists('projects', 'auto_execute_override'))) {
+        await adapter.exec('ALTER TABLE projects ADD COLUMN auto_execute_override INTEGER DEFAULT NULL');
+        console.log('[db] Migration v13: Added auto_execute_override column to projects table');
+      }
+    },
+  },
 ];
 
 // ── Data seeding ─────────────────────────────────────────────────────────────

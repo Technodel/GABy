@@ -1,5 +1,5 @@
 /**
- * @gaby/sdk — Billing plugin interface.
+ * @suny/sdk — Billing plugin interface.
  * Custom billing and cost calculation backends.
  */
 

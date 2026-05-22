@@ -355,3 +355,6 @@ export async function runHypothesisStrategies(input: HypothesisRunnerInput): Pro
   if (strategies.length < 2) {
     return { bestText: '', bestStrategy: '', bestScore: 0, hypBlock: '' };
   }
+
+  return { bestText: '', bestStrategy: '', bestScore: 0, hypBlock: '' };
+}

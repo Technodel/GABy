@@ -20,7 +20,7 @@ export default function NarratedMessage({ message, type, isActive = false, times
     return <SystemMessage message={message} timestamp={timestamp} />;
   }
 
-  return <GabyMessage message={message} isActive={isActive} timestamp={timestamp} report={report} />;
+  return <SunyMessage message={message} isActive={isActive} timestamp={timestamp} report={report} />;
 }
 
 function UserMessage({ message, timestamp }: { message: string; timestamp: number }) {
@@ -47,17 +47,17 @@ function SystemMessage({ message, timestamp }: { message: string; timestamp: num
   );
 }
 
-function GabyMessage({ message, isActive = false, timestamp, report }: { message: string; isActive?: boolean; timestamp: number; report?: ReportMetrics }) {
+function SunyMessage({ message, isActive = false, timestamp, report }: { message: string; isActive?: boolean; timestamp: number; report?: ReportMetrics }) {
   const visualEffects = (() => { try { return localStorage.getItem('suny_visual_effects') !== 'false'; } catch { return true; } })();
   return (
-    <div className="message-appear" style={gabyContainerStyle}>
+    <div className="message-appear" style={sunyContainerStyle}>
       <SunyAvatar size={28} />
-      <div className={isActive && visualEffects ? 'suny-bubble-led' : undefined} style={{ ...gabyBubbleStyle, position: 'relative' }}>
+      <div className={isActive && visualEffects ? 'suny-bubble-led' : undefined} style={{ ...sunyBubbleStyle, position: 'relative' }}>
         <div className={isActive && visualEffects ? 'suny-bubble-active' : undefined}>
           <FormattedContent content={message} />
         </div>
-        <div style={gabyMetaRowStyle}>
-          <span style={gabyMetaStyle}>Received {formatDateTime(timestamp)}</span>
+        <div style={sunyMetaRowStyle}>
+          <span style={sunyMetaStyle}>Received {formatDateTime(timestamp)}</span>
           {report && <ReportBadgeButton report={report} label="Task report" />}
         </div>
       </div>
@@ -223,14 +223,14 @@ const systemMetaStyle: React.CSSProperties = {
   textAlign: 'center',
 };
 
-const gabyContainerStyle: React.CSSProperties = {
+const sunyContainerStyle: React.CSSProperties = {
   display: 'flex',
   gap: 10,
   marginBottom: 12,
   alignItems: 'flex-start',
 };
 
-const gabyBubbleStyle: React.CSSProperties = {
+const sunyBubbleStyle: React.CSSProperties = {
   maxWidth: '75%',
   padding: '10px 14px',
   borderRadius: '4px 16px 16px 16px',
@@ -242,7 +242,7 @@ const gabyBubbleStyle: React.CSSProperties = {
   wordBreak: 'break-word',
 };
 
-const gabyMetaRowStyle: React.CSSProperties = {
+const sunyMetaRowStyle: React.CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
@@ -250,7 +250,7 @@ const gabyMetaRowStyle: React.CSSProperties = {
   marginTop: 8,
 };
 
-const gabyMetaStyle: React.CSSProperties = {
+const sunyMetaStyle: React.CSSProperties = {
   fontSize: 10,
   color: 'var(--text-muted)',
 };

@@ -1,7 +1,7 @@
 {
-  "name": "@gaby/sdk",
+  "name": "@suny/sdk",
   "version": "1.0.0",
-  "description": "GABy/SUNy Software Development Kit — Build extensions, tools, and integrations for the SUNy platform.",
+  "description": "SUNy Software Development Kit — Build extensions, tools, and integrations for the SUNy platform.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": ["dist", "README.md", "LICENSE"],
@@ -12,7 +12,6 @@
   },
   "keywords": [
     "suny",
-    "gaby",
     "sdk",
     "ai",
     "coding-agent",
