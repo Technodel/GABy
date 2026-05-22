@@ -65,11 +65,12 @@ export default function TopBar(props: TopBarProps) {
 
   return (
     <div className="topbar" style={{
-      display: 'flex', alignItems: 'center', padding: '0 16px', height: 52,
-      borderBottom: '1px solid var(--border)', gap: 8, flexShrink: 0, position: 'relative',
+      display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)', alignItems: 'center',
+      padding: '0 16px', minHeight: 52,
+      borderBottom: '1px solid var(--border)', gap: 8, flexShrink: 0,
     }}>
       {/* LEFT: brand + username + active project */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden' }}>
         <button
           className="sidebar-toggle-btn"
           onClick={toggleSidebar}
@@ -104,7 +105,7 @@ export default function TopBar(props: TopBarProps) {
       </div>
 
       {/* CENTER: Mode selector + routing badge */}
-      <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 8, pointerEvents: 'auto' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifySelf: 'center', minWidth: 0, pointerEvents: 'auto', flexWrap: 'wrap', justifyContent: 'center' }}>
         {modes.length > 0 && (
           <ModeSelector modes={modes} selected={selectedMode} onChange={changeMode} noBalance={noBalance} />
         )}
@@ -126,7 +127,7 @@ export default function TopBar(props: TopBarProps) {
       </div>
 
       {/* RIGHT: action buttons */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1, justifyContent: 'flex-end' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifySelf: 'end', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
         {activeProject && (
           <button
             className="btn btn-icon btn-secondary"

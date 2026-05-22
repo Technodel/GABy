@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Copy } from 'lucide-react';
 import SunyAvatar from './SunyAvatar';
 import ReportBadgeButton, { ReportMetrics } from './ReportBadgeButton';
 
@@ -49,6 +50,16 @@ function SystemMessage({ message, timestamp }: { message: string; timestamp: num
 
 function SunyMessage({ message, isActive = false, timestamp, report }: { message: string; isActive?: boolean; timestamp: number; report?: ReportMetrics }) {
   const visualEffects = (() => { try { return localStorage.getItem('suny_visual_effects') !== 'false'; } catch { return true; } })();
+  const [copied, setCopied] = useState(false);
+
+  async function copyMessage() {
+    try {
+      await navigator.clipboard.writeText(message);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch { /* clipboard may not be available */ }
+  }
+
   return (
     <div className="message-appear" style={sunyContainerStyle}>
       <SunyAvatar size={28} />
@@ -57,7 +68,18 @@ function SunyMessage({ message, isActive = false, timestamp, report }: { message
           <FormattedContent content={message} />
         </div>
         <div style={sunyMetaRowStyle}>
-          <span style={sunyMetaStyle}>Received {formatDateTime(timestamp)}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+            <span style={sunyMetaStyle}>Received {formatDateTime(timestamp)}</span>
+            <button
+              onClick={copyMessage}
+              title="Copy SUNy response"
+              aria-label="Copy SUNy response"
+              style={messageCopyBtnStyle}
+            >
+              <Copy size={11} />
+              <span>{copied ? 'Copied' : 'Copy'}</span>
+            </button>
+          </div>
           {report && <ReportBadgeButton report={report} label="Task report" />}
         </div>
       </div>
@@ -310,6 +332,22 @@ const copyBtnStyle: React.CSSProperties = {
   cursor: 'pointer',
   fontFamily: 'inherit',
   transition: 'background 0.15s',
+};
+
+const messageCopyBtnStyle: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 4,
+  fontSize: 10,
+  padding: '2px 6px',
+  borderRadius: 4,
+  border: '1px solid var(--border)',
+  background: 'transparent',
+  color: 'var(--text-muted)',
+  cursor: 'pointer',
+  fontFamily: 'inherit',
+  lineHeight: 1.2,
+  flexShrink: 0,
 };
 
 const codeBlockPreStyle: React.CSSProperties = {

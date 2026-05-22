@@ -92,6 +92,7 @@ function EnglishContent() {
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
           {[
+            { title: '🧊 Freeze Brain', desc: 'Lock a project to a saved memory snapshot so SUNy keeps using the same blueprint and behavioral rules until you unfreeze it.' },
             { title: '🎭 Prompt Variants', desc: 'A/B test different AI personas, tones, and strategies. Switch between Senior Engineer, Patient Teacher, or Test-First modes — or create your own custom variant.' },
             { title: '📸 Checkpoint Timeline', desc: 'Every change is saved as a named checkpoint. Browse your full history with file counts, tags, and one-click rollback to any earlier state.' },
             { title: '🌿 Fork Conversation', desc: 'Use the fork button in chat to save an instant snapshot before trying a new direction. You can restore any fork later from the Forks menu.' },
@@ -100,6 +101,25 @@ function EnglishContent() {
             { title: '🌐 Browser Automation', desc: 'SUNy can navigate web pages, take screenshots, fill forms, and extract data. Perfect for testing, scraping, and live site verification.' },
             { title: '🏪 MCP Marketplace', desc: 'Discover and install community-contributed MCP servers. Databases, search engines, Docker, Slack, GitHub — all pluggable in one command.' },
             { title: '🔗 Client Link (PRO)', desc: 'Generate a secure, shareable URL for non-technical clients. They describe the change in plain language — you review, approve, and SUNy executes. No Slack threads, no back-and-forth.' },
+          ].map(f => (
+            <div key={f.title} style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--bg)' }}>
+              <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{f.title}</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.6, margin: 0 }}>{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: 24, borderColor: 'var(--accent)', borderWidth: 2, background: 'rgba(108,99,255,0.06)' }}>
+        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 10 }}>🧠 Code Conscience Upgrades</h2>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.7, marginBottom: 16 }}>
+          The memory system now has stronger control over how SUNy thinks and remembers on each project.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
+          {[
+            { title: '🧬 Design Memory', desc: 'Persistent blueprint memory keeps intent, architecture choices, and outcomes available across sessions.' },
+            { title: '🛡️ Change Guardian', desc: 'Intent-aware drift detection flags unexpected contract changes before they ship.' },
+            { title: '🧊 Freeze Brain', desc: 'Project-level snapshot pinning keeps memory and rules stable until you deliberately unfreeze them.' },
           ].map(f => (
             <div key={f.title} style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--bg)' }}>
               <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{f.title}</h3>

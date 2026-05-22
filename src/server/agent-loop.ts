@@ -167,7 +167,7 @@ function buildUpgradeHint(currentMode: string, reason: string): string {
   if (!sug) return '';
   return (
     `\n\n💡 **${reason}** This task may be too complex for **${currentMode}** mode. ` +
-    `Switch to **${sug.label}** mode (top-right selector) for a stronger model that can handle multi-step reasoning, longer plans, and tougher edits.`
+    `Switch to **${sug.label}** mode in the mode selector for a stronger model that can handle multi-step reasoning, longer plans, and tougher edits.`
   );
 }
 

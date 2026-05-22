@@ -676,6 +676,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const inputHistoryIndex = useRef(-1);
   const prevThinkingRef = useRef(false);
+  const noticeRotationRef = useRef<Record<string, number>>({});
   const sessionId = useRef('s_' + Date.now() + '_' + Math.random().toString(36).slice(2));
   const [sessUsed, setSessUsed] = useState(0);
   const [sessLimit, setSessLimit] = useState<number | null>(null);
@@ -685,6 +686,13 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
   const [expandedRunIds, setExpandedRunIds] = useState<Set<number>>(new Set());
 
   function nextId() { return ++msgId.current; }
+
+  function pickNotice(key: string, variants: string[]): string {
+    if (variants.length === 0) return '';
+    const index = noticeRotationRef.current[key] ?? 0;
+    noticeRotationRef.current[key] = (index + 1) % variants.length;
+    return variants[index % variants.length];
+  }
 
   // ── Proof run persistence ────────────────────────────────────────────────
   const proofHistoryKey = `suny_proof_runs_${activeProject?.id ?? 'global'}`;
@@ -1217,12 +1225,16 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
           : reason === 'all_providers_failed'
           ? 'All configured models for this tier failed.'
           : 'This task seems harder than the current tier can handle.';
+        const upgradeHint = pickNotice(`upgrade:${reason}:${cur}:${sug}`, [
+          `Try the **${sug}** mode in the top bar and send the message again.`,
+          `Move up to **${sug}** for a stronger model, then resend the request.`,
+          `Use **${sug}** mode for another pass with deeper reasoning.`,
+        ]);
         addMessage(
           'suny',
           `⚠️ **${reasonText}**\n\nYou're on **${cur}** mode. ` +
           `Switching to **${sug}** mode gives me a stronger model that handles multi-step coding, ` +
-          `longer plans, and trickier edits. Open the mode selector (top-right) and pick **${sug}**, ` +
-          `then re-send your message.`,
+          `longer plans, and trickier edits. ${upgradeHint}`,
         );
         playSound('error');
       } else if (msg.event === 'suny:out_of_balance') {
@@ -1231,7 +1243,11 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
           ? msg.message
           : 'Your balance is empty. I can still chat in free mode, but coding actions need credits.';
         const title = reason === 'daily_limit' ? '⏳ Daily limit reached' : '💳 Out of credits';
-        addMessage('suny', `${title}\n\n${message}\n\n_Click the **Top up** button below the chat input, or keep chatting in free mode._`);
+        addMessage('suny', `${title}\n\n${message}\n\n_${pickNotice(`credits:${reason}`, [
+          'Use the Top up button below the chat input, or keep chatting in free mode.',
+          'You can top up from the button under the chat box, or continue in free mode.',
+          'Tap Top up below if you want more actions, otherwise stay in free chat.',
+        ])}_`);
         setShowTopUp(true);
         playSound('error');
       } else if (msg.event === 'suny:topup_resolved') {
@@ -1239,10 +1255,18 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         const amt = Number(msg.amount ?? 0);
         const notes = typeof msg.adminNotes === 'string' ? msg.adminNotes : '';
         if (status === 'approved') {
-          addMessage('suny', `✅ **Top-up approved!** $${amt.toFixed(2)} added to your wallet.${notes ? `\n\n_Note from admin: ${notes}_` : ''}`);
+          addMessage('suny', `✅ **Top-up approved!** $${amt.toFixed(2)} added to your wallet.${notes ? `\n\n_Note from admin: ${notes}_` : ''}\n\n_${pickNotice('topup-approved', [
+            'Balance updated, so you can keep going.',
+            'You are funded again and ready for the next task.',
+            'The wallet is topped up and SUNy can continue.',
+          ])}_`);
           playSound('success');
         } else {
-          addMessage('suny', `❌ **Top-up rejected.**${notes ? `\n\n_Reason: ${notes}_` : ' Contact the admin for details.'}`);
+          addMessage('suny', `❌ **Top-up rejected.**${notes ? `\n\n_Reason: ${notes}_` : ' Contact the admin for details.'}\n\n_${pickNotice('topup-rejected', [
+            'If you want to keep working, you can stay in free chat for now.',
+            'Try again later or ask the admin for help with the balance.',
+            'The request did not go through this time, but you can retry later.',
+          ])}_`);
           playSound('error');
         }
       } else if (msg.event === 'suny:tool_call') {
@@ -2518,14 +2542,19 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
           {activeProject && !isMobile && (
             <div style={{ borderTop: '1px solid var(--border)', marginTop: 4 }}>
               <div style={{ padding: '12px 12px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <span
+                  style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                  onClick={() => setCollapsedSections(s => ({ ...s, freezeBrain: !s.freezeBrain }))}
+                >
+                  {collapsedSections.freezeBrain ? <ChevronRight size={11} /> : <ChevronDown size={11} />}
                   🧊 Freeze Brain
                 </span>
                 {freezeStatus.frozen && (
                   <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 4, background: 'var(--accent)', color: '#fff' }}>ACTIVE</span>
                 )}
               </div>
-              <div style={{ padding: '0 12px 10px' }}>
+              {!collapsedSections.freezeBrain && (
+                <div style={{ padding: '0 12px 10px' }}>
                 {freezeStatus.frozen && freezeStatus.snapshot ? (
                   <>
                     <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 6 }}>
@@ -2566,39 +2595,46 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                     )}
                   </>
                 )}
-              </div>
+                </div>
+              )}
             </div>
           )}
 
           {/* Project Default Tier section */}
           {activeProject && !isMobile && (
             <div style={{ borderTop: '1px solid var(--border)', marginTop: 4 }}>
-              <div style={{ padding: '12px 12px 6px' }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <div style={{ padding: '12px 12px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span
+                  style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                  onClick={() => setCollapsedSections(s => ({ ...s, defaultTier: !s.defaultTier }))}
+                >
+                  {collapsedSections.defaultTier ? <ChevronRight size={11} /> : <ChevronDown size={11} />}
                   Default Tier
                 </span>
               </div>
-              <div style={{ padding: '0 12px 10px' }}>
-                <select
-                  value={activeProject.default_tier ?? ''}
-                  onChange={e => {
-                    const v = e.target.value;
-                    saveProjectDefaultTier(v === '' ? null : (v as 'free' | 'fast' | 'pro' | 'auto'));
-                  }}
-                  className="input"
-                  style={{ width: '100%', fontSize: 12, padding: '4px 6px' }}
-                  title="Default model tier for this project (overrides your account default)"
-                >
-                  <option value="">Inherit account default</option>
-                  <option value="free">Free</option>
-                  <option value="fast">Fast</option>
-                  <option value="pro">Pro</option>
-                  <option value="auto">Auto</option>
-                </select>
-                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.4 }}>
-                  Used when you don't pick a tier for a message.
+              {!collapsedSections.defaultTier && (
+                <div style={{ padding: '0 12px 10px' }}>
+                  <select
+                    value={activeProject.default_tier ?? ''}
+                    onChange={e => {
+                      const v = e.target.value;
+                      saveProjectDefaultTier(v === '' ? null : (v as 'free' | 'fast' | 'pro' | 'auto'));
+                    }}
+                    className="input"
+                    style={{ width: '100%', fontSize: 12, padding: '4px 6px' }}
+                    title="Default model tier for this project (overrides your account default)"
+                  >
+                    <option value="">Inherit account default</option>
+                    <option value="free">Free</option>
+                    <option value="fast">Fast</option>
+                    <option value="pro">Pro</option>
+                    <option value="auto">Auto</option>
+                  </select>
+                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.4 }}>
+                    Used when you don't pick a tier for a message.
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 
