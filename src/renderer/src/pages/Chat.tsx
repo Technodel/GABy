@@ -31,6 +31,11 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
   const [bridgeConnected, setBridgeConnected] = useState(false);
   const [bridgePreviouslyConnected, setBridgePreviouslyConnected] = useState(false);
   const [showBridgeTip, setShowBridgeTip] = useState(false);
+  const [showTopUp, setShowTopUp] = useState(false);
+  const [topUpAmount, setTopUpAmount] = useState('5');
+  const [topUpNote, setTopUpNote] = useState('');
+  const [topUpSubmitting, setTopUpSubmitting] = useState(false);
+  const [topUpResult, setTopUpResult] = useState<{ ok: boolean; msg: string } | null>(null);
   const [crossDeviceMemoryEnabled, setCrossDeviceMemoryEnabled] = useState(false);
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
   const [globalAutoApprove, setGlobalAutoApprove] = useState(true);
@@ -280,6 +285,19 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     if (!res.ok) return;
     setProjects(ps => ps.map(p => p.id === activeProject.id ? { ...p, auto_execute_override: enabled } : p));
     setActiveProject(prev => prev ? { ...prev, auto_execute_override: enabled } : prev);
+  }
+
+  async function saveProjectDefaultTier(tier: 'free' | 'fast' | 'pro' | 'auto' | null) {
+    if (!activeProject) return;
+    const res = await fetch(`/api/projects/${activeProject.id}/default-tier`, {
+      method: 'PATCH',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tier }),
+    });
+    if (!res.ok) return;
+    setProjects(ps => ps.map(p => p.id === activeProject.id ? { ...p, default_tier: tier } : p));
+    setActiveProject(prev => prev ? { ...prev, default_tier: tier } : prev);
   }
 
   // ── Usage stats ──────────────────────────────────────────────────────────
@@ -1204,8 +1222,20 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
           ? msg.message
           : 'Your balance is empty. I can still chat in free mode, but coding actions need credits.';
         const title = reason === 'daily_limit' ? '⏳ Daily limit reached' : '💳 Out of credits';
-        addMessage('suny', `${title}\n\n${message}\n\n_Ask an admin to top up your wallet, or keep chatting in free mode._`);
+        addMessage('suny', `${title}\n\n${message}\n\n_Click the **Top up** button below the chat input, or keep chatting in free mode._`);
+        setShowTopUp(true);
         playSound('error');
+      } else if (msg.event === 'suny:topup_resolved') {
+        const status = String(msg.status ?? 'approved');
+        const amt = Number(msg.amount ?? 0);
+        const notes = typeof msg.adminNotes === 'string' ? msg.adminNotes : '';
+        if (status === 'approved') {
+          addMessage('suny', `✅ **Top-up approved!** $${amt.toFixed(2)} added to your wallet.${notes ? `\n\n_Note from admin: ${notes}_` : ''}`);
+          playSound('success');
+        } else {
+          addMessage('suny', `❌ **Top-up rejected.**${notes ? `\n\n_Reason: ${notes}_` : ' Contact the admin for details.'}`);
+          playSound('error');
+        }
       } else if (msg.event === 'suny:tool_call') {
         const toolName = String(msg.tool ?? 'unknown_tool');
         pushToolToProof(toolName);
@@ -1751,6 +1781,29 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     setMessages(prev => prev.filter(m => m.id !== id));
   }
 
+  // Regenerate: drop this user message and everything after, then re-send its content.
+  async function regenerateUserMessage(id: number) {
+    if (thinking) return;
+    const idx = messages.findIndex(m => m.id === id);
+    if (idx < 0) return;
+    const target = messages[idx];
+    if (target.type !== 'user') return;
+    setMessages(prev => prev.slice(0, idx));
+    await sendPreparedMessage(target.content);
+  }
+
+  // Edit: prefill the composer with this user message's content, drop it and everything after.
+  // User can then tweak and press Send.
+  function editUserMessage(id: number) {
+    if (thinking) return;
+    const idx = messages.findIndex(m => m.id === id);
+    if (idx < 0) return;
+    const target = messages[idx];
+    if (target.type !== 'user') return;
+    setMessages(prev => prev.slice(0, idx));
+    setInput(target.content);
+  }
+
   // ── Conversation forking ────────────────────────────────────────────────
   interface ConversationFork { id: string; label: string; savedAt: number; messages: Message[]; }
 
@@ -2020,6 +2073,12 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
             remainingTokens={sessLimit == null ? null : Math.max(0, sessLimit - sessUsed)}
             onOpenWalletSettings={() => onOpenSettings('wallet', 'Opened Wallet Transfer in Settings')}
           />
+          <button
+            className="btn btn-icon btn-secondary"
+            onClick={() => { setTopUpResult(null); setShowTopUp(true); }}
+            title="Request a top-up"
+            style={{ fontSize: 12 }}
+          >+ Top up</button>
           {!isMobile && (
             <button
               className="btn btn-icon btn-secondary"
@@ -2367,6 +2426,38 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
             </div>
           )}
 
+          {/* Project Default Tier section */}
+          {activeProject && !isMobile && (
+            <div style={{ borderTop: '1px solid var(--border)', marginTop: 4 }}>
+              <div style={{ padding: '12px 12px 6px' }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Default Tier
+                </span>
+              </div>
+              <div style={{ padding: '0 12px 10px' }}>
+                <select
+                  value={activeProject.default_tier ?? ''}
+                  onChange={e => {
+                    const v = e.target.value;
+                    saveProjectDefaultTier(v === '' ? null : (v as 'free' | 'fast' | 'pro' | 'auto'));
+                  }}
+                  className="input"
+                  style={{ width: '100%', fontSize: 12, padding: '4px 6px' }}
+                  title="Default model tier for this project (overrides your account default)"
+                >
+                  <option value="">Inherit account default</option>
+                  <option value="free">Free</option>
+                  <option value="fast">Fast</option>
+                  <option value="pro">Pro</option>
+                  <option value="auto">Auto</option>
+                </select>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 6, lineHeight: 1.4 }}>
+                  Used when you don't pick a tier for a message.
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Project Rules (.suny-rules) section */}
           {activeProject && !isMobile && (
             <div style={{ borderTop: '1px solid var(--border)', marginTop: 4 }}>
@@ -2711,6 +2802,8 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
             msgEndRef={msgEndRef}
             clearChat={clearChat}
             onDeleteMessage={deleteMessage}
+            onRegenerateMessage={regenerateUserMessage}
+            onEditMessage={editUserMessage}
             setRenamingTabId={setRenamingTabId}
             setRenamingTabValue={setRenamingTabValue}
             setDeleteConfirmTabId={setDeleteConfirmTabId}
@@ -2798,6 +2891,81 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
                   <button className="btn btn-secondary" onClick={() => setShowBridgeTip(false)}>Close</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Top-up request modal */}
+      {showTopUp && (
+        <div className="modal-overlay" onClick={() => { if (!topUpSubmitting) { setShowTopUp(false); setTopUpResult(null); } }}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
+            <h3 style={{ margin: '0 0 4px', fontSize: 17 }}>💳 Request a top-up</h3>
+            <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, margin: '0 0 14px' }}>
+              Submit a top-up request. An admin will review and credit your wallet.
+            </p>
+            {topUpResult ? (
+              <>
+                <div style={{
+                  padding: 12, borderRadius: 8, marginBottom: 14,
+                  background: topUpResult.ok ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)',
+                  border: `1px solid ${topUpResult.ok ? 'rgba(34,197,94,0.3)' : 'rgba(239,68,68,0.3)'}`,
+                  fontSize: 13,
+                }}>{topUpResult.msg}</div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button className="btn btn-primary" onClick={() => { setShowTopUp(false); setTopUpResult(null); }}>Close</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Amount (USD)</label>
+                <input
+                  type="number" min="1" max="10000" step="1"
+                  value={topUpAmount}
+                  onChange={e => setTopUpAmount(e.target.value)}
+                  className="input"
+                  style={{ width: '100%', marginBottom: 12 }}
+                  disabled={topUpSubmitting}
+                />
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, marginBottom: 4 }}>Note (optional)</label>
+                <textarea
+                  value={topUpNote}
+                  onChange={e => setTopUpNote(e.target.value.slice(0, 500))}
+                  className="input"
+                  style={{ width: '100%', minHeight: 60, marginBottom: 14, resize: 'vertical' }}
+                  placeholder="Payment method, reference, etc."
+                  disabled={topUpSubmitting}
+                />
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                  <button className="btn btn-secondary" disabled={topUpSubmitting} onClick={() => setShowTopUp(false)}>Cancel</button>
+                  <button
+                    className="btn btn-primary"
+                    disabled={topUpSubmitting || !topUpAmount || Number(topUpAmount) <= 0}
+                    onClick={async () => {
+                      setTopUpSubmitting(true);
+                      try {
+                        const res = await fetch('/api/billing/topup-request', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          credentials: 'include',
+                          body: JSON.stringify({ amount: Number(topUpAmount), note: topUpNote }),
+                        });
+                        const data = await res.json().catch(() => ({}));
+                        if (res.ok) {
+                          setTopUpResult({ ok: true, msg: '✅ Request submitted. An admin will review it shortly. You\'ll be notified when it\'s resolved.' });
+                          setTopUpNote('');
+                        } else {
+                          setTopUpResult({ ok: false, msg: '❌ ' + (data.error || `Request failed (${res.status})`) });
+                        }
+                      } catch (err) {
+                        setTopUpResult({ ok: false, msg: '❌ Network error: ' + String(err) });
+                      } finally {
+                        setTopUpSubmitting(false);
+                      }
+                    }}
+                  >{topUpSubmitting ? 'Submitting…' : 'Submit request'}</button>
                 </div>
               </>
             )}

@@ -193,16 +193,17 @@ router.get('/projects', (req: Request, res: Response) => {
     local_path: string;
     persona: string | null;
     auto_execute_override: number | null;
+    default_tier: string | null;
     created_at: string;
   }>;
   try {
-    projects = getDb().prepare('SELECT id, name, local_path, persona, auto_execute_override, created_at FROM projects WHERE user_id = ?').all(user.id) as typeof projects;
+    projects = getDb().prepare('SELECT id, name, local_path, persona, auto_execute_override, default_tier, created_at FROM projects WHERE user_id = ?').all(user.id) as typeof projects;
   } catch {
     // Column may not exist on older DBs — fall back to query without it
     const rows = getDb().prepare('SELECT id, name, local_path, persona, created_at FROM projects WHERE user_id = ?').all(user.id) as Array<{
       id: number; name: string; local_path: string; persona: string | null; created_at: string;
     }>;
-    projects = rows.map(r => ({ ...r, auto_execute_override: null }));
+    projects = rows.map(r => ({ ...r, auto_execute_override: null, default_tier: null }));
   }
   res.json(projects.map(p => ({
     ...p,
@@ -289,6 +290,21 @@ router.patch('/projects/:id/auto-execute', (req: Request, res: Response) => {
   const dbValue = raw === null ? null : (raw ? 1 : 0);
   getDb().prepare('UPDATE projects SET auto_execute_override = ? WHERE id = ?').run(dbValue, id);
   res.json({ success: true, auto_execute_override: raw });
+});
+
+/** Set the default tier (free/fast/pro/auto) that this project should use. null = inherit user preference. */
+router.patch('/projects/:id/default-tier', (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: 'Invalid id' }); return; }
+  const parsed = z.object({
+    tier: z.enum(['free', 'fast', 'pro', 'auto']).nullable(),
+  }).safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: 'Invalid tier' }); return; }
+  const proj = getDb().prepare('SELECT id FROM projects WHERE id = ? AND user_id = ?').get(id, user.id);
+  if (!proj) { res.status(404).json({ error: 'Project not found' }); return; }
+  getDb().prepare('UPDATE projects SET default_tier = ? WHERE id = ?').run(parsed.data.tier, id);
+  res.json({ success: true, default_tier: parsed.data.tier });
 });
 
 // ── Memories ───────────────────────────────────────────────────────────────────
@@ -542,6 +558,41 @@ router.patch('/wallet/auto-spend', (req: Request, res: Response) => {
   getDb().prepare('UPDATE users SET wallet_auto_spend = ? WHERE id = ?')
     .run(parsed.data.enabled ? 1 : 0, user.id);
   res.json({ success: true });
+});
+
+// ── Top-up Requests ────────────────────────────────────────────────────────────
+// Users file a request; an admin reviews it in the admin dashboard and either
+// approves (which calls the existing wallet_balance_set / transferToWallet path)
+// or rejects with a note. No live payment processor yet — keeps things honest.
+
+const TopupRequestSchema = z.object({
+  amount: z.number().positive().max(10000),
+  note: z.string().max(500).optional().default(''),
+});
+
+router.post('/billing/topup-request', (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const parsed = TopupRequestSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: 'Enter a valid amount (positive, ≤ 10000)' }); return; }
+  // Throttle: reject if user already has 3+ pending requests.
+  const pending = getDb().prepare("SELECT COUNT(*) as c FROM topup_requests WHERE user_id = ? AND status = 'pending'")
+    .get(user.id) as { c: number };
+  if (pending.c >= 3) {
+    res.status(429).json({ error: 'You already have 3 pending top-up requests. Wait for an admin to process them first.' });
+    return;
+  }
+  const result = getDb().prepare(
+    'INSERT INTO topup_requests (user_id, amount, note) VALUES (?, ?, ?)',
+  ).run(user.id, parsed.data.amount, parsed.data.note);
+  res.json({ success: true, id: result.lastInsertRowid });
+});
+
+router.get('/billing/topup-requests', (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const rows = getDb().prepare(
+    'SELECT id, amount, note, status, admin_notes, created_at, resolved_at FROM topup_requests WHERE user_id = ? ORDER BY created_at DESC LIMIT 20',
+  ).all(user.id);
+  res.json(rows);
 });
 
 // ── Project Rules (.suny-rules) ─────────────────────────────────────────────

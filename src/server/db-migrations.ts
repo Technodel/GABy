@@ -544,6 +544,34 @@ const SCHEMA_MIGRATIONS: Migration[] = [
       }
     },
   },
+
+  // ── Migration 14: top-up requests + per-project default tier ─────────────
+  {
+    version: 14,
+    name: 'Create topup_requests table and add default_tier column to projects',
+    up: async (adapter) => {
+      await adapter.exec(`
+        CREATE TABLE IF NOT EXISTS topup_requests (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          amount REAL NOT NULL,
+          note TEXT DEFAULT '',
+          status TEXT NOT NULL DEFAULT 'pending',
+          admin_notes TEXT DEFAULT '',
+          created_at TEXT DEFAULT (datetime('now')),
+          resolved_at TEXT DEFAULT NULL,
+          FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_topup_requests_user ON topup_requests(user_id);
+        CREATE INDEX IF NOT EXISTS idx_topup_requests_status ON topup_requests(status);
+      `);
+      if (!(await adapter.columnExists('projects', 'default_tier'))) {
+        await adapter.exec("ALTER TABLE projects ADD COLUMN default_tier TEXT DEFAULT NULL");
+        console.log('[db] Migration v14: Added default_tier column to projects table');
+      }
+      console.log('[db] Migration v14: Created topup_requests table');
+    },
+  },
 ];
 
 // ── Data seeding ─────────────────────────────────────────────────────────────

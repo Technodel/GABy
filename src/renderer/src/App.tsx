@@ -15,6 +15,7 @@ import AdminUsageStats from './pages/AdminUsageStats';
 import AdminSettings from './pages/AdminSettings';
 import AdminContactInfo from './pages/AdminContactInfo';
 import AdminFeatureFlags from './pages/AdminFeatureFlags';
+import AdminTopUps from './pages/AdminTopUps';
 import PricingPlans from './pages/PricingPlans';
 import ClientRequest from './pages/ClientRequest';
 import ClientTickets from './pages/ClientTickets';
@@ -129,6 +130,7 @@ function AppRoutes() {
         <Route path="settings" element={<AdminSettings />} />
         <Route path="contact" element={<AdminContactInfo />} />
         <Route path="feature-flags" element={<AdminFeatureFlags />} />
+        <Route path="top-ups" element={<AdminTopUps />} />
       </Route>
 
       {/* Fallback */}

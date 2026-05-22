@@ -5,6 +5,7 @@ import { requireAdmin } from './auth';
 import { getAdapter } from './db';
 import { getAllFeatureFlags, setFeatureFlag } from './feature-flags';
 import { getAgentMetricsSummary, getRecentTurns } from './metrics';
+import { userClientManager } from './user-client-manager';
 
 const router = Router();
 
@@ -498,6 +499,90 @@ router.get('/metrics', (req: Request, res: Response) => {
 router.get('/metrics/recent', (req: Request, res: Response) => {
   const limit = Math.min(Math.max(parseInt((req.query.limit as string) || '100', 10), 1), 500);
   res.json(getRecentTurns(limit));
+});
+
+/**
+ * GET /api/admin/topup-requests?status=pending
+ * List user-submitted top-up requests for admin review.
+ */
+router.get('/topup-requests', async (req: Request, res: Response) => {
+  const status = (req.query.status as string) || 'pending';
+  const allowed = ['pending', 'approved', 'rejected', 'all'];
+  const where = allowed.includes(status) && status !== 'all' ? 'WHERE r.status = ?' : '';
+  const params = status !== 'all' && allowed.includes(status) ? [status] : [];
+  const db = await getAdapter();
+  const rows = await db.all<Record<string, unknown>>(
+    `SELECT r.id, r.user_id, u.username, r.amount, r.note, r.status, r.admin_notes,
+            r.created_at, r.resolved_at
+     FROM topup_requests r
+     LEFT JOIN users u ON u.id = r.user_id
+     ${where}
+     ORDER BY r.created_at DESC
+     LIMIT 200`,
+    params,
+  );
+  res.json(rows);
+});
+
+/**
+ * PATCH /api/admin/topup-requests/:id
+ * Approve (credits wallet) or reject a top-up request.
+ * Body: { action: 'approve' | 'reject', adminNotes?: string }
+ */
+router.patch('/topup-requests/:id', async (req: Request, res: Response) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: 'Invalid id' }); return; }
+  const parsed = z.object({
+    action: z.enum(['approve', 'reject']),
+    adminNotes: z.string().max(500).optional().default(''),
+  }).safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: 'Invalid action' }); return; }
+  const db = await getAdapter();
+  const reqRow = await db.get<{ id: number; user_id: number; amount: number; status: string }>(
+    'SELECT id, user_id, amount, status FROM topup_requests WHERE id = ?',
+    [id],
+  );
+  if (!reqRow) { res.status(404).json({ error: 'Request not found' }); return; }
+  if (reqRow.status !== 'pending') { res.status(400).json({ error: `Already ${reqRow.status}` }); return; }
+  if (parsed.data.action === 'approve') {
+    // Credit user's wallet (the bot's fuel tank) directly. We don't go through
+    // transferToWallet here because the funds come from the admin / external
+    // payment, not the user's main balance.
+    await db.run(
+      'UPDATE users SET wallet_balance = COALESCE(wallet_balance, 0) + ? WHERE id = ?',
+      [reqRow.amount, reqRow.user_id],
+    );
+    await db.run(
+      "UPDATE topup_requests SET status = 'approved', admin_notes = ?, resolved_at = datetime('now') WHERE id = ?",
+      [parsed.data.adminNotes, id],
+    );
+    const updated = await db.get<{ wallet_balance: number; balance: number }>(
+      'SELECT wallet_balance, balance FROM users WHERE id = ?',
+      [reqRow.user_id],
+    );
+    userClientManager.pushToUser(reqRow.user_id, 'suny:balance', {
+      balance: updated?.balance ?? 0,
+      wallet_balance: updated?.wallet_balance ?? 0,
+    });
+    userClientManager.pushToUser(reqRow.user_id, 'suny:topup_resolved', {
+      requestId: id,
+      status: 'approved',
+      amount: reqRow.amount,
+      adminNotes: parsed.data.adminNotes,
+    });
+  } else {
+    await db.run(
+      "UPDATE topup_requests SET status = 'rejected', admin_notes = ?, resolved_at = datetime('now') WHERE id = ?",
+      [parsed.data.adminNotes, id],
+    );
+    userClientManager.pushToUser(reqRow.user_id, 'suny:topup_resolved', {
+      requestId: id,
+      status: 'rejected',
+      amount: reqRow.amount,
+      adminNotes: parsed.data.adminNotes,
+    });
+  }
+  res.json({ success: true });
 });
 
 export default router;

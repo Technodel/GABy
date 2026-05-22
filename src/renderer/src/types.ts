@@ -6,6 +6,7 @@ export interface Project {
   local_path: string;
   persona?: string | null;
   auto_execute_override?: boolean | null;
+  default_tier?: 'free' | 'fast' | 'pro' | 'auto' | null;
 }
 
 export interface ProjectSpend {

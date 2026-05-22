@@ -1,4 +1,4 @@
-import { Eraser, X, FolderOpen, ChevronRight, ChevronDown, Copy, Trash2, Archive } from 'lucide-react';
+import { Eraser, X, FolderOpen, ChevronRight, ChevronDown, Copy, Trash2, Archive, RefreshCw, Edit3 } from 'lucide-react';
 import { useState } from 'react';
 import NarratedMessage, { ThinkingIndicator } from './NarratedMessage';
 import type { Message, ProofRun, Project } from '../types';
@@ -23,6 +23,8 @@ interface ChatMessagesProps {
   msgEndRef: React.RefObject<HTMLDivElement>;
   clearChat: () => void;
   onDeleteMessage?: (id: number) => void;
+  onRegenerateMessage?: (id: number) => void;
+  onEditMessage?: (id: number) => void;
   setRenamingTabId: React.Dispatch<React.SetStateAction<string | null>>;
   setRenamingTabValue: React.Dispatch<React.SetStateAction<string>>;
   setDeleteConfirmTabId: React.Dispatch<React.SetStateAction<string | null>>;
@@ -45,7 +47,7 @@ export default function ChatMessages(props: ChatMessagesProps) {
     proofRuns, globalTabs, activeTabId, renamingTabId, renamingTabValue,
     deleteConfirmTabId, globalIntroLine, projects, bridgeConnected,
     expandedRunIds, msgEndRef,
-    clearChat, onDeleteMessage, setRenamingTabId, setRenamingTabValue, setDeleteConfirmTabId,
+    clearChat, onDeleteMessage, onRegenerateMessage, onEditMessage, setRenamingTabId, setRenamingTabValue, setDeleteConfirmTabId,
     switchGlobalTab, closeGlobalTab, addGlobalTab, archiveGlobalTab,
     setShowBridgeTip, openProject, copyProofReportToClipboard, setExpandedRunIds, toolLabel, renameGlobalTab,
   } = props;
@@ -406,21 +408,48 @@ export default function ChatMessages(props: ChatMessagesProps) {
           onMouseLeave={() => setHoveredMsgId(null)}
         >
           <NarratedMessage message={m.content} type={m.type} timestamp={m.timestamp} report={m.report} />
-          {onDeleteMessage && hoveredMsgId === m.id && (
-            <button
-              onClick={() => onDeleteMessage(m.id)}
-              title="Remove from context"
-              style={{
-                position: 'absolute', top: 6, right: 6,
-                background: 'rgba(255,60,60,0.12)', border: '1px solid rgba(255,60,60,0.3)',
-                borderRadius: 4, cursor: 'pointer', padding: '2px 5px',
-                display: 'flex', alignItems: 'center', gap: 3,
-                color: 'rgba(255,100,100,0.85)', fontSize: 10, opacity: 0.9,
-                transition: 'opacity 0.15s',
-              }}
-            >
-              <Trash2 size={10} /> delete
-            </button>
+          {hoveredMsgId === m.id && (
+            <div style={{
+              position: 'absolute', top: 6, right: 6,
+              display: 'flex', gap: 4, alignItems: 'center',
+            }}>
+              {m.type === 'user' && onEditMessage && !thinking && (
+                <button
+                  onClick={() => onEditMessage(m.id)}
+                  title="Edit & re-send"
+                  style={{
+                    background: 'rgba(108,99,255,0.12)', border: '1px solid rgba(108,99,255,0.3)',
+                    borderRadius: 4, cursor: 'pointer', padding: '2px 5px',
+                    display: 'flex', alignItems: 'center', gap: 3,
+                    color: 'rgba(140,130,255,0.95)', fontSize: 10,
+                  }}
+                ><Edit3 size={10} /> edit</button>
+              )}
+              {m.type === 'user' && onRegenerateMessage && !thinking && (
+                <button
+                  onClick={() => onRegenerateMessage(m.id)}
+                  title="Re-send this message (drops responses after it)"
+                  style={{
+                    background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.3)',
+                    borderRadius: 4, cursor: 'pointer', padding: '2px 5px',
+                    display: 'flex', alignItems: 'center', gap: 3,
+                    color: 'rgba(120,220,150,0.95)', fontSize: 10,
+                  }}
+                ><RefreshCw size={10} /> regenerate</button>
+              )}
+              {onDeleteMessage && (
+                <button
+                  onClick={() => onDeleteMessage(m.id)}
+                  title="Remove from context"
+                  style={{
+                    background: 'rgba(255,60,60,0.12)', border: '1px solid rgba(255,60,60,0.3)',
+                    borderRadius: 4, cursor: 'pointer', padding: '2px 5px',
+                    display: 'flex', alignItems: 'center', gap: 3,
+                    color: 'rgba(255,100,100,0.85)', fontSize: 10, opacity: 0.9,
+                  }}
+                ><Trash2 size={10} /> delete</button>
+              )}
+            </div>
           )}
         </div>
       ))}

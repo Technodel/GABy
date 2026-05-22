@@ -588,7 +588,19 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       const userRow = db.prepare('SELECT selected_mode, max_tokens_per_session, display_name FROM users WHERE id = ?')
         .get(userId) as { selected_mode: string; max_tokens_per_session: number | null; display_name: string | null } | undefined;
 
-      const rawMode = ((msg.mode as string) || userRow?.selected_mode || 'fast').toLowerCase();
+      // Per-project default tier: if the user hasn't set msg.mode explicitly for this
+      // turn, fall back to the active project's default_tier before user.selected_mode.
+      let projectDefaultTier: string | null = null;
+      const projectIdEarly = msg.projectId as number | undefined;
+      if (projectIdEarly && !msg.mode) {
+        try {
+          const projTier = db.prepare('SELECT default_tier FROM projects WHERE id = ? AND user_id = ?')
+            .get(projectIdEarly, userId) as { default_tier: string | null } | undefined;
+          projectDefaultTier = projTier?.default_tier ?? null;
+        } catch { /* column may not exist on older DBs */ }
+      }
+
+      const rawMode = ((msg.mode as string) || projectDefaultTier || userRow?.selected_mode || 'fast').toLowerCase();
       const requestedMode = ['free', 'fast', 'smart', 'pro', 'auto'].includes(rawMode) ? rawMode : 'fast';
       const dailyLimitRow = db.prepare("SELECT value FROM app_settings WHERE key = 'daily_token_limit'").get() as { value: string } | undefined;
       const dailyTokenLimit = parseInt(dailyLimitRow?.value || '0', 10);
