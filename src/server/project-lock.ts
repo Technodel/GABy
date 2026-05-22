@@ -9,6 +9,11 @@ import { getAdapter } from './db';
 
 const LOCK_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes max lock duration
 
+/** Convert JS Date to SQLite datetime string for reliable comparison. */
+function toSqliteDatetime(d: Date): string {
+  return d.toISOString().replace('T', ' ').slice(0, 19);
+}
+
 export interface ProjectLock {
   projectId: number;
   userId: number;
@@ -25,7 +30,7 @@ export async function acquireLock(projectId: number, userId: number, sessionId: 
   const db = getAdapter();
 
   // Clean expired locks first
-  await db.run('DELETE FROM project_locks WHERE expires_at < datetime(?)', [new Date().toISOString()]);
+  await db.run('DELETE FROM project_locks WHERE expires_at < ?', [toSqliteDatetime(new Date())]);
 
   const existing = await db.get<ProjectLock>(
     'SELECT * FROM project_locks WHERE project_id = ?',
@@ -35,7 +40,7 @@ export async function acquireLock(projectId: number, userId: number, sessionId: 
   if (existing) {
     // Same session — refresh the lock
     if (existing.sessionId === sessionId) {
-      const expiresAt = new Date(Date.now() + LOCK_TIMEOUT_MS).toISOString();
+      const expiresAt = toSqliteDatetime(new Date(Date.now() + LOCK_TIMEOUT_MS));
       await db.run(
         'UPDATE project_locks SET expires_at = ? WHERE project_id = ?',
         [expiresAt, projectId],
@@ -47,7 +52,7 @@ export async function acquireLock(projectId: number, userId: number, sessionId: 
   }
 
   // No existing lock — create one
-  const expiresAt = new Date(Date.now() + LOCK_TIMEOUT_MS).toISOString();
+  const expiresAt = toSqliteDatetime(new Date(Date.now() + LOCK_TIMEOUT_MS));
   try {
     await db.run(
       `INSERT INTO project_locks (project_id, user_id, session_id, expires_at)
@@ -77,8 +82,8 @@ export async function releaseLock(projectId: number, sessionId: string): Promise
 export async function isLockedByOther(projectId: number, sessionId: string): Promise<boolean> {
   const db = getAdapter();
   const lock = await db.get<ProjectLock>(
-    'SELECT * FROM project_locks WHERE project_id = ? AND session_id != ? AND expires_at >= datetime(?)',
-    [projectId, sessionId, new Date().toISOString()],
+    'SELECT * FROM project_locks WHERE project_id = ? AND session_id != ? AND expires_at >= ?',
+    [projectId, sessionId, toSqliteDatetime(new Date())],
   );
   return !!lock;
 }
@@ -96,7 +101,7 @@ export async function getLockInfo(projectId: number): Promise<{
 } | null> {
   const db = getAdapter();
   // Clean expired first
-  await db.run('DELETE FROM project_locks WHERE expires_at < datetime(?)', [new Date().toISOString()]);
+  await db.run('DELETE FROM project_locks WHERE expires_at < ?', [toSqliteDatetime(new Date())]);
   const row = await db.get<{
     user_id: number;
     session_id: string;
@@ -125,7 +130,7 @@ export async function getLockInfo(projectId: number): Promise<{
  */
 export async function getLockStatus(projectId: number): Promise<{ locked: boolean; sessionId?: string } | null> {
   const db = getAdapter();
-  await db.run('DELETE FROM project_locks WHERE expires_at < datetime(?)', [new Date().toISOString()]);
+  await db.run('DELETE FROM project_locks WHERE expires_at < ?', [toSqliteDatetime(new Date())]);
   const lock = await db.get<ProjectLock>(
     'SELECT * FROM project_locks WHERE project_id = ?',
     [projectId],
