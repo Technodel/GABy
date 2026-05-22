@@ -173,6 +173,60 @@ export function buildLanguageModel(key: KeyEntry, modelId: string): LanguageMode
 /**
  * Get all available models for a mode (sorted by priority) for fallback iteration.
  */
+export type TaskType = 'coding' | 'analysis' | 'general';
+
+/**
+ * Classify a user message as coding, analysis, or general for Pro mode
+ * task→model routing. DeepSeek excels at coding/implementation; Anthropic
+ * excels at analysis/reasoning/code review.
+ */
+export function classifyTaskType(message: string): TaskType {
+  const t = message.toLowerCase();
+
+  // Analysis/review/architecture signals (Anthropic's strength)
+  const analysisRx = /\b(analy|review|audit|architect|design|plan|explain|document|compar|evaluat|assess|why|how does|how should|how would|best practice|recommend|improv|optimiz|security|perform|tradeoff|strateg|approach|pattern|refactor\s*(plan|strateg)|code review|what (is|are|does)|pros and cons|alternativ|migration plan|deep dive|lesson|tutorial|concept|understand|overview)\b/;
+
+  // Coding/implementation signals (DeepSeek's strength)
+  const codingRx = /\b(fix|bug|error|implement|refactor|add |write |build |creat|chang|updat|edit |delet|renam|test |deploy|run |compil|generat|scaffold|modif|patch|correct|resolv|merg|commit|push|feature|function |method |class |component|module |middleware|route |endpoint|schema |migration|query |select |insert |update |config|setup |instal|import |export |async |await |promise|callback|hook |state |reduce|dispatch|action |thunk |saga |observable|subscription)\b/;
+
+  const analysisMatches = (t.match(analysisRx) || []).length;
+  const codingMatches = (t.match(codingRx) || []).length;
+
+  if (analysisMatches > codingMatches) return 'analysis';
+  if (codingMatches > analysisMatches) return 'coding';
+  return 'general';
+}
+
+/**
+ * Reorder model entries for Pro mode based on task type.
+ * - coding/general → DeepSeek primary, Anthropic secondary
+ * - analysis/review → Anthropic primary, DeepSeek secondary
+ */
+export function reorderModelsForProTask(
+  models: Array<{ model: LanguageModel; provider: string }>,
+  taskType: TaskType,
+): Array<{ model: LanguageModel; provider: string }> {
+  if (models.length < 2) return models;
+
+  const hasDeepSeek = models.some(m => m.provider === 'DeepSeek');
+  const hasAnthropic = models.some(m => m.provider === 'Anthropic');
+  if (!hasDeepSeek || !hasAnthropic) return models;
+
+  if (taskType === 'analysis') {
+    // Anthropic primary, DeepSeek secondary, rest unchanged
+    const anthropic = models.filter(m => m.provider === 'Anthropic');
+    const deepseek = models.filter(m => m.provider === 'DeepSeek');
+    const others = models.filter(m => m.provider !== 'Anthropic' && m.provider !== 'DeepSeek');
+    return [...anthropic, ...deepseek, ...others];
+  }
+
+  // Default (coding / general): DeepSeek primary, Anthropic secondary
+  const deepseek = models.filter(m => m.provider === 'DeepSeek');
+  const anthropic = models.filter(m => m.provider === 'Anthropic');
+  const others = models.filter(m => m.provider !== 'DeepSeek' && m.provider !== 'Anthropic');
+  return [...deepseek, ...anthropic, ...others];
+}
+
 export async function getModelsForMode(mode: string): Promise<Array<{ model: LanguageModel; provider: string }>> {
   const keys = await getKeysForMode(mode);
   if (keys.length === 0) throw new Error(`No active API key configured for mode "${mode}"`);

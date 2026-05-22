@@ -12,7 +12,7 @@
  */
 
 import { streamText, generateText, stepCountIs, type CoreMessage, type LanguageModel } from 'ai';
-import { getModelsForMode, getVisionCapableModels, isCachingEnabled, getEditFormat } from './agent';
+import { getModelsForMode, getVisionCapableModels, isCachingEnabled, getEditFormat, classifyTaskType, reorderModelsForProTask } from './agent';
 import { createPowerTools } from './power-tools';
 import { createWebSearchTool } from './web-search';
 import { createUrlFetchTool } from './url-fetch';
@@ -315,6 +315,20 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
         return [];
       })()
     : await getModelsForMode(resolvedMode);
+
+  // ── Pro mode: task-based model routing ────────────────────────────────
+  // DeepSeek excels at coding/implementation; Anthropic at analysis/review.
+  // Reorder the fallback chain so the best model for the task gets first shot.
+  if (resolvedMode === 'pro' && modelEntries.length >= 2) {
+    const taskType = classifyTaskType(userMessage);
+    const prevOrder = modelEntries.map(e => e.provider).join(' → ');
+    modelEntries = reorderModelsForProTask(modelEntries, taskType);
+    const newOrder = modelEntries.map(e => e.provider).join(' → ');
+    if (prevOrder !== newOrder) {
+      console.log(`[agent-loop] Pro task-routing: "${taskType}" → ${newOrder}`);
+    }
+  }
+
   let lastError: Error = new Error('No models available');
 
   // Track files changed during this turn (for git auto-commit + cache invalidation)
