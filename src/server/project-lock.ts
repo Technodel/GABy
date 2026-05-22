@@ -84,6 +84,43 @@ export async function isLockedByOther(projectId: number, sessionId: string): Pro
 }
 
 /**
+ * Get detailed info about who holds the lock on a project.
+ * Returns null if no active lock exists.
+ */
+export async function getLockInfo(projectId: number): Promise<{
+  userId: number;
+  username: string;
+  sessionId: string;
+  lockedAt: string;
+  expiresAt: string;
+} | null> {
+  const db = getAdapter();
+  // Clean expired first
+  await db.run('DELETE FROM project_locks WHERE expires_at < datetime(?)', [new Date().toISOString()]);
+  const row = await db.get<{
+    user_id: number;
+    session_id: string;
+    locked_at: string;
+    expires_at: string;
+  }>(
+    'SELECT user_id, session_id, locked_at, expires_at FROM project_locks WHERE project_id = ?',
+    [projectId],
+  );
+  if (!row) return null;
+  const user = await db.get<{ username: string }>(
+    'SELECT username FROM users WHERE id = ?',
+    [row.user_id],
+  );
+  return {
+    userId: row.user_id,
+    username: user?.username ?? `user_${row.user_id}`,
+    sessionId: row.session_id,
+    lockedAt: row.locked_at,
+    expiresAt: row.expires_at,
+  };
+}
+
+/**
  * Check if lock is active (for UI status).
  */
 export async function getLockStatus(projectId: number): Promise<{ locked: boolean; sessionId?: string } | null> {

@@ -21,7 +21,7 @@ import { createMarketplaceRouter } from './mcp-marketplace';
 import { handleBridgeUpgrade } from './bridge-routes';
 import { userClientManager } from './user-client-manager';
 import { isBridgeConnected, registerPathForUser, killBridgeRequest, sendToBridge } from './bridge-manager';
-import { acquireLock, releaseLock, isLockedByOther } from './project-lock';
+import { acquireLock, releaseLock, isLockedByOther, getLockInfo } from './project-lock';
 import { isFeatureEnabled, getAllFeatureFlags } from './feature-flags';
 import { startTaskWorker } from './task-worker';
 import { startScheduler } from './scheduled-agents';
@@ -591,7 +591,14 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       const history = (msg.history as AgentMessage[]) || [];
       const displayName = userRow?.display_name;
       const showTechnicalDetails = msg.showTechnicalDetails === true;
-      const talkMode = msg.talkMode === true || freeTalkOnly;
+      const requestedTalkMode = msg.talkMode === true;
+      let talkMode = requestedTalkMode || freeTalkOnly;
+
+      const scopedAutoApprove = db.prepare('SELECT value FROM app_settings WHERE key = ?')
+        .get(`user_${userId}_auto_approve`) as { value: string } | undefined;
+      const globalAutoApprove = db.prepare("SELECT value FROM app_settings WHERE key = 'auto_approve'")
+        .get() as { value: string } | undefined;
+      const userAutoApprove = (scopedAutoApprove?.value ?? globalAutoApprove?.value ?? 'true') === 'true';
 
       if (freeTalkOnly) {
         const taskish = /(create|scaffold|build|generate|edit|fix|implement|run|install|start|delete|rename|refactor|file|folder|project)/i.test(String(msg.message));
@@ -637,11 +644,20 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       const projectNames = msg.projectNames as string[] | undefined;
       let projectPath: string | undefined;
       let projectPersona: string | null = null;
+      let projectAutoExecuteOverride: number | null = null;
       if (projectId) {
-        const proj = db.prepare('SELECT local_path, persona FROM projects WHERE id = ? AND user_id = ?')
-          .get(projectId, userId) as { local_path: string; persona: string | null } | undefined;
+        const proj = db.prepare('SELECT local_path, persona, auto_execute_override FROM projects WHERE id = ? AND user_id = ?')
+          .get(projectId, userId) as { local_path: string; persona: string | null; auto_execute_override: number | null } | undefined;
         projectPath = proj?.local_path;
         projectPersona = proj?.persona ?? null;
+        projectAutoExecuteOverride = proj?.auto_execute_override ?? null;
+      }
+
+      const effectiveAutoExecute = projectAutoExecuteOverride === null
+        ? userAutoApprove
+        : projectAutoExecuteOverride === 1;
+      if (!effectiveAutoExecute && !freeTalkOnly) {
+        talkMode = true;
       }
 
       // Fetch training/behavioral data async
@@ -1862,10 +1878,15 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         ? await acquireLock(projectId, userId, sessionId)
         : true;
       if (!projectLockHeld) {
+        const lockInfo = await getLockInfo(projectId!);
+        const holder = lockInfo ? lockInfo.username : 'another session';
+        const when = lockInfo ? lockInfo.lockedAt : 'unknown time';
+        // Embed lock details in the error message so the catch block can surface them.
+        const detail = `LOCK_HOLDER:${holder}|LOCKED_AT:${when}`;
         userClientManager.pushToUser(userId, 'suny:system_error', {
-          message: '⚠️ This project is being worked on in another session. Please wait for it to complete before starting a new task.',
+          message: `⚠️ This project is locked by **${holder}** since ${when}. Please wait for their session to finish, or ask an admin to release the lock.`,
         });
-        throw new Error('Project is locked by another session');
+        throw new Error(`Project is locked by another session (${detail})`);
       }
 
       // ── Log session start ────────────────────────────────────────────
@@ -2309,7 +2330,19 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       if (errMsg.includes('No active API key')) { friendly = 'The AI service is not available right now. Please contact support.'; errorCategory = 'no_key'; }
       if (errMsg.includes('NO_VISION_MODEL_AVAILABLE')) { friendly = 'I\'m a text-only model and can\'t scan images. To analyze images, please add an API key for a vision-capable model (OpenAI, Anthropic, Groq, or OpenRouter) in the admin settings, then try again.'; errorCategory = 'no_vision_model'; }
       if (errMsg.includes('TURN_TIMEOUT_')) { friendly = 'This task took too long and was safely stopped. Please try again, or ask in smaller steps.'; errorCategory = 'timeout'; }
-      if (errMsg.includes('Project is locked by another session')) { friendly = 'This project is currently locked by another session. Please wait a moment, then try again.'; errorCategory = 'lock'; }
+      if (errMsg.includes('Project is locked by another session')) {
+        // Extract lock holder details from the structured error message
+        const holderMatch = errMsg.match(/LOCK_HOLDER:([^|]+)/);
+        const whenMatch = errMsg.match(/LOCKED_AT:([^)]+)/);
+        const holder = holderMatch ? holderMatch[1] : 'another session';
+        const when = whenMatch ? whenMatch[1] : 'unknown time';
+        friendly = `🔒 This project is locked by **${holder}** since ${when}.\n\n` +
+          'Only one session can work on a project at a time to prevent conflicts.\n' +
+          'Options:\n' +
+          '• Wait for their session to finish (the lock auto-expires after 5 minutes of inactivity).\n' +
+          '• If this is a stale lock from a crashed session, ask an admin to clear it from the project_locks table.';
+        errorCategory = 'lock';
+      }
       if (errMsg.includes('Too many pending requests')) { friendly = 'You have too many active requests. Please wait for the current ones to finish, then try again.'; errorCategory = 'rate_limit'; }
       if (errMsg.toLowerCase().includes('fetch failed') || errMsg.toLowerCase().includes('timeout') || errMsg.toLowerCase().includes('econn')) {
         friendly = 'AI provider is temporarily unavailable right now. Please retry in a few seconds.';
@@ -2321,7 +2354,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       // empty output, or hits a runtime error during scanning.
       const msgText = String(msg.message ?? '').toLowerCase();
       const isScanIntent = /\b(scan|analyze|explore|look at|check)\b.*\b(project|codebase|repo|folder|directory|root)\b|\bscan\b/.test(msgText);
-      if (isScanIntent && projectPath && isBridgeConnected(userId)) {
+      if (isScanIntent && projectPath && isBridgeConnected(userId) && errorCategory !== 'lock') {
         try {
           const scanText = await quickProjectScan(userId, projectPath);
           userClientManager.pushChatContent(userId, 'suny:stream_end', {
