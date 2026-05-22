@@ -53,16 +53,22 @@ export function handleBridgeUpgrade(ws: WebSocket, req: IncomingMessage): void {
         'SELECT local_path FROM projects WHERE user_id = ?'
       ).all(userId) as Array<{ local_path: string }>;
 
+      let registered = 0;
+      let failed = 0;
       for (const proj of projects) {
         if (proj.local_path) {
           try {
             await registerPathForUser(userId, proj.local_path);
-          } catch { /* individual path may fail; continue with others */ }
+            registered++;
+          } catch (err) {
+            failed++;
+            console.warn(`[bridge-routes] Failed to register path "${proj.local_path}" for user ${userId}: ${err instanceof Error ? err.message : String(err)}`);
+          }
         }
       }
 
       if (projects.length > 0) {
-        console.log(`[bridge-routes] Sent ${projects.length} project path(s) to bridge for user ${userId} on connect`);
+        console.log(`[bridge-routes] Path registration for user ${userId} on connect: ${registered} registered, ${failed} failed (${projects.length} total projects)`);
       }
     } catch (err) {
       console.warn(`[bridge-routes] Failed to send project paths on bridge connect: ${err instanceof Error ? err.message : String(err)}`);

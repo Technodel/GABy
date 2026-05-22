@@ -43,20 +43,21 @@ export function registerBridge(userId: number, username: string, ws: WebSocket):
   ws.on('close', (code, reason) => {
     console.log(`[bridge-manager] Bridge DISCONNECTED for user ${userId} (code=${code}, reason=${reason?.toString() || 'none'})`);
     // Only clean up if this ws is still the active connection — prevents a
-    // stale close handler from a replaced bridge from deleting the new bridge.
+    // stale close handler from a replaced bridge from deleting the new bridge
+    // AND from rejecting the new bridge's pending requests.
     const current = activeBridges.get(userId);
     if (current && current.ws === ws) {
       activeBridges.delete(userId);
+      rejectAllPendingForUser(userId, 'Bridge disconnected');
     }
-    rejectAllPendingForUser(userId, 'Bridge disconnected');
   });
   ws.on('error', (err) => {
     console.log(`[bridge-manager] Bridge ERROR for user ${userId}: ${err.message}`);
     const current = activeBridges.get(userId);
     if (current && current.ws === ws) {
       activeBridges.delete(userId);
+      rejectAllPendingForUser(userId, 'Bridge error');
     }
-    rejectAllPendingForUser(userId, 'Bridge error');
   });
 
   console.log(`[bridge-manager] Bridge CONNECTED for user ${userId} (${username})`);
