@@ -37,6 +37,13 @@ export interface ParsedResponse {
 const TOOL_CALL_REGEX = /<suny_tool\s+([^>]*?)\/?\s*>(.*?)<\/suny_tool\s*>|<suny_tool\s+([^>]*?)\s*\/\s*>/gis;
 
 /**
+ * Regex for <function.name=X>JSON</function> format emitted by some models
+ * (e.g. OpenRouter) that don't support native JSON tool calling.
+ * Group 1: tool name, Group 2: JSON body (params).
+ */
+const FUNCTION_TAG_REGEX = /<function\.name=(\w+)>([\s\S]*?)<\/function\s*>/gi;
+
+/**
  * Parse an AI response and extract tool calls, returning clean text + tool calls.
  */
 export function parseToolCalls(content: string): ParsedResponse {
@@ -126,4 +133,51 @@ export function buildToolResultBlock(results: Array<{ call: ToolCall; result: To
  */
 export function hasToolCalls(content: string): boolean {
   return /<suny_tool\s+/i.test(content);
+}
+
+/**
+ * Parse <function.name=X>JSON</function> format emitted by models that
+ * don't support native JSON tool calling. The body is a JSON object of
+ * parameters for the tool named X.
+ */
+export function parseFunctionTagCalls(content: string): ParsedResponse {
+  const toolCalls: ToolCall[] = [];
+  let cleanContent = content;
+  let match: RegExpExecArray | null;
+
+  FUNCTION_TAG_REGEX.lastIndex = 0;
+
+  while ((match = FUNCTION_TAG_REGEX.exec(content)) !== null) {
+    const toolName = match[1]; // e.g. "glob", "grep", "file_read"
+    const bodyStr = (match[2] || '').trim();
+
+    let params: Record<string, unknown> = {};
+    if (bodyStr) {
+      try {
+        params = JSON.parse(bodyStr);
+      } catch {
+        // Not valid JSON — try to extract key=value pairs as fallback
+        params = { _raw: bodyStr };
+      }
+    }
+
+    if (toolName) {
+      toolCalls.push({ name: toolName, params });
+    }
+  }
+
+  // Remove all function.name tags from content
+  cleanContent = content.replace(FUNCTION_TAG_REGEX, '').trim();
+
+  // Also strip any malformed opening tags (e.g. <function.name=glob> without closing)
+  cleanContent = cleanContent.replace(/<function\.name=\w+>/gi, '').trim();
+
+  return { cleanContent, toolCalls };
+}
+
+/**
+ * Check if content contains <function.name=X> tool calls.
+ */
+export function hasFunctionTagCalls(content: string): boolean {
+  return /<function\.name=\w+>/i.test(content);
 }

@@ -257,6 +257,43 @@ export function classifyAutoMode(message: string): 'free' | 'fast' | 'smart' | '
   return 'fast';
 }
 
+// ── Function-tag fallback parser ──────────────────────────────────────────
+// Some models (especially via OpenRouter) emit tool calls as raw XML:
+//   <function.name=glob>{"pattern":"README.md","cwd":"D:\\Projects\\SEO"}</function>
+// The Vercel AI SDK v5 doesn't parse these, so we intercept them post-hoc.
+
+const FUNCTION_TAG_REGEX = /<function\.name=(\w+)>([\s\S]*?)<\/function\s*>/gi;
+
+function hasFunctionTagCalls(content: string): boolean {
+  return /<function\.name=\w+>/i.test(content);
+}
+
+function parseAndStripFunctionTags(content: string): {
+  cleanContent: string;
+  calls: Array<{ name: string; params: Record<string, unknown> }>;
+} {
+  const calls: Array<{ name: string; params: Record<string, unknown> }> = [];
+  let match: RegExpExecArray | null;
+  FUNCTION_TAG_REGEX.lastIndex = 0;
+
+  while ((match = FUNCTION_TAG_REGEX.exec(content)) !== null) {
+    const toolName = match[1];
+    const bodyStr = (match[2] || '').trim();
+    let params: Record<string, unknown> = {};
+    if (bodyStr) {
+      try { params = JSON.parse(bodyStr); } catch { params = { _raw: bodyStr }; }
+    }
+    if (toolName) calls.push({ name: toolName, params });
+  }
+
+  const cleanContent = content
+    .replace(FUNCTION_TAG_REGEX, '')
+    .replace(/<function\.name=\w+>/gi, '')
+    .trim();
+
+  return { cleanContent, calls };
+}
+
 export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResult> {
   const { userId, mode, systemPrompt, projectId, projectPath, history, userMessage, imageData, sessionId, talkMode, signal, onChunk } = req;
   const startedAt = Date.now();
@@ -784,6 +821,94 @@ If your tools are not working, say:
           fullText = 'I encountered an issue generating a response. Let me try a different approach.\n\n' +
                      'Could you please rephrase your request or let me know what specific task you need help with?';
           console.warn('[agent-loop] AUTO-RETRY exhausted — using fallback message');
+        }
+      }
+
+      // ── Function-tag fallback: intercept <function.name=X> XML tool calls ──
+      // Some models (especially via OpenRouter) emit tool calls as raw XML text
+      // instead of native JSON tool calls. The Vercel AI SDK v5 doesn't parse
+      // these, so we intercept them here, execute the tools, and feed results
+      // back for a follow-up response.
+      if (hasFunctionTagCalls(fullText) && effectiveTools) {
+        console.log('[agent-loop] FUNCTION-TAG FALLBACK: detected <function.name=X> calls in output');
+        const parsed = parseAndStripFunctionTags(fullText);
+        fullText = parsed.cleanContent;
+
+        if (parsed.calls.length > 0) {
+          const results: Array<{ call: { name: string; params: Record<string, unknown> }; result: string }> = [];
+
+          for (const tc of parsed.calls) {
+            const toolFn = (effectiveTools as Record<string, any>)[tc.name];
+            if (!toolFn || typeof toolFn.execute !== 'function') {
+              console.warn(`[agent-loop] FUNCTION-TAG: unknown tool '${tc.name}' — skipping`);
+              results.push({ call: tc, result: `Error: unknown tool '${tc.name}'` });
+              continue;
+            }
+            try {
+              toolCallNames.add(tc.name);
+              console.log(`[agent-loop] FUNCTION-TAG: executing ${tc.name}(${JSON.stringify(tc.params).slice(0, 200)})`);
+              userClientManager.pushToUser(userId, 'suny:tool_start', { tool: tc.name, input: tc.params });
+              const execResult = await toolFn.execute(tc.params, { toolCallId: `fn_${tc.name}_${Date.now()}`, abortSignal: signal });
+              const resultStr = typeof execResult === 'string' ? execResult : JSON.stringify(execResult);
+              console.log(`[agent-loop] FUNCTION-TAG: ${tc.name} result: ${resultStr.slice(0, 300)}`);
+              userClientManager.pushToUser(userId, 'suny:tool_result', { tool: tc.name, input: tc.params, success: true, summary: resultStr.slice(0, 200) });
+              results.push({ call: tc, result: resultStr });
+            } catch (err) {
+              const errMsg = (err as Error).message;
+              console.warn(`[agent-loop] FUNCTION-TAG: ${tc.name} failed: ${errMsg}`);
+              userClientManager.pushToUser(userId, 'suny:tool_result', { tool: tc.name, input: tc.params, success: false, error: errMsg });
+              results.push({ call: tc, result: `Error: ${errMsg}` });
+            }
+          }
+
+          // Feed tool results back to the model for a final response
+          if (results.length > 0) {
+            const resultBlock = results.map(r =>
+              `<tool_result name="${r.call.name}">\n${r.result.slice(0, 8000)}\n</tool_result>`
+            ).join('\n');
+
+            const followUpMsg: CoreMessage = {
+              role: 'user',
+              content:
+                `Here are the results of your tool calls:\n\n${resultBlock}\n\n` +
+                `Now provide your final answer to the original request: "${userMessage.slice(0, 500)}"`,
+            };
+
+            const fuHistory = [...messages, { role: 'assistant' as const, content: fullText || '(tool calls made)' }, followUpMsg];
+            const trimFu = trimHistory(fuHistory, fullSystem, provider);
+
+            try {
+              userClientManager.pushToUser(userId, 'suny:stage', { stage: 'processing', label: 'Processing tool results...' });
+              const fuResult = await generateText({
+                model: model as LanguageModel,
+                system: fullSystem,
+                messages: trimFu,
+                tools: effectiveTools,
+                stopWhen: stepCountIs(4),
+                maxTokens: 4000,
+                abortSignal: signal,
+              });
+
+              const fuText = fuResult.text?.trim() || '';
+              if (fuText.length > 0) {
+                fullText = fuText;
+                totalInput += fuResult.usage?.inputTokens ?? 0;
+                totalOutput += fuResult.usage?.outputTokens ?? 0;
+                console.log(`[agent-loop] FUNCTION-TAG: follow-up produced ${fuText.length} chars`);
+              } else {
+                // Model didn't respond — stitch results together as a best-effort answer
+                fullText = results.map(r =>
+                  `**${r.call.name}**: ${r.result.slice(0, 1000)}`
+                ).join('\n\n');
+              }
+            } catch (fuErr) {
+              console.warn('[agent-loop] FUNCTION-TAG: follow-up call failed:', (fuErr as Error).message);
+              // Best-effort: show tool results directly
+              fullText = results.map(r =>
+                `**${r.call.name}**: ${r.result.slice(0, 1000)}`
+              ).join('\n\n');
+            }
+          }
         }
       }
 
