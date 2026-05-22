@@ -15,6 +15,8 @@ import sessionReplayRouter from './session-replay';
 import schedulerRouter from './scheduler-routes';
 import hypothesisRouter from './hypothesis-routes';
 import checkpointRouter from './checkpoint-routes';
+import clientLinkRouter from './client-link-routes';
+import clientTicketRouter from './client-ticket-routes';
 import { createMarketplaceRouter } from './mcp-marketplace';
 import { handleBridgeUpgrade } from './bridge-routes';
 import { userClientManager } from './user-client-manager';
@@ -69,6 +71,19 @@ const ERROR_REPLY_FALLBACKS = [
   'I ran into an internal hiccup just now. Please retry and I will continue.',
 ];
 
+const EXHAUSTED_REPLY_FALLBACKS = [
+  'All AI models are currently unavailable. Please try again later or contact support. 🤖💤',
+  'Looks like every model is taking a nap right now. Try again in a bit or reach out to support!',
+  'All providers are tapped out at the moment. Please retry later or ping support for help.',
+  'No AI model could complete your request — they\'re all down. Try again soon, or contact support.',
+  'The AI backend is having a moment. All models exhausted. Please try again later or contact support.',
+  'Every single model returned an error. Something\'s wrong on the backend — try again later or contact support.',
+  'We\'ve hit a full provider blackout. All models exhausted. Please retry later or contact support.',
+  'All AI models are currently offline. Please try again later or contact support for assistance.',
+  'The AI service is completely unavailable right now. All models exhausted. Try again later or contact support.',
+  'Well, this is awkward — every model failed. Please try again later or contact support.',
+];
+
 const lastFallbackByUser = new Map<number, string>();
 
 function pickNonRepeatingFallback(userId: number, choices: string[]): string {
@@ -99,6 +114,12 @@ function normalizeFinalContent(userId: number, rawContent: unknown): string {
 }
 
 async function quickProjectScan(userId: number, projectPath: string): Promise<string> {
+  // Ensure the path is registered with the bridge before listing.
+  // This is a safety net: the path may not be registered if the initial
+  // registration at agent-loop startup failed silently, or if the bridge
+  // reconnected and lost its in-memory path registry.
+  try { await registerPathForUser(userId, projectPath); } catch { /* best-effort */ }
+
   const raw = await sendToBridge(userId, 'exec:list_dir', { path: projectPath }, 15000);
   const payload = (raw || {}) as { entries?: Array<{ name: string; isDirectory?: boolean }> };
   const entries = Array.isArray(payload.entries) ? payload.entries : [];
@@ -251,6 +272,62 @@ app.use('/api', hypothesisRouter);
 
 app.use('/api', checkpointRouter);
 
+// ── Client Link API (PRO feature) ──────────────────────────────────────────────
+
+app.use('/api', clientLinkRouter);
+
+// ── Client Ticket API (redesigned Client Link with AI chat) ─────────────────────
+
+app.use('/api', clientTicketRouter);
+
+// ── Public Client Link endpoint (no auth — renders the public request form) ─────
+
+app.get('/api/client-link/:uid', (req: Request, res: Response) => {
+  const { uid } = req.params;
+  const link = getDb().prepare(
+    "SELECT uid, title, description, status, expires_at, project_name FROM client_links WHERE uid = ? AND status = 'active' AND (expires_at IS NULL OR expires_at > datetime('now'))"
+  ).get(uid) as { uid: string; title: string; description: string; status: string; expires_at: string | null; project_name: string } | undefined;
+
+  if (!link) {
+    res.status(404).json({ error: 'Link not found or expired' });
+    return;
+  }
+
+  res.json({ link });
+});
+
+app.post('/api/client-link/:uid/submit', (req: Request, res: Response) => {
+  const { uid } = req.params;
+  const link = getDb().prepare(
+    "SELECT id, uid, user_id FROM client_links WHERE uid = ? AND status = 'active' AND (expires_at IS NULL OR expires_at > datetime('now'))"
+  ).get(uid) as { id: number; uid: string; user_id: number } | undefined;
+
+  if (!link) {
+    res.status(404).json({ error: 'Link not found or expired' });
+    return;
+  }
+
+  const { client_name, client_email, description } = req.body;
+
+  if (!description || typeof description !== 'string' || description.trim().length === 0) {
+    res.status(400).json({ error: 'Description is required' });
+    return;
+  }
+
+  getDb().prepare(
+    'INSERT INTO client_requests (link_uid, client_name, client_email, description) VALUES (?, ?, ?, ?)'
+  ).run(link.uid, client_name || '', client_email || '', description.trim());
+
+  // Notify the link owner via WebSocket
+  userClientManager.pushChatContent(link.user_id, 'client_request_received', {
+    linkUid: link.uid,
+    clientName: client_name || 'Anonymous',
+    description: description.trim(),
+  });
+
+  res.status(201).json({ success: true, message: 'Your request has been submitted successfully!' });
+});
+
 // ── MCP Marketplace API ─────────────────────────────────────────────────────────
 
 const marketplaceRouter = createMarketplaceRouter();
@@ -376,6 +453,18 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
   let currentAbortController: AbortController | null = null;
   let isProcessing = false;
   let queuedMessage: Buffer | null = null;
+
+  // ── WebSocket close: abort any in-flight request ────────────────────────
+  // Without this, a disconnected user stays in "thinking" forever because
+  // the agent loop keeps running and pushChatContent silently fails (WS gone).
+  ws.on('close', () => {
+    if (currentAbortController) {
+      currentAbortController.abort(new Error('cancelled_by_disconnect'));
+      currentAbortController = null;
+    }
+    isProcessing = false;
+    queuedMessage = null;
+  });
 
   ws.on('message', async (raw: Buffer) => {
     // Rate limit check
@@ -1463,6 +1552,20 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         );
       }
 
+      // ── PRO mode: activate special features ─────────────────────────────
+      if (effectiveMode === 'pro') {
+        systemLines.push(
+          '',
+          '=== PRO MODE — PREMIUM FEATURES ACTIVE ===',
+          'You are running in PRO mode with all premium features unlocked:',
+          '- Full file system access with unlimited operations',
+          '- Advanced code analysis and multi-file refactoring',
+          '- Complete project mapping with full dependency awareness',
+          '- Deep code review with architectural recommendations',
+          'Execute at full capability — the user is on the PRO tier.',
+        );
+      }
+
       userClientManager.pushToUser(userId, 'suny:thinking', {});
       userClientManager.pushToUser(userId, 'suny:preparation_step', { step: 'Preparing context...' });
 
@@ -1481,6 +1584,21 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           `The user is in the global chat view (no specific project open). Their registered projects are: ${projectNames.join(', ')}.`,
           'You may discuss these projects at a high level — architecture, planning, questions, etc.',
           'If the user asks you to perform file edits, run commands, or make code changes in a specific project, politely let them know they need to click that project in the left sidebar to open its dedicated workspace first.',
+        );
+      }
+
+      // No projects at all — user hasn't created one yet
+      if (!projectId && (!projectNames || projectNames.length === 0)) {
+        systemLines.push(
+          '',
+          '=== NO PROJECT ===',
+          'The user does not have any projects yet and no project is currently selected.',
+          'If the user asks you to "scan", "analyze", or "look at" a project, explain that they need to:',
+          '  1. Click the project icon in the left sidebar to open the project panel.',
+          '  2. Click "New Project" to register their project folder.',
+          '  3. Enter a name and the full local path (e.g. D:\\Projects\\MyApp).',
+          '  4. Ensure the bridge is connected (green pill indicator in the top bar).',
+          'Then, once a project is selected, you can scan and analyze it.',
         );
       }
 
@@ -1759,6 +1877,82 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         status: 'started',
         detail: String(msg.message ?? '').slice(0, 200),
       });
+
+      // ── Scan intent pre-check: handle "scan/analyze/explore" when project or bridge missing ──
+      // If the user asks to scan/analyze/explore but conditions aren't right, give clear
+      // guidance instead of sending the AI into an empty-output loop with hallucinations.
+      const msgText = String(msg.message ?? '');
+      const hasScanIntent = /\b(scan|analyze|explore|look at|check out|list|show me)\b/i.test(msgText) &&
+        /\b(project|codebase|repo|folder|directory|root|src)\b/i.test(msgText);
+      if (hasScanIntent && projectPath && isBridgeConnected(userId)) {
+        // Project selected + bridge connected — do a direct bridge scan for reliability,
+        // then append the result to the system prompt so the AI can analyze it further.
+        try {
+          const scanText = await quickProjectScan(userId, projectPath);
+          // Inject scan result directly, don't send to agent loop — this is instant
+          userClientManager.pushChatContent(userId, 'suny:stream_end', {
+            content: scanText + '\n\n> 💡 Want to dive deeper? Tell me which folder or file to explore and I can analyze it further.',
+            sess_used: null,
+            sess_limit: null,
+            iterations: 0,
+          });
+          return;
+        } catch (err) {
+          // Direct scan failed — show a clear error instead of falling through
+          // to the agent loop (which produces empty conversational filler).
+          const reason = err instanceof Error ? err.message : 'Unknown reason';
+          console.warn(`[index] quickProjectScan failed: ${reason}`);
+          userClientManager.pushChatContent(userId, 'suny:stream_end', {
+            content: `I tried to scan your project but ran into an issue: **${reason}**.\n\n` +
+              'This usually means the bridge lost its connection or the project path is not accessible.\n\n' +
+              'Try these steps:\n' +
+              '1. Make sure the bridge is connected (green pill indicator).\n' +
+              '2. Re-select your project from the sidebar.\n' +
+              '3. Ask me to scan again.',
+            sess_used: null,
+            sess_limit: null,
+            iterations: 0,
+          });
+          return;
+        }
+      }
+      if (hasScanIntent && projectPath && !isBridgeConnected(userId)) {
+        // Project selected but bridge offline — tell user to connect the bridge
+        userClientManager.pushChatContent(userId, 'suny:stream_end', {
+          content: 'I found your project "' + projectPath + '" but the **bridge is currently offline** (red pill indicator).\n\n' +
+            'To scan and work with files, the bridge needs to be running on your machine:\n' +
+            '1. Click the bridge pill in the top bar.\n' +
+            '2. Download and run the bridge if you haven\'t already.\n' +
+            '3. Wait for the pill to turn green.\n\n' +
+            'Once connected, just say "scan my project" and I\'ll dive right in! 🚀',
+          sess_used: null,
+          sess_limit: null,
+          iterations: 0,
+        });
+        return;
+      }
+      if (hasScanIntent && !projectPath) {
+        // No project selected — guide user to create/select one.
+        // We do NOT attempt quickProjectScan() here because:
+        //   1. process.cwd() is the SERVER's directory, not the user's machine.
+        //   2. The bridge runs on the user's machine — server paths don't exist there.
+        //   3. Scanning without a project gives the AI no file tools → empty output loop.
+        //   4. The bridge status is irrelevant without a project to scan.
+        userClientManager.pushChatContent(userId, 'suny:stream_end', {
+          content: 'I\'d love to scan your project, but first you need to select a project to work with.\n\n' +
+            '1. Click the **project icon** in the left sidebar to open the project panel.\n' +
+            (isBridgeConnected(userId)
+              ? '2. Select an existing project or click "New Project" to register your folder.\n\n' +
+                'Once a project is selected (it will appear in the sidebar), just say "scan this project" and I\'ll dive right in! 🚀'
+              : '2. Click "New Project" to register your project folder with its local path.\n' +
+                '3. Make sure the **bridge** is connected (green pill indicator in the top bar).\n\n' +
+                'Once both are ready, just say "scan my project" and I\'ll dive right in! 🚀'),
+          sess_used: null,
+          sess_limit: null,
+          iterations: 0,
+        });
+        return;
+      }
 
       // Run the full agent loop (AI ↔ bridge tool calls → AI → ...)
       // Start "Did you know?" timer — fires every 60s for long tasks
@@ -2121,30 +2315,51 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         friendly = 'AI provider is temporarily unavailable right now. Please retry in a few seconds.';
         errorCategory = 'api_error';
       }
-      if (errMsg.toLowerCase().includes('await is not defined')) {
-        // Deterministic fallback: for simple "scan project" intents, perform a direct
-        // bridge-based root scan so users are not trapped in retry loops.
-        const msgText = String(msg.message ?? '').toLowerCase();
-        const isScanIntent = /\bscan\b.*\bproject\b|\bscan\b/.test(msgText);
-        if (isScanIntent && projectPath && isBridgeConnected(userId)) {
-          try {
-            const scanText = await quickProjectScan(userId, projectPath);
-            userClientManager.pushChatContent(userId, 'suny:stream_end', {
-              content: scanText,
-              sess_used: null,
-              sess_limit: null,
-              iterations: 0,
-            });
-            return;
-          } catch {
-            // fall through to friendly message below
-          }
+      // Deterministic fallback: when the user asks to scan/explore/analyze but the
+      // agent loop failed (regardless of error type), perform a direct bridge-based
+      // root scan. This covers the case where the AI hallucinates paths, produces
+      // empty output, or hits a runtime error during scanning.
+      const msgText = String(msg.message ?? '').toLowerCase();
+      const isScanIntent = /\b(scan|analyze|explore|look at|check)\b.*\b(project|codebase|repo|folder|directory|root)\b|\bscan\b/.test(msgText);
+      if (isScanIntent && projectPath && isBridgeConnected(userId)) {
+        try {
+          const scanText = await quickProjectScan(userId, projectPath);
+          userClientManager.pushChatContent(userId, 'suny:stream_end', {
+            content: scanText,
+            sess_used: null,
+            sess_limit: null,
+            iterations: 0,
+          });
+          return;
+        } catch (scanErr) {
+          // Direct scan also failed — override the generic friendly message
+          // with a clear, actionable error so the user knows what to do.
+          const reason = scanErr instanceof Error ? scanErr.message : 'Unknown reason';
+          console.warn(`[index] Catch-block quickProjectScan also failed: ${reason}`);
+          friendly = `I tried to scan your project both ways but ran into an issue: **${reason}**.\n\n` +
+            'Check that:\n' +
+            '1. The bridge is connected (green pill).\n' +
+            '2. Your project path is correct and accessible.\n' +
+            '3. Try re-selecting your project from the sidebar.';
+          errorCategory = 'scan_failed';
         }
+      }
+      if (isScanIntent && !projectPath) {
+        // No project selected — give clear guidance instead of a confusing error
+        friendly = 'I tried to scan but no project is currently selected. Please click the project icon in the left sidebar, select or create a project, then ask me to scan again.';
+        errorCategory = 'no_project';
+      }
+      // Also handle the old specific error for backward compatibility
+      if (errMsg.toLowerCase().includes('await is not defined')) {
         friendly = 'I hit a temporary execution issue while scanning. I can still do a direct scan for you now — say: scan root, scan src, or scan bridge.';
         errorCategory = 'runtime';
       }
       if (errMsg.toLowerCase().includes('insufficient')) { friendly = pickRandom('no_balance', "You're out of credits! Reach out and we'll top you right up 😊"); errorCategory = 'credits'; }
       if (errMsg.toLowerCase().includes('rate') && errMsg.toLowerCase().includes('limit')) { errorCategory = 'rate_limit'; }
+      if (errMsg.includes('ALL PROVIDERS EXHAUSTED')) {
+        friendly = pickNonRepeatingFallback(userId, EXHAUSTED_REPLY_FALLBACKS);
+        errorCategory = 'exhausted';
+      }
 
       // Record failure metric
       try {

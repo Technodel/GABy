@@ -25,34 +25,44 @@ const activeBridges = new Map<number, BridgeConnection>();
 // Map: pending request id → resolve/reject callbacks (with userId tracking)
 const pendingRequests = new Map<string, PendingRequest>();
 
-export async function registerBridge(userId: number, username: string, ws: WebSocket): Promise<void> {
-  // Disconnect existing bridge for this user if any
+export function registerBridge(userId: number, username: string, ws: WebSocket): void {
+  // IMPORTANT: Disconnect existing bridge FIRST (before activeBridges.set).
+  // Getting the existing after .set() would return the new connection instead.
   const existing = activeBridges.get(userId);
-  if (existing && existing.ws.readyState === WebSocket.OPEN) {
-    existing.ws.send(JSON.stringify({ type: 'bridge:disconnect', reason: 'replaced_by_new_connection' }));
+  if (existing && existing.ws !== ws && existing.ws.readyState === WebSocket.OPEN) {
+    existing.ws.send(JSON.stringify({ type: 'bridge:disconnect', payload: { reason: 'replaced_by_new_connection' } }));
     existing.ws.close();
   }
 
-  // Mark user as having ever connected a bridge
-  try {
-    (await getAdapter()).run('UPDATE users SET bridge_ever_connected = 1 WHERE id = ?', [userId]);
-  } catch { /* best-effort */ }
-
-  console.log(`[bridge-manager] Bridge CONNECTED for user ${userId} (${username})`);
+  // Set up the new bridge connection — handlers are attached synchronously
+  // so they're ready before any async operation (e.g. DB write below).
   const conn: BridgeConnection = { ws, userId, username, connectedAt: new Date(), lastPing: new Date() };
   activeBridges.set(userId, conn);
 
   ws.on('message', (raw) => handleBridgeMessage(userId, raw.toString()));
   ws.on('close', (code, reason) => {
     console.log(`[bridge-manager] Bridge DISCONNECTED for user ${userId} (code=${code}, reason=${reason?.toString() || 'none'})`);
-    activeBridges.delete(userId);
+    // Only clean up if this ws is still the active connection — prevents a
+    // stale close handler from a replaced bridge from deleting the new bridge.
+    const current = activeBridges.get(userId);
+    if (current && current.ws === ws) {
+      activeBridges.delete(userId);
+    }
     rejectAllPendingForUser(userId, 'Bridge disconnected');
   });
   ws.on('error', (err) => {
     console.log(`[bridge-manager] Bridge ERROR for user ${userId}: ${err.message}`);
-    activeBridges.delete(userId);
+    const current = activeBridges.get(userId);
+    if (current && current.ws === ws) {
+      activeBridges.delete(userId);
+    }
     rejectAllPendingForUser(userId, 'Bridge error');
   });
+
+  console.log(`[bridge-manager] Bridge CONNECTED for user ${userId} (${username})`);
+
+  // Mark user as having ever connected a bridge (fire-and-forget)
+  try { getAdapter().run('UPDATE users SET bridge_ever_connected = 1 WHERE id = ?', [userId]); } catch { /* best-effort */ }
 }
 
 function handleBridgeMessage(userId: number, raw: string): void {
