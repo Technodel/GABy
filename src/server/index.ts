@@ -727,6 +727,51 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       // Fetch training/behavioral data async
       const trainingLoadResult = await loadTrainingAndRules({ userId, projectRoot: projectPath });
 
+      // ── Freeze Brain: if this project is pinned to a memory snapshot,
+      // load it and use its captured blueprint + behavioral rules instead
+      // of live tables. Lets users lock SUNy's behavior to a known-good
+      // moment without disabling memory entirely.
+      interface FrozenSnapshot {
+        uid: string;
+        label: string;
+        blueprint_json: string | null;
+        behavioral_rules_json: string | null;
+        tier: string | null;
+      }
+      let frozenSnapshot: FrozenSnapshot | null = null;
+      if (projectId) {
+        try {
+          const proj = db.prepare('SELECT frozen_snapshot_uid FROM projects WHERE id = ? AND user_id = ?')
+            .get(projectId, userId) as { frozen_snapshot_uid: string | null } | undefined;
+          if (proj?.frozen_snapshot_uid) {
+            frozenSnapshot = db.prepare(
+              `SELECT uid, label, blueprint_json, behavioral_rules_json, tier
+               FROM memory_snapshots WHERE uid = ? AND user_id = ?`,
+            ).get(proj.frozen_snapshot_uid, userId) as FrozenSnapshot | null;
+          }
+        } catch { /* column missing → treat as unfrozen */ }
+      }
+      if (frozenSnapshot?.behavioral_rules_json) {
+        try {
+          const rules = JSON.parse(frozenSnapshot.behavioral_rules_json) as Array<{ category: string; rule_text: string; trigger_context: string | null }>;
+          if (Array.isArray(rules) && rules.length > 0) {
+            const wins = rules.filter(r => r.category === 'win');
+            const mistakes = rules.filter(r => r.category === 'mistake');
+            const lines = ['', '=== 🧊 FROZEN BEHAVIORAL RULES (snapshot: ' + frozenSnapshot.label + ') ==='];
+            if (wins.length > 0) {
+              lines.push('[Always:]');
+              for (const r of wins) lines.push(`  ✓ ${r.rule_text}`);
+            }
+            if (mistakes.length > 0) {
+              lines.push('[Avoid:]');
+              for (const r of mistakes) lines.push(`  ✗ ${r.rule_text}`);
+            }
+            trainingLoadResult.behavioralBlock = lines.join('\n');
+            console.log(`[freeze] Behavioral rules pinned to snapshot ${frozenSnapshot.uid}`);
+          }
+        } catch { /* malformed JSON → fall through to live rules */ }
+      }
+
       const systemLines = [
         '<role>',
         '╔══════════════════════════════════════════════════════════════╗',
@@ -1779,12 +1824,35 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       // Inject SUNy Code Conscience blueprint memory (design context from past turns)
       if (projectPath) {
         userClientManager.pushToUser(userId, 'suny:preparation_step', { step: 'Loading project memory...' });
-        const blueprintCtx = await getBlueprintContext({ userId, projectId, maxEntries: 5 });
-        if (blueprintCtx) {
-          systemLines.push(blueprintCtx);
-          const summary = await getBlueprintSummary({ userId, projectId });
-          if (summary) systemLines.push(summary);
-          console.log(`[index] Blueprint memory injected`);
+        if (frozenSnapshot?.blueprint_json) {
+          // 🧊 Freeze Brain — use blueprint captured in the snapshot instead of live
+          try {
+            const entries = JSON.parse(frozenSnapshot.blueprint_json) as Array<{ category: string; intent: string; summary: string; affected_files?: string | null }>;
+            if (Array.isArray(entries) && entries.length > 0) {
+              const sections = entries.slice(0, 5).map((e, i) => {
+                const tag = e.category.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                const files = e.affected_files
+                  ? (() => { try { return (JSON.parse(e.affected_files as string) as string[]).slice(0, 4).join(', '); } catch { return ''; } })()
+                  : '';
+                return `[${i + 1}] ${tag}\n    Intent: ${e.intent}\n    Summary: ${e.summary}\n` + (files ? `    Files: ${files}\n` : '');
+              }).join('\n');
+              systemLines.push(
+                `\n\n=== 🧊 SUNy CODE CONSCIENCE — FROZEN MEMORY (snapshot: ${frozenSnapshot.label}) ===\n` +
+                'The following design decisions are pinned from a saved snapshot. Live blueprint is ignored.\n\n' +
+                sections +
+                '\n=== END FROZEN MEMORY ===',
+              );
+              console.log(`[freeze] Blueprint pinned to snapshot ${frozenSnapshot.uid}`);
+            }
+          } catch { /* malformed → fall back to live blueprint */ }
+        } else {
+          const blueprintCtx = await getBlueprintContext({ userId, projectId, maxEntries: 5 });
+          if (blueprintCtx) {
+            systemLines.push(blueprintCtx);
+            const summary = await getBlueprintSummary({ userId, projectId });
+            if (summary) systemLines.push(summary);
+            console.log(`[index] Blueprint memory injected`);
+          }
         }
       }
 

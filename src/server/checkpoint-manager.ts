@@ -138,7 +138,7 @@ export async function autoCheckpoint(
   await gitAutoCommit(userId, projectPath, changedFiles, userMessage).catch(() => {});
 
   // Create a new checkpoint for the upcoming turn
-  return createCheckpointRecord({
+  const record = await createCheckpointRecord({
     userId,
     projectPath,
     projectId,
@@ -148,6 +148,55 @@ export async function autoCheckpoint(
     turnIndex,
     metadata: { changedFiles: changedFiles.length, userMessage: userMessage.slice(0, 200) },
   });
+
+  // Also write an auto memory snapshot that pairs with this checkpoint so
+  // users can restore code + memory together later.
+  if (record && changedFiles.length > 0) {
+    try {
+      const db = await getAdapter();
+      const uid = 's_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+
+      // Capture blueprint entries + behavioral rules at this moment
+      let blueprintJson: string | null = null;
+      let rulesJson: string | null = null;
+      try {
+        const entries = await db.all(
+          `SELECT id, category, intent, summary, affected_files
+           FROM blueprint_entries WHERE user_id = ? AND (project_id IS NULL OR project_id = ?)
+           ORDER BY id DESC LIMIT 20`,
+          [userId, projectId ?? null],
+        );
+        if (entries.length > 0) blueprintJson = JSON.stringify(entries);
+      } catch { /* table may not exist on cold install */ }
+      try {
+        const rules = await db.all(
+          `SELECT id, category, rule_text, trigger_context, confidence
+           FROM behavioral_rules WHERE user_id = ? AND (project_id IS NULL OR project_id = ?)
+           ORDER BY confidence DESC LIMIT 50`,
+          [userId, projectId ?? null],
+        );
+        if (rules.length > 0) rulesJson = JSON.stringify(rules);
+      } catch { /* same */ }
+
+      await db.run(
+        `INSERT INTO memory_snapshots
+           (uid, user_id, project_id, label, kind, checkpoint_id, messages_json,
+            blueprint_json, behavioral_rules_json, tier, skills_json, message_count)
+         VALUES (?, ?, ?, ?, 'auto', ?, '[]', ?, ?, NULL, NULL, 0)`,
+        uid,
+        userId,
+        projectId ?? null,
+        `Turn ${turnIndex}: ${userMessage.slice(0, 60)}`,
+        record.id,
+        blueprintJson,
+        rulesJson,
+      );
+    } catch (err) {
+      console.warn('[checkpoint-manager] auto snapshot capture failed:', (err as Error).message);
+    }
+  }
+
+  return record;
 }
 
 // ── Query operations ────────────────────────────────────────────────────────

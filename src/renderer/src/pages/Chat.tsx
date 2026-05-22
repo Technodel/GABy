@@ -1904,6 +1904,48 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
   const [restoreTarget, setRestoreTarget] = useState<MemorySnapshot | null>(null);
   const [restoreOpts, setRestoreOpts] = useState<{ conversation: boolean; memory: boolean; code: boolean }>({ conversation: true, memory: false, code: false });
 
+  // 🧊 Freeze Brain — per-project pin to a snapshot's memory state
+  const [freezeStatus, setFreezeStatus] = useState<{ frozen: boolean; snapshot?: { uid: string; label: string; tier: string | null } | null }>({ frozen: false, snapshot: null });
+
+  async function loadFreezeStatus() {
+    if (!activeProject) { setFreezeStatus({ frozen: false, snapshot: null }); return; }
+    try {
+      const res = await fetch(`/api/projects/${activeProject.id}/freeze`, { credentials: 'include' });
+      if (!res.ok) return;
+      const data = await res.json();
+      setFreezeStatus({ frozen: !!data.frozen, snapshot: data.snapshot ?? null });
+    } catch {}
+  }
+
+  async function freezeBrain(snapshotUid: string) {
+    if (!activeProject) return;
+    try {
+      const res = await fetch(`/api/projects/${activeProject.id}/freeze`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ snapshot_uid: snapshotUid }),
+      });
+      if (!res.ok) return;
+      await loadFreezeStatus();
+      const snap = snapshotList.find(s => s.id === snapshotUid);
+      addMessage('system', `🧊 Brain frozen to snapshot **"${snap?.label ?? snapshotUid}"**. SUNy will use this memory until you unfreeze.`);
+    } catch {}
+  }
+
+  async function unfreezeBrain() {
+    if (!activeProject) return;
+    try {
+      const res = await fetch(`/api/projects/${activeProject.id}/unfreeze`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!res.ok) return;
+      setFreezeStatus({ frozen: false, snapshot: null });
+      addMessage('system', '🔥 Brain unfrozen. SUNy is back to live memory.');
+    } catch {}
+  }
+
   // Load snapshot count for button badge on mount, project change, or modal open
   useEffect(() => {
     loadSnapshots();
@@ -1914,6 +1956,12 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     if (showSnapshots) loadSnapshots();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showSnapshots]);
+
+  // Refresh freeze status whenever project changes
+  useEffect(() => {
+    loadFreezeStatus();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeProject?.id]);
 
   async function handleLogout() {
     await fetch('/api/logout', { method: 'POST', credentials: 'include' });
@@ -2463,6 +2511,62 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                   )}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* 🧊 Freeze Brain section — pin SUNy's memory to a snapshot */}
+          {activeProject && !isMobile && (
+            <div style={{ borderTop: '1px solid var(--border)', marginTop: 4 }}>
+              <div style={{ padding: '12px 12px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  🧊 Freeze Brain
+                </span>
+                {freezeStatus.frozen && (
+                  <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 4, background: 'var(--accent)', color: '#fff' }}>ACTIVE</span>
+                )}
+              </div>
+              <div style={{ padding: '0 12px 10px' }}>
+                {freezeStatus.frozen && freezeStatus.snapshot ? (
+                  <>
+                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 6 }}>
+                      Pinned to: <strong>{freezeStatus.snapshot.label}</strong>
+                      {freezeStatus.snapshot.tier ? ` · tier ${freezeStatus.snapshot.tier}` : ''}
+                    </div>
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={unfreezeBrain}
+                      style={{ fontSize: 10, padding: '3px 8px', width: '100%' }}
+                      title="Resume live memory (blueprint + rules from current state)"
+                    >
+                      🔥 Unfreeze
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: 6 }}>
+                      Pin SUNy's blueprint + behavioral rules to a saved snapshot. Live learning is paused for this project.
+                    </div>
+                    {snapshotList.filter(s => s.has_memory).length === 0 ? (
+                      <div style={{ fontSize: 10, color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                        Save a snapshot with memory first (🧠 button).
+                      </div>
+                    ) : (
+                      <select
+                        defaultValue=""
+                        onChange={e => { if (e.target.value) freezeBrain(e.target.value); }}
+                        className="input"
+                        style={{ width: '100%', fontSize: 11, padding: '4px 6px' }}
+                        title="Select a snapshot to freeze"
+                      >
+                        <option value="">Select snapshot to freeze…</option>
+                        {snapshotList.filter(s => s.has_memory).map(s => (
+                          <option key={s.id} value={s.id}>{s.label}{s.tier ? ` (${s.tier})` : ''}</option>
+                        ))}
+                      </select>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
           )}
 
