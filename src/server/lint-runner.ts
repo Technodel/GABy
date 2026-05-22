@@ -234,11 +234,11 @@ function parseResult(raw: string, command: string): LintResult {
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function execShell(userId: number, cmd: string, cwd: string): Promise<string> {
-  const res = await sendToBridge(userId, 'exec:shell', { cmd, cwd });
-  // bridge returns { stdout, stderr, exitCode } or throws on non-zero
+  // Bridge expects `command`, not `cmd`. Result `output` contains combined stream lines.
+  const res = await sendToBridge(userId, 'exec:shell', { command: cmd, cwd, requiresConfirmation: false });
   if (res && typeof res === 'object') {
-    const { stdout = '', stderr = '' } = res as { stdout?: string; stderr?: string };
-    return `${stdout}\n${stderr}`.trim();
+    const { output = '', stdout = '', stderr = '' } = res as { output?: string; stdout?: string; stderr?: string };
+    return (output || `${stdout}\n${stderr}`).trim();
   }
   return String(res ?? '');
 }
@@ -246,7 +246,11 @@ async function execShell(userId: number, cmd: string, cwd: string): Promise<stri
 async function readFileSafe(userId: number, absPath: string): Promise<string | null> {
   try {
     const res = await sendToBridge(userId, 'exec:read_file', { path: absPath });
-    return typeof res === 'string' ? res : null;
+    if (typeof res === 'string') return res;
+    if (res && typeof res === 'object' && typeof (res as { content?: unknown }).content === 'string') {
+      return (res as { content: string }).content;
+    }
+    return null;
   } catch {
     return null;
   }

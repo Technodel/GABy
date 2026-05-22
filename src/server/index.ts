@@ -962,32 +962,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         'try an alternative approach, write a diagnostic, inspect the real data.',
         'The user should never be your first resort.',
         '',
-        '<execution_stages>',
-        'Tasks progress through fixed stages. Your available tools depend on the current stage:',
-        '  1. INTENT_PARSE: Understand the goal. Read project context. Identify relevant files.',
-        '     Tools: read, search, memory only. NO writes or shell.',
-        '  2. PLAN: Form an internal plan. List files to touch. Identify risks.',
-        '     Tools: read, search only. NO writes or shell.',
-        '     Write your plan in a <suni_plan> block (never shown to user).',
-        '  3. EXECUTION: Write/edit files. Run setup commands.',
-        '     Tools: all available. One change at a time. Verify each before moving on.',
-        '  4. VERIFICATION: Lint, test, validate. Tasks complete only when all pass.',
-        '     Tools: bash (lint/test only), read only. NO writes.',
-        '  5. FINALIZE: Summarize what was done. Report results in plain English.',
-        'The current stage is injected at the bottom of this prompt. Obey it.',
-        '</execution_stages>',
-        '',
-        '<mode_flags>',
-        'The task mode affects how you execute:',
-        '  - normal:       Full capabilities per stage.',
-        '  - strict-edit:  Only modify planned files. No exploratory edits.',
-        '  - exploratory-read: Read-only. No file modifications at all.',
-        '  - refactor-safe: Never delete files. Prefer append over overwrite.',
-        '  - debug-only:   Diagnostic reads + shell only. No production writes.',
-        'The current mode is injected at the bottom of this prompt.',
-        '</mode_flags>',
-        '',
-        '<error_taxonomy>',
+        '<error_taxonomy>'
         'BRIDGE OFFLINE RULE: If a file or shell tool fails with "Bridge not connected" or "Bridge disconnected",',
         'do NOT retry. Do NOT try web_search. Immediately tell the user:',
         '"🔌 The bridge is disconnected. Click the bridge pill in the top bar to reconnect."',
@@ -1289,8 +1264,8 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         '</aiderdesk_dna>',
         '',
         '=== RESPONSE STYLE ===',
-        '- Keep responses under 4 lines (excluding tool calls/code output).',
-        '- One-word confirmations on success: "Done." "Applied." "Fixed."',
+        '- Default: under 4 lines. PLAN/ERROR signature blocks are the only allowed exception.',
+        '- One-word confirmations on success: "Done." "Applied." "Fixed." — no signature.',
         '- NEVER fabricate file contents. NEVER claim to have made a change without calling a tool.',
         '- NEVER ask for permission. Just do it.',
         '- Details only when: asked directly, reporting errors, or explaining complex findings.',
@@ -1688,15 +1663,6 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         '  ❌ Ignoring the interruption and finishing the current task first',
         '  ❌ Acting confused or disoriented by the interruption',
         '</interruption_behavior>',
-        '',
-        '=== THE ONE THING TO REMEMBER ===',
-        'The distance between a wrong answer and a right answer is one diagnostic script.',
-        'Every failed attempt by other agents was because they guessed at the data structure.',
-        'Every success here was because a diagnostic script revealed the actual data structure.',
-        '',
-        'Run TOWARD uncertainty, not away from it.',
-        'When you don\'t know something, your first instinct must be "let me check" not "let me guess."',
-        'The tools are there. The workflow is there. Use them relentlessly.',
       ].filter(l => l !== '');
 
       // ─────────────────────────────────────────────────────────────────────
@@ -1705,12 +1671,6 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       // Below this point, only push DYNAMIC, per-user/per-project content.
       // Do NOT inject template-literal data into the array above this line.
       // ─────────────────────────────────────────────────────────────────────
-
-      // Append current mode if not normal
-      const currentMode = 'normal'; // updated dynamically by agent-loop
-      if (currentMode !== 'normal') {
-        systemLines.push('', `<current_mode>${currentMode}</current_mode>`);
-      }
 
       if (showTechnicalDetails) {
         systemLines.push(

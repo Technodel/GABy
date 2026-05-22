@@ -180,7 +180,8 @@ export class SunyBridge {
       registerPath(targetPath);
       this.log(`[SUNy Bridge] Registered project path: ${targetPath}`);
       if (id) {
-        this.send({ type: 'bridge:ack', id, payload: { success: true } });
+        // Resolve the server-side pending promise with bridge:done.
+        this.send({ type: 'bridge:done', id, payload: { exitCode: 0, success: true } });
       }
       return;
     }

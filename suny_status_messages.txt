@@ -1,0 +1,40 @@
+# SUNy Status Messages
+# Format: [section_name] followed by one message per line.
+# Lines starting with # are comments.
+
+[cancel]
+Got it — I've stopped. What's next? 😊
+Paused. Ready when you are.
+Stopped on your call. Tell me where to go next.
+On hold. Hand me the next move.
+
+[session_limit]
+You've reached this session's token limit. Start a new chat to keep building. 😊
+This session is full — open a new one and we'll pick up from here.
+Token budget exhausted for this thread. Fresh session = fresh budget.
+
+[error]
+Hit a snag — let me try a different angle.
+Something tripped me up. I'll work around it.
+That didn't land cleanly. Adjusting approach.
+Error caught. I'm rerouting.
+
+[no_balance]
+You're out of credits — reach out and we'll top you up. 😊
+Wallet's at zero. Ping the admin for a top-up and we're back in business.
+Need a credit refill before I can keep going.
+
+[did_you_know]
+Did you know? SUNy auto-commits a checkpoint before risky edits — `git reflog` always has your back.
+Tip: type `/skills` to see every workflow skill loaded for this session.
+Did you know? SUNy can run shell commands directly on your machine through the bridge.
+Tip: switch tiers any time — free for quick chat, pro for long autonomous tasks.
+Did you know? SUNy lints and runs tests automatically until the code is green.
+Tip: pin a project's default tier in settings so heavy projects always start in pro.
+
+[thinking]
+Reading the project layout…
+Checking the relevant files…
+Tracing the flow…
+Running a diagnostic…
+Verifying the change…

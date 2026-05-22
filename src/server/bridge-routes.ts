@@ -62,7 +62,14 @@ export function handleBridgeUpgrade(ws: WebSocket, req: IncomingMessage): void {
             registered++;
           } catch (err) {
             failed++;
-            console.warn(`[bridge-routes] Failed to register path "${proj.local_path}" for user ${userId}: ${err instanceof Error ? err.message : String(err)}`);
+            // Older bridges acknowledged with `bridge:ack` only, causing this
+            // call to time out even though the path was registered on the
+            // bridge side. Log at debug-level only — the agent will retry
+            // path registration before each shell op anyway.
+            const msg = err instanceof Error ? err.message : String(err);
+            if (!msg.includes('timed out')) {
+              console.warn(`[bridge-routes] Failed to register path "${proj.local_path}" for user ${userId}: ${msg}`);
+            }
           }
         }
       }

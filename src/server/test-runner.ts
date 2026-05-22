@@ -436,8 +436,8 @@ async function execShell(userId: number, cmd: string, cwd: string, timeoutMs = 1
       ),
     ]);
     if (raw && typeof raw === 'object') {
-      const { stdout = '', stderr = '' } = raw as { stdout?: string; stderr?: string };
-      return `${stdout}\n${stderr}`.trim();
+      const { output = '', stdout = '', stderr = '' } = raw as { output?: string; stdout?: string; stderr?: string };
+      return (output || `${stdout}\n${stderr}`).trim();
     }
     return String(raw ?? '');
   } catch (err) {
@@ -450,7 +450,11 @@ async function execShell(userId: number, cmd: string, cwd: string, timeoutMs = 1
 async function readFileSafe(userId: number, absPath: string): Promise<string | null> {
   try {
     const res = await sendToBridge(userId, 'exec:read_file', { path: absPath });
-    return typeof res === 'string' ? res : null;
+    if (typeof res === 'string') return res;
+    if (res && typeof res === 'object' && typeof (res as { content?: unknown }).content === 'string') {
+      return (res as { content: string }).content;
+    }
+    return null;
   } catch { return null; }
 }
 

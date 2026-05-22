@@ -1402,7 +1402,13 @@ If your tools are not working, say:
       // After files have been written and linted, verify that all files in
       // changedFiles actually exist on disk. This catches cases where the AI
       // claimed to write a file but the write was silently skipped or failed.
-      if (projectPath && changedFiles.size > 0) {
+      //
+      // NOTE: When the user runs through the bridge, project files live on
+      // their machine — NOT the server. Server-side fs.existsSync would always
+      // return false and falsely flag every change as phantom. In that case we
+      // skip verification entirely (the bridge already errors on write failure).
+      const bridgeActive = isBridgeConnected(userId);
+      if (projectPath && changedFiles.size > 0 && !bridgeActive) {
         const verifiedFiles = new Set<string>();
         let missingCount = 0;
         for (const filePath of changedFiles) {

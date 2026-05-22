@@ -214,14 +214,21 @@ async function extractSymbols(userId: number, projectPath: string): Promise<Symb
       command: `node ".suny-repomap.js" "${normalizedPath}"`,
       cwd: projectPath,
       requiresConfirmation: false,
-    }, 25_000) as { stdout?: string; stderr?: string; exitCode?: number };
+    }, 25_000) as { stdout?: string; stderr?: string; output?: string; exitCode?: number };
 
-    const raw = (result?.stdout ?? '').trim();
+    // Bridge returns combined stream output under `output` (not `stdout`).
+    const raw = (result?.output ?? result?.stdout ?? '').trim();
     if (!raw) {
       const stderr = (result?.stderr ?? '').trim();
       throw new Error(`Repomap script produced no output${stderr ? ': ' + stderr.slice(0, 200) : ''}`);
     }
-    return JSON.parse(raw);
+    // Output may include status lines before/after the JSON. Extract the first {...} block.
+    const jsonStart = raw.indexOf('{');
+    const jsonEnd = raw.lastIndexOf('}');
+    if (jsonStart === -1 || jsonEnd === -1 || jsonEnd <= jsonStart) {
+      throw new Error(`Repomap output not JSON: ${raw.slice(0, 120)}`);
+    }
+    return JSON.parse(raw.slice(jsonStart, jsonEnd + 1));
   } finally {
     // Always clean up temp script
     sendToBridge(userId, 'exec:delete_file', { path: scriptPath }, 5_000).catch(() => {});
