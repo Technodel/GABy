@@ -14,6 +14,7 @@ import { tool, type ToolSet } from 'ai';
 import { z } from 'zod';
 import { sendToBridge, sendToBridgeWithNarration, sendToBridgeBackground, stopBackgroundProcess, readBackgroundLogs, listBackgroundProcesses } from './bridge-manager';
 import { userClientManager } from './user-client-manager';
+import { narrateMessage } from './narrator';
 
 // -- Helpers -------------------------------------------------------------------
 
@@ -306,7 +307,7 @@ HTTP server, watcher, or any process that should keep running, use start_server 
     execute: async (input) => {
       notify('bash', input);
       const cwd = input.cwd ? resolvePath(input.cwd, projectPath) : projectPath;
-      userClientManager.pushNarration(userId, 'Running command...');
+      userClientManager.pushNarration(userId, narrateMessage(input.command, 'command'));
       try {
         const result = await sendToBridge(userId, 'exec:shell', {
           command: input.command, cwd, requiresConfirmation: false,
@@ -341,7 +342,7 @@ EXAMPLES: 'npm run dev', 'node dist/server.js', 'python app.py', 'vite', 'next d
     execute: async (input) => {
       notify('start_server', input);
       const cwd = input.cwd ? resolvePath(input.cwd, projectPath) : projectPath;
-      userClientManager.pushNarration(userId, 'Starting server...');
+      userClientManager.pushNarration(userId, narrateMessage(input.command, 'server_starting'));
       try {
         const result = await sendToBridgeBackground(
           userId,

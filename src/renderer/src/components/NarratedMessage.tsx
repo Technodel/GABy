@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import SunyAvatar from './SunyAvatar';
 import ReportBadgeButton, { ReportMetrics } from './ReportBadgeButton';
 
@@ -356,6 +356,16 @@ const THINKING_PHRASES = [
 
 export function ThinkingIndicator({ statusText }: { statusText?: string }) {
   const [phraseIdx, setPhraseIdx] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
+  const startRef = useRef<number>(Date.now());
+
+  useEffect(() => {
+    startRef.current = Date.now();
+    const tick = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startRef.current) / 1000));
+    }, 1000);
+    return () => clearInterval(tick);
+  }, []);
 
   useEffect(() => {
     if (statusText) return; // Don't cycle when a live status is shown
@@ -364,6 +374,10 @@ export function ThinkingIndicator({ statusText }: { statusText?: string }) {
     }, 2200);
     return () => clearInterval(timer);
   }, [statusText]);
+
+  const elapsedLabel = elapsed >= 60
+    ? `${Math.floor(elapsed / 60)}m ${elapsed % 60}s`
+    : `${elapsed}s`;
 
   return (
     <div className="message-appear" style={thinkingContainerStyle}>
@@ -375,6 +389,11 @@ export function ThinkingIndicator({ statusText }: { statusText?: string }) {
           ))}
         </span>
         <span style={{ marginLeft: 2 }}>{statusText || THINKING_PHRASES[phraseIdx]}</span>
+        {elapsed >= 3 && (
+          <span style={{ marginLeft: 8, opacity: 0.55, fontSize: 11, fontVariantNumeric: 'tabular-nums' }}>
+            · {elapsedLabel}
+          </span>
+        )}
       </div>
     </div>
   );

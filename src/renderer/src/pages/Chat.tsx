@@ -407,6 +407,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
   const thinkingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastResponseEvent = useRef(Date.now());
   const requestStartedAtRef = useRef<number | null>(null);
+  const thinkingTimedOutRef = useRef(false);
   const statusBagRef = useRef<Record<string, string[]>>({});
   const lastStatusRef = useRef<Record<string, string>>({});
 
@@ -435,11 +436,14 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     clearThinkingTimeout();
     lastResponseEvent.current = Date.now();
     if (!requestStartedAtRef.current) requestStartedAtRef.current = Date.now();
+    thinkingTimedOutRef.current = false;
     thinkingTimeoutRef.current = setTimeout(() => {
-      // No response for 90s � cancel and notify
+      // No response for 5 min — cancel and notify. (Long installs/builds can take
+      // 2-3 minutes silently between narrations, so we use a generous window.)
       setThinking(false);
       setStreamingContent('');
-      const durationMs = requestStartedAtRef.current ? Math.max(0, Date.now() - requestStartedAtRef.current) : 90_000;
+      thinkingTimedOutRef.current = true;
+      const durationMs = requestStartedAtRef.current ? Math.max(0, Date.now() - requestStartedAtRef.current) : 300_000;
       addMessage('suny', "SUNy seems to be taking longer than expected. The request timed out safely. Please try again.", {
         timestamp: Date.now(),
         report: {
@@ -456,7 +460,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         },
       });
       requestStartedAtRef.current = null;
-    }, 90000);
+    }, 300_000);
   }
   const [balance, setBalance] = useState(0);
   const [walletBalance, setWalletBalance] = useState(0);
@@ -1151,12 +1155,17 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       if (msg.event === 'suny:narration') {
         lastNarrationRef.current = msg.message as string;
         if (thinking) {
-          // New iteration starting � wipe the previous iteration's streamed text so
+          // Tool narrations are signs of life — keep the watchdog alive.
+          resetThinkingTimeout();
+          // New iteration starting — wipe the previous iteration's streamed text so
           // intermediate tool-call narration doesn't accumulate in the display bubble.
           setStreamingContent('');
           streamingContentRef.current = '';
           // During active processing: show as status in the thinking indicator, not a chat bubble
           setThinkingStatus(msg.message as string);
+        } else if (thinkingTimedOutRef.current) {
+          // Late narration arriving after a timeout-abort: ignore (would otherwise
+          // spam the chat with separate "Running command..." bubbles for every tool call).
         } else {
           // Not thinking (error messages, cancel confirmations): add as permanent chat bubble
           clearThinkingTimeout();
