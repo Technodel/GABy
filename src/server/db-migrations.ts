@@ -310,9 +310,11 @@ const SCHEMA_MIGRATIONS: Migration[] = [
         );
         console.log('[db] Migration 4: Created default admin user "galaxy"');
       } else {
+        // Always force admin role — guards against accidental role changes
         await adapter.run(
-          "UPDATE users SET role = 'admin' WHERE username = 'galaxy' AND (role IS NULL OR role = 'user')",
+          "UPDATE users SET role = 'admin' WHERE username = 'galaxy'",
         );
+        console.log('[db] Migration 4: Ensured "galaxy" has admin role');
       }
     },
   },
