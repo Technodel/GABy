@@ -656,6 +656,15 @@ If your tools are not working, say:
       console.log(`[agent-loop] MODEL CALL: provider=${provider}, modelId=${providerModelId}, tools=${toolCount}, messages=${finalMessages.length}, systemLen=${(useSystemParam ? fullSystem?.length : '(in-msg cache)') ?? 0}`);
       // ── End diagnostic ──────────────────────────────────────────────────
 
+      // ── Force-first-tool-call guard ─────────────────────────────────────
+      // Some models (notably DeepSeek-chat under a large system prompt) emit
+      // a few tokens of narration ("Let me check the README...") and stop
+      // without ever calling a tool. When the user is clearly asking SUNy to
+      // look at the project, force step 0 to make a tool call. Subsequent
+      // steps return to 'auto' so the model can synthesize the final answer.
+      const isInfoSeeking = bridgeConnected && !!projectPath && !talkMode && toolCount > 0
+        && /\b(what|how|why|where|which|explain|describe|tell me|summari[sz]e|overview|show me|look|read|check|scan|analy[sz]e|review|find|search|list|inspect|understand|app|project|code|repo|file|folder|structure|architecture|do(es)?|work)\b/i.test(userMessage);
+
       const result = streamText({
         model: model as LanguageModel,
         system: useSystemParam ? fullSystem : undefined,
@@ -663,6 +672,9 @@ If your tools are not working, say:
         tools: effectiveTools,
         stopWhen: stepCountIs(MAX_STEPS), // v5 API: enables multi-step tool-use loop
         abortSignal: signal,
+        prepareStep: isInfoSeeking
+          ? ({ stepNumber }) => (stepNumber === 0 ? { toolChoice: 'required' as const } : undefined)
+          : undefined,
         onStepFinish: ({ usage, text, toolCalls, toolResults }) => {
           steps++;
           totalInput += usage?.inputTokens ?? 0;
