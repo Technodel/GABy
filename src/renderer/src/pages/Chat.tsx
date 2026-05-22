@@ -1813,31 +1813,40 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     setInput(target.content);
   }
 
-  // ── Conversation forking ────────────────────────────────────────────────
-  interface ConversationFork { id: string; label: string; savedAt: number; messages: Message[]; }
+  // ── Memory Snapshots (unified: messages + memory + tier + skills) ───────
+  interface MemorySnapshot {
+    id: string;
+    label: string;
+    kind: 'manual' | 'auto';
+    savedAt: number;
+    message_count: number;
+    has_memory: boolean;
+    tier: string | null;
+    messages: Message[];
+  }
 
-  async function loadForks(): Promise<ConversationFork[]> {
+  async function loadSnapshots(): Promise<MemorySnapshot[]> {
     try {
       const url = activeProject
-        ? `/api/forks?project_id=${activeProject.id}`
-        : '/api/forks';
+        ? `/api/snapshots?project_id=${activeProject.id}`
+        : '/api/snapshots';
       const res = await fetch(url, { credentials: 'include' });
       if (!res.ok) return [];
-      const data = await res.json() as ConversationFork[];
-      setForkList(data);
+      const data = await res.json() as MemorySnapshot[];
+      setSnapshotList(data);
       return data;
     } catch { return []; }
   }
 
-  async function forkConversation() {
+  async function saveSnapshot() {
     if (messages.length === 0) return;
     const label = (() => {
       const last = messages.filter(m => m.type === 'user').slice(-1)[0];
       const raw = last?.content ?? '';
-      return raw.length > 50 ? raw.slice(0, 47) + '…' : (raw || 'Fork');
+      return raw.length > 50 ? raw.slice(0, 47) + '…' : (raw || 'Snapshot');
     })();
     try {
-      const res = await fetch('/api/forks', {
+      const res = await fetch('/api/snapshots', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
@@ -1845,44 +1854,66 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
           project_id: activeProject?.id ?? null,
           label,
           messages: [...messages],
+          capture_memory: true,
         }),
       });
       if (!res.ok) return;
-      await loadForks();
-      addMessage('system', `🌿 Conversation forked as **"${label}"**. You can restore it any time from the Forks menu.`);
-      setShowForks(true);
+      await loadSnapshots();
+      addMessage('system', `🧠 Snapshot saved as **"${label}"** (conversation + memory). Restore it any time from the Snapshots menu.`);
+      setShowSnapshots(true);
     } catch {}
   }
 
-  function restoreFork(fork: ConversationFork) {
-    setMessages(fork.messages);
-    setShowForks(false);
-    addMessage('system', `🌿 Restored fork: **"${fork.label}"**`);
+  async function restoreSnapshot(snap: MemorySnapshot, opts: { conversation: boolean; memory: boolean; code: boolean }) {
+    try {
+      const res = await fetch(`/api/snapshots/${encodeURIComponent(snap.id)}/restore`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          restore_conversation: opts.conversation,
+          restore_memory: opts.memory,
+          restore_code: opts.code,
+        }),
+      });
+      if (!res.ok) return;
+      const data = await res.json() as { messages?: Message[]; memory_restored?: boolean; code_checkpoint_id?: number | null };
+      if (opts.conversation && data.messages) setMessages(data.messages);
+      setShowSnapshots(false);
+      setRestoreTarget(null);
+      const parts: string[] = [];
+      if (opts.conversation) parts.push('conversation');
+      if (opts.memory && data.memory_restored) parts.push('memory');
+      if (opts.code && data.code_checkpoint_id) parts.push(`code (checkpoint #${data.code_checkpoint_id})`);
+      addMessage('system', `🧠 Restored **"${snap.label}"** — ${parts.join(' + ') || 'nothing selected'}.`);
+    } catch {}
   }
 
-  async function deleteFork(id: string) {
+  async function deleteSnapshot(id: string) {
     try {
-      await fetch(`/api/forks/${encodeURIComponent(id)}`, {
+      await fetch(`/api/snapshots/${encodeURIComponent(id)}`, {
         method: 'DELETE',
         credentials: 'include',
       });
-      setForkList(prev => prev.filter(f => f.id !== id));
+      setSnapshotList(prev => prev.filter(s => s.id !== id));
     } catch {}
   }
 
-  const [showForks, setShowForks] = useState(false);
-  const [forkList, setForkList] = useState<ConversationFork[]>([]);
+  const [showSnapshots, setShowSnapshots] = useState(false);
+  const [snapshotList, setSnapshotList] = useState<MemorySnapshot[]>([]);
+  const [restoreTarget, setRestoreTarget] = useState<MemorySnapshot | null>(null);
+  const [restoreOpts, setRestoreOpts] = useState<{ conversation: boolean; memory: boolean; code: boolean }>({ conversation: true, memory: false, code: false });
 
-  // Load fork count for button badge on mount, project change, or modal open
+  // Load snapshot count for button badge on mount, project change, or modal open
   useEffect(() => {
-    loadForks();
+    loadSnapshots();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeProject?.id]);
 
   useEffect(() => {
-    if (showForks) loadForks();
+    if (showSnapshots) loadSnapshots();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showForks]);
+  }, [showSnapshots]);
 
   async function handleLogout() {
     await fetch('/api/logout', { method: 'POST', credentials: 'include' });
@@ -2009,18 +2040,18 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
               </button>
               <button
                 className="btn btn-icon btn-secondary"
-                onClick={forkConversation}
-                title="Fork conversation — save a snapshot of this chat, then branch into another path"
+                onClick={saveSnapshot}
+                title="Save snapshot — store this chat + memory state for later restore"
               >
                 <GitBranch size={15} />
               </button>
             </>
           )}
-          {forkList.length > 0 && (
+          {snapshotList.length > 0 && (
             <button
               className="btn btn-icon btn-secondary"
-              onClick={() => setShowForks(true)}
-              title="Restore a forked conversation"
+              onClick={() => setShowSnapshots(true)}
+              title="Restore a memory snapshot"
               style={{ position: 'relative' }}
             >
               <GitBranch size={15} style={{ opacity: 0.6 }} />
@@ -3310,39 +3341,86 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         </div>
       )}
 
-      {/* Usage Dashboard Modal */}
-      {showForks && (
-        <div className="modal-overlay" onClick={() => setShowForks(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 500 }}>
+      {/* Memory Snapshots Modal */}
+      {showSnapshots && (
+        <div className="modal-overlay" onClick={() => setShowSnapshots(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 560 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <h3 className="modal-title" style={{ margin: 0 }}>
                 <GitBranch size={15} style={{ marginRight: 8, verticalAlign: 'text-bottom' }} />
-                Forked Conversations
+                Memory Snapshots
               </h3>
-              <button className="btn btn-icon btn-secondary" onClick={() => setShowForks(false)}><X size={14} /></button>
+              <button className="btn btn-icon btn-secondary" onClick={() => setShowSnapshots(false)}><X size={14} /></button>
             </div>
-            {forkList.length === 0 ? (
-              <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>No forks saved yet. Use the 🌿 button to save a snapshot of your current conversation.</p>
+            {snapshotList.length === 0 ? (
+              <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>No snapshots saved yet. Use the 🧠 button to capture this chat + memory state.</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {forkList.map(fork => (
-                  <div key={fork.id} style={{
+                {snapshotList.map(snap => (
+                  <div key={snap.id} style={{
                     display: 'flex', alignItems: 'center', gap: 10,
                     padding: '10px 12px', borderRadius: 8,
                     border: '1px solid var(--border)', background: 'var(--bg-secondary)',
                   }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fork.label}</div>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {snap.label}
+                        {snap.kind === 'auto' && <span style={{ marginLeft: 6, fontSize: 10, padding: '1px 5px', borderRadius: 4, background: 'var(--accent)', color: '#fff', opacity: 0.7 }}>AUTO</span>}
+                        {snap.has_memory && <span style={{ marginLeft: 6, fontSize: 10, opacity: 0.6 }}>🧠</span>}
+                      </div>
                       <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
-                        {fork.messages.length} messages · {new Date(fork.savedAt).toLocaleString()}
+                        {snap.message_count} msgs{snap.tier ? ` · tier ${snap.tier}` : ''} · {new Date(snap.savedAt).toLocaleString()}
                       </div>
                     </div>
-                    <button className="btn btn-sm btn-primary" onClick={() => restoreFork(fork)}>Restore</button>
-                    <button className="btn btn-sm btn-secondary" onClick={() => deleteFork(fork.id)}><Trash2 size={12} /></button>
+                    <button
+                      className="btn btn-sm btn-primary"
+                      onClick={() => {
+                        setRestoreTarget(snap);
+                        setRestoreOpts({ conversation: true, memory: snap.has_memory, code: false });
+                      }}
+                    >Restore</button>
+                    <button className="btn btn-sm btn-secondary" onClick={() => deleteSnapshot(snap.id)}><Trash2 size={12} /></button>
                   </div>
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Selective Restore Sub-Modal */}
+      {restoreTarget && (
+        <div className="modal-overlay" onClick={() => setRestoreTarget(null)} style={{ zIndex: 1100 }}>
+          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <h3 className="modal-title" style={{ margin: 0 }}>Restore — what to bring back?</h3>
+              <button className="btn btn-icon btn-secondary" onClick={() => setRestoreTarget(null)}><X size={14} /></button>
+            </div>
+            <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 0, marginBottom: 12 }}>
+              From snapshot: <strong>{restoreTarget.label}</strong>
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
+                <input type="checkbox" checked={restoreOpts.conversation} onChange={e => setRestoreOpts(o => ({ ...o, conversation: e.target.checked }))} />
+                <span>💬 <strong>Conversation</strong> — replace current messages ({restoreTarget.message_count})</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: restoreTarget.has_memory ? 'pointer' : 'not-allowed', opacity: restoreTarget.has_memory ? 1 : 0.4 }}>
+                <input type="checkbox" disabled={!restoreTarget.has_memory} checked={restoreOpts.memory} onChange={e => setRestoreOpts(o => ({ ...o, memory: e.target.checked }))} />
+                <span>🧠 <strong>Memory</strong> — blueprint + behavioral rules + tier{!restoreTarget.has_memory && ' (none captured)'}</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
+                <input type="checkbox" checked={restoreOpts.code} onChange={e => setRestoreOpts(o => ({ ...o, code: e.target.checked }))} />
+                <span>📦 <strong>Code</strong> — rollback to linked checkpoint (if any)</span>
+              </label>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button className="btn btn-secondary" onClick={() => setRestoreTarget(null)}>Cancel</button>
+              <button
+                className="btn btn-primary"
+                disabled={!restoreOpts.conversation && !restoreOpts.memory && !restoreOpts.code}
+                onClick={() => restoreSnapshot(restoreTarget, restoreOpts)}
+              >Restore</button>
+            </div>
           </div>
         </div>
       )}

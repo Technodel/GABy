@@ -989,64 +989,236 @@ router.post('/projects/:id/reindex', async (req: Request, res: Response) => {
   });
 });
 
-// ── Conversation Forks ─────────────────────────────────────────────────────────
+// ── Memory Snapshots (unified replacement for forks) ───────────────────────
+//
+// A snapshot captures the *full mind-state* of a moment: conversation +
+// (optionally) blueprint memory, behavioral rules, tier, and active skills.
+// Restoring is selective — user picks Conversation / Memory / Code via flags.
 
-const ForkSchema = z.object({
+interface SnapshotRow {
+  uid: string;
+  label: string;
+  kind: string;
+  project_id: number | null;
+  checkpoint_id: number | null;
+  messages_json: string;
+  blueprint_json: string | null;
+  behavioral_rules_json: string | null;
+  tier: string | null;
+  skills_json: string | null;
+  message_count: number;
+  created_at: string;
+}
+
+const SnapshotCreateSchema = z.object({
   project_id: z.number().int().nullable().optional(),
   label: z.string().max(100).default(''),
-  messages: z.array(z.any()).max(200),
+  messages: z.array(z.any()).max(500),
+  capture_memory: z.boolean().optional().default(false),
+  tier: z.string().max(20).optional(),
+  skills: z.array(z.string()).max(50).optional(),
 });
 
-/** List forks for this user, optionally filtered by project */
-router.get('/forks', (req: Request, res: Response) => {
+const SnapshotRestoreSchema = z.object({
+  restore_conversation: z.boolean().optional().default(true),
+  restore_memory: z.boolean().optional().default(false),
+  restore_code: z.boolean().optional().default(false),
+});
+
+function rowToSnapshot(r: SnapshotRow) {
+  return {
+    id: r.uid,
+    label: r.label,
+    kind: r.kind,
+    project_id: r.project_id,
+    checkpoint_id: r.checkpoint_id,
+    savedAt: new Date(r.created_at).getTime(),
+    message_count: r.message_count,
+    has_memory: !!r.blueprint_json || !!r.behavioral_rules_json || !!r.tier,
+    tier: r.tier,
+    messages: (() => { try { return JSON.parse(r.messages_json); } catch { return []; } })(),
+  };
+}
+
+/** List snapshots for this user, optionally filtered by project */
+router.get('/snapshots', (req: Request, res: Response) => {
   const user = (req as AuthRequest).user;
   const projectId = parseInt((req.query.project_id as string) || '', 10);
   const db = getDb();
-  let forks: Array<{ uid: string; label: string; project_id: number | null; messages_json: string; message_count: number; created_at: string }>;
+  let rows: SnapshotRow[];
   if (!isNaN(projectId)) {
-    forks = db.prepare(
-      `SELECT uid, label, project_id, messages_json, message_count, created_at
-       FROM conversation_forks WHERE user_id = ? AND project_id = ? ORDER BY created_at DESC`
-    ).all(user.id, projectId) as typeof forks;
+    rows = db.prepare(
+      `SELECT uid, label, kind, project_id, checkpoint_id, messages_json,
+              blueprint_json, behavioral_rules_json, tier, skills_json,
+              message_count, created_at
+       FROM memory_snapshots WHERE user_id = ? AND project_id = ? ORDER BY created_at DESC`,
+    ).all(user.id, projectId) as SnapshotRow[];
   } else {
-    forks = db.prepare(
-      `SELECT uid, label, project_id, messages_json, message_count, created_at
-       FROM conversation_forks WHERE user_id = ? ORDER BY created_at DESC`
-    ).all(user.id) as typeof forks;
+    rows = db.prepare(
+      `SELECT uid, label, kind, project_id, checkpoint_id, messages_json,
+              blueprint_json, behavioral_rules_json, tier, skills_json,
+              message_count, created_at
+       FROM memory_snapshots WHERE user_id = ? ORDER BY created_at DESC`,
+    ).all(user.id) as SnapshotRow[];
   }
-  const parsed = forks.map(f => ({
-    id: f.uid,
-    label: f.label,
-    project_id: f.project_id,
-    savedAt: new Date(f.created_at).getTime(),
-    message_count: f.message_count,
-    messages: (() => { try { return JSON.parse(f.messages_json); } catch { return []; } })(),
-  }));
-  res.json(parsed);
+  res.json(rows.map(rowToSnapshot));
 });
 
-/** Create a new fork */
-router.post('/forks', (req: Request, res: Response) => {
+/** Create a snapshot (manual save from chat header) */
+router.post('/snapshots', async (req: Request, res: Response) => {
   const user = (req as AuthRequest).user;
-  const parsed = ForkSchema.safeParse(req.body);
-  if (!parsed.success) { res.status(400).json({ error: 'Invalid fork data' }); return; }
-  const uid = 'f_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+  const parsed = SnapshotCreateSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: 'Invalid snapshot data' }); return; }
+  const uid = 's_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
   const db = getDb();
+
+  let blueprintJson: string | null = null;
+  let rulesJson: string | null = null;
+  if (parsed.data.capture_memory) {
+    try {
+      const entries = await getBlueprintEntries({
+        userId: user.id as number,
+        projectId: parsed.data.project_id ?? undefined,
+        limit: 50,
+      });
+      blueprintJson = JSON.stringify(entries);
+    } catch { /* best-effort */ }
+    try {
+      const rules = db.prepare(
+        `SELECT id, category, rule_text, trigger_context, confidence, application_count
+         FROM behavioral_rules WHERE user_id = ? AND (project_id IS NULL OR project_id = ?)
+         ORDER BY confidence DESC LIMIT 100`,
+      ).all(user.id, parsed.data.project_id ?? null);
+      rulesJson = JSON.stringify(rules);
+    } catch { /* best-effort */ }
+  }
+
   db.prepare(
-    `INSERT INTO conversation_forks (uid, user_id, project_id, label, messages_json, message_count)
-     VALUES (?, ?, ?, ?, ?, ?)`
-  ).run(uid, user.id, parsed.data.project_id ?? null, parsed.data.label, JSON.stringify(parsed.data.messages), parsed.data.messages.length);
+    `INSERT INTO memory_snapshots
+       (uid, user_id, project_id, label, kind, messages_json,
+        blueprint_json, behavioral_rules_json, tier, skills_json, message_count)
+     VALUES (?, ?, ?, ?, 'manual', ?, ?, ?, ?, ?, ?)`,
+  ).run(
+    uid,
+    user.id,
+    parsed.data.project_id ?? null,
+    parsed.data.label,
+    JSON.stringify(parsed.data.messages),
+    blueprintJson,
+    rulesJson,
+    parsed.data.tier ?? null,
+    parsed.data.skills ? JSON.stringify(parsed.data.skills) : null,
+    parsed.data.messages.length,
+  );
   res.json({ success: true, id: uid });
 });
 
-/** Delete a fork by uid */
-router.delete('/forks/:uid', (req: Request, res: Response) => {
+/** Restore a snapshot (selective: conversation / memory / code) */
+router.post('/snapshots/:uid/restore', (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const uid = req.params.uid;
+  const parsed = SnapshotRestoreSchema.safeParse(req.body || {});
+  if (!parsed.success) { res.status(400).json({ error: 'Invalid restore options' }); return; }
+  const db = getDb();
+  const snap = db.prepare(
+    `SELECT * FROM memory_snapshots WHERE uid = ? AND user_id = ?`,
+  ).get(uid, user.id) as SnapshotRow | undefined;
+  if (!snap) { res.status(404).json({ error: 'Snapshot not found' }); return; }
+
+  const result: {
+    messages?: unknown[];
+    memory_restored?: boolean;
+    code_restored?: boolean;
+    code_checkpoint_id?: number | null;
+  } = {};
+
+  if (parsed.data.restore_conversation) {
+    try { result.messages = JSON.parse(snap.messages_json); } catch { result.messages = []; }
+  }
+
+  if (parsed.data.restore_memory && snap.blueprint_json) {
+    // Memory restore is informational here — the agent-loop will read from the
+    // frozen snapshot when projects.frozen_snapshot_uid is set. We don't
+    // overwrite blueprint_entries / behavioral_rules tables on restore (would
+    // destroy ongoing learning). Use the Freeze Brain toggle to apply the
+    // snapshot's memory at request time instead.
+    result.memory_restored = true;
+  }
+
+  if (parsed.data.restore_code) {
+    // Code rollback is intentionally NOT auto-executed here — git operations
+    // run through the bridge, which the client invokes via the existing
+    // checkpoint-rollback endpoint. Surface the checkpoint_id so the UI can
+    // chain the call.
+    result.code_restored = false;
+    result.code_checkpoint_id = snap.checkpoint_id;
+  }
+
+  res.json({ success: true, ...result });
+});
+
+/** Delete a snapshot */
+router.delete('/snapshots/:uid', (req: Request, res: Response) => {
   const user = (req as AuthRequest).user;
   const uid = req.params.uid;
   const db = getDb();
-  const fork = db.prepare('SELECT id FROM conversation_forks WHERE uid = ? AND user_id = ?').get(uid, user.id);
-  if (!fork) { res.status(404).json({ error: 'Fork not found' }); return; }
-  db.prepare('DELETE FROM conversation_forks WHERE uid = ? AND user_id = ?').run(uid, user.id);
+  const snap = db.prepare(
+    'SELECT id FROM memory_snapshots WHERE uid = ? AND user_id = ?',
+  ).get(uid, user.id);
+  if (!snap) { res.status(404).json({ error: 'Snapshot not found' }); return; }
+  db.prepare('DELETE FROM memory_snapshots WHERE uid = ? AND user_id = ?').run(uid, user.id);
+  res.json({ success: true });
+});
+
+// ── Freeze Brain (per-project) ────────────────────────────────────────────
+
+/** Get current freeze status for a project */
+router.get('/projects/:id/freeze', (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const projectId = parseInt(req.params.id, 10);
+  if (isNaN(projectId)) { res.status(400).json({ error: 'Invalid project id' }); return; }
+  const db = getDb();
+  const proj = db.prepare(
+    'SELECT frozen_snapshot_uid FROM projects WHERE id = ? AND user_id = ?',
+  ).get(projectId, user.id) as { frozen_snapshot_uid: string | null } | undefined;
+  if (!proj) { res.status(404).json({ error: 'Project not found' }); return; }
+  if (!proj.frozen_snapshot_uid) { res.json({ frozen: false }); return; }
+  const snap = db.prepare(
+    'SELECT uid, label, created_at, tier FROM memory_snapshots WHERE uid = ? AND user_id = ?',
+  ).get(proj.frozen_snapshot_uid, user.id) as { uid: string; label: string; created_at: string; tier: string | null } | undefined;
+  res.json({ frozen: !!snap, snapshot: snap ?? null });
+});
+
+/** Pin agent behavior to a snapshot */
+router.post('/projects/:id/freeze', (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const projectId = parseInt(req.params.id, 10);
+  const { snapshot_uid } = req.body || {};
+  if (isNaN(projectId) || typeof snapshot_uid !== 'string') {
+    res.status(400).json({ error: 'project id and snapshot_uid required' }); return;
+  }
+  const db = getDb();
+  const snap = db.prepare(
+    'SELECT uid FROM memory_snapshots WHERE uid = ? AND user_id = ?',
+  ).get(snapshot_uid, user.id);
+  if (!snap) { res.status(404).json({ error: 'Snapshot not found' }); return; }
+  const r = db.prepare(
+    'UPDATE projects SET frozen_snapshot_uid = ? WHERE id = ? AND user_id = ?',
+  ).run(snapshot_uid, projectId, user.id);
+  if (r.changes === 0) { res.status(404).json({ error: 'Project not found' }); return; }
+  res.json({ success: true });
+});
+
+/** Unfreeze (resume live behavior) */
+router.post('/projects/:id/unfreeze', (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const projectId = parseInt(req.params.id, 10);
+  if (isNaN(projectId)) { res.status(400).json({ error: 'Invalid project id' }); return; }
+  const db = getDb();
+  const r = db.prepare(
+    'UPDATE projects SET frozen_snapshot_uid = NULL WHERE id = ? AND user_id = ?',
+  ).run(projectId, user.id);
+  if (r.changes === 0) { res.status(404).json({ error: 'Project not found' }); return; }
   res.json({ success: true });
 });
 

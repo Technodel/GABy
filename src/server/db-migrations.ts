@@ -572,6 +572,55 @@ const SCHEMA_MIGRATIONS: Migration[] = [
       console.log('[db] Migration v14: Created topup_requests table');
     },
   },
+
+  // ── Migration 15: Memory Snapshots (replaces conversation_forks) ─────────
+  {
+    version: 15,
+    name: 'Create memory_snapshots table, migrate conversation_forks, drop old table, add projects.frozen_snapshot_uid',
+    up: async (adapter) => {
+      await adapter.exec(`
+        CREATE TABLE IF NOT EXISTS memory_snapshots (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          uid TEXT NOT NULL UNIQUE,
+          user_id INTEGER NOT NULL,
+          project_id INTEGER DEFAULT NULL,
+          label TEXT NOT NULL DEFAULT '',
+          kind TEXT NOT NULL DEFAULT 'manual',
+          checkpoint_id INTEGER DEFAULT NULL,
+          messages_json TEXT NOT NULL DEFAULT '[]',
+          blueprint_json TEXT DEFAULT NULL,
+          behavioral_rules_json TEXT DEFAULT NULL,
+          tier TEXT DEFAULT NULL,
+          skills_json TEXT DEFAULT NULL,
+          message_count INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT DEFAULT (datetime('now')),
+          FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+        CREATE INDEX IF NOT EXISTS idx_snapshots_user ON memory_snapshots(user_id);
+        CREATE INDEX IF NOT EXISTS idx_snapshots_project ON memory_snapshots(project_id);
+        CREATE INDEX IF NOT EXISTS idx_snapshots_created ON memory_snapshots(created_at);
+      `);
+
+      // Migrate existing forks → snapshots (one-shot, then drop old table)
+      const oldExists = await adapter.get<{ name: string }>(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='conversation_forks'",
+      );
+      if (oldExists) {
+        await adapter.exec(`
+          INSERT INTO memory_snapshots (uid, user_id, project_id, label, kind, messages_json, message_count, created_at)
+          SELECT uid, user_id, project_id, label, 'manual', messages_json, message_count, created_at
+          FROM conversation_forks;
+        `);
+        await adapter.exec('DROP TABLE conversation_forks');
+        console.log('[db] Migration v15: Migrated conversation_forks → memory_snapshots and dropped old table');
+      }
+
+      if (!(await adapter.columnExists('projects', 'frozen_snapshot_uid'))) {
+        await adapter.exec("ALTER TABLE projects ADD COLUMN frozen_snapshot_uid TEXT DEFAULT NULL");
+      }
+      console.log('[db] Migration v15: Created memory_snapshots table');
+    },
+  },
 ];
 
 // ── Data seeding ─────────────────────────────────────────────────────────────
