@@ -299,7 +299,20 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
   const startedAt = Date.now();
 
   // Resolve AUTO → real mode via keyword classification
-  const resolvedMode = mode === 'auto' ? classifyAutoMode(userMessage) : mode;
+  let resolvedMode = mode === 'auto' ? classifyAutoMode(userMessage) : mode;
+
+  // ── Anti-hallucination guard ──────────────────────────────────────────
+  // Free-mode models are too weak to reliably drive the bridge tool calls.
+  // When a project is selected, the user almost always expects the agent to
+  // actually read files. If Auto routed a short message to 'free' but a
+  // project context is active, bump to 'fast' so a tool-capable model runs.
+  // This prevents the "I see the issue — earlier scans worked but now the
+  // tools lost access" hallucination class on questions like
+  // "what does this app do" inside a real project.
+  if (mode === 'auto' && resolvedMode === 'free' && projectPath && !talkMode) {
+    console.log(`[agent-loop] Auto-bump: free → fast (project context active, projectPath=${projectPath})`);
+    resolvedMode = 'fast';
+  }
 
   // When imageData is present, prefer vision-capable models across all modes
   const isVisionRequest = !!imageData;
