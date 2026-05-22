@@ -1179,6 +1179,25 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         if (thinking) {
           setThinkingStatus(`[${stage}] ${label}`);
         }
+      } else if (msg.event === 'suny:suggest_tier_upgrade') {
+        const cur = String(msg.currentMode ?? 'fast');
+        const sug = String(msg.suggestedMode ?? 'pro');
+        const reason = String(msg.reason ?? 'unknown');
+        const reasonText = reason === 'step_exhaustion'
+          ? 'I ran out of steps before finishing the task.'
+          : reason === 'retries_exhausted'
+          ? 'I could not produce a useful response after multiple retries.'
+          : reason === 'all_providers_failed'
+          ? 'All configured models for this tier failed.'
+          : 'This task seems harder than the current tier can handle.';
+        addMessage(
+          'suny',
+          `⚠️ **${reasonText}**\n\nYou're on **${cur}** mode. ` +
+          `Switching to **${sug}** mode gives me a stronger model that handles multi-step coding, ` +
+          `longer plans, and trickier edits. Open the mode selector (top-right) and pick **${sug}**, ` +
+          `then re-send your message.`,
+        );
+        playSound('error');
       } else if (msg.event === 'suny:tool_call') {
         const toolName = String(msg.tool ?? 'unknown_tool');
         pushToolToProof(toolName);

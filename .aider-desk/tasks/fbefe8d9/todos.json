@@ -1,13 +1,4 @@
 {
-  "initialUserPrompt": "1 year of training, spending, coding, still unable to do 1 task!! also, in client tickets, projects should show in the drop down menu",
-  "items": [
-    {
-      "name": "Fix client tickets projects dropdown - API returns array but code expects data.projects",
-      "completed": false
-    },
-    {
-      "name": "Deploy fix to VPS and git",
-      "completed": false
-    }
-  ]
+  "initialUserPrompt": "",
+  "items": []
 }

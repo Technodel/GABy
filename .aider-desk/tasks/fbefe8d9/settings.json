@@ -4,25 +4,25 @@
   "name": "Review Project",
   "archived": false,
   "aiderTotalCost": 0,
-  "agentTotalCost": 36.8398466239999,
+  "agentTotalCost": 37.38184734399989,
   "mainModel": "",
   "currentMode": "agent",
   "weakModelLocked": false,
   "parentId": null,
   "lastAgentProviderMetadata": {
     "deepseek": {
-      "promptCacheHitTokens": 35968,
-      "promptCacheMissTokens": 239
+      "promptCacheHitTokens": 78976,
+      "promptCacheMissTokens": 26
     }
   },
   "autoApprove": true,
   "provider": "deepseek",
-  "model": "deepseek-v4-pro",
+  "model": "deepseek-v4-flash",
   "workingMode": "local",
-  "startedAt": "2026-05-22T17:42:22.846Z",
-  "state": "IN_PROGRESS",
+  "startedAt": "2026-05-22T17:59:50.929Z",
+  "state": "MORE_INFO_NEEDED",
   "createdAt": "2026-05-14T01:41:09.320Z",
-  "updatedAt": "2026-05-22T17:46:29.537Z",
-  "completedAt": "2026-05-22T17:42:18.198Z",
+  "updatedAt": "2026-05-22T18:03:37.163Z",
+  "completedAt": "2026-05-22T18:03:07.662Z",
   "interruptedAt": "2026-05-22T16:29:15.514Z"
 }

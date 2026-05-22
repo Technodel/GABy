@@ -133,6 +133,29 @@ const MAX_STEPS = 24;
 const MAX_LINT_RETRIES = 3;  // max extra AI passes to fix lint errors
 const MAX_TEST_RETRIES = 5;  // max extra AI passes to fix test failures ("consider it done")
 
+/**
+ * Suggest a higher tier when the current model appears too weak to complete
+ * the task (step exhaustion, repeated empty output, etc.). Returns null if
+ * the user is already on the top tier.
+ */
+function suggestUpgrade(currentMode: string): { next: string; label: string } | null {
+  switch (currentMode) {
+    case 'free': return { next: 'fast', label: 'Fast' };
+    case 'fast': return { next: 'pro', label: 'Pro' };
+    case 'auto': return { next: 'pro', label: 'Pro' };
+    default: return null; // 'pro' or unknown — no upgrade
+  }
+}
+
+function buildUpgradeHint(currentMode: string, reason: string): string {
+  const sug = suggestUpgrade(currentMode);
+  if (!sug) return '';
+  return (
+    `\n\n💡 **${reason}** This task may be too complex for **${currentMode}** mode. ` +
+    `Switch to **${sug.label}** mode (top-right selector) for a stronger model that can handle multi-step reasoning, longer plans, and tougher edits.`
+  );
+}
+
 export interface AgentLoopRequest {
   userId: number;
   mode: string;
@@ -791,9 +814,18 @@ If your tools are not working, say:
       // ── Step exhaustion check ──────────────────────────────────────────────
       const stepsExhausted = steps >= MAX_STEPS;
       if (stepsExhausted) {
-        const warning = `\n\n[⚠️ Step limit reached (${MAX_STEPS} steps). The task may be incomplete. Consider splitting it into smaller subtasks or asking me to continue.]\n\n`;
+        const upgradeHint = buildUpgradeHint(resolvedMode, 'Step limit reached.');
+        const warning = `\n\n[⚠️ Step limit reached (${MAX_STEPS} steps). The task may be incomplete. Consider splitting it into smaller subtasks or asking me to continue.]${upgradeHint}\n\n`;
         fullText += warning;
-        console.warn(`[agent-loop] STEP EXHAUSTION: hit ${MAX_STEPS} step limit — appended warning to output`);
+        console.warn(`[agent-loop] STEP EXHAUSTION: hit ${MAX_STEPS} step limit — appended warning to output (mode=${resolvedMode})`);
+        const sug = suggestUpgrade(resolvedMode);
+        if (sug) {
+          userClientManager.pushToUser(userId, 'suny:suggest_tier_upgrade', {
+            currentMode: resolvedMode,
+            suggestedMode: sug.next,
+            reason: 'step_exhaustion',
+          });
+        }
       }
 
       // ── DIAGNOSTIC: Log model response summary ──────────────────────────
@@ -865,10 +897,20 @@ If your tools are not working, say:
         }
 
         if (fullText.length === 0 && toolCallNames.size === 0) {
-          // All retries exhausted — produce a fallback message
+          // All retries exhausted — produce a fallback message + tier hint
+          const upgradeHint = buildUpgradeHint(resolvedMode, 'The model could not produce a response after multiple attempts.');
           fullText = 'I encountered an issue generating a response. Let me try a different approach.\n\n' +
-                     'Could you please rephrase your request or let me know what specific task you need help with?';
-          console.warn('[agent-loop] AUTO-RETRY exhausted — using fallback message');
+                     'Could you please rephrase your request or let me know what specific task you need help with?' +
+                     upgradeHint;
+          console.warn(`[agent-loop] AUTO-RETRY exhausted — using fallback message (mode=${resolvedMode})`);
+          const sug = suggestUpgrade(resolvedMode);
+          if (sug) {
+            userClientManager.pushToUser(userId, 'suny:suggest_tier_upgrade', {
+              currentMode: resolvedMode,
+              suggestedMode: sug.next,
+              reason: 'retries_exhausted',
+            });
+          }
         }
       }
 
@@ -1642,6 +1684,14 @@ If your tools are not working, say:
         });
       } else {
         console.error(`[agent-loop] ALL PROVIDERS EXHAUSTED — last error: ${lastError.message}`);
+        const sug = suggestUpgrade(resolvedMode);
+        if (sug) {
+          userClientManager.pushToUser(userId, 'suny:suggest_tier_upgrade', {
+            currentMode: resolvedMode,
+            suggestedMode: sug.next,
+            reason: 'all_providers_failed',
+          });
+        }
       }
     }
   }
