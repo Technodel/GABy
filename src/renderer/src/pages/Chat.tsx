@@ -301,9 +301,9 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
   }
 
   // ── Usage stats ──────────────────────────────────────────────────────────
-  interface UsageDay { day: string; input_tokens: number; output_tokens: number; cache_read_tokens: number; charged_cost: number; }
+  interface UsageDay { day: string; input_tokens: number; output_tokens: number; charged_cost: number; }
   interface UsageMode { mode: string; input_tokens: number; output_tokens: number; charged_cost: number; }
-  interface UsageTotals { input_tokens: number; output_tokens: number; cache_read_tokens: number; charged_cost: number; }
+  interface UsageTotals { input_tokens: number; output_tokens: number; charged_cost: number; }
   const [showUsage, setShowUsage] = useState(false);
   const [usageByDay, setUsageByDay] = useState<UsageDay[]>([]);
   const [usageByMode, setUsageByMode] = useState<UsageMode[]>([]);
@@ -635,14 +635,21 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
   // ── Bridge keyboard shortcut help ────────────────────────────────────────────
   const [showHelp, setShowHelp] = useState(false);
 
-  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
-    projects: true,
-    archived: true,
-    memories: true,
-    autoExecute: true,
-    rules: true,
-    persona: true,
-  });
+  function buildDefaultCollapsedSections(): Record<string, boolean> {
+    return {
+      projects: true,
+      archived: true,
+      memories: true,
+      autoExecute: true,
+      freezeBrain: true,
+      defaultTier: true,
+      rules: true,
+      persona: true,
+      blueprint: true,
+    };
+  }
+
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(buildDefaultCollapsedSections);
   const [confirmClearMemories, setConfirmClearMemories] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -894,6 +901,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       saveProjectMessages(activeProject.id, messages);
     }
     setActiveProject(project);
+    setCollapsedSections(buildDefaultCollapsedSections());
     setDevServerRunning(false);
     setDevServerUrl(null);
     if (showFileBrowser) loadFileBrowser(project.id);
@@ -1215,11 +1223,12 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
           setThinkingStatus(`[${stage}] ${label}`);
         }
       } else if (msg.event === 'suny:suggest_tier_upgrade') {
-        const cur = String(msg.currentMode ?? 'fast');
+        const cur = selectedMode || String(msg.currentMode ?? 'auto');
+        const routed = String(msg.routedMode ?? msg.currentMode ?? cur);
         const sug = String(msg.suggestedMode ?? 'pro');
         const reason = String(msg.reason ?? 'unknown');
         const reasonText = reason === 'step_exhaustion'
-          ? 'I ran out of steps before finishing the task.'
+          ? 'This run stopped before finishing the task.'
           : reason === 'retries_exhausted'
           ? 'I could not produce a useful response after multiple retries.'
           : reason === 'all_providers_failed'
@@ -1232,7 +1241,9 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         ]);
         addMessage(
           'suny',
-          `⚠️ **${reasonText}**\n\nYou're on **${cur}** mode. ` +
+          `⚠️ **${reasonText}**\n\n${cur === 'auto' && routed !== 'auto'
+            ? `You're using **auto** mode, and this run was routed to **${routed}**. `
+            : `You're on **${cur}** mode. `}` +
           `Switching to **${sug}** mode gives me a stronger model that handles multi-step coding, ` +
           `longer plans, and trickier edits. ${upgradeHint}`,
         );
@@ -1762,7 +1773,22 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
   }
 
   async function deleteProject(id: number) {
-    await fetch(`/api/projects/${id}`, { method: 'DELETE', credentials: 'include' });
+    const project = projects.find(p => p.id === id);
+    const label = project?.name ? `"${project.name}"` : 'this project';
+    const ok = window.confirm(`Delete ${label}? This cannot be undone.`);
+    if (!ok) return;
+
+    const res = await fetch(`/api/projects/${id}`, { method: 'DELETE', credentials: 'include' });
+    if (!res.ok) {
+      let message = 'Failed to delete project.';
+      try {
+        const data = await res.json() as { error?: string };
+        if (data?.error) message = data.error;
+      } catch {}
+      window.alert(message);
+      return;
+    }
+
     setProjects(ps => ps.filter(p => p.id !== id));
     setProjectSpend(prev => {
       const next = { ...prev };
@@ -2255,7 +2281,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                   {showFileBrowser ? <FolderOpen size={12} /> : <Folder size={12} />}
                 </button>
               )}
-              <button className="btn btn-icon btn-secondary btn-sm" onClick={() => setShowNewProject(true)} title="New project">
+              <button className="btn btn-icon btn-secondary btn-sm" onClick={() => { setNewProjectMode('link'); setScratchDescription(''); setShowNewProject(true); }} title="New project">
                 <Plus size={13} />
               </button>
             </div>
@@ -3260,7 +3286,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
 
       {/* New Project Modal */}
       {showNewProject && (
-        <div className="modal-overlay" onClick={() => setShowNewProject(false)}>
+        <div className="modal-overlay" onClick={() => { setShowNewProject(false); setNewProjectMode('link'); setScratchDescription(''); }}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <h3 className="modal-title">New Project</h3>
 
@@ -3426,9 +3452,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                         setNewProjectMode('link');
                         const prompt = `Build with SUNy from scratch.\n\nDescription: ${scratchDescription.trim()}\n\nPlease scaffold the folder structure and all necessary files.`;
                         setScratchDescription('');
-                        setTimeout(() => {
-                          sendPreparedMessage(prompt, { forceWriteMode: true, projectIdOverride: created.id as number });
-                        }, 120);
+                        setInput(prompt);
                       }
                     }).catch(() => {});
                   }}
@@ -3588,7 +3612,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 10, marginBottom: 20 }}>
                 {[
                   { label: 'Total Tokens', value: ((usageTotals.input_tokens + usageTotals.output_tokens) / 1000).toFixed(1) + 'K' },
-                  { label: 'Cache Hits', value: (usageTotals.cache_read_tokens / 1000).toFixed(1) + 'K' },
+                  { label: 'Efficiency', value: 'Auto-optimized' },
                   { label: 'Total Spent', value: '$' + usageTotals.charged_cost.toFixed(4) },
                   { label: 'Remaining Credits', value: (balance + walletBalance).toFixed(4) },
                   { label: 'Remaining Session Tokens', value: sessLimit == null ? 'Unlimited' : Math.max(0, sessLimit - sessUsed).toLocaleString() },
@@ -3600,6 +3624,10 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                 ))}
               </div>
             )}
+
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: -6, marginBottom: 18, textAlign: 'center' }}>
+              SUNy optimizes prompt caching and token reuse automatically in the background.
+            </div>
 
             {/* Daily bar chart (pure CSS) */}
             {usageByDay.length > 0 && (

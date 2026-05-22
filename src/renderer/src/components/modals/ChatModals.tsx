@@ -18,9 +18,9 @@ export interface Memory {
   createdAt: number; updatedAt: number;
 }
 
-export interface UsageDay { day: string; input_tokens: number; output_tokens: number; cache_read_tokens: number; charged_cost: number; }
+export interface UsageDay { day: string; input_tokens: number; output_tokens: number; charged_cost: number; }
 export interface UsageMode { mode: string; input_tokens: number; output_tokens: number; charged_cost: number; }
-export interface UsageTotals { input_tokens: number; output_tokens: number; cache_read_tokens: number; charged_cost: number; }
+export interface UsageTotals { input_tokens: number; output_tokens: number; charged_cost: number; }
 
 // ── Bridge Connect Modal ─────────────────────────────────────────────────────
 

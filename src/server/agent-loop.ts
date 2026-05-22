@@ -129,20 +129,6 @@ function getLoopDetector(userId: number): LoopDetector {
   return detector;
 }
 
-/**
- * Per-tier step budget. Pro users get a much bigger budget because the
- * model is strong enough to use it well; free/fast get tighter limits to
- * prevent runaway costs / loops on weak models.
- */
-const STEP_BUDGET: Record<string, number> = {
-  free: 8,
-  fast: 16,
-  smart: 28,
-  pro: 40,
-};
-function stepBudgetFor(mode: string): number {
-  return STEP_BUDGET[mode] ?? 24;
-}
 const MAX_STEPS = 24; // legacy fallback / used by tests
 const MAX_LINT_RETRIES = 3;  // max extra AI passes to fix lint errors
 const MAX_TEST_RETRIES = 5;  // max extra AI passes to fix test failures ("consider it done")
@@ -717,7 +703,7 @@ If your tools are not working, say:
         system: useSystemParam ? fullSystem : undefined,
         messages: finalMessages,
         tools: effectiveTools,
-        stopWhen: stepCountIs(stepBudgetFor(resolvedMode)), // v5 API: enables multi-step tool-use loop
+        stopWhen: undefined,
         abortSignal: signal,
         prepareStep: forceToolStep0
           ? ({ stepNumber }) => (stepNumber === 0 ? { toolChoice: 'required' as const } : undefined)
@@ -826,26 +812,8 @@ If your tools are not working, say:
         if (onChunk && finalFlush.length > 0) onChunk(finalFlush);
       }
 
-      // ── Step exhaustion check ──────────────────────────────────────────────
-      const tierBudget = stepBudgetFor(resolvedMode);
-      const stepsExhausted = steps >= tierBudget;
-      if (stepsExhausted) {
-        const upgradeHint = buildUpgradeHint(resolvedMode, 'Step limit reached.');
-        const warning = `\n\n[⚠️ Step limit reached (${tierBudget} steps on ${resolvedMode} tier). The task may be incomplete. Consider splitting it into smaller subtasks or asking me to continue.]${upgradeHint}\n\n`;
-        fullText += warning;
-        console.warn(`[agent-loop] STEP EXHAUSTION: hit ${tierBudget} step limit — appended warning to output (mode=${resolvedMode})`);
-        const sug = suggestUpgrade(resolvedMode);
-        if (sug) {
-          userClientManager.pushToUser(userId, 'suny:suggest_tier_upgrade', {
-            currentMode: resolvedMode,
-            suggestedMode: sug.next,
-            reason: 'step_exhaustion',
-          });
-        }
-      }
-
       // ── DIAGNOSTIC: Log model response summary ──────────────────────────
-      console.log(`[agent-loop] MODEL RESPONSE: textDeltas=${textDeltas}, fullText.length=${fullText.length}, steps=${steps}, totalInput=${totalInput}, totalOutput=${totalOutput}, toolCallNames=${Array.from(toolCallNames).join(',') || 'none'}, stepsExhausted=${stepsExhausted}`);
+      console.log(`[agent-loop] MODEL RESPONSE: textDeltas=${textDeltas}, fullText.length=${fullText.length}, steps=${steps}, totalInput=${totalInput}, totalOutput=${totalOutput}, toolCallNames=${Array.from(toolCallNames).join(',') || 'none'}`);
       if (fullText.length > 0) {
         console.log(`[agent-loop] MODEL RESPONSE PREVIEW: ${fullText.slice(0, 500).replace(/\n/g, '\\n')}`);
       } else {
@@ -914,7 +882,7 @@ If your tools are not working, say:
 
         if (fullText.length === 0 && toolCallNames.size === 0) {
           // All retries exhausted — produce a fallback message + tier hint
-          const upgradeHint = buildUpgradeHint(resolvedMode, 'The model could not produce a response after multiple attempts.');
+          const upgradeHint = buildUpgradeHint(mode === 'auto' ? 'auto' : resolvedMode, 'The model could not produce a response after multiple attempts.');
           fullText = 'I encountered an issue generating a response. Let me try a different approach.\n\n' +
                      'Could you please rephrase your request or let me know what specific task you need help with?' +
                      upgradeHint;
@@ -922,7 +890,8 @@ If your tools are not working, say:
           const sug = suggestUpgrade(resolvedMode);
           if (sug) {
             userClientManager.pushToUser(userId, 'suny:suggest_tier_upgrade', {
-              currentMode: resolvedMode,
+              currentMode: mode === 'auto' ? 'auto' : resolvedMode,
+              routedMode: resolvedMode,
               suggestedMode: sug.next,
               reason: 'retries_exhausted',
             });
@@ -1205,7 +1174,7 @@ If your tools are not working, say:
           system: execUseSystem ? execSystem : undefined,
           messages: execMessages,
           tools: tools, // use tool-call for execution if available
-          stopWhen: stepCountIs(stepBudgetFor(resolvedMode)),
+          stopWhen: undefined,
           abortSignal: signal,
           onStepFinish: ({ usage: u, text, toolCalls, toolResults }) => {
             steps++;
@@ -1344,7 +1313,7 @@ If your tools are not working, say:
             system: lintUseSystem ? fullSystem : undefined,
             messages: trimmedLint,
             tools,
-            stopWhen: stepCountIs(stepBudgetFor(resolvedMode)),
+            stopWhen: undefined,
             abortSignal: signal,
             onStepFinish: ({ usage, text, toolCalls, toolResults }) => {
               steps++;
@@ -1504,7 +1473,7 @@ If your tools are not working, say:
               system: testUseSystem ? fullSystem : undefined,
               messages: trimmedTest,
               tools,
-              stopWhen: stepCountIs(stepBudgetFor(resolvedMode)),
+              stopWhen: undefined,
               abortSignal: signal,
               onStepFinish: ({ usage: u, text, toolCalls, toolResults }) => {
                 steps++;
@@ -1709,7 +1678,8 @@ If your tools are not working, say:
         const sug = suggestUpgrade(resolvedMode);
         if (sug) {
           userClientManager.pushToUser(userId, 'suny:suggest_tier_upgrade', {
-            currentMode: resolvedMode,
+            currentMode: mode === 'auto' ? 'auto' : resolvedMode,
+            routedMode: resolvedMode,
             suggestedMode: sug.next,
             reason: 'all_providers_failed',
           });

@@ -15,7 +15,7 @@ interface Ticket {
   closed_at: string | null;
 }
 
-export default function ClientTickets({ onBack }: { onBack: () => void }) {
+export default function ClientTickets({ onBack, onOpenSettings }: { onBack: () => void; onOpenSettings: () => void }) {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNewForm, setShowNewForm] = useState(false);
@@ -142,7 +142,16 @@ export default function ClientTickets({ onBack }: { onBack: () => void }) {
 
         {error && (
           <div style={{ padding: '10px 14px', background: 'rgba(255,60,60,0.1)', border: '1px solid rgba(255,60,60,0.3)', borderRadius: 8, marginBottom: 16, fontSize: 13, color: 'var(--error)' }}>
-            {error}
+            <div>{error}</div>
+            {error === 'Set your company/personal name in Settings first!' && (
+              <button
+                className="btn btn-secondary btn-sm"
+                onClick={onOpenSettings}
+                style={{ marginTop: 10 }}
+              >
+                Open Settings
+              </button>
+            )}
           </div>
         )}
 

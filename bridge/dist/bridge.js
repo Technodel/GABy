@@ -39,6 +39,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SunyBridge = void 0;
 const ws_1 = __importDefault(require("ws"));
 const executor_1 = require("./executor");
+const browser_1 = require("./browser");
 const config_1 = require("./config");
 const fs = __importStar(require("fs"));
 const os = __importStar(require("os"));
@@ -188,12 +189,17 @@ class SunyBridge {
             (0, config_1.registerPath)(targetPath);
             this.log(`[SUNy Bridge] Registered project path: ${targetPath}`);
             if (id) {
-                this.send({ type: 'bridge:ack', id, payload: { success: true } });
+                // Resolve the server-side pending promise with bridge:done.
+                this.send({ type: 'bridge:done', id, payload: { exitCode: 0, success: true } });
             }
             return;
         }
         if (type?.startsWith('exec:') && id) {
             (0, executor_1.handleExec)(type, id, (payload || {}), (msg) => this.send(msg));
+            return;
+        }
+        if (type?.startsWith('browser:') && id) {
+            (0, browser_1.handleBrowser)(type, id, (payload || {}), (msg) => this.send(msg));
         }
     }
     send(msg) {

@@ -1,5 +1,6 @@
 import WebSocket from 'ws';
 import { handleExec } from './executor';
+import { handleBrowser } from './browser';
 import { registerPath } from './config';
 import * as fs from 'fs';
 import * as os from 'os';
@@ -188,6 +189,11 @@ export class SunyBridge {
 
     if (type?.startsWith('exec:') && id) {
       handleExec(type, id, (payload || {}) as Record<string, unknown>, (msg) => this.send(msg));
+      return;
+    }
+
+    if (type?.startsWith('browser:') && id) {
+      handleBrowser(type, id, (payload || {}) as Record<string, unknown>, (msg) => this.send(msg));
     }
   }
 

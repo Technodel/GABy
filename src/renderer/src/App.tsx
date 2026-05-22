@@ -100,7 +100,15 @@ function AppRoutes() {
       {/* User Client Tickets */}
       <Route path="/client-tickets" element={
         auth === 'none' ? <Navigate to="/login" /> :
-        <ClientTickets onBack={() => navigate('/')} />
+        <ClientTickets
+          onBack={() => navigate('/')}
+          onOpenSettings={() => {
+            setSettingsSection('general');
+            setSettingsNotice('Set your company or personal name first');
+            setShowSettings(true);
+            navigate('/');
+          }}
+        />
       } />
 
       {/* User routes */}

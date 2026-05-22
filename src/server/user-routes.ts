@@ -260,8 +260,47 @@ router.delete('/projects/:id', (req: Request, res: Response) => {
   const user = (req as AuthRequest).user;
   const id = parseInt(req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: 'Invalid id' }); return; }
-  getDb().prepare('DELETE FROM projects WHERE id = ? AND user_id = ?').run(id, user.id);
-  res.json({ success: true });
+
+  const db = getDb();
+  const proj = db.prepare('SELECT id FROM projects WHERE id = ? AND user_id = ?').get(id, user.id);
+  if (!proj) { res.status(404).json({ error: 'Project not found' }); return; }
+
+  try {
+    const deleteProjectTx = db.transaction(() => {
+      const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").all() as Array<{ name: string }>;
+
+      for (const { name } of tables) {
+        if (name === 'projects') continue;
+        const escapedName = name.replace(/"/g, '""');
+        const columns = db.prepare(`PRAGMA table_info("${escapedName}")`).all() as Array<{ name: string }>;
+        const columnNames = new Set(columns.map(c => c.name));
+
+        if (columnNames.has('project_id')) {
+          const sql = columnNames.has('user_id')
+            ? `DELETE FROM "${escapedName}" WHERE project_id = ? AND user_id = ?`
+            : `DELETE FROM "${escapedName}" WHERE project_id = ?`;
+          db.prepare(sql).run(...(columnNames.has('user_id') ? [id, user.id] : [id]));
+        }
+
+        if (columnNames.has('source_project_id')) {
+          const sql = columnNames.has('user_id')
+            ? `DELETE FROM "${escapedName}" WHERE source_project_id = ? AND user_id = ?`
+            : `DELETE FROM "${escapedName}" WHERE source_project_id = ?`;
+          db.prepare(sql).run(...(columnNames.has('user_id') ? [id, user.id] : [id]));
+        }
+      }
+
+      const result = db.prepare('DELETE FROM projects WHERE id = ? AND user_id = ?').run(id, user.id);
+      if (result.changes === 0) {
+        throw new Error('Project deletion did not remove any rows');
+      }
+    });
+
+    deleteProjectTx();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to delete project' });
+  }
 });
 
 /** Set or clear the AI persona for a project */
@@ -650,12 +689,11 @@ router.get('/me/usage', (req: Request, res: Response) => {
     SELECT date(timestamp) as day,
            SUM(input_tokens)       as input_tokens,
            SUM(output_tokens)      as output_tokens,
-           SUM(cache_read_tokens)  as cache_read_tokens,
            SUM(charged_cost)       as charged_cost
     FROM usage_log
     WHERE user_id = ? AND timestamp >= date('now', '-' || ? || ' days')
     GROUP BY day ORDER BY day ASC
-  `).all(user.id, days) as { day: string; input_tokens: number; output_tokens: number; cache_read_tokens: number; charged_cost: number }[];
+  `).all(user.id, days) as { day: string; input_tokens: number; output_tokens: number; charged_cost: number }[];
 
   const byMode = db.prepare(`
     SELECT mode,
@@ -669,10 +707,9 @@ router.get('/me/usage', (req: Request, res: Response) => {
   const totals = db.prepare(`
     SELECT COALESCE(SUM(input_tokens),0)      as input_tokens,
            COALESCE(SUM(output_tokens),0)     as output_tokens,
-           COALESCE(SUM(cache_read_tokens),0) as cache_read_tokens,
            COALESCE(SUM(charged_cost),0)      as charged_cost
     FROM usage_log WHERE user_id = ?
-  `).get(user.id) as { input_tokens: number; output_tokens: number; cache_read_tokens: number; charged_cost: number };
+  `).get(user.id) as { input_tokens: number; output_tokens: number; charged_cost: number };
 
   res.json({ by_day: byDay, by_mode: byMode, totals });
 });

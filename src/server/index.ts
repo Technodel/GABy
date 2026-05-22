@@ -2544,8 +2544,8 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : '';
       const isAbortLike = errMsg.includes('cancelled') || errMsg.includes('abort') || errMsg.includes('AbortError');
-      // User-initiated cancel: cancel handler already set currentAbortController = null and sent a "stopped" message
-      if (isAbortLike && currentAbortController === null) return;
+      // Abort/cancel paths are already handled upstream and should not emit a second generic error.
+      if (isAbortLike) return;
       // All other errors — always respond so the client never gets stuck in thinking state
       let friendly = pickRandom('error', pickNonRepeatingFallback(userId, ERROR_REPLY_FALLBACKS));
       let errorCategory = 'unknown';

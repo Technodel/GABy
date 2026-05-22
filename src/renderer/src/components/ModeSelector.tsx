@@ -17,7 +17,7 @@ interface ModeSelectorProps {
 // Never shows model names, providers, or technical info
 export default function ModeSelector({ modes, selected, onChange, noBalance = false }: ModeSelectorProps) {
   return (
-    <div style={{ display: 'flex', gap: 6 }}>
+    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center', minWidth: 0 }}>
       {modes.map(m => {
         const isFreeLike = ['free', 'starter'].includes(m.mode.toLowerCase()) || /free|starter/i.test(m.display_name);
         const displayName = isFreeLike ? '⚡ Free' : m.display_name;

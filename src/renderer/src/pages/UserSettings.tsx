@@ -247,6 +247,23 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
     }
   }
 
+  const settingsCardStyle: React.CSSProperties = { marginBottom: 14 };
+  const splitRowStyle: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: 'minmax(0, 1fr) auto',
+    gap: 16,
+    alignItems: 'start',
+  };
+  const stackGapStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 14 };
+  const radioOptionStyle: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: '18px minmax(0, 1fr)',
+    gap: 12,
+    alignItems: 'start',
+    cursor: 'pointer',
+    padding: '2px 0',
+  };
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', padding: 24 }}>
       {notice && (
@@ -260,7 +277,7 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
           <h1 style={{ fontSize: 20, fontWeight: 600 }}>⚙️ My Settings</h1>
         </div>
 
-        <div className="card" style={{ marginBottom: 14 }}>
+        <div className="card" style={settingsCardStyle}>
           <h3 style={{ fontWeight: 600, marginBottom: 12 }}>👤 Your Name</h3>
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 10, lineHeight: 1.5 }}>
             Optional — if set, SUNy will call you by name during conversations.
@@ -281,7 +298,7 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
           </div>
         </div>
 
-        <div className="card" style={{ marginBottom: 14 }}>
+        <div className="card" style={settingsCardStyle}>
           <h3 style={{ fontWeight: 600, marginBottom: 12 }}>🏢 Company / Personal Name</h3>
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 10, lineHeight: 1.5 }}>
             Required for Client Link feature. This name will be shown to your clients when you send them a ticket link.
@@ -312,9 +329,9 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
           </div>
         </div>
 
-        <div className="card" style={{ marginBottom: 14 }}>
+        <div className="card" style={settingsCardStyle}>
           <h3 style={{ fontWeight: 600, marginBottom: 16 }}>🎨 Look & Feel</h3>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <div style={{ ...splitRowStyle, marginBottom: 14 }}>
             <div>
               <div style={{ fontWeight: 500, fontSize: 14 }}>Interface Mode</div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Choose between Matrix, SUNY, and Pro</div>
@@ -342,24 +359,24 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
               <option value="pro">Pro</option>
             </select>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <div style={{ ...splitRowStyle, marginBottom: 14 }}>
             <div>
               <div style={{ fontWeight: 500, fontSize: 14 }}>🔊 Sound Effects</div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Robot/machine sounds on send, receive, and completions</div>
             </div>
-            <input type="checkbox" className="toggle" checked={soundsEnabled} onChange={e => setSoundsEnabled(e.target.checked)} />
+            <input type="checkbox" className="toggle" checked={soundsEnabled} onChange={e => setSoundsEnabled(e.target.checked)} style={{ marginTop: 2 }} />
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={splitRowStyle}>
             <div>
               <div style={{ fontWeight: 500, fontSize: 14 }}>✨ Visual Effects</div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Bubble glow animation while SUNy is working</div>
             </div>
-            <input type="checkbox" className="toggle" checked={visualEffects} onChange={e => setVisualEffects(e.target.checked)} />
+            <input type="checkbox" className="toggle" checked={visualEffects} onChange={e => setVisualEffects(e.target.checked)} style={{ marginTop: 2 }} />
           </div>
         </div>
 
-        <div className="card" style={{ marginBottom: 14 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="card" style={settingsCardStyle}>
+          <div style={splitRowStyle}>
             <div>
               <h3 style={{ fontWeight: 600, marginBottom: 4 }}>✅ Auto-Approve SUNy's Actions</h3>
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
@@ -372,12 +389,12 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
               className="toggle"
               checked={autoApprove}
               onChange={e => setAutoApprove(e.target.checked)}
-              style={{ flexShrink: 0, marginLeft: 16 }}
+              style={{ flexShrink: 0, marginTop: 2 }}
             />
           </div>
         </div>
 
-        <div className="card" style={{ marginBottom: 14 }}>
+        <div className="card" style={settingsCardStyle}>
           <h3 style={{ fontWeight: 600, marginBottom: 6 }}>🎯 Session Usage Limit</h3>
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 12, lineHeight: 1.5 }}>
             Set a per-session maximum — leave blank to use the global limit.
@@ -397,8 +414,8 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
           </div>
         </div>
 
-        <div className="card" style={{ marginBottom: 14 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+        <div className="card" style={settingsCardStyle}>
+          <div style={{ ...splitRowStyle, marginBottom: 10 }}>
             <div>
               <h3 style={{ fontWeight: 600, marginBottom: 4 }}>🧠 SUNy's Memory</h3>
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
@@ -411,14 +428,14 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
               className="toggle"
               checked={memoryEnabled}
               onChange={e => setMemoryEnabled(e.target.checked)}
-              style={{ flexShrink: 0, marginLeft: 16 }}
+              style={{ flexShrink: 0, marginTop: 2 }}
             />
           </div>
           {memoryEnabled && <MemoryManager />}
         </div>
 
-        <div className="card" style={{ marginBottom: 14 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="card" style={settingsCardStyle}>
+          <div style={splitRowStyle}>
             <div>
               <h3 style={{ fontWeight: 600, marginBottom: 4 }}>🌍 Cross-Device Memory Persistence</h3>
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
@@ -430,7 +447,7 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
               className="toggle"
               checked={crossDeviceMemoryEnabled}
               onChange={e => setCrossDeviceMemoryEnabled(e.target.checked)}
-              style={{ flexShrink: 0, marginLeft: 16 }}
+              style={{ flexShrink: 0, marginTop: 2 }}
             />
           </div>
           {crossDeviceMemoryEnabled && (
@@ -440,8 +457,8 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
           )}
         </div>
 
-        <div className="card" style={{ marginBottom: 14 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="card" style={settingsCardStyle}>
+          <div style={splitRowStyle}>
             <div>
               <h3 style={{ fontWeight: 600, marginBottom: 4 }}>🧩 Show Technical Details In Chat</h3>
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
@@ -453,7 +470,7 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
               className="toggle"
               checked={showTechnicalDetails}
               onChange={e => setShowTechnicalDetails(e.target.checked)}
-              style={{ flexShrink: 0, marginLeft: 16 }}
+              style={{ flexShrink: 0, marginTop: 2 }}
             />
           </div>
           <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
@@ -461,12 +478,13 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
           </div>
         </div>
 
-        <div className="card" style={{ marginBottom: 14 }}>
+        <div className="card" style={settingsCardStyle}>
           <h3 style={{ fontWeight: 600, marginBottom: 10 }}>🔄 Task Interruption Behavior</h3>
           <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 12 }}>
             When you send a new prompt while SUNy is already working on a task, what should happen?
           </p>
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12, cursor: 'pointer' }}>
+          <div style={stackGapStyle}>
+          <label style={radioOptionStyle}>
             <input
               type="radio"
               name="task_interruption"
@@ -481,7 +499,7 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
               </div>
             </div>
           </label>
-          <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
+          <label style={radioOptionStyle}>
             <input
               type="radio"
               name="task_interruption"
@@ -496,6 +514,7 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
               </div>
             </div>
           </label>
+          </div>
         </div>
 
         <div
@@ -547,13 +566,18 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-          <button className="btn btn-primary" onClick={saveSettings} style={{ flex: 1, justifyContent: 'center' }}>
+        <div style={{ display: 'flex', gap: 10, marginTop: 8, justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button className="btn btn-secondary" onClick={onBack}>
+            ← Back
+          </button>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginLeft: 'auto' }}>
+          <button className="btn btn-primary" onClick={saveSettings} style={{ justifyContent: 'center' }}>
             {saved ? '✓ Saved!' : '💾 Save Settings'}
           </button>
           <button className="btn btn-secondary" onClick={handleLogout}>
             <LogOut size={14} /> Sign Out
           </button>
+          </div>
         </div>
       </div>
     </div>

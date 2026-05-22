@@ -186,17 +186,140 @@ function InlineCode({ code }: { code: string }) {
 }
 
 function TextBlock({ text }: { text: string }) {
-  // Render plain text with line breaks
+  const blocks = buildTextBlocks(text);
+
   return (
-    <span style={textStyle}>
-      {text.split('\n').map((line, i, arr) => (
-        <span key={i}>
-          {line}
-          {i < arr.length - 1 && <br />}
-        </span>
-      ))}
-    </span>
+    <div style={textBlockContainerStyle}>
+      {blocks.map((block, blockIndex) => {
+        if (block.type === 'unordered-list') {
+          return (
+            <ul key={blockIndex} style={unorderedListStyle}>
+              {block.items.map((item, itemIndex) => (
+                <li key={itemIndex} style={listItemStyle}>
+                  {renderInlineText(item, `${blockIndex}-${itemIndex}`)}
+                </li>
+              ))}
+            </ul>
+          );
+        }
+
+        if (block.type === 'ordered-list') {
+          return (
+            <ol key={blockIndex} style={orderedListStyle}>
+              {block.items.map((item, itemIndex) => (
+                <li key={itemIndex} style={listItemStyle}>
+                  {renderInlineText(item, `${blockIndex}-${itemIndex}`)}
+                </li>
+              ))}
+            </ol>
+          );
+        }
+
+        return (
+          <p key={blockIndex} style={paragraphStyle}>
+            {renderInlineText(block.text, `${blockIndex}`)}
+          </p>
+        );
+      })}
+    </div>
   );
+}
+
+type TextBlockNode =
+  | { type: 'paragraph'; text: string }
+  | { type: 'unordered-list'; items: string[] }
+  | { type: 'ordered-list'; items: string[] };
+
+function buildTextBlocks(text: string): TextBlockNode[] {
+  const normalized = normalizeDisplayText(text);
+  const lines = normalized.split('\n');
+  const blocks: TextBlockNode[] = [];
+  let paragraphLines: string[] = [];
+  let unorderedItems: string[] = [];
+  let orderedItems: string[] = [];
+
+  const flushParagraph = () => {
+    const value = paragraphLines.join(' ').trim();
+    if (value) blocks.push({ type: 'paragraph', text: value });
+    paragraphLines = [];
+  };
+
+  const flushUnordered = () => {
+    if (unorderedItems.length > 0) blocks.push({ type: 'unordered-list', items: unorderedItems });
+    unorderedItems = [];
+  };
+
+  const flushOrdered = () => {
+    if (orderedItems.length > 0) blocks.push({ type: 'ordered-list', items: orderedItems });
+    orderedItems = [];
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+
+    if (!line) {
+      flushParagraph();
+      flushUnordered();
+      flushOrdered();
+      continue;
+    }
+
+    if (/^[-*]\s+/.test(line)) {
+      flushParagraph();
+      flushOrdered();
+      unorderedItems.push(line.replace(/^[-*]\s+/, '').trim());
+      continue;
+    }
+
+    if (/^\d+\.\s+/.test(line)) {
+      flushParagraph();
+      flushUnordered();
+      orderedItems.push(line.replace(/^\d+\.\s+/, '').trim());
+      continue;
+    }
+
+    flushUnordered();
+    flushOrdered();
+    paragraphLines.push(line);
+  }
+
+  flushParagraph();
+  flushUnordered();
+  flushOrdered();
+
+  return blocks;
+}
+
+function normalizeDisplayText(text: string): string {
+  return text
+    .replace(/\r\n?/g, '\n')
+    .replace(/([^\n\s])\s*-\s+(?=(\*\*|[A-Z0-9]))/g, '$1\n- ')
+    .replace(/([^\n\s])-\s+(?=(\*\*|[A-Z0-9]))/g, '$1\n- ');
+}
+
+function renderInlineText(text: string, keyPrefix: string): React.ReactNode[] {
+  const parts: React.ReactNode[] = [];
+  const regex = /\*\*([^*]+)\*\*/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.slice(lastIndex, match.index));
+    }
+    parts.push(
+      <strong key={`${keyPrefix}-${match.index}`} style={boldTextStyle}>
+        {match[1]}
+      </strong>
+    );
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(text.slice(lastIndex));
+  }
+
+  return parts;
 }
 
 // ── Styles ─────────────────────────────────────────────────────────────────────
@@ -296,6 +419,38 @@ function formatDateTime(timestamp: number): string {
 
 const textStyle: React.CSSProperties = {
   lineHeight: 1.6,
+};
+
+const textBlockContainerStyle: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 8,
+};
+
+const paragraphStyle: React.CSSProperties = {
+  ...textStyle,
+  margin: 0,
+};
+
+const unorderedListStyle: React.CSSProperties = {
+  ...textStyle,
+  margin: 0,
+  paddingLeft: 20,
+};
+
+const orderedListStyle: React.CSSProperties = {
+  ...textStyle,
+  margin: 0,
+  paddingLeft: 20,
+};
+
+const listItemStyle: React.CSSProperties = {
+  margin: '0 0 4px',
+};
+
+const boldTextStyle: React.CSSProperties = {
+  fontWeight: 700,
+  color: 'var(--text-primary)',
 };
 
 const codeBlockWrapperStyle: React.CSSProperties = {

@@ -102,6 +102,14 @@ export default function ChatMessages(props: ChatMessagesProps) {
                 setRenamingTabValue(tab.name);
               }}
             >
+              <button
+                onClick={e => { e.stopPropagation(); archiveGlobalTab(tab.id); }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0 }}
+                title="Archive tab"
+              >
+                <Archive size={10} />
+              </button>
+
               {renamingTabId === tab.id ? (
                 <input
                   value={renamingTabValue}
@@ -146,14 +154,7 @@ export default function ChatMessages(props: ChatMessagesProps) {
                   </button>
                 </div>
               ) : (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 2 }}>
-                  <button
-                    onClick={e => { e.stopPropagation(); archiveGlobalTab(tab.id); }}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0, display: 'flex', alignItems: 'center' }}
-                    title="Archive tab"
-                  >
-                    <Archive size={10} />
-                  </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 2, flexShrink: 0 }}>
                   <button
                     onClick={e => { e.stopPropagation(); setDeleteConfirmTabId(tab.id); }}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0, display: 'flex', alignItems: 'center' }}

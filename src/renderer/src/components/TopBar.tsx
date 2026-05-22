@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { Home, Eraser, BarChart2, HelpCircle, Settings, Phone, LogOut, Ticket } from 'lucide-react';
 import BalanceBadge from './BalanceBadge';
 import BridgeStatusBadge from './BridgeStatusBadge';
@@ -62,15 +63,44 @@ export default function TopBar(props: TopBarProps) {
   const showRoutingBadge = Boolean(
     routingReason && normalizedRouting && normalizedRouting !== selectedMode.toLowerCase() && normalizedRouting !== 'auto'
   );
+  const topbarRef = useRef<HTMLDivElement | null>(null);
+  const [isCompactHeader, setIsCompactHeader] = useState(false);
+
+  useEffect(() => {
+    const updateLayout = () => {
+      const width = topbarRef.current?.offsetWidth ?? window.innerWidth;
+      setIsCompactHeader(width < 1280);
+    };
+
+    updateLayout();
+    window.addEventListener('resize', updateLayout);
+    const observer = typeof ResizeObserver !== 'undefined' && topbarRef.current
+      ? new ResizeObserver(updateLayout)
+      : null;
+    if (observer && topbarRef.current) observer.observe(topbarRef.current);
+    return () => {
+      window.removeEventListener('resize', updateLayout);
+      observer?.disconnect();
+    };
+  }, []);
+
+  const stackHeader = Boolean(isMobile || isCompactHeader);
 
   return (
-    <div className="topbar" style={{
-      display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)', alignItems: 'center',
-      padding: '0 16px', minHeight: 52,
+    <div ref={topbarRef} className="topbar" style={{
+      display: stackHeader ? 'flex' : 'grid',
+      gridTemplateColumns: stackHeader ? undefined : 'minmax(0, 1fr) auto minmax(0, 1fr)',
+      flexWrap: stackHeader ? 'wrap' : undefined,
+      alignItems: 'center',
+      padding: stackHeader ? '8px 12px' : '0 16px',
+      minHeight: 52,
       borderBottom: '1px solid var(--border)', gap: 8, flexShrink: 0,
     }}>
       {/* LEFT: brand + username + active project */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden' }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden',
+        flex: stackHeader ? '1 1 auto' : undefined,
+      }}>
         <button
           className="sidebar-toggle-btn"
           onClick={toggleSidebar}
@@ -105,7 +135,12 @@ export default function TopBar(props: TopBarProps) {
       </div>
 
       {/* CENTER: Mode selector + routing badge */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifySelf: 'center', minWidth: 0, pointerEvents: 'auto', flexWrap: 'wrap', justifyContent: 'center' }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 8, justifySelf: 'center', minWidth: 0, pointerEvents: 'auto',
+        flexWrap: 'wrap', justifyContent: 'center',
+        order: stackHeader ? 3 : undefined,
+        width: stackHeader ? '100%' : undefined,
+      }}>
         {modes.length > 0 && (
           <ModeSelector modes={modes} selected={selectedMode} onChange={changeMode} noBalance={noBalance} />
         )}
@@ -127,7 +162,10 @@ export default function TopBar(props: TopBarProps) {
       </div>
 
       {/* RIGHT: action buttons */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, justifySelf: 'end', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 4, justifySelf: 'end', justifyContent: 'flex-end',
+        flexWrap: 'nowrap', marginLeft: stackHeader ? 'auto' : undefined, minWidth: 0,
+      }}>
         {activeProject && (
           <button
             className="btn btn-icon btn-secondary"
