@@ -932,27 +932,73 @@ If your tools are not working, say:
         const trimFu = trimHistory(fuHistory, fullSystem, provider);
 
         try {
+          // Stage A: force ONE tool call only on step 0, then let
+          // subsequent steps synthesize the final answer with toolChoice='auto'.
           const fuResult = await generateText({
             model: model as LanguageModel,
             system: fullSystem,
             messages: trimFu,
             tools: effectiveTools,
             stopWhen: stepCountIs(4),
-            toolChoice: 'required',
+            prepareStep: ({ stepNumber }) =>
+              stepNumber === 0 ? { toolChoice: 'required' as const } : { toolChoice: 'auto' as const },
             maxTokens: 4000,
             abortSignal: signal,
           });
 
-          const fuText = fuResult.text?.trim() || '';
+          let fuText = fuResult.text?.trim() || '';
           const fuStepCount = Array.isArray(fuResult.steps) ? fuResult.steps.length : 0;
-          if (fuText.length > 0) {
-            // Replace the stalling placeholder with the real answer
-            fullText = fuText;
-          }
           totalInput += fuResult.usage?.inputTokens ?? 0;
           totalOutput += fuResult.usage?.outputTokens ?? 0;
           if (fuStepCount > 0) {
             for (let t = 0; t < fuStepCount; t++) toolCallNames.add('web_search');
+          }
+
+          // Stage B: if step A still produced no text (model stayed stuck in
+          // tool-call mode), do a final synthesis call with NO tools, feeding
+          // back the tool results as plain text.
+          if (fuText.length === 0 && Array.isArray(fuResult.steps) && fuResult.steps.length > 0) {
+            const toolResultsBlock = fuResult.steps
+              .flatMap((s: any) => (Array.isArray(s.toolResults) ? s.toolResults : []))
+              .map((tr: any) => {
+                const name = tr?.toolName || 'tool';
+                const out = typeof tr?.result === 'string' ? tr.result : JSON.stringify(tr?.result ?? '');
+                return `<tool_result name="${name}">\n${String(out).slice(0, 6000)}\n</tool_result>`;
+              })
+              .join('\n');
+            try {
+              const synthResult = await generateText({
+                model: model as LanguageModel,
+                system: fullSystem,
+                messages: [
+                  ...messages,
+                  { role: 'assistant' as const, content: fullText },
+                  {
+                    role: 'user' as const,
+                    content:
+                      `Here are the search results you just retrieved:\n\n${toolResultsBlock}\n\n` +
+                      `Now write the final answer to the user's original question (no tool calls, just the answer):\n\n` +
+                      userMessage,
+                  },
+                ],
+                maxTokens: 2000,
+                abortSignal: signal,
+              });
+              fuText = synthResult.text?.trim() || '';
+              totalInput += synthResult.usage?.inputTokens ?? 0;
+              totalOutput += synthResult.usage?.outputTokens ?? 0;
+              console.log(`[agent-loop] DEFERRED-PLACEHOLDER synthesis: ${fuText.length} chars`);
+            } catch (synthErr) {
+              console.warn('[agent-loop] DEFERRED-PLACEHOLDER synthesis failed:', (synthErr as Error).message);
+            }
+          }
+
+          if (fuText.length > 0) {
+            // Replace the stalling placeholder with the real answer
+            fullText = fuText;
+          } else {
+            // Both stages produced nothing — give the user a clear message
+            fullText = 'I tried to look that up but could not get a clear answer right now. Please try again in a moment.';
           }
           console.log(`[agent-loop] DEFERRED-PLACEHOLDER recovery: ${fuText.length} chars, ${fuStepCount} steps`);
         } catch (fuErr) {
