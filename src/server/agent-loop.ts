@@ -212,7 +212,15 @@ export interface AgentLoopResult {
  *   - Message length (longer = more complex)
  *   - System introspection (questions about SUNy's own behavior/instructions)
  */
-export function classifyAutoMode(message: string): 'free' | 'fast' | 'smart' | 'pro' {
+export function classifyAutoMode(message: string, hasImage?: boolean): 'free' | 'fast' | 'smart' | 'pro' {
+  if (hasImage) {
+    // Images require vision models, which are generally available on fast/smart/pro tiers.
+    // If there's an image, default to 'smart' or at least 'fast' so it doesn't fail on 'free'.
+    // Let's analyze the text for deeper signals, but floor the tier to 'fast'.
+    const base = classifyAutoMode(message);
+    return base === 'free' ? 'fast' : base;
+  }
+
   const t = message.toLowerCase();
 
   // ── Signal detection patterns ──────────────────────────────────────────────
@@ -323,7 +331,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
   const startedAt = Date.now();
 
   // Resolve AUTO → real mode via keyword classification
-  let resolvedMode = mode === 'auto' ? classifyAutoMode(userMessage) : mode;
+  let resolvedMode = mode === 'auto' ? classifyAutoMode(userMessage, !!imageData) : mode;
 
   // ── Anti-hallucination guard ──────────────────────────────────────────
   // Free-mode models are too weak to reliably drive the bridge tool calls.
