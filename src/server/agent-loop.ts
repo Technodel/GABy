@@ -916,6 +916,10 @@ If your tools are not working, say:
       const hasWebSearch = !!effectiveTools && typeof (effectiveTools as Record<string, any>).web_search?.execute === 'function';
       if (looksLikePlaceholder && hasWebSearch) {
         console.warn('[agent-loop] DEFERRED-PLACEHOLDER: short stalling output with no tool calls — forcing tool step');
+        // Tell the UI to clear the stalling placeholder so the user sees
+        // active progress instead of a frozen "Let me look that up for you!".
+        // The frontend treats suny:stream_start as a reset of streamingContent.
+        userClientManager.pushToUser(userId, 'suny:stream_start', {});
         userClientManager.pushToUser(userId, 'suny:stage', { stage: 'processing', label: 'Looking that up...' });
         userClientManager.pushToUser(userId, 'suny:narration', {
           message: narrateMessage('Looking that up...', 'thinking'),
@@ -999,6 +1003,15 @@ If your tools are not working, say:
           } else {
             // Both stages produced nothing — give the user a clear message
             fullText = 'I tried to look that up but could not get a clear answer right now. Please try again in a moment.';
+          }
+          // Stream the recovered answer progressively so the UI doesn't jump
+          // from "Looking that up..." straight to the final blob. Use word
+          // boundaries to keep latency low without breaking unicode.
+          if (onChunk && fullText.length > 0) {
+            const parts = fullText.match(/\S+\s*|\s+/g) || [fullText];
+            for (const part of parts) {
+              try { onChunk(part); } catch { /* best-effort */ }
+            }
           }
           console.log(`[agent-loop] DEFERRED-PLACEHOLDER recovery: ${fuText.length} chars, ${fuStepCount} steps`);
         } catch (fuErr) {
