@@ -115,9 +115,9 @@ export default function BalanceBadge({ balance, walletBalance, remainingTokens =
           cursor: 'pointer',
           fontSize: 13,
         }}
-        title="Top up main credits and open Settings > Wallet Transfer"
+        title="Open Wallet Transfer in Settings"
       >
-        Top Up
+        Wallet Transfer
       </button>
     </div>
   );

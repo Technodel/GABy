@@ -1636,6 +1636,8 @@ If your tools are not working, say:
 
       // ── End self-reflection ───────────────────────────────────────────────
 
+      const stepsExhausted = false;
+
       return {
         content: fullText.trim() || '',
         inputTokens: totalInput,

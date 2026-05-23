@@ -303,10 +303,12 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
   // ── Usage stats ──────────────────────────────────────────────────────────
   interface UsageDay { day: string; input_tokens: number; output_tokens: number; charged_cost: number; }
   interface UsageMode { mode: string; input_tokens: number; output_tokens: number; charged_cost: number; }
+  interface UsageProject { project_id: number | null; project_name: string; input_tokens: number; output_tokens: number; charged_cost: number; }
   interface UsageTotals { input_tokens: number; output_tokens: number; charged_cost: number; }
   const [showUsage, setShowUsage] = useState(false);
   const [usageByDay, setUsageByDay] = useState<UsageDay[]>([]);
   const [usageByMode, setUsageByMode] = useState<UsageMode[]>([]);
+  const [usageByProject, setUsageByProject] = useState<UsageProject[]>([]);
   const [usageTotals, setUsageTotals] = useState<UsageTotals | null>(null);
   const [usageDays, setUsageDays] = useState(14);
 
@@ -317,6 +319,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         const data = await res.json();
         setUsageByDay(data.by_day ?? []);
         setUsageByMode(data.by_mode ?? []);
+        setUsageByProject(data.by_project ?? []);
         setUsageTotals(data.totals ?? null);
       }
     } catch {}
@@ -661,6 +664,12 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showUsage) {
+        e.preventDefault();
+        setShowUsage(false);
+        return;
+      }
+
       if (e.key === 'Escape' && thinking) {
         e.preventDefault();
         stopCurrentResponse();
@@ -676,7 +685,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
 
     window.addEventListener('keydown', onKeyDown, true);
     return () => window.removeEventListener('keydown', onKeyDown, true);
-  }, [thinking, clearChat, sendMessage]);
+  }, [showUsage, thinking, clearChat, sendMessage]);
 
   const lastNarrationRef = useRef('');
   const msgEndRef = useRef<HTMLDivElement>(null);
@@ -3679,7 +3688,32 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
               </div>
             )}
 
-            {usageByDay.length === 0 && usageByMode.length === 0 && (
+            {/* By project breakdown */}
+            {usageByProject.length > 0 && (
+              <div style={{ marginTop: 18 }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>By Project</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {usageByProject.map(p => {
+                    const total = p.input_tokens + p.output_tokens;
+                    const maxTotal = Math.max(...usageByProject.map(x => x.input_tokens + x.output_tokens), 1);
+                    const pct = Math.round((total / maxTotal) * 100);
+                    return (
+                      <div key={`${p.project_id ?? 'global'}-${p.project_name}`}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 12, marginBottom: 4 }}>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.project_name}</span>
+                          <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{(total / 1000).toFixed(1)}K · ${p.charged_cost.toFixed(4)}</span>
+                        </div>
+                        <div style={{ height: 6, background: 'var(--border)', borderRadius: 3, overflow: 'hidden' }}>
+                          <div style={{ width: `${pct}%`, height: '100%', background: 'var(--accent)', transition: 'width 0.4s' }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {usageByDay.length === 0 && usageByMode.length === 0 && usageByProject.length === 0 && (
               <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: 13, padding: '24px 0' }}>
                 No usage data yet. Start chatting to see stats here!
               </p>

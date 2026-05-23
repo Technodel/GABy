@@ -59,12 +59,47 @@ router.get('/pricing-public', (_req: Request, res: Response) => {
 
 router.use(requireAuth);
 
-// ── Native folder picker (local server only) ────────────────────────────────
+// ── Folder picker (bridge-first, native fallback) ───────────────────────────
 
-router.post('/pick-folder', async (_req: Request, res: Response) => {
+router.post('/pick-folder', async (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+
   try {
+    // Prefer bridge-based picker so folder browsing happens on the user's machine
+    // even when the API server runs remotely (e.g. VPS).
+    if (isBridgeConnected(user.id as number)) {
+      try {
+        const bridgeResult = await sendToBridge(user.id as number, 'exec:pick_folder', {}, 120_000) as
+          | { path?: string }
+          | string
+          | null
+          | undefined;
+        const selectedFromBridge = typeof bridgeResult === 'string'
+          ? bridgeResult.trim()
+          : String(bridgeResult?.path || '').trim();
+        if (selectedFromBridge) {
+          res.json({ path: selectedFromBridge });
+          return;
+        }
+      } catch {
+        // Fall through to native picker fallback below.
+      }
+    }
+
+    const { execFile } = await import('child_process');
+    const runPicker = (file: string, args: string[]) => new Promise<string>((resolve, reject) => {
+      execFile(file, args, { windowsHide: true }, (err, stdout) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+        resolve(String(stdout || '').trim());
+      });
+    });
+
+    let selected = '';
+
     if (process.platform === 'win32') {
-      const { execFile } = await import('child_process');
       const script = [
         'Add-Type -AssemblyName System.Windows.Forms',
         '$dialog = New-Object System.Windows.Forms.FolderBrowserDialog',
@@ -72,23 +107,30 @@ router.post('/pick-folder', async (_req: Request, res: Response) => {
         '$dialog.ShowNewFolderButton = $true',
         'if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) { Write-Output $dialog.SelectedPath }',
       ].join('; ');
+      selected = await runPicker('powershell.exe', ['-NoProfile', '-STA', '-Command', script]);
+    } else if (process.platform === 'darwin') {
+      selected = await runPicker('osascript', ['-e', 'POSIX path of (choose folder with prompt "Choose a folder for your project")']);
+    } else {
+      const linuxPickers: Array<{ cmd: string; args: string[] }> = [
+        { cmd: 'zenity', args: ['--file-selection', '--directory', '--title=Choose a folder for your project'] },
+        { cmd: 'kdialog', args: ['--getexistingdirectory', '--title', 'Choose a folder for your project'] },
+      ];
+      for (const picker of linuxPickers) {
+        try {
+          selected = await runPicker(picker.cmd, picker.args);
+          if (selected) break;
+        } catch {
+          // Try next picker.
+        }
+      }
+    }
 
-      execFile('powershell.exe', ['-NoProfile', '-STA', '-Command', script], { windowsHide: true }, (err, stdout) => {
-        if (err) {
-          res.status(500).json({ error: 'Failed to open folder picker' });
-          return;
-        }
-        const selected = String(stdout || '').trim();
-        if (!selected) {
-          res.status(400).json({ error: 'No folder selected' });
-          return;
-        }
-        res.json({ path: selected });
-      });
+    if (!selected) {
+      res.status(400).json({ error: 'No folder selected' });
       return;
     }
 
-    res.status(501).json({ error: 'Native folder picker is currently supported on Windows only. Please type the full path.' });
+    res.json({ path: selected });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to pick folder' });
   }
@@ -270,7 +312,8 @@ router.delete('/projects/:id', (req: Request, res: Response) => {
       const tables = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").all() as Array<{ name: string }>;
 
       for (const { name } of tables) {
-        if (name === 'projects') continue;
+        // Keep usage history so deleted projects still appear in time-filtered stats.
+        if (name === 'projects' || name === 'usage_log') continue;
         const escapedName = name.replace(/"/g, '""');
         const columns = db.prepare(`PRAGMA table_info("${escapedName}")`).all() as Array<{ name: string }>;
         const columnNames = new Set(columns.map(c => c.name));
@@ -680,7 +723,7 @@ router.delete('/projects/:id/rules', (req: Request, res: Response) => {
 
 // ── Usage Stats ──────────────────────────────────────────────────────────────
 
-/** Return daily + mode-level token/cost summary for the authenticated user */
+/** Return daily + mode + project token/cost summary for the authenticated user */
 router.get('/me/usage', (req: Request, res: Response) => {
   const user = (req as AuthRequest).user;
   const days = Math.min(90, Math.max(1, parseInt((req.query.days as string) || '30', 10)));
@@ -691,7 +734,7 @@ router.get('/me/usage', (req: Request, res: Response) => {
            SUM(output_tokens)      as output_tokens,
            SUM(charged_cost)       as charged_cost
     FROM usage_log
-    WHERE user_id = ? AND timestamp >= date('now', '-' || ? || ' days')
+    WHERE user_id = ? AND timestamp >= datetime('now', '-' || ? || ' days')
     GROUP BY day ORDER BY day ASC
   `).all(user.id, days) as { day: string; input_tokens: number; output_tokens: number; charged_cost: number }[];
 
@@ -700,18 +743,38 @@ router.get('/me/usage', (req: Request, res: Response) => {
            SUM(input_tokens)  as input_tokens,
            SUM(output_tokens) as output_tokens,
            SUM(charged_cost)  as charged_cost
-    FROM usage_log WHERE user_id = ?
+    FROM usage_log
+    WHERE user_id = ? AND timestamp >= datetime('now', '-' || ? || ' days')
     GROUP BY mode ORDER BY charged_cost DESC
-  `).all(user.id) as { mode: string; input_tokens: number; output_tokens: number; charged_cost: number }[];
+  `).all(user.id, days) as { mode: string; input_tokens: number; output_tokens: number; charged_cost: number }[];
+
+  const byProject = db.prepare(`
+    SELECT
+      u.project_id as project_id,
+      CASE
+        WHEN u.project_id IS NULL THEN 'Global / No project'
+        WHEN p.name IS NOT NULL THEN p.name
+        ELSE 'Deleted project #' || u.project_id
+      END as project_name,
+      COALESCE(SUM(u.input_tokens),0)  as input_tokens,
+      COALESCE(SUM(u.output_tokens),0) as output_tokens,
+      COALESCE(SUM(u.charged_cost),0)  as charged_cost
+    FROM usage_log u
+    LEFT JOIN projects p ON p.id = u.project_id AND p.user_id = u.user_id
+    WHERE u.user_id = ? AND u.timestamp >= datetime('now', '-' || ? || ' days')
+    GROUP BY u.project_id, project_name
+    ORDER BY charged_cost DESC, project_name ASC
+  `).all(user.id, days) as { project_id: number | null; project_name: string; input_tokens: number; output_tokens: number; charged_cost: number }[];
 
   const totals = db.prepare(`
     SELECT COALESCE(SUM(input_tokens),0)      as input_tokens,
            COALESCE(SUM(output_tokens),0)     as output_tokens,
            COALESCE(SUM(charged_cost),0)      as charged_cost
-    FROM usage_log WHERE user_id = ?
-  `).get(user.id) as { input_tokens: number; output_tokens: number; charged_cost: number };
+    FROM usage_log
+    WHERE user_id = ? AND timestamp >= datetime('now', '-' || ? || ' days')
+  `).get(user.id, days) as { input_tokens: number; output_tokens: number; charged_cost: number };
 
-  res.json({ by_day: byDay, by_mode: byMode, totals });
+  res.json({ by_day: byDay, by_mode: byMode, by_project: byProject, totals });
 });
 
 // ── Checkpoints ───────────────────────────────────────────────────────────────
