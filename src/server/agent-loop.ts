@@ -899,6 +899,69 @@ If your tools are not working, say:
         }
       }
 
+      // ── Deferred-placeholder recovery ────────────────────────────────────
+      // Some models reply with short stalling text like
+      //   "Let me search for the latest World Cup schedule."
+      //   "Let me look that up for you!"
+      //   "I'll check on that..."
+      // without actually invoking any tool. The UI then sits forever because
+      // the turn "finished" but no answer was produced. If we have a
+      // web_search tool available, force a follow-up step with
+      // toolChoice:'required' so the model actually performs the lookup.
+      const looksLikePlaceholder =
+        fullText.length > 0 &&
+        fullText.length < 220 &&
+        toolCallNames.size === 0 &&
+        /\b(let me|i(?:'| )?ll|i will|i'm going to|going to|hold on|one moment|just a (?:sec|moment))\b.*\b(search|look|check|find|fetch|get|look up|look that up|pull up|grab|see)\b/i.test(fullText);
+      const hasWebSearch = !!effectiveTools && typeof (effectiveTools as Record<string, any>).web_search?.execute === 'function';
+      if (looksLikePlaceholder && hasWebSearch) {
+        console.warn('[agent-loop] DEFERRED-PLACEHOLDER: short stalling output with no tool calls — forcing tool step');
+        userClientManager.pushToUser(userId, 'suny:stage', { stage: 'processing', label: 'Looking that up...' });
+        userClientManager.pushToUser(userId, 'suny:narration', {
+          message: narrateMessage('Looking that up...', 'thinking'),
+        });
+
+        const followUpMsg: CoreMessage = {
+          role: 'user',
+          content:
+            'You said you would look that up but did not call any tool. ' +
+            'Now actually perform the lookup using the web_search tool, then answer the original question:\n\n' +
+            userMessage,
+        };
+        const fuHistory = [...messages, { role: 'assistant' as const, content: fullText }, followUpMsg];
+        const trimFu = trimHistory(fuHistory, fullSystem, provider);
+
+        try {
+          const fuResult = await generateText({
+            model: model as LanguageModel,
+            system: fullSystem,
+            messages: trimFu,
+            tools: effectiveTools,
+            stopWhen: stepCountIs(4),
+            toolChoice: 'required',
+            maxTokens: 4000,
+            abortSignal: signal,
+          });
+
+          const fuText = fuResult.text?.trim() || '';
+          const fuStepCount = Array.isArray(fuResult.steps) ? fuResult.steps.length : 0;
+          if (fuText.length > 0) {
+            // Replace the stalling placeholder with the real answer
+            fullText = fuText;
+          }
+          totalInput += fuResult.usage?.inputTokens ?? 0;
+          totalOutput += fuResult.usage?.outputTokens ?? 0;
+          if (fuStepCount > 0) {
+            for (let t = 0; t < fuStepCount; t++) toolCallNames.add('web_search');
+          }
+          console.log(`[agent-loop] DEFERRED-PLACEHOLDER recovery: ${fuText.length} chars, ${fuStepCount} steps`);
+        } catch (fuErr) {
+          console.warn('[agent-loop] DEFERRED-PLACEHOLDER recovery failed:', (fuErr as Error).message);
+          // Append a graceful fallback so the user never sees a dangling "let me look..."
+          fullText = fullText.trim() + '\n\nI could not reach the search service just now. Please try again in a moment.';
+        }
+      }
+
       // ── Function-tag fallback: intercept <function.name=X> XML tool calls ──
       // Some models (especially via OpenRouter) emit tool calls as raw XML text
       // instead of native JSON tool calls. The Vercel AI SDK v5 doesn't parse
