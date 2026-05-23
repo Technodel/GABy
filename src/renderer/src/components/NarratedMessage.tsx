@@ -215,6 +215,37 @@ function TextBlock({ text }: { text: string }) {
           );
         }
 
+        if (block.type === 'table') {
+          return (
+            <div key={blockIndex} style={tableScrollStyle}>
+              <table style={tableStyle}>
+                {block.header.length > 0 && (
+                  <thead>
+                    <tr>
+                      {block.header.map((cell, cellIndex) => (
+                        <th key={cellIndex} style={tableThStyle}>
+                          {renderInlineText(cell, `${blockIndex}-h-${cellIndex}`)}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                )}
+                <tbody>
+                  {block.rows.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {row.map((cell, cellIndex) => (
+                        <td key={cellIndex} style={tableTdStyle}>
+                          {renderInlineText(cell, `${blockIndex}-${rowIndex}-${cellIndex}`)}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        }
+
         return (
           <p key={blockIndex} style={paragraphStyle}>
             {renderInlineText(block.text, `${blockIndex}`)}
@@ -228,7 +259,30 @@ function TextBlock({ text }: { text: string }) {
 type TextBlockNode =
   | { type: 'paragraph'; text: string }
   | { type: 'unordered-list'; items: string[] }
-  | { type: 'ordered-list'; items: string[] };
+  | { type: 'ordered-list'; items: string[] }
+  | { type: 'table'; header: string[]; rows: string[][] };
+
+function parseTableRow(line: string): string[] {
+  // Strip leading/trailing pipes, then split on remaining pipes.
+  let inner = line.trim();
+  if (inner.startsWith('|')) inner = inner.slice(1);
+  if (inner.endsWith('|')) inner = inner.slice(0, -1);
+  return inner.split('|').map(c => c.trim());
+}
+
+function isTableSeparator(line: string): boolean {
+  // e.g. | --- | :---: | ---: | --- |
+  const trimmed = line.trim();
+  if (!trimmed.startsWith('|') && !trimmed.includes('|')) return false;
+  const cells = parseTableRow(trimmed);
+  if (cells.length === 0) return false;
+  return cells.every(c => /^:?-{3,}:?$/.test(c));
+}
+
+function isTableRow(line: string): boolean {
+  const trimmed = line.trim();
+  return trimmed.startsWith('|') && trimmed.endsWith('|') && trimmed.includes('|', 1);
+}
 
 function buildTextBlocks(text: string): TextBlockNode[] {
   const normalized = normalizeDisplayText(text);
@@ -254,13 +308,37 @@ function buildTextBlocks(text: string): TextBlockNode[] {
     orderedItems = [];
   };
 
-  for (const rawLine of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const rawLine = lines[i];
     const line = rawLine.trim();
 
     if (!line) {
       flushParagraph();
       flushUnordered();
       flushOrdered();
+      continue;
+    }
+
+    // ── Table detection ──────────────────────────────────────────
+    // A table needs: header row (|..|..|), separator row (|---|---|),
+    // then one or more body rows.
+    if (
+      isTableRow(line) &&
+      i + 1 < lines.length &&
+      isTableSeparator(lines[i + 1])
+    ) {
+      flushParagraph();
+      flushUnordered();
+      flushOrdered();
+      const header = parseTableRow(line);
+      const rows: string[][] = [];
+      let j = i + 2;
+      while (j < lines.length && isTableRow(lines[j].trim())) {
+        rows.push(parseTableRow(lines[j].trim()));
+        j++;
+      }
+      blocks.push({ type: 'table', header, rows });
+      i = j - 1;
       continue;
     }
 
@@ -446,6 +524,37 @@ const orderedListStyle: React.CSSProperties = {
 
 const listItemStyle: React.CSSProperties = {
   margin: '0 0 4px',
+};
+
+const tableScrollStyle: React.CSSProperties = {
+  margin: '4px 0',
+  overflowX: 'auto',
+  borderRadius: 8,
+  border: '1px solid var(--border)',
+};
+
+const tableStyle: React.CSSProperties = {
+  ...textStyle,
+  width: '100%',
+  borderCollapse: 'collapse',
+  fontSize: 13,
+};
+
+const tableThStyle: React.CSSProperties = {
+  textAlign: 'left',
+  padding: '8px 10px',
+  background: 'rgba(255,255,255,0.04)',
+  borderBottom: '1px solid var(--border)',
+  fontWeight: 600,
+  color: 'var(--text-primary)',
+  whiteSpace: 'nowrap',
+};
+
+const tableTdStyle: React.CSSProperties = {
+  padding: '6px 10px',
+  borderBottom: '1px solid var(--border)',
+  verticalAlign: 'top',
+  color: 'var(--text-primary)',
 };
 
 const boldTextStyle: React.CSSProperties = {

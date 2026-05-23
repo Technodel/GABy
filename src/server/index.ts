@@ -1747,6 +1747,33 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         systemLines.push(`The user's name is ${displayName}. Address them by name occasionally in a warm, friendly way.`);
       }
 
+      // ── Inject user memories (global preferences/rules) ────────────────
+      // Memories saved via Settings → SUNy's Memory should act as standing rules
+      // for every conversation — both global chat and inside projects.
+      try {
+        const memSettingScoped = db.prepare('SELECT value FROM app_settings WHERE key = ?')
+          .get(`user_${userId}_memory_enabled`) as { value: string } | undefined;
+        const memSettingGlobal = db.prepare("SELECT value FROM app_settings WHERE key = 'memory_enabled'")
+          .get() as { value: string } | undefined;
+        const memoryEnabled = (memSettingScoped?.value ?? memSettingGlobal?.value ?? 'true') === 'true';
+        if (memoryEnabled) {
+          const userMemories = db.prepare(
+            'SELECT content FROM user_memories WHERE user_id = ? ORDER BY created_at DESC LIMIT 50'
+          ).all(userId) as { content: string }[];
+          if (userMemories.length > 0) {
+            systemLines.push(
+              '',
+              '=== USER PREFERENCES & STANDING RULES ===',
+              'The user saved these notes in Settings → SUNy\'s Memory. Treat them as standing rules that always apply (in chat and inside projects). Follow them on every response unless they conflict with safety policy.',
+              ...userMemories.map(m => `- ${m.content}`),
+            );
+            console.log(`[index] Injected ${userMemories.length} user memories into system prompt`);
+          }
+        }
+      } catch (err) {
+        console.warn('[index] Failed to inject user memories:', err);
+      }
+
       // Inject pricing plans so SUNy can answer questions about them
       if (pricingModes.length > 0) {
         systemLines.push(

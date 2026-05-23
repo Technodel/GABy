@@ -6,6 +6,7 @@ interface UserData {
   selected_mode?: string;
   balance?: number;
   wallet_balance?: number;
+  wallet_auto_spend?: boolean;
   auto_approve: boolean;
   max_tokens_per_session: number | null;
   display_name: string | null;
@@ -53,6 +54,8 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
   const [walletAmount, setWalletAmount] = useState('');
   const [walletBusy, setWalletBusy] = useState(false);
   const [walletMsg, setWalletMsg] = useState('');
+  const [walletAutoSpend, setWalletAutoSpend] = useState(false);
+  const [walletAutoSpendBusy, setWalletAutoSpendBusy] = useState(false);
   const [selectedMode, setSelectedMode] = useState('fast');
   const [pricingModes, setPricingModes] = useState<PricingMode[]>([]);
   const [balance, setBalance] = useState(0);
@@ -85,6 +88,7 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
         setSelectedMode(data.selected_mode ?? 'fast');
         setBalance(data.balance ?? 0);
         setWalletBalance(data.wallet_balance ?? 0);
+        setWalletAutoSpend(Boolean(data.wallet_auto_spend));
         if (data.max_tokens_per_session != null) {
           setMaxTokens(String(data.max_tokens_per_session));
         }
@@ -203,6 +207,30 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
   async function handleLogout() {
     await fetch('/api/logout', { method: 'POST', credentials: 'include' });
     onLogout();
+  }
+
+  async function toggleAutoSpend(next: boolean) {
+    const prev = walletAutoSpend;
+    setWalletAutoSpend(next);
+    setWalletAutoSpendBusy(true);
+    try {
+      const res = await fetch('/api/wallet/auto-spend', {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: next }),
+      });
+      if (!res.ok) {
+        setWalletAutoSpend(prev);
+        const data = await res.json().catch(() => ({}));
+        setWalletMsg(data?.error || 'Could not update auto-transfer setting.');
+      }
+    } catch {
+      setWalletAutoSpend(prev);
+      setWalletMsg('Could not update auto-transfer setting.');
+    } finally {
+      setWalletAutoSpendBusy(false);
+    }
   }
 
   async function transferToWallet() {
@@ -545,6 +573,24 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
             Bot Wallet balance: ${walletBalance.toFixed(2)}
+          </div>
+          <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+            <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                className="toggle"
+                checked={walletAutoSpend}
+                disabled={walletAutoSpendBusy}
+                onChange={e => toggleAutoSpend(e.target.checked)}
+                style={{ flexShrink: 0, marginTop: 2 }}
+              />
+              <span>
+                <div style={{ fontWeight: 500, fontSize: 13 }}>⚡ Auto-transfer from Main Balance</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.4 }}>
+                  When the Bot Wallet is empty, automatically spend from your Main Balance instead of pausing tasks.
+                </div>
+              </span>
+            </label>
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
             Tip: entering an amount here and pressing Save Settings will also execute this transfer once.
