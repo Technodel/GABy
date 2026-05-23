@@ -703,7 +703,12 @@ If your tools are not working, say:
         system: useSystemParam ? fullSystem : undefined,
         messages: finalMessages,
         tools: effectiveTools,
-        stopWhen: undefined,
+        // AI SDK v5 defaults stopWhen to stepCountIs(1), which kills agentic
+        // multi-step flows (e.g. read → edit, or write A → write B). When the
+        // model has tools available we need to let it iterate, otherwise it
+        // stops after the first tool call without ever producing the final
+        // text answer or follow-up tool calls.
+        stopWhen: toolCount > 0 ? stepCountIs(8) : undefined,
         abortSignal: signal,
         prepareStep: forceToolStep0
           ? ({ stepNumber }) => (stepNumber === 0 ? { toolChoice: 'required' as const } : undefined)
@@ -1296,7 +1301,8 @@ If your tools are not working, say:
           system: execUseSystem ? execSystem : undefined,
           messages: execMessages,
           tools: tools, // use tool-call for execution if available
-          stopWhen: undefined,
+          // Allow multi-step execution (read → edit → write across files).
+          stopWhen: tools ? stepCountIs(8) : undefined,
           abortSignal: signal,
           onStepFinish: ({ usage: u, text, toolCalls, toolResults }) => {
             steps++;
@@ -1435,7 +1441,8 @@ If your tools are not working, say:
             system: lintUseSystem ? fullSystem : undefined,
             messages: trimmedLint,
             tools,
-            stopWhen: undefined,
+            // Allow multi-step fixes (read → edit across files).
+            stopWhen: tools ? stepCountIs(8) : undefined,
             abortSignal: signal,
             onStepFinish: ({ usage, text, toolCalls, toolResults }) => {
               steps++;
@@ -1595,7 +1602,8 @@ If your tools are not working, say:
               system: testUseSystem ? fullSystem : undefined,
               messages: trimmedTest,
               tools,
-              stopWhen: undefined,
+              // Allow multi-step fixes (read → edit across files).
+              stopWhen: tools ? stepCountIs(8) : undefined,
               abortSignal: signal,
               onStepFinish: ({ usage: u, text, toolCalls, toolResults }) => {
                 steps++;
