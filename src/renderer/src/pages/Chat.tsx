@@ -138,7 +138,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     try { return localStorage.getItem('suny_sounds_enabled') !== 'false'; } catch { return true; }
   }
 
-  // Shared AudioContext � persisted via useRef so it survives re-renders.
+  // Shared AudioContext — persisted via useRef so it survives re-renders.
   // Browser autoplay policy suspends new AudioContexts not created from user gestures.
   // We resume on first user interaction (keydown/mousedown) so sounds from WebSocket
   // events (not user gestures) still play.
@@ -222,7 +222,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
           osc.start(now); osc.stop(now + 0.18);
           break;
       }
-      // Don't close the shared context � let the oscillators finish naturally
+      // Don't close the shared context — let the oscillators finish naturally
     } catch { /* AudioContext may be unavailable */ }
   }
 
@@ -732,7 +732,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     if (run.toolCalls.length > 0) {
       report += `Tools Used:\n`;
       run.toolCalls.forEach(tool => {
-        report += `  � ${toolLabel(tool)}\n`;
+        report += `  — ${toolLabel(tool)}\n`;
       });
       report += `\n`;
     }
@@ -1207,17 +1207,17 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         setVectorIndexStats({ chunks: data.chunks, files: data.files, projectId: data.projectId });
       } else if (msg.event === 'suny:preparation_step') {
         setThinkingStatus(pickStatusVariant('prep', [
-          'Getting everything ready�',
-          'Setting up the best approach�',
-          'Preparing your answer now�',
-          'Organizing the next steps�',
-          'Lining up what needs to happen�',
-          'Getting this ready for you�',
-          'Starting with the essentials�',
-          'Putting the plan in motion�',
-          'Collecting what I need first�',
-          'Preparing a clean run�',
-        ], 'Preparing your answer�'));
+          'Getting everything ready—',
+          'Setting up the best approach—',
+          'Preparing your answer now—',
+          'Organizing the next steps—',
+          'Lining up what needs to happen—',
+          'Getting this ready for you—',
+          'Starting with the essentials—',
+          'Putting the plan in motion—',
+          'Collecting what I need first—',
+          'Preparing a clean run—',
+        ], 'Preparing your answer—'));
       } else if (msg.event === 'suny:done') {
         clearThinkingTimeout();
         setThinking(false);
@@ -1387,32 +1387,32 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       } else if (msg.event === 'suny:lint_running') {
         pushCheckToProof('Lint check started');
         setThinkingStatus(pickStatusVariant('lint_running', [
-          'Doing a quick quality check�',
-          'Scanning for small issues�',
-          'Checking for fixable problems�',
-          'Running a code quality pass�',
-          'Looking for anything to clean up�',
-          'Reviewing for warnings and errors�',
-          'Making sure everything is neat�',
-        ], 'Checking for issues�'));
+          'Doing a quick quality check—',
+          'Scanning for small issues—',
+          'Checking for fixable problems—',
+          'Running a code quality pass—',
+          'Looking for anything to clean up—',
+          'Reviewing for warnings and errors—',
+          'Making sure everything is neat—',
+        ], 'Checking for issues—'));
       } else if (msg.event === 'suny:lint_errors') {
         pushCheckToProof(`Lint found ${msg.errorCount as number} error(s) on pass ${msg.attempt as number}`);
         const lintErrorStatus = pickStatusVariant('lint_errors', [
-          'I found {count} issue(s). Fixing them now (round {attempt})�',
-          '{count} issue(s) spotted. Cleaning this up (round {attempt})�',
-          'Found {count} thing(s) to fix. Working on it (round {attempt})�',
-          'A few issues showed up ({count}). Repairing now (round {attempt})�',
-        ], 'I found {count} issue(s). Fixing now (round {attempt})�');
+          'I found {count} issue(s). Fixing them now (round {attempt})—',
+          '{count} issue(s) spotted. Cleaning this up (round {attempt})—',
+          'Found {count} thing(s) to fix. Working on it (round {attempt})—',
+          'A few issues showed up ({count}). Repairing now (round {attempt})—',
+        ], 'I found {count} issue(s). Fixing now (round {attempt})—');
         setThinkingStatus(lintErrorStatus
           .replace('{count}', String(msg.errorCount as number))
           .replace('{attempt}', String(msg.attempt as number)));
       } else if (msg.event === 'suny:lint_passed') {
         pushCheckToProof('Lint passed');
         setThinkingStatus(pickStatusVariant('lint_passed', [
-          'Great news � quality checks passed ✓',
+          'Great news — quality checks passed ✓',
           'Looks clean now ✓',
           'All quality checks are clear ✓',
-          'Nice � no remaining quality issues ✓',
+          'Nice — no remaining quality issues ✓',
         ], 'Quality checks passed ✓'));
         playSound('success');
       } else if (msg.event === 'suny:test_running') {
@@ -1423,24 +1423,24 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         );
         setThinkingStatus((msg.attempt as number) === 0
           ? pickStatusVariant('test_running', [
-              'Running checks to confirm everything works�',
-              'Testing the latest changes�',
-              'Validating behavior now�',
-              'Checking that everything still works�',
-              'Running reliability checks�',
-            ], 'Running checks�')
+              'Running checks to confirm everything works—',
+              'Testing the latest changes—',
+              'Validating behavior now—',
+              'Checking that everything still works—',
+              'Running reliability checks—',
+            ], 'Running checks—')
           : pickStatusVariant('test_rerun', [
-              `Trying the checks again (round ${(msg.attempt as number) + 1})�`,
-              `Re-checking after fixes (round ${(msg.attempt as number) + 1})�`,
-              `Running another validation pass (round ${(msg.attempt as number) + 1})�`,
-            ], `Running checks again (round ${(msg.attempt as number) + 1})�`));
+              `Trying the checks again (round ${(msg.attempt as number) + 1})—`,
+              `Re-checking after fixes (round ${(msg.attempt as number) + 1})—`,
+              `Running another validation pass (round ${(msg.attempt as number) + 1})—`,
+            ], `Running checks again (round ${(msg.attempt as number) + 1})—`));
       } else if (msg.event === 'suny:test_errors') {
         pushCheckToProof(`Tests found ${msg.failCount as number} failure(s) on attempt ${msg.attempt as number}`);
         const testErrorStatus = pickStatusVariant('test_errors', [
-          '{count} check(s) failed. Fixing now (round {attempt})�',
-          'I found {count} failing check(s). Repairing them (round {attempt})�',
-          '{count} issue(s) remain in validation. Working through them (round {attempt})�',
-        ], '{count} check(s) failed. Fixing now (round {attempt})�');
+          '{count} check(s) failed. Fixing now (round {attempt})—',
+          'I found {count} failing check(s). Repairing them (round {attempt})—',
+          '{count} issue(s) remain in validation. Working through them (round {attempt})—',
+        ], '{count} check(s) failed. Fixing now (round {attempt})—');
         setThinkingStatus(testErrorStatus
           .replace('{count}', String(msg.failCount as number))
           .replace('{attempt}', String(msg.attempt as number)));
@@ -1450,8 +1450,8 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
           ? pickStatusVariant('test_passed', [
               'Everything checked out ✓',
               'All validations passed ✓',
-              'Looks good � checks are green ✓',
-              'Done � all checks passed ✓',
+              'Looks good — checks are green ✓',
+              'Done — all checks passed ✓',
             ], 'All checks passed ✓')
           : pickStatusVariant('test_passed_retry', [
               `All checks are passing now ✓ (fixed in ${msg.attempt as number} round(s))`,
@@ -1478,7 +1478,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       }
     },
     onConnect: () => {
-      // Reset stale state on reconnect � avoids forever-spinning thinking indicator
+      // Reset stale state on reconnect — avoids forever-spinning thinking indicator
       clearThinkingTimeout();
       setThinking(false);
       setThinkingStatus('');
@@ -1817,7 +1817,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     if (activeProject && messages.length > 0) {
       const userMsgs = messages.filter(m => m.type === 'user').map(m => m.content);
       const lastUserMsg = userMsgs[userMsgs.length - 1] || '';
-      const title = lastUserMsg.length > 60 ? lastUserMsg.slice(0, 57) + '�' : (lastUserMsg || 'Chat session');
+      const title = lastUserMsg.length > 60 ? lastUserMsg.slice(0, 57) + '—' : (lastUserMsg || 'Chat session');
       // Build a compact summary: last user message + count of messages
       const summary = `${messages.length} messages · Last asked: "${lastUserMsg.slice(0, 120)}"`;
       addMemory(title, summary);
@@ -2046,7 +2046,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       }}>
         {/* LEFT: brand + username + active project */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
-          {/* Hamburger � visible only on mobile via CSS */}
+          {/* Hamburger — visible only on mobile via CSS */}
           <button
             className="sidebar-toggle-btn"
             onClick={toggleSidebar}
@@ -2256,7 +2256,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
 
       {/* Body: sidebar + chat area */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
-        {/* Sidebar overlay backdrop � only shown on mobile when sidebar is open */}
+        {/* Sidebar overlay backdrop — only shown on mobile when sidebar is open */}
         {sidebarOpen && (
           <div className="sidebar-overlay" onClick={closeSidebar} style={{ display: 'none' }} />
         )}
@@ -2285,7 +2285,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                     if (!bridgeConnected) { setShowBridgeTip(true); return; }
                     setShowFileBrowser(v => { const next = !v; if (!v && activeProject) loadFileBrowser(activeProject.id); return next; });
                   }}
-                  title={showFileBrowser ? 'Hide file browser' : (bridgeConnected ? 'Show file browser' : 'Bridge required � click to connect')}
+                  title={showFileBrowser ? 'Hide file browser' : (bridgeConnected ? 'Show file browser' : 'Bridge required — click to connect')}
                 >
                   {showFileBrowser ? <FolderOpen size={12} /> : <Folder size={12} />}
                 </button>
@@ -2695,7 +2695,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
               </div>
               {!collapsedSections.rules && (projectRules ? (
                 <div style={{ padding: '0 12px 8px', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5, whiteSpace: 'pre-wrap', maxHeight: 100, overflowY: 'auto', opacity: 0.8 }}>
-                  {projectRules.slice(0, 300)}{projectRules.length > 300 ? '�' : ''}
+                  {projectRules.slice(0, 300)}{projectRules.length > 300 ? '—' : ''}
                 </div>
               ) : (
                 <p style={{ padding: '0 12px 8px', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
@@ -2727,7 +2727,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
               </div>
               {!collapsedSections.persona && (activeProject.persona ? (
                 <div style={{ padding: '0 12px 8px', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5, whiteSpace: 'pre-wrap', maxHeight: 70, overflowY: 'auto', opacity: 0.8 }}>
-                  {activeProject.persona.slice(0, 200)}{(activeProject.persona?.length ?? 0) > 200 ? '�' : ''}
+                  {activeProject.persona.slice(0, 200)}{(activeProject.persona?.length ?? 0) > 200 ? '—' : ''}
                 </div>
               ) : (
                 <p style={{ padding: '0 12px 8px', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
@@ -2893,7 +2893,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                       onClick={stopDevServer}
                       disabled={devServerLoading}
                     >
-                      {devServerLoading ? '�' : 'Stop'}
+                      {devServerLoading ? '—' : 'Stop'}
                     </button>
                     <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4 }}>
                       Dev server ON means your app is running live for preview/testing. Turning it OFF only stops preview, not SUNy file access.
@@ -2966,7 +2966,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                             disabled={rollingBack === cp.sha}
                             style={{ fontSize: 10, padding: '2px 5px', background: 'var(--error)', color: '#fff', border: 'none', borderRadius: 3, cursor: 'pointer' }}
                           >
-                            {rollingBack === cp.sha ? '�' : 'Yes'}
+                            {rollingBack === cp.sha ? '—' : 'Yes'}
                           </button>
                           <button
                             className="btn btn-sm"
@@ -3253,7 +3253,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 560 }}>
             <h3 className="modal-title">
               <FileText size={16} style={{ marginRight: 8, verticalAlign: 'text-bottom' }} />
-              Project Rules � {activeProject.name}
+              Project Rules — {activeProject.name}
             </h3>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.5 }}>
               These rules are saved to <code style={{ background: 'var(--bg)', padding: '1px 4px', borderRadius: 3 }}>.suny-rules</code> in your project folder and injected into every conversation for this project.
@@ -3481,7 +3481,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
             <h3 className="modal-title">
               <User size={16} style={{ marginRight: 8, verticalAlign: 'text-bottom' }} />
-              AI Persona � {activeProject.name}
+              AI Persona — {activeProject.name}
             </h3>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.5 }}>
               Give SUNy a specific role or personality for this project. This is injected into every conversation.
@@ -3734,14 +3734,14 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
               <img src="/SLOGO.png" alt="SUNy" style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', marginBottom: 10, boxShadow: '0 4px 16px rgba(108,99,255,0.3)' }} />
               <h2 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 700 }}>Welcome to SUNy!</h2>
               <p style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.6, margin: '0 0 20px' }}>
-                Your personal AI assistant � ask anything, build anything. Here's how to start:
+                Your personal AI assistant — ask anything, build anything. Here's how to start:
               </p>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
               {[
-                { icon: '??', title: 'Create or open a project', desc: 'Click "+ New" in the sidebar to link a folder on your computer or let SUNy create one from scratch.' },
-                { icon: '??', title: 'Just talk to SUNy', desc: 'Ask questions, get explanations, request changes. SUNy understands what you want and gets it done.' },
-                { icon: '?', title: 'Connect the Bridge for full power', desc: 'The Bridge lets SUNy actually write files and run commands on your machine � one terminal command to set up.' },
+                { icon: '📁', title: 'Create or open a project', desc: 'Click "+ New" in the sidebar to link a folder on your computer or let SUNy create one from scratch.' },
+                { icon: '💬', title: 'Just talk to SUNy', desc: 'Ask questions, get explanations, request changes. SUNy understands what you want and gets it done.' },
+                { icon: '🔗', title: 'Connect the Bridge for full power', desc: 'The Bridge lets SUNy actually write files and run commands on your machine — one terminal command to set up.' },
               ].map((step, i) => (
                 <div key={i} style={{ display: 'flex', gap: 12, padding: '10px 14px', background: 'var(--bg-secondary)', borderRadius: 8 }}>
                   <span style={{ fontSize: 20, flexShrink: 0 }}>{step.icon}</span>
@@ -3799,27 +3799,27 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                 <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)', marginBottom: 8 }}>Features</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
-                    { icon: '??', title: 'One-Click Ship', desc: 'Give one goal � SUNy plans, edits, tests, fixes, and delivers a verified result.' },
-                    { icon: '??', title: 'Proof Panel', desc: 'Every task shows exactly what changed, what passed, and what was fixed.' },
-                    { icon: '?', title: 'One-Click Undo', desc: 'Every edit creates a restore point. Roll back any change instantly.' },
-                    { icon: '??', title: 'Code Conscience', desc: 'Design memory remembers your intent across sessions and alerts on drift.' },
-                    { icon: '??', title: 'Talk / Write mode', desc: 'Toggle between conversational chat and file-focused code editing.' },
-                    { icon: '??', title: 'Project Rules', desc: 'Set persistent instructions SUNy follows in every chat for a project.' },
-                    { icon: '??', title: 'Persona', desc: 'Give SUNy a custom role � e.g. "You are a security expert".' },
-                    { icon: '?', title: 'Auto-Verify', desc: 'SUNy runs tests and lint in a loop until all errors are resolved.' },
-                    { icon: '??', title: '@file mentions', desc: 'Type @file:path in any message to reference a file directly.' },
-                    { icon: '???', title: 'Dev Server', desc: 'Start your dev server from the sidebar and get a clickable URL.' },
-                    { icon: '??', title: 'Secure Bridge', desc: 'Sandboxed bridge connection for safe file operations.' },
-                    { icon: '??', title: 'Symbol Reader', desc: 'Inspect file structure without reading the whole file content.' },
-                    { icon: '??', title: 'URL Fetch', desc: 'SUNy can fetch web pages and docs on demand during tasks.' },
-                    { icon: '??', title: 'Auto-Correction', desc: 'Failed code is analyzed and fixed automatically.' },
-                    { icon: '??', title: 'Subtask Delegation', desc: 'Complex tasks are split into focused sub-tasks with dedicated agents.' },
+                    { icon: '🎯', title: 'One-Click Ship', desc: 'Give one goal — SUNy plans, edits, tests, fixes, and delivers a verified result.' },
+                    { icon: '📋', title: 'Proof Panel', desc: 'Every task shows exactly what changed, what passed, and what was fixed.' },
+                    { icon: '⏪', title: 'One-Click Undo', desc: 'Every edit creates a restore point. Roll back any change instantly.' },
+                    { icon: '🧠', title: 'Code Conscience', desc: 'Design memory remembers your intent across sessions and alerts on drift.' },
+                    { icon: '💬', title: 'Talk / Write mode', desc: 'Toggle between conversational chat and file-focused code editing.' },
+                    { icon: '🎭', title: 'Project Rules', desc: 'Set persistent instructions SUNy follows in every chat for a project.' },
+                    { icon: '🎭', title: 'Persona', desc: 'Give SUNy a custom role — e.g. "You are a security expert".' },
+                    { icon: '⚡', title: 'Auto-Verify', desc: 'SUNy runs tests and lint in a loop until all errors are resolved.' },
+                    { icon: '📁', title: '@file mentions', desc: 'Type @file:path in any message to reference a file directly.' },
+                    { icon: '🖥️', title: 'Dev Server', desc: 'Start your dev server from the sidebar and get a clickable URL.' },
+                    { icon: '🔗', title: 'Secure Bridge', desc: 'Sandboxed bridge connection for safe file operations.' },
+                    { icon: '🔎', title: 'Symbol Reader', desc: 'Inspect file structure without reading the whole file content.' },
+                    { icon: '🌐', title: 'URL Fetch', desc: 'SUNy can fetch web pages and docs on demand during tasks.' },
+                    { icon: '🔧', title: 'Auto-Correction', desc: 'Failed code is analyzed and fixed automatically.' },
+                    { icon: '🧩', title: 'Subtask Delegation', desc: 'Complex tasks are split into focused sub-tasks with dedicated agents.' },
                   ].map(f => (
                     <div key={f.title} style={{ display: 'flex', gap: 10 }}>
                       <span style={{ fontSize: 16, flexShrink: 0 }}>{f.icon}</span>
                       <div>
                         <span style={{ fontWeight: 600, fontSize: 12 }}>{f.title}</span>
-                        <span style={{ color: 'var(--text-muted)', fontSize: 12 }}> � {f.desc}</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: 12 }}> — {f.desc}</span>
                       </div>
                     </div>
                   ))}

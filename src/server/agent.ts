@@ -74,7 +74,6 @@ const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai
  * Used when imageData is present in a request — we search ALL active keys across all modes.
  */
 const VISION_MODEL_MAP: Record<string, string[]> = {
-  Groq: ['llama-3.2-11b-vision-preview', 'llama-3.2-90b-vision-preview'],
   'OpenRouter': [
     'meta-llama/llama-3.2-11b-vision-instruct:free',
     'google/gemini-2.0-flash-lite-preview-02-05:free',
