@@ -42,6 +42,40 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
   const [projectStateReady, setProjectStateReady] = useState(false);
   const [globalIntroLine, setGlobalIntroLine] = useState('');
 
+  const [queuedPrompt, setQueuedPrompt] = useState<{ text: string; payload: any; status: 'queued' | 'interrupting'; timeLeft: number } | null>(null);
+  const queueTimerRef = useRef<number | null>(null);
+
+  // ── Queued Prompt Handling ──
+  useEffect(() => {
+    if (queuedPrompt && queuedPrompt.status === 'interrupting') {
+      if (queuedPrompt.timeLeft <= 0) {
+        // Time's up -> abort current and send
+        wsSend({ type: 'chat:cancel' });
+        setTimeout(() => {
+          wsSend(queuedPrompt.payload);
+          setImagePreview(null);
+          setQueuedPrompt(null);
+        }, 300);
+      } else {
+        queueTimerRef.current = window.setTimeout(() => {
+          setQueuedPrompt(prev => prev ? { ...prev, timeLeft: prev.timeLeft - 1 } : null);
+        }, 1000);
+      }
+    }
+    return () => {
+      if (queueTimerRef.current) clearTimeout(queueTimerRef.current);
+    };
+  }, [queuedPrompt]);
+
+  useEffect(() => {
+    // If thinking finishes and we have a queued prompt, send it automatically
+    if (!thinking && queuedPrompt && queuedPrompt.status === 'queued') {
+      wsSend(queuedPrompt.payload);
+      setImagePreview(null);
+      setQueuedPrompt(null);
+    }
+  }, [thinking, queuedPrompt]);
+
   // ── Talk / Write mode ────────────────────────────────────────────────────────
   const [talkMode, setTalkMode] = useState<boolean>(() => {
     try { return localStorage.getItem('suny_talk_mode') === '1'; } catch { return false; }
@@ -1651,7 +1685,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     };
   }
 
-  async function sendPreparedMessage(text: string, opts?: { forceWriteMode?: boolean; projectIdOverride?: number }) {
+  async function sendPreparedMessage(text: string, opts?: { forceWriteMode?: boolean; projectIdOverride?: number; overrideThinkingCheck?: boolean }) {
     const cleaned = text.trim();
     if (!cleaned) return;
 
@@ -1710,6 +1744,16 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
 
     if (effectiveProjectId) payload.projectId = effectiveProjectId;
     else if (projects.length > 0) payload.projectNames = projects.map(p => p.name);
+
+    if (thinking && !opts?.overrideThinkingCheck) {
+      const behavior = userData?.task_interruption_behavior || 'interrupt';
+      if (behavior === 'queue') {
+        setQueuedPrompt({ text: cleaned, payload, status: 'queued', timeLeft: 0 });
+      } else {
+        setQueuedPrompt({ text: cleaned, payload, status: 'interrupting', timeLeft: 4 });
+      }
+      return;
+    }
 
     wsSend(payload);
     // Clear image preview after sending
@@ -3039,6 +3083,55 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
             setExpandedRunIds={setExpandedRunIds}
             toolLabel={toolLabel}
           />
+          {queuedPrompt && (
+            <div style={{
+              background: 'var(--surface-sunken)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 8,
+              padding: '12px 16px',
+              margin: '0 24px -8px 24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 16,
+              zIndex: 10,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+            }}>
+              {queuedPrompt.status === 'queued' ? (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div className="spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
+                    <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>
+                      <strong>Queued:</strong> {queuedPrompt.text.length > 50 ? queuedPrompt.text.substring(0, 50) + '...' : queuedPrompt.text}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button className="btn btn-secondary btn-sm" onClick={() => setQueuedPrompt(null)}>Cancel</button>
+                    <button className="btn btn-primary btn-sm" onClick={() => {
+                      wsSend({ type: 'chat:cancel' });
+                      setTimeout(() => {
+                        wsSend(queuedPrompt.payload);
+                        setImagePreview(null);
+                        setQueuedPrompt(null);
+                      }, 300);
+                    }}>Force execute now!</button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ fontSize: 14, color: '#f87171', fontWeight: 'bold' }}>
+                      Interrupting current task in {queuedPrompt.timeLeft}s...
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button className="btn btn-secondary btn-sm" onClick={() => setQueuedPrompt(null)}>Cancel</button>
+                    <button className="btn btn-primary btn-sm" onClick={() => setQueuedPrompt(prev => prev ? { ...prev, status: 'queued' } : null)}>Queue instead</button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
           <ChatInput
             input={input}
             setInput={setInput}

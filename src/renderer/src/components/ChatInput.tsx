@@ -196,13 +196,11 @@ export default function ChatInput(props: ChatInputProps) {
             }
           }}
           style={{ flex: 1, resize: 'none', maxHeight: 120 }}
-          disabled={thinking}
         />
         {/* Code file upload button */}
         <button
           className="btn btn-icon btn-secondary"
           onClick={() => codeFileRef.current?.click()}
-          disabled={thinking}
           title="Attach a code or text file — content will be pasted as a code block"
           style={{
             alignSelf: 'flex-end',
@@ -219,7 +217,7 @@ export default function ChatInput(props: ChatInputProps) {
         <button
           className="btn btn-icon btn-secondary"
           onClick={() => fileInputRef.current?.click()}
-          disabled={thinking || selectedMode === 'free'}
+          disabled={selectedMode === 'free'}
           title={selectedMode === 'free' ? 'Image analysis requires Fast or Pro mode' : 'Attach an image for analysis'}
           style={{
             alignSelf: 'flex-end',
