@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Copy } from 'lucide-react';
+import { Copy, ChevronRight, ChevronDown, Code, Image as ImageIcon, X } from 'lucide-react';
 import SunyAvatar from './SunyAvatar';
 import ReportBadgeButton, { ReportMetrics } from './ReportBadgeButton';
 
@@ -9,12 +9,13 @@ interface NarratedMessageProps {
   isActive?: boolean;
   timestamp?: number;
   report?: ReportMetrics;
+  imageData?: string;
 }
 
 // Renders only narrator-translated friendly messages — never raw technical output
-export default function NarratedMessage({ message, type, isActive = false, timestamp = Date.now(), report }: NarratedMessageProps) {
+export default function NarratedMessage({ message, type, isActive = false, timestamp = Date.now(), report, imageData }: NarratedMessageProps) {
   if (type === 'user') {
-    return <UserMessage message={message} timestamp={timestamp} />;
+    return <UserMessage message={message} timestamp={timestamp} imageData={imageData} />;
   }
 
   if (type === 'system') {
@@ -24,15 +25,46 @@ export default function NarratedMessage({ message, type, isActive = false, times
   return <SunyMessage message={message} isActive={isActive} timestamp={timestamp} report={report} />;
 }
 
-function UserMessage({ message, timestamp }: { message: string; timestamp: number }) {
+function UserMessage({ message, timestamp, imageData }: { message: string; timestamp: number; imageData?: string }) {
+  const [showImagePreview, setShowImagePreview] = useState(false);
+
   return (
     <div className="message-appear" style={userContainerStyle}>
       <div style={userWrapStyle}>
         <div style={userBubbleStyle}>
           {message}
+          {imageData && (
+            <div style={{ marginTop: 8, display: 'inline-block' }}>
+              <button
+                onClick={() => setShowImagePreview(true)}
+                style={{
+                  background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: 6, padding: '4px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                  color: '#fff', fontSize: 12
+                }}
+              >
+                <ImageIcon size={14} /> Attached Image
+              </button>
+            </div>
+          )}
         </div>
         <div style={userMetaStyle}>Sent {formatDateTime(timestamp)}</div>
       </div>
+      
+      {showImagePreview && imageData && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.85)', zIndex: 99999,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          padding: 40
+        }}>
+          <button 
+            onClick={() => setShowImagePreview(false)}
+            style={{ position: 'absolute', top: 20, right: 20, background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}
+          ><X size={32} /></button>
+          <img src={imageData} alt="Attachment Preview" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain', borderRadius: 8, boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }} />
+        </div>
+      )}
     </div>
   );
 }
@@ -148,8 +180,10 @@ function parseContent(content: string): Segment[] {
 
 function CodeBlock({ code, language }: { code: string; language?: string }) {
   const [copied, setCopied] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
-  const handleCopy = async () => {
+  const handleCopy = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     try {
       await navigator.clipboard.writeText(code);
       setCopied(true);
@@ -159,22 +193,36 @@ function CodeBlock({ code, language }: { code: string; language?: string }) {
 
   return (
     <div style={codeBlockWrapperStyle}>
-      <div style={codeBlockHeaderStyle}>
-        <span style={codeLangStyle}>{language || 'code'}</span>
-        <button
-          onClick={handleCopy}
-          style={copyBtnStyle}
-          onMouseEnter={e => { (e.target as HTMLElement).style.background = 'rgba(255,255,255,0.1)'; }}
-          onMouseLeave={e => { (e.target as HTMLElement).style.background = 'transparent'; }}
-        >
-          {copied ? '✓ Copied' : '📋 Copy'}
-        </button>
+      <div 
+        style={{ ...codeBlockHeaderStyle, cursor: 'pointer' }}
+        onClick={() => setExpanded(!expanded)}
+        title={expanded ? 'Click to collapse' : 'Click to view code'}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          <Code size={14} />
+          <span style={codeLangStyle}>{language ? `${language} snippet` : 'Code snippet'}</span>
+        </div>
+        <div>
+          {expanded && (
+            <button
+              onClick={handleCopy}
+              style={copyBtnStyle}
+              onMouseEnter={e => { (e.target as HTMLElement).style.background = 'rgba(255,255,255,0.1)'; }}
+              onMouseLeave={e => { (e.target as HTMLElement).style.background = 'transparent'; }}
+            >
+              {copied ? '✓ Copied' : '📋 Copy'}
+            </button>
+          )}
+        </div>
       </div>
-      <pre style={codeBlockPreStyle}>
-        <code style={codeBlockCodeStyle}>
-          {code}
-        </code>
-      </pre>
+      {expanded && (
+        <pre style={codeBlockPreStyle}>
+          <code style={codeBlockCodeStyle}>
+            {code}
+          </code>
+        </pre>
+      )}
     </div>
   );
 }

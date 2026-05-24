@@ -167,12 +167,8 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
         if (transferRes.ok) {
           setWalletMsg(`Transferred $${transferAmount.toFixed(2)} to Bot Wallet.`);
           setWalletAmount('');
-          const me = await fetch('/api/me', { credentials: 'include' });
-          if (me.ok) {
-            const meData = await me.json() as UserData;
-            setBalance(meData.balance ?? 0);
-            setWalletBalance(meData.wallet_balance ?? 0);
-          }
+          if (transferData.newBalance !== undefined) setBalance(transferData.newBalance);
+          if (transferData.newWalletBalance !== undefined) setWalletBalance(transferData.newWalletBalance);
         } else {
           setWalletMsg(transferData?.error || 'Wallet transfer failed.');
         }
@@ -262,12 +258,9 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
         return;
       }
       setWalletMsg('Transfer complete. Bot wallet was updated.');
-      const me = await fetch('/api/me', { credentials: 'include' });
-      if (me.ok) {
-        const meData = await me.json() as UserData;
-        setBalance(meData.balance ?? 0);
-        setWalletBalance(meData.wallet_balance ?? 0);
-      }
+      setWalletAmount('');
+      if (data.newBalance !== undefined) setBalance(data.newBalance);
+      if (data.newWalletBalance !== undefined) setWalletBalance(data.newWalletBalance);
     } catch {
       setWalletMsg('Transfer failed. Please try again.');
     } finally {
@@ -303,6 +296,9 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 }}>
           <button className="btn btn-secondary btn-sm" onClick={onBack}>← Back</button>
           <h1 style={{ fontSize: 20, fontWeight: 600 }}>⚙️ My Settings</h1>
+          <button className="btn btn-primary btn-sm" onClick={saveSettings} style={{ marginLeft: 'auto' }}>
+            {saved ? '✓ Saved!' : '💾 Save Settings'}
+          </button>
         </div>
 
         <div className="card" style={settingsCardStyle}>

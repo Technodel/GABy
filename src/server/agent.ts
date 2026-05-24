@@ -75,15 +75,14 @@ const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai
  */
 const VISION_MODEL_MAP: Record<string, string[]> = {
   'OpenRouter': [
-    'meta-llama/llama-3.2-11b-vision-instruct:free',
-    'google/gemini-2.0-flash-lite-preview-02-05:free',
-    'google/gemini-2.0-flash-exp:free',
-  ],
-  OpenAI: ['gpt-4o-mini', 'gpt-4o'],
-  Anthropic: ['claude-3-5-haiku-20241022', 'claude-sonnet-4-20250514'],
-  Gemini: ['gemini-2.0-flash-lite', 'gemini-2.0-flash'],
-  HuggingFace: ['meta-llama/Llama-3.2-11B-Vision-Instruct'],
-};
+        'google/gemini-2.0-flash-001',
+        'openai/gpt-4o-mini',
+        'anthropic/claude-3.5-haiku',
+        'google/gemini-1.5-flash',
+      ],
+      OpenAI: ['gpt-4o-mini', 'gpt-4o'],
+      Anthropic: ['claude-3-5-sonnet-20241022', 'claude-3-haiku-20240307'],
+  };
 
 /**
  * Search ALL active API keys across all modes for vision-capable models.
@@ -102,19 +101,16 @@ export async function getVisionCapableModels(): Promise<Array<{ model: LanguageM
   for (const key of allKeys) {
     const visionModels = VISION_MODEL_MAP[key.provider];
     if (!visionModels) continue;
-    const dedupKey = `${key.provider}:${key.key_value.slice(0, 12)}`;
-    if (seen.has(dedupKey)) continue;
-    seen.add(dedupKey);
-    for (const modelId of visionModels) {
-      try {
-        const model = buildLanguageModel(key, modelId);
-        results.push({ model, provider: key.provider });
-        break; // one vision model per key is enough
-      } catch {
-        continue; // try next model id for this key
+      // Push all known vision models for this key so the agent-loop fallback stack can try them one by one
+      for (const modelId of visionModels) {
+        try {
+          const model = buildLanguageModel(key, modelId);
+          results.push({ model, provider: key.provider });
+        } catch {
+          // Ignore sync initialization errors
+        }
       }
     }
-  }
 
   return results;
 }

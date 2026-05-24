@@ -100,7 +100,7 @@ function EnglishContent() {
             { title: '⏰ Scheduled Agents', desc: 'Schedule SUNy to run automatically — daily code reviews, weekly dependency audits, hourly health checks. Set it and forget it.' },
             { title: '🌐 Browser Automation', desc: 'SUNy can navigate web pages, take screenshots, fill forms, and extract data. Perfect for testing, scraping, and live site verification.' },
             { title: '🏪 MCP Marketplace', desc: 'Discover and install community-contributed MCP servers. Databases, search engines, Docker, Slack, GitHub — all pluggable in one command.' },
-            { title: '🔗 Client Link (PRO)', desc: 'Generate a secure, shareable URL for non-technical clients. They describe the change in plain language — you review, approve, and SUNy executes. No Slack threads, no back-and-forth.' },
+            { title: '🎫 Client Tickets (PRO)', desc: 'Generate a secure, shareable URL for non-technical clients. SUNy acts as your front-line assistant, chatting warmly with the client to gather detailed project requirements. You review the complete ticket, approve, and SUNy executes the changes. No Slack threads, no back-and-forth.' },
           ].map(f => (
             <div key={f.title} style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--bg)' }}>
               <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{f.title}</h3>
@@ -141,6 +141,7 @@ function EnglishContent() {
         { icon: 'DAG', title: '📊 Task Dependency Graph', desc: 'Complex tasks are decomposed into dependency-ordered steps. SUNy works the graph -- unblocks nodes, completes leaves first, rolls up to the goal.' },
         { icon: 'CONF', title: '📈 Confidence Scoring', desc: 'SUNy self-reports uncertainty on every turn. Low confidence triggers automatic escalation to a stronger model.' },
         { icon: 'PROJ', title: 'Multiple Projects', desc: 'Work on as many projects as you need. SUNy keeps everything organized and separate.' },
+        { icon: 'PHONE', title: '📱 Remote Control Bridge', desc: 'Step away from your desk without stopping work. Access your SUNy account from your phone, send instructions, and watch it execute codebase tasks natively on your computer.' },
         { icon: 'MEM', title: 'It gets smarter the more you use it', desc: 'SUNy remembers your preferences, your project style, and your past decisions -- so every session feels familiar.' },
         { icon: 'LANG', title: 'Plain English, always', desc: 'No tech jargon. SUNy explains what it is doing in a way that actually makes sense.' },
         { icon: 'BAL', title: "You're in control of your budget", desc: 'Your admin sets a credit balance for you. SUNy shows you what you have left at all times -- no surprise charges.' },
@@ -243,7 +244,7 @@ function ArabicContent() {
             { title: '⏰ الوكلاء المجدولون', desc: 'جدول SUNy للتشغيل التلقائي — مراجعات كود يومية، فحص اعتماديات اسبوعي، فحوصات سلامة كل ساعة. اضبطه وانس امره.' },
             { title: '🌐 أتمتة المتصفح', desc: 'يستطيع SUNy تصفح صفحات الويب، التقاط لقطات شاشة، ملء النماذج، واستخراج البيانات. مثالي للاختبار والفحص المباشر.' },
             { title: '🏪 سوق MCP', desc: 'اكتشف وانصب خوادم MCP من المجتمع. قواعد بيانات، محركات بحث، Docker، Slack، GitHub — كلها قابلة للتوصيل بأمر واحد.' },
-            { title: '🔗 رابط العميل (PRO)', desc: 'أنشئ رابطاً آمناً وقابلاً للمشاركة للعملاء غير التقنيين. يصف العميل التغيير المطلوب بلغة بسيطة — تراجعه أنت، وتعتمد، ثم ينفذه SUNy. لا مزيد من رسائل Slack المتبادلة.' },
+            { title: '🎫 تذاكر العملاء (PRO)', desc: 'أنشئ رابطاً آمناً للعملاء غير التقنيين. يعمل SUNy كمساعدك في الخطوط الأمامية، حيث يدردش بود مع العميل لجمع متطلبات المشروع بدقة. تراجع أنت التذكرة المكتملة، تعتمدها، وينفذ SUNy التغييرات. لا مزيد من رسائل السلاك المتبادلة.' },
           ].map(f => (
             <div key={f.title} style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--bg)' }}>
               <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{f.title}</h3>
@@ -265,6 +266,7 @@ function ArabicContent() {
         { icon: 'DAG', title: '📊 رسم بياني لتبعية المهام', desc: 'يتم تحليل المهام المعقدة الى خطوات مرتبة حسب التبعية. يعمل SUNy على الرسم البياني ويرفع النتائج الى الهدف.' },
         { icon: 'CONF', title: '📈 قياس الثقة', desc: 'SUNy يقيس مستوى ثقته في كل خطوة. الثقة المنخفضة تؤدي تلقائيا الى الترقية الى نموذج اقوى.' },
         { icon: 'PROJ', title: 'مشاريع متعددة', desc: 'اعمل على اي عدد من المشاريع تريد. SUNy يبقي كل شيء منظما ومنفصلا.' },
+        { icon: 'PHONE', title: '📱 تحكم عن بعد من هاتفك', desc: 'ابتعد عن مكتبك دون إيقاف العمل. ادخل إلى حسابك في SUNy من هاتفك، أرسل التعليمات، وشاهده ينفذ مهام البرمجة تلقائيا على جهاز الكمبيوتر الخاص بك.' },
         { icon: 'MEM', title: 'يصبح اذكى كلما استخدمته اكثر', desc: 'يتذكر SUNy تفضيلاتك واسلوب عملك وقراراتك السابقة -- حتى تشعر في كل جلسة بالالفة.' },
         { icon: 'LANG', title: 'لغة بسيطة دائما', desc: 'لا مصطلحات تقنية. SUNy يشرح ما يفعله بطريقة مفهومة ومريحة.' },
         { icon: 'BAL', title: 'انت في السيطرة على ميزانيتك', desc: 'يحدد المسؤول رصيدا لك. SUNy يريك ما تبقى لديك في كل وقت -- لا مفاجآت في الفواتير.' },

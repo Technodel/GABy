@@ -516,12 +516,7 @@ The Bridge is a WebSocket connection from the user's local machine to the SUNy s
 2. Bridge generates setup code (or user enters one)
 3. Bridge connects to `wss://suny.technodel.tech/bridge`
 4. Server registers in `bridgeManager` (keyed by userId)
-5. All file/shell tool calls are forwarded to bridge
-6. Bridge executes on user's machine, returns result
-7. Bridge auto-reconnects on disconnect
-
-**Bridge manager (`bridge-manager.ts`)**:
-- `activeBridges: Map<userId, BridgeConnection>`
+  5. All file/shell tool calls are forwarded to bridge. *Note: Windows `.bat` and `.cmd` files are supported, but must be prefixed with `.\` or `./` by the agent to pass validation.*
 - `pendingRequests: Map<requestId, PendingRequest>`
 - 30-second default timeout for bridge requests
 - Auto-rejects pending on bridge disconnect

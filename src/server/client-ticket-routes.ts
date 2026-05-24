@@ -36,7 +36,7 @@ router.use('/client-tickets', requireAuth);
 
 router.get('/client-tickets', (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
-  const userId = authReq.userId;
+  const userId = authReq.user.id;
 
   const tickets = getDb().prepare(
     'SELECT * FROM client_tickets WHERE user_id = ? ORDER BY created_at DESC'
@@ -48,32 +48,39 @@ router.get('/client-tickets', (req: Request, res: Response) => {
 // ── Create a new ticket (with AI-generated initial form) ─────────────────
 
 router.post('/client-tickets', async (req: Request, res: Response) => {
-  const authReq = req as AuthRequest;
-  const userId = authReq.userId;
-
-  const { project_id, project_name, goal } = req.body;
-
-  if (!goal || typeof goal !== 'string' || goal.trim().length === 0) {
-    res.status(400).json({ error: 'Goal is required — tell SUNy what you need from your client.' });
-    return;
-  }
-
-  const companyName = (req.body.company_name || '').trim();
-  if (!companyName) {
-    res.status(400).json({ error: 'Company name is required. Set it in Settings first.' });
-    return;
-  }
-
-  const uid = generateUid();
-
-  // Ask AI to generate an initial opening message for the client
-  let openingMessage = '';
   try {
-    const models = await getModelsForMode('fast');
-    if (models.length > 0) {
-      const result = await generateText({
-        model: models[0].model,
-        system: `You are a helpful project assistant. Generate a friendly, professional opening message 
+    const authReq = req as AuthRequest;
+    const userId = authReq.user.id;
+
+    const { project_id, project_name, goal } = req.body;
+
+    if (!project_id) {
+      res.status(400).json({ error: 'Please choose 1 project to open a ticket for.' });
+      return;
+    }
+
+    if (!goal || typeof goal !== 'string' || goal.trim().length === 0) {
+      res.status(400).json({ error: 'Goal is required — tell SUNy what you need from your client.' });
+      return;
+    }
+
+    const companyName = (req.body.company_name || '').trim();
+    if (!companyName) {
+      res.status(400).json({ error: 'Company name is required. Set it in Settings first.' });
+      return;
+    }
+
+    const uid = generateUid();
+
+    // Ask AI to generate an initial opening message for the client
+    let openingMessage = '';
+    try {
+      const models = await getModelsForMode('fast');
+      if (models.length > 0) {
+        const result = await generateText({
+          model: models[0].model,
+          abortSignal: AbortSignal.timeout(8000), // Prevent hanging forever
+          system: `You are a helpful project assistant. Generate a friendly, professional opening message 
 for a client about a project. The message should:
 - Introduce yourself as the AI assistant for ${companyName}
 - Ask about the client's needs regarding the project goal
@@ -81,39 +88,44 @@ for a client about a project. The message should:
 - NOT mention costs, models, AI tools, or technical details
 - Focus only on understanding what the client wants
 Keep it under 150 words. Respond with the message text only, no JSON.`,
-        prompt: `Company: ${companyName}\nProject: ${project_name || 'Unnamed'}\nGoal: ${goal}\n\nGenerate an opening message for the client.`,
-      });
-      openingMessage = result.text.trim();
+          prompt: `Company: ${companyName}\nProject: ${project_name || 'Unnamed'}\nGoal: ${goal}\n\nGenerate an opening message for the client.`,
+        });
+        openingMessage = result.text.trim();
+      }
+    } catch (e) {
+      console.error('[client-ticket] AI generation failed:', e);
+      // Fallback message if AI generation fails
+      openingMessage = `Hi there! 👋 I'm SUNy, the AI assistant for ${companyName}. I'm here to help with: "${goal}". Could you tell me more about what you're looking for? Any specific details or requirements you have in mind would be great!`;
     }
-  } catch (e) {
-    // Fallback message if AI generation fails
-    openingMessage = `Hi there! 👋 I'm SUNy, the AI assistant for ${companyName}. I'm here to help with: "${goal}". Could you tell me more about what you're looking for? Any specific details or requirements you have in mind would be great!`;
+
+    const initialMessages = JSON.stringify([{
+      role: 'assistant',
+      content: openingMessage || `Hi there! I'm SUNy, working with ${companyName}. How can I help you with: "${goal}"?`,
+      timestamp: new Date().toISOString(),
+    }]);
+
+    getDb().prepare(
+      `INSERT INTO client_tickets (uid, user_id, project_id, project_name, company_name, goal, messages, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'open')`
+    ).run(uid, userId, project_id || null, project_name || '', companyName, goal.trim(), initialMessages);
+
+    const ticket = getDb().prepare('SELECT * FROM client_tickets WHERE uid = ?').get(uid) as TicketRow;
+
+    res.status(201).json({
+      ticket: { ...ticket, messages: JSON.parse(ticket.messages || '[]') },
+      link: `${req.protocol}://${req.get('host')}/client-link/${uid}`,
+    });
+  } catch (err) {
+    console.error('[client-ticket] Unhandled error during ticket creation:', err);
+    res.status(500).json({ error: 'Internal server error while creating ticket.' });
   }
-
-  const initialMessages = JSON.stringify([{
-    role: 'assistant',
-    content: openingMessage || `Hi there! I'm SUNy, working with ${companyName}. How can I help you with: "${goal}"?`,
-    timestamp: new Date().toISOString(),
-  }]);
-
-  getDb().prepare(
-    `INSERT INTO client_tickets (uid, user_id, project_id, project_name, company_name, goal, messages, status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, 'open')`
-  ).run(uid, userId, project_id || null, project_name || '', companyName, goal.trim(), initialMessages);
-
-  const ticket = getDb().prepare('SELECT * FROM client_tickets WHERE uid = ?').get(uid) as TicketRow;
-
-  res.status(201).json({
-    ticket: { ...ticket, messages: JSON.parse(ticket.messages || '[]') },
-    link: `${req.protocol}://${req.get('host')}/client-link/${uid}`,
-  });
 });
 
 // ── Get ticket details ───────────────────────────────────────────────────
 
 router.get('/client-tickets/:id', (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
-  const userId = authReq.userId;
+  const userId = authReq.user.id;
 
   const ticket = getDb().prepare(
     'SELECT * FROM client_tickets WHERE id = ? AND user_id = ?'

@@ -43,6 +43,7 @@ const visibleWins = [
   { title: '🎭 Prompt Variants', text: 'Switch AI personas, tones, and strategies on the fly. Senior Engineer, Patient Teacher, Test-First, or create your own custom variant.' },
   { title: '🌐 Browser Automation', text: 'SUNy navigates web pages, takes screenshots, fills forms, and extracts live data. Perfect for testing and site verification.' },
   { title: '⏰ Scheduled Agents', text: 'Set it and forget it. Schedule SUNy to run daily code reviews, weekly dependency audits, or hourly health checks automatically.' },
+  { title: '📱 Remote Control Bridge', text: 'Step away from your desk without stopping work. Access SUNy on your phone, send instructions to your computer, and watch it execute codebase tasks remotely.' },
   { title: '🏪 MCP Marketplace', text: 'Discover and install community MCP servers in one click. Databases, search, Docker, Slack, GitHub — all at your fingertips.' },
   { title: '🔗 Client Link (PRO)', text: 'Generate a secure, shareable URL for non-technical clients. They describe the change in plain language — you review, approve, and SUNy executes. Perfect for freelancers and agencies.' },
 ];

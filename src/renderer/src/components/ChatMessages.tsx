@@ -408,7 +408,7 @@ export default function ChatMessages(props: ChatMessagesProps) {
           onMouseEnter={() => setHoveredMsgId(m.id)}
           onMouseLeave={() => setHoveredMsgId(null)}
         >
-          <NarratedMessage message={m.content} type={m.type} timestamp={m.timestamp} report={m.report} />
+          <NarratedMessage message={m.content} type={m.type} timestamp={m.timestamp} report={m.report} imageData={m.imageData} />
           {hoveredMsgId === m.id && (
             <div style={{
               position: 'absolute', top: 6, right: 6,

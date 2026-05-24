@@ -111,9 +111,8 @@ router.delete('/users/:id', async (req: Request, res: Response) => {
 router.get('/api-keys', async (_req: Request, res: Response) => {
   const db = await getAdapter();
   const keys = await db.all(`
-    SELECT id, provider, mode, is_active, label, priority, model_id_override FROM api_keys ORDER BY priority ASC, id DESC
+    SELECT id, provider, mode, is_active, label, priority, model_id_override, key_value FROM api_keys ORDER BY priority ASC, id DESC
   `);
-  // Never return key_value to frontend
   res.json(keys);
 });
 

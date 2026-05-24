@@ -220,7 +220,8 @@ export default function BridgeInstallInstructions({ autoCopy = false, previously
 
       <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 10, lineHeight: 1.5 }}>
         💡 After the first connection, the bridge will <strong>auto-start on every boot</strong>.
-        Next time you just need to run <code style={{ fontSize: 11 }}>suny-bridge start --silent</code> to reconnect.
+        Next time you just need to run <code style={{ fontSize: 11 }}>suny-bridge start --silent</code> to reconnect.<br />
+        💡 <strong>Windows Users:</strong> To give SUNy access to run <code>.bat</code> or <code>.cmd</code> files, just instruct it to use <code>.\</code> or <code>./</code> before the filename.
       </p>
     </div>
   );

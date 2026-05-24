@@ -90,8 +90,8 @@ export default function TopBar(props: TopBarProps) {
     <div ref={topbarRef} className="topbar" style={{
       display: stackHeader ? 'flex' : 'grid',
       gridTemplateColumns: stackHeader ? undefined : 'minmax(0, 1fr) auto minmax(0, 1fr)',
-      flexWrap: stackHeader ? 'wrap' : undefined,
-      alignItems: 'center',
+      flexDirection: stackHeader ? 'column' : undefined,
+      alignItems: stackHeader ? 'stretch' : 'center',
       padding: stackHeader ? '8px 12px' : '0 16px',
       minHeight: 52,
       borderBottom: '1px solid var(--border)', gap: 8, flexShrink: 0,
@@ -100,6 +100,7 @@ export default function TopBar(props: TopBarProps) {
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden',
         flex: stackHeader ? '1 1 auto' : undefined,
+        justifyContent: stackHeader ? 'space-between' : 'flex-start',
       }}>
         <button
           className="sidebar-toggle-btn"
@@ -138,8 +139,11 @@ export default function TopBar(props: TopBarProps) {
       <div style={{
         display: 'flex', alignItems: 'center', gap: 8, justifySelf: 'center', minWidth: 0, pointerEvents: 'auto',
         flexWrap: 'wrap', justifyContent: 'center',
-        order: stackHeader ? 3 : undefined,
+        order: stackHeader ? 2 : undefined,
         width: stackHeader ? '100%' : undefined,
+        overflow: stackHeader ? 'visible' : 'hidden', // allow flex-wrap overspill if needed, or hidden to avoid blowing out desktop
+        marginLeft: stackHeader ? 0 : 'auto',
+        marginRight: stackHeader ? 0 : 'auto',
       }}>
         {modes.length > 0 && (
           <ModeSelector modes={modes} selected={selectedMode} onChange={changeMode} noBalance={noBalance} />

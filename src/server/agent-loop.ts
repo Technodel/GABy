@@ -391,9 +391,18 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
 
   // Build CoreMessage history, trimmed to fit context window
   // If imageData is provided, use multimodal content format (text + image parts)
-  const userContent: CoreMessage['content'] = imageData
-    ? [{ type: 'text', text: userMessage }, { type: 'image', image: imageData }]
-    : userMessage;
+  let userContent: CoreMessage['content'] = userMessage;
+  if (imageData) {
+    // Determine mime type from data URL and extract pure base64
+    const match = imageData.match(/^data:(image\/\w+);base64,/);
+    const mime = match?.[1] || 'image/png';
+    const b64 = imageData.replace(/^data:image\/\w+;base64,/, '');
+
+    userContent = [
+      { type: 'text', text: userMessage },
+      { type: 'image', image: b64, mimeType: mime },
+    ];
+  }
   const rawMessages: CoreMessage[] = [
     ...history.map(h => ({ role: h.role as 'user' | 'assistant', content: h.content })),
     { role: 'user' as const, content: userContent },
@@ -759,8 +768,7 @@ If your tools are not working, say:
       ];
       for await (const delta of result.textStream) {
         textDeltas++;
-        // Skip pure whitespace-only deltas (model often emits blank tool-call framing)
-        if (/^\s*$/.test(delta)) continue;
+        // Removed pure whitespace skip because it collapsed words and lists natively emitted as whitespace-only chunks.
 
         toolDescBuffer += delta;
 
@@ -1815,6 +1823,17 @@ If your tools are not working, say:
         });
       } else {
         console.error(`[agent-loop] ALL PROVIDERS EXHAUSTED — last error: ${lastError.message}`);
+        
+        if (isVisionRequest && lastError.message === 'No models available') {
+          userClientManager.pushToUser(userId, 'suny:suggest_tier_upgrade', {
+            currentMode: mode === 'auto' ? 'auto' : resolvedMode,
+            routedMode: resolvedMode,
+            suggestedMode: 'pro',
+            reason: 'no_vision_models',
+          });
+          throw new Error('No vision models available');
+        }
+
         const sug = suggestUpgrade(resolvedMode);
         if (sug) {
           userClientManager.pushToUser(userId, 'suny:suggest_tier_upgrade', {

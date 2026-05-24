@@ -538,9 +538,9 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 .suny-bubble-led {
-  border: 2px solid transparent !important;
-  border-radius: 4px 16px 16px 16px !important;
-  animation: ledRun 1.8s linear infinite !important;
+  border: 2px solid transparent;
+  border-radius: 4px 16px 16px 16px;
+  animation: ledRun 1.8s linear infinite;
 }
 
 /* Landing page card glow */

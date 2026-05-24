@@ -74,16 +74,22 @@ router.post('/pick-folder', async (req: Request, res: Response) => {
           | string
           | null
           | undefined;
-        const selectedFromBridge = typeof bridgeResult === 'string'
-          ? bridgeResult.trim()
-          : String(bridgeResult?.path || '').trim();
+        let selectedFromBridge = '';
+        if (bridgeResult && typeof bridgeResult === 'object' && 'path' in bridgeResult) {
+          selectedFromBridge = String(bridgeResult.path).trim();
+        } else if (typeof bridgeResult === 'string') {
+          selectedFromBridge = bridgeResult.trim();
+        }
         if (selectedFromBridge) {
           res.json({ path: selectedFromBridge });
           return;
         }
-      } catch {
-        // Fall through to native picker fallback below.
+      } catch (err) {
+        console.error('Bridge folder pick error:', err);
       }
+    } else if (req.hostname !== 'localhost' && req.hostname !== '127.0.0.1') {
+      res.status(400).json({ error: 'Bridge not connected. You must start SUNy Bridge on your local machine to browse local folders from a remote server.' });
+      return;
     }
 
     const { execFile } = await import('child_process');

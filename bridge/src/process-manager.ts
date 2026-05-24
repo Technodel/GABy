@@ -22,9 +22,12 @@ class ProcessManager {
     onData: (line: string, stream: 'stdout' | 'stderr') => void,
     onDone: (exitCode: number) => void
   ): void {
+    const isWindows = process.platform === 'win32';
+    const isBatOrCmd = isWindows && (cmd.toLowerCase().endsWith('.bat') || cmd.toLowerCase().endsWith('.cmd'));
+
     const child = spawn(cmd, args, {
       cwd,
-      shell: false, // no shell expansion — security requirement
+      shell: isBatOrCmd, // Use shell only for Windows batch files
       env: { ...process.env },
       stdio: ['ignore', 'pipe', 'pipe'],
     });

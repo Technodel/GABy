@@ -49,7 +49,7 @@ This adds the path to `~/.suny/config.json` so the sandbox allows file operation
 ### Security
 
 - **Sandboxed**: File operations are validated against registered paths — unauthorized access is blocked.
-- **Command validation**: Shell commands are checked against a blocklist of dangerous operations.
+- **Command validation**: Shell commands are checked against a blocklist of dangerous operations. Only safe commands and local scripts (e.g. `./script.bat` or `.\script.bat`) are allowed. Windows `.bat` and `.cmd` files are natively supported when invoked from within the directory.
 - **Auto-timeout**: Long-running commands are killed after a configurable timeout (default 120s).
 - **Reconnection**: Automatically reconnects with exponential backoff if the connection drops.
 

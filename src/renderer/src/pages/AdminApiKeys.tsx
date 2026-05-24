@@ -10,6 +10,7 @@ interface ApiKey {
   label: string | null;
   priority: number;
   model_id_override: string | null;
+  key_value: string;
 }
 
 const PROVIDERS = ['Anthropic', 'DeepSeek', 'Groq', 'OpenRouter', 'OpenAI', 'Gemini', 'Ollama', 'OpenAI-compatible', 'HuggingFace', 'Mistral', 'Cohere', 'Together', 'Perplexity'];
@@ -100,6 +101,7 @@ export default function AdminApiKeys() {
             <tr>
               <th>Priority</th>
               <th>Provider</th>
+              <th>Key Value</th>
               <th>Label / Model Override</th>
               <th>Mode</th>
               <th>Status</th>
@@ -111,6 +113,7 @@ export default function AdminApiKeys() {
               <tr key={k.id}>
                 <td style={{ fontWeight: 600, color: 'var(--accent)', textAlign: 'center' }}>{k.priority}</td>
                 <td style={{ fontWeight: 500 }}>{k.provider}</td>
+                <td style={{ fontFamily: 'monospace', maxWidth: 200, WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', display: '-webkit-box', overflow: 'hidden', textOverflow: 'ellipsis' }}>{k.key_value}</td>
                 <td style={{ color: 'var(--text-muted)', fontSize: 12 }}>
                   {k.label && <div>{k.label}</div>}
                   {k.model_id_override && <div style={{ fontFamily: 'monospace' }}>{k.model_id_override}</div>}

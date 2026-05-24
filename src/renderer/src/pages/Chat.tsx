@@ -1261,14 +1261,19 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         const reason = String(msg.reason ?? 'no_credits');
         const message = typeof msg.message === 'string' && msg.message
           ? msg.message
-          : 'Your balance is empty. I can still chat in free mode, but coding actions need credits.';
+          : 'Your bot wallet balance is empty. I can still chat in free mode, but coding actions need credits.';
         const title = reason === 'daily_limit' ? '⏳ Daily limit reached' : '💳 Out of credits';
-        addMessage('suny', `${title}\n\n${message}\n\n_${pickNotice(`credits:${reason}`, [
+        addMessage('suny', `${title}\n\n${message}\n\n${pickNotice(`credits:${reason}`, [
           'Use the Top up button below the chat input, or keep chatting in free mode.',
           'You can top up from the button under the chat box, or continue in free mode.',
           'Tap Top up below if you want more actions, otherwise stay in free chat.',
-        ])}_`);
-        setShowTopUp(true);
+        ])}`);
+        
+        if (balance > 0 && walletBalance <= 0) {
+          onOpenSettings('wallet', 'Top up your Bot Wallet by transferring from your Main Balance.');
+        } else {
+          setShowTopUp(true);
+        }
         playSound('error');
       } else if (msg.event === 'suny:topup_resolved') {
         const status = String(msg.status ?? 'approved');

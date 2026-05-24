@@ -111,6 +111,7 @@ export default function Login({ onLogin }: LoginProps) {
     { icon: '\ud83d\udcc8', title: 'Checkpoint timeline', desc: 'Every turn creates a restore point, so you can roll back to any earlier working version without losing momentum.' },
     { icon: '\ud83c\udfdb\ufe0f', title: 'Freeze Brain', desc: 'Pin a project to a saved memory snapshot so SUNy keeps using the same blueprint and behavioral rules until you unfreeze it.' },
     { icon: '\ud83d\udd17', title: 'Local Bridge', desc: 'A tiny background agent on your machine lets SUNy edit real local files \u2014 nothing is uploaded to any cloud.' },
+    { icon: '\ud83d\udcf1', title: 'Remote Control Bridge', desc: 'Access your account from your phone. If your computer is running, you can send instructions and watch SUNy execute codebase tasks remotely.' },
     { icon: '\ud83d\udcb0', title: 'Pay as you go', desc: 'Add credits and spend them on AI tasks. No subscriptions. No waste. You only pay for what SUNy actually does.' },
     { icon: '\ud83d\udd17', title: 'Client Link', desc: 'Generate a secure, shareable URL for non-technical clients. They describe the change they need — you review, approve, and SUNy executes. No more back-and-forth.' },
   ];
@@ -170,7 +171,7 @@ export default function Login({ onLogin }: LoginProps) {
 
       {/* Hero */}
       <div className="login-hero" style={{ textAlign: 'center', padding: '48px 20px 36px', background: `linear-gradient(180deg, rgba(${glowRgb},0.08) 0%, transparent 100%)` }}>
-        <img className="login-hero-logo" src="/SUNy.png" alt="SUNy" style={{ width: 342, height: 342, borderRadius: '50%', objectFit: 'contain', background: 'var(--bg)', margin: '0 auto 24px', display: 'block', boxShadow: `0 8px 40px rgba(${glowRgb},0.35)` }} />
+        <img className="login-hero-logo" src="/SUNy.png" alt="SUNy" style={{ width: 380, height: 380, borderRadius: '50%', objectFit: 'cover', background: 'transparent', margin: '0 auto 24px', display: 'block', boxShadow: `0 8px 40px rgba(${glowRgb},0.35)` }} />
         <h1 className="login-hero-title" style={{ fontSize: 52, fontWeight: 800, marginBottom: 10, letterSpacing: '-1px' }}>SUNy</h1>
         <p className="login-hero-subtitle" style={{ fontSize: 24, fontWeight: 600, color: 'var(--accent)', marginBottom: 14 }}>Smart Unstoppable Navigator</p>
         <p className="login-hero-copy" style={{ fontSize: 16, color: 'var(--text-secondary)', maxWidth: 620, margin: '0 auto', lineHeight: 1.75 }}>

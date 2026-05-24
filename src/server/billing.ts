@@ -135,7 +135,7 @@ export function transferToWallet(userId: number, amount: number): { newBalance: 
   if (!user) throw new Error('User not found');
   const actual = Math.min(amount, user.balance);
   if (actual <= 0) throw new Error('Insufficient credits to transfer');
-  db.prepare('UPDATE users SET balance = balance - ?, wallet_balance = wallet_balance + ? WHERE id = ?')
+  db.prepare('UPDATE users SET balance = balance - ?, wallet_balance = COALESCE(wallet_balance, 0) + ? WHERE id = ?')
     .run(actual, actual, userId);
   const updated = db.prepare('SELECT balance, wallet_balance FROM users WHERE id = ?')
     .get(userId) as { balance: number; wallet_balance: number };

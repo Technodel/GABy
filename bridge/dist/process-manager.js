@@ -11,9 +11,11 @@ class ProcessManager {
      * Uses spawn() with arg arrays — never exec() with raw strings.
      */
     spawn(id, cmd, args, cwd, onData, onDone) {
+        const isWindows = process.platform === 'win32';
+        const isBatOrCmd = isWindows && (cmd.toLowerCase().endsWith('.bat') || cmd.toLowerCase().endsWith('.cmd'));
         const child = (0, child_process_1.spawn)(cmd, args, {
             cwd,
-            shell: false, // no shell expansion — security requirement
+            shell: isBatOrCmd, // Use shell only for Windows batch files
             env: { ...process.env },
             stdio: ['ignore', 'pipe', 'pipe'],
         });

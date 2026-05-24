@@ -44,6 +44,7 @@ export interface Message {
   id: number;
   timestamp: number;
   report?: ReportMetrics;
+  imageData?: string;
 }
 
 export interface Memory {

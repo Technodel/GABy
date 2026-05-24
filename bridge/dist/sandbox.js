@@ -12,7 +12,7 @@ const config_1 = require("./config");
 const ALLOWED_COMMAND_PREFIXES = [
     'npm', 'npx', 'node', 'python', 'python3', 'pip', 'pip3',
     'git', 'cargo', 'go', 'yarn', 'pnpm', 'bun', 'tsx', 'ts-node',
-    'mvn', 'gradle', 'dotnet', 'ruby', 'bundle',
+    'mvn', 'gradle', 'dotnet', 'ruby', 'bundle', 'cmd', 'powershell', 'pwsh', 'bash', 'sh', 'zsh',
 ];
 class SandboxError extends Error {
     constructor(message) {
@@ -51,7 +51,8 @@ function validateCommand(command, requiresConfirmation) {
     const normalizedCmd = command.trim().split(/\s+/)[0].toLowerCase();
     // Handle Windows .cmd/.exe suffixes
     const baseName = path_1.default.basename(normalizedCmd).replace(/\.(cmd|exe|bat)$/i, '');
-    const allowed = ALLOWED_COMMAND_PREFIXES.some(prefix => baseName === prefix || baseName.startsWith(prefix));
+    const isLocalScript = normalizedCmd.startsWith('./') || normalizedCmd.startsWith('.\\');
+    const allowed = isLocalScript || ALLOWED_COMMAND_PREFIXES.some(prefix => baseName === prefix || baseName.startsWith(prefix));
     if (!allowed) {
         throw new SandboxError(`Command '${baseName}' is not in the allowed command list.`);
     }

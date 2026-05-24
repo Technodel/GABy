@@ -527,6 +527,8 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
 
     if (msg.type !== 'chat:message') return;
 
+    
+
     // ── Injection guard: scan user message for prompt injection ──────────
     try {
       const msgText = String(msg.message ?? '');
@@ -1007,7 +1009,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         'try an alternative approach, write a diagnostic, inspect the real data.',
         'The user should never be your first resort.',
         '',
-        '<error_taxonomy>'
+        '<error_taxonomy>',
         'BRIDGE OFFLINE RULE: If a file or shell tool fails with "Bridge not connected" or "Bridge disconnected",',
         'do NOT retry. Do NOT try web_search. Immediately tell the user:',
         '"🔌 The bridge is disconnected. Click the bridge pill in the top bar to reconnect."',
