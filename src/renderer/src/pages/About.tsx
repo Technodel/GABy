@@ -95,10 +95,10 @@ function EnglishContent() {
             { title: '🎭 Prompt Variants', desc: 'A/B test different AI personas, tones, and strategies. Switch between Senior Engineer, Patient Teacher, or Test-First modes — or create your own custom variant.' },
             { title: '📸 Checkpoint Timeline', desc: 'Every change is saved as a named checkpoint. Browse your full history with file counts, tags, and one-click rollback to any earlier state.' },
             { title: '🌿 Fork Conversation', desc: 'Use the fork button in chat to save an instant snapshot before trying a new direction. You can restore any fork later from the Forks menu.' },
-            { title: '📦 @suny/sdk', desc: 'The official SDK for building SUNy extensions. Create custom tools, memory adapters, auth providers, and billing plugins with full TypeScript support.' },
-            { title: '⏰ Scheduled Agents', desc: 'Schedule SUNy to run automatically — daily code reviews, weekly dependency audits, hourly health checks. Set it and forget it.' },
+            { title: '🚧 @suny/sdk (Coming Soon)', desc: 'The official SDK for building SUNy extensions. Create custom tools, memory adapters, auth providers, and billing plugins with full TypeScript support.' },
+            { title: '🚧 Scheduled Agents (Coming Soon)', desc: 'Schedule SUNy to run automatically — daily code reviews, weekly dependency audits, hourly health checks. Set it and forget it.' },
             { title: '🌐 Browser Automation', desc: 'SUNy can navigate web pages, take screenshots, fill forms, and extract data. Perfect for testing, scraping, and live site verification.' },
-            { title: '🏪 MCP Marketplace', desc: 'Discover and install community-contributed MCP servers. Databases, search engines, Docker, Slack, GitHub — all pluggable in one command.' },
+            { title: '🚧 MCP Marketplace (Coming Soon)', desc: 'Discover and install community-contributed MCP servers. Databases, search engines, Docker, Slack, GitHub — all pluggable in one command.' },
             { title: '🎫 Client Tickets (PRO)', desc: 'Generate a secure, shareable URL for non-technical clients. SUNy acts as your front-line assistant, chatting warmly with the client to gather detailed project requirements. You review the complete ticket, approve, and SUNy executes the changes. No Slack threads, no back-and-forth.' },
           ].map(f => (
             <div key={f.title} style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--bg)' }}>
@@ -238,10 +238,10 @@ function ArabicContent() {
             { title: '🎭 متغيرات النصوص التوجيهية', desc: 'اختبر شخصيات ونغمات واستراتيجيات مختلفة للذكاء الاصطناعي. بدّل بين المهندس الخبير، المعلم الصبور، أو نهج الاختبار اولا — او انشئ متغيرك الخاص.' },
             { title: '📸 الجدول الزمني لنقاط الحفظ', desc: 'كل تغيير يتم حفظه كنقطة حفظ مسماة. تصفح تاريخك الكامل مع عدد الملفات والوسوم واستعد اي حالة سابقة بنقرة واحدة.' },
             { title: '🌿 تفرع المحادثة', desc: 'زر التفرع في واجهة الدردشة يحفظ لقطة فورية من المحادثة قبل تجربة مسار جديد. يمكنك استعادة اي تفرع لاحقا من قائمة التفرعات.' },
-            { title: '📦 @suny/sdk', desc: 'مجموعة التطوير الرسمية لبناء إضافات SUNy. اصنع ادوات مخصصة، موصلات ذاكرة، موفري مصادقة، واضافات فوترة مع دعم كامل لـ TypeScript.' },
-            { title: '⏰ الوكلاء المجدولون', desc: 'جدول SUNy للتشغيل التلقائي — مراجعات كود يومية، فحص اعتماديات اسبوعي، فحوصات سلامة كل ساعة. اضبطه وانس امره.' },
+            { title: '🚧 @suny/sdk (قريباً)', desc: 'مجموعة التطوير الرسمية لبناء إضافات SUNy. اصنع ادوات مخصصة، موصلات ذاكرة، موفري مصادقة، واضافات فوترة مع دعم كامل لـ TypeScript.' },
+            { title: '🚧 الوكلاء المجدولون (قريباً)', desc: 'جدول SUNy للتشغيل التلقائي — مراجعات كود يومية، فحص اعتماديات اسبوعي، فحوصات سلامة كل ساعة. اضبطه وانس امره.' },
             { title: '🌐 أتمتة المتصفح', desc: 'يستطيع SUNy تصفح صفحات الويب، التقاط لقطات شاشة، ملء النماذج، واستخراج البيانات. مثالي للاختبار والفحص المباشر.' },
-            { title: '🏪 سوق MCP', desc: 'اكتشف وانصب خوادم MCP من المجتمع. قواعد بيانات، محركات بحث، Docker، Slack، GitHub — كلها قابلة للتوصيل بأمر واحد.' },
+            { title: '🚧 سوق MCP (قريباً)', desc: 'اكتشف وانصب خوادم MCP من المجتمع. قواعد بيانات، محركات بحث، Docker، Slack، GitHub — كلها قابلة للتوصيل بأمر واحد.' },
             { title: '🎫 تذاكر العملاء (PRO)', desc: 'أنشئ رابطاً آمناً للعملاء غير التقنيين. يعمل SUNy كمساعدك في الخطوط الأمامية، حيث يدردش بود مع العميل لجمع متطلبات المشروع بدقة. تراجع أنت التذكرة المكتملة، تعتمدها، وينفذ SUNy التغييرات. لا مزيد من رسائل السلاك المتبادلة.' },
           ].map(f => (
             <div key={f.title} style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--bg)' }}>
