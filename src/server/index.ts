@@ -195,7 +195,7 @@ const apiLimiter = rateLimit({
 
 // ── Health endpoint (for Docker healthcheck) ──────────────────────────────────
 
-app.get('/api/health', (_req, res) => {
+app.get('/api/health', async (_req, res) => {
   let dbOk = false;
   try {
     const db = getDb();
