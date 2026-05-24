@@ -205,8 +205,8 @@ export default function Login({ onLogin }: LoginProps) {
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 10, lineHeight: 1.5 }}>{m.description}</div>
                   <div style={{ display: 'flex', gap: 20, fontSize: 12 }}>
-                    <div><span style={{ color: 'var(--text-muted)' }}>Input: </span><span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{fmtCost(m.input_price_per_1m / 1_000_000)}/1M</span></div>
-                    <div><span style={{ color: 'var(--text-muted)' }}>Output: </span><span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{fmtCost(m.output_price_per_1m / 1_000_000)}/1M</span></div>
+                    <div><span style={{ color: 'var(--text-muted)' }}>Input: </span><span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{m.mode === 'free' ? '$0' : `${fmtCost(m.input_price_per_1m / 1_000_000)}/1M`}</span></div>
+                    <div><span style={{ color: 'var(--text-muted)' }}>Output: </span><span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{m.mode === 'free' ? '$0' : `${fmtCost(m.output_price_per_1m / 1_000_000)}/1M`}</span></div>
                   </div>
                 </div>
               ))}
