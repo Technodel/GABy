@@ -204,7 +204,7 @@ const UpdatePricingSchema = z.object({
 
 router.patch('/pricing/:mode', async (req: Request, res: Response) => {
   const mode = req.params.mode;
-  if (!['free', 'fast', 'pro'].includes(mode)) {
+  if (!['free', 'fast', 'pro', 'smart'].includes(mode)) {
     res.status(400).json({ error: 'Invalid mode' });
     return;
   }

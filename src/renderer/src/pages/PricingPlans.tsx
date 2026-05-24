@@ -295,6 +295,20 @@ export default function PricingPlans() {
             <div style={{ padding: '10px 16px', textAlign: 'center', fontWeight: 700, color: '#6c63ff', fontSize: 12 }}>💎 Pro</div>
           </div>
           {[
+            {
+              label: 'Input price / 1M tokens',
+              free: priceMap['free'] ? fmtPrice(priceMap['free'].input_price_per_1m) : '—',
+              fast: priceMap['fast'] ? fmtPrice(priceMap['fast'].input_price_per_1m) : '—',
+              smart: priceMap['smart'] ? fmtPrice(priceMap['smart'].input_price_per_1m) : '—',
+              pro: priceMap['pro'] ? fmtPrice(priceMap['pro'].input_price_per_1m) : '—',
+            },
+            {
+              label: 'Output price / 1M tokens',
+              free: priceMap['free'] ? fmtPrice(priceMap['free'].output_price_per_1m) : '—',
+              fast: priceMap['fast'] ? fmtPrice(priceMap['fast'].output_price_per_1m) : '—',
+              smart: priceMap['smart'] ? fmtPrice(priceMap['smart'].output_price_per_1m) : '—',
+              pro: priceMap['pro'] ? fmtPrice(priceMap['pro'].output_price_per_1m) : '—',
+            },
             { label: 'Daily message limit', free: '100/day', fast: '500/day', smart: 'Unlimited', pro: 'Unlimited' },
             { label: 'Token pricing', free: 'Free', fast: 'Per token', smart: 'Per token', pro: 'Per token' },
             { label: 'Web search', free: '✓', fast: '✓', smart: '✓', pro: '✓' },

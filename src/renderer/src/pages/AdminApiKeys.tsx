@@ -78,6 +78,30 @@ const [error, setError] = useState('');
     }
   }
 
+  async function mergeDuplicates() {
+    // Group keys by mode+provider. For each group keep the active one (or highest priority), delete the rest.
+    const groups = new Map<string, ApiKey[]>();
+    for (const k of keys) {
+      const key = `${k.mode}::${k.provider.toLowerCase()}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(k);
+    }
+    const toDelete: number[] = [];
+    for (const group of groups.values()) {
+      if (group.length <= 1) continue;
+      // Keep the active, highest-priority one; delete the rest
+      const sorted = [...group].sort((a, b) => {
+        if (a.is_active !== b.is_active) return b.is_active - a.is_active; // active first
+        return a.priority - b.priority; // lower priority number = better
+      });
+      for (const k of sorted.slice(1)) toDelete.push(k.id);
+    }
+    if (toDelete.length === 0) { alert('No duplicates found.'); return; }
+    if (!confirm(`Found ${toDelete.length} duplicate key(s). Delete them and keep the best active key per mode?`)) return;
+    await Promise.all(toDelete.map(id => fetch(`/admin/api/api-keys/${id}`, { method: 'DELETE', credentials: 'include' })));
+    loadKeys();
+  }
+
   async function deleteKey(id: number) {
     if (!confirm('Delete this API key?')) return;
     await fetch(`/admin/api/api-keys/${id}`, { method: 'DELETE', credentials: 'include' });
@@ -90,13 +114,18 @@ const [error, setError] = useState('');
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h1 style={{ fontSize: 20, fontWeight: 600 }}>🔑 API Keys</h1>
-        <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
-          <Plus size={14} /> Add Key
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="btn btn-secondary" onClick={mergeDuplicates} title="Remove duplicate keys, keeping the best active one per mode">
+            🧹 Merge Duplicates
+          </button>
+          <button className="btn btn-primary" onClick={() => setShowAdd(true)}>
+            <Plus size={14} /> Add Key
+          </button>
+        </div>
       </div>
 
       <div style={{ marginBottom: 16, padding: '10px 14px', borderRadius: 'var(--radius-sm)', background: 'rgba(108,99,255,0.06)', border: '1px solid var(--accent)', fontSize: 13, color: 'var(--text-secondary)' }}>
-        Each mode (Free / Fast / Pro) should have exactly one active key. Adding a new key for a mode deactivates the previous one automatically.
+        Each mode (Free / Fast / Smart / Pro) should have exactly one active key. Adding a new key for a mode deactivates the previous one automatically.
       </div>
 
       {loadError && (
@@ -128,7 +157,7 @@ const [error, setError] = useState('');
                   {k.model_id_override && <div style={{ fontFamily: 'monospace' }}>{k.model_id_override}</div>}
                   {!k.label && !k.model_id_override && '—'}
                 </td>
-                <td>{modeLabel(k.mode)}</td><td style={{fontFamily:'monospace',fontSize:12,color:'var(--text-muted)'}}>/M</td><td style={{fontFamily:'monospace',fontSize:12,color:'var(--text-muted)'}}>/M</td>
+                <td>{modeLabel(k.mode)}</td>
                 <td>
                   <span className={`badge ${k.is_active ? 'badge-green' : 'badge-amber'}`}>
                     {k.is_active ? 'Active' : 'Inactive'}
