@@ -173,7 +173,14 @@ export default function Login({ onLogin }: LoginProps) {
 
       {/* Hero */}
       <div className="login-hero" style={{ textAlign: 'center', padding: '48px 20px 36px', background: `linear-gradient(180deg, rgba(${glowRgb},0.08) 0%, transparent 100%)` }}>
-        <img className="login-hero-logo" src="/SUNy.png" alt="SUNy" style={{ width: 520, height: 360, borderRadius: '64px', objectFit: 'cover', objectPosition: 'center', background: '#020202', margin: '0 auto 24px', display: 'block', boxShadow: `0 12px 48px rgba(${glowRgb},0.4)` }} />
+        <div style={{
+          width: 440, height: 440, borderRadius: '50%', background: '#000000', margin: '0 auto 24px',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+          boxShadow: '0 0 120px rgba(255, 170, 0, 0.35), 0 0 40px rgba(255, 200, 51, 0.2)',
+          border: '1px solid rgba(255, 180, 50, 0.15)'
+        }}>
+          <img className="login-hero-logo" src="/SUNy.png" alt="SUNy" style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }} />
+        </div>
         <h1 className="login-hero-title" style={{ fontSize: 52, fontWeight: 800, marginBottom: 10, letterSpacing: '-1px' }}>SUNy</h1>
         <p className="login-hero-subtitle" style={{ fontSize: 24, fontWeight: 600, color: 'var(--accent)', marginBottom: 14 }}>Smart Unstoppable Navigator</p>
         <p className="login-hero-copy" style={{ fontSize: 16, color: 'var(--text-secondary)', maxWidth: 620, margin: '0 auto', lineHeight: 1.75 }}>
