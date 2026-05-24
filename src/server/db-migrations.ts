@@ -621,6 +621,26 @@ const SCHEMA_MIGRATIONS: Migration[] = [
       console.log('[db] Migration v15: Created memory_snapshots table');
     },
   },
+  {
+    version: 16,
+    name: 'Add cost tracking columns to api_keys',
+    up: async (adapter) => {
+      // Add base cost columns (official API cost)
+      if (!(await adapter.columnExists('api_keys', 'base_cost_prompt'))) {
+        await adapter.exec('ALTER TABLE api_keys ADD COLUMN base_cost_prompt REAL DEFAULT 0');
+      }
+      if (!(await adapter.columnExists('api_keys', 'base_cost_completion'))) {
+        await adapter.exec('ALTER TABLE api_keys ADD COLUMN base_cost_completion REAL DEFAULT 0');
+      }
+      // Add sale price columns (cost billed to users)
+      if (!(await adapter.columnExists('api_keys', 'sale_price_prompt'))) {
+        await adapter.exec('ALTER TABLE api_keys ADD COLUMN sale_price_prompt REAL DEFAULT 0');
+      }
+      if (!(await adapter.columnExists('api_keys', 'sale_price_completion'))) {
+        await adapter.exec('ALTER TABLE api_keys ADD COLUMN sale_price_completion REAL DEFAULT 0');
+      }
+    },
+  },
 ];
 
 // ── Data seeding ─────────────────────────────────────────────────────────────

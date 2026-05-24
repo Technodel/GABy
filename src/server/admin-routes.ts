@@ -111,7 +111,7 @@ router.delete('/users/:id', async (req: Request, res: Response) => {
 router.get('/api-keys', async (_req: Request, res: Response) => {
   const db = await getAdapter();
   const keys = await db.all(`
-    SELECT id, provider, mode, is_active, label, priority, model_id_override, key_value FROM api_keys ORDER BY priority ASC, id DESC
+    SELECT id, provider, mode, is_active, label, priority, model_id_override, key_value, base_cost_prompt, base_cost_completion, sale_price_prompt, sale_price_completion FROM api_keys ORDER BY priority ASC, id DESC
   `);
   res.json(keys);
 });
@@ -119,10 +119,14 @@ router.get('/api-keys', async (_req: Request, res: Response) => {
 const CreateKeySchema = z.object({
   provider: z.string().min(1).max(50),
   key_value: z.string().min(1).max(500),
-  mode: z.enum(['free', 'fast', 'pro']),
+  mode: z.enum(['free', 'fast', 'smart', 'pro']),
   label: z.string().max(100).optional(),
   priority: z.number().int().min(1).optional(),
   model_id_override: z.string().max(150).optional(),
+  base_cost_prompt: z.number().min(0).optional(),
+  base_cost_completion: z.number().min(0).optional(),
+  sale_price_prompt: z.number().min(0).optional(),
+  sale_price_completion: z.number().min(0).optional(),
 });
 
 router.post('/api-keys', async (req: Request, res: Response) => {
@@ -131,16 +135,45 @@ router.post('/api-keys', async (req: Request, res: Response) => {
     res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
     return;
   }
-  const { provider, key_value, mode, label, priority, model_id_override } = parsed.data;
+  const { provider, key_value, mode, label, priority, model_id_override, base_cost_prompt, base_cost_completion, sale_price_prompt, sale_price_completion } = parsed.data;
   const db = await getAdapter();
   // Only deactivate existing keys if this is priority 1 (primary)
   if ((priority ?? 1) === 1) {
     await db.run('UPDATE api_keys SET is_active = 0 WHERE mode = ? AND priority = 1', [mode]);
   }
   const result = await db.run(`
-    INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)
-  `, [provider, key_value, mode, label ?? null, priority ?? 1, model_id_override ?? null]);
+    INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override, base_cost_prompt, base_cost_completion, sale_price_prompt, sale_price_completion) VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?)
+  `, [provider, key_value, mode, label ?? null, priority ?? 1, model_id_override ?? null, base_cost_prompt ?? 0, base_cost_completion ?? 0, sale_price_prompt ?? 0, sale_price_completion ?? 0]);
   res.json({ success: true, id: result.lastInsertRowid });
+});
+
+router.patch('/api-keys/:id', async (req: Request, res: Response) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: 'Invalid id' }); return; }
+  
+  const PatchSchema = z.object({
+    base_cost_prompt: z.number().min(0).optional(),
+    base_cost_completion: z.number().min(0).optional(),
+    sale_price_prompt: z.number().min(0).optional(),
+    sale_price_completion: z.number().min(0).optional(),
+  });
+  
+  const parsed = PatchSchema.safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() }); return; }
+  
+  const updates: string[] = [];
+  const vals: any[] = [];
+  
+  if (parsed.data.base_cost_prompt !== undefined) { updates.push('base_cost_prompt = ?'); vals.push(parsed.data.base_cost_prompt); }
+  if (parsed.data.base_cost_completion !== undefined) { updates.push('base_cost_completion = ?'); vals.push(parsed.data.base_cost_completion); }
+  if (parsed.data.sale_price_prompt !== undefined) { updates.push('sale_price_prompt = ?'); vals.push(parsed.data.sale_price_prompt); }
+  if (parsed.data.sale_price_completion !== undefined) { updates.push('sale_price_completion = ?'); vals.push(parsed.data.sale_price_completion); }
+  
+  if (updates.length > 0) {
+    vals.push(id);
+    await (await getAdapter()).run(`UPDATE api_keys SET ${updates.join(', ')} WHERE id = ?`, vals);
+  }
+  res.json({ success: true });
 });
 
 router.delete('/api-keys/:id', async (req: Request, res: Response) => {

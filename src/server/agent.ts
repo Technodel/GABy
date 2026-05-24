@@ -30,6 +30,7 @@ export interface AgentMessage {
 }
 
 interface KeyEntry {
+  id?: number;
   key_value: string;
   provider: string;
   model_id_override: string | null;
@@ -55,7 +56,7 @@ export async function getEditFormat(): Promise<EditFormat> {
 
 export async function getKeysForMode(mode: string): Promise<KeyEntry[]> {
   const db = await getAdapter();
-  return db.all<KeyEntry[]>('SELECT key_value, provider, model_id_override, priority FROM api_keys WHERE mode = ? AND is_active = 1 ORDER BY priority ASC', [mode]);
+  return db.all<KeyEntry[]>('SELECT id, key_value, provider, model_id_override, priority FROM api_keys WHERE mode = ? AND is_active = 1 ORDER BY priority ASC', [mode]);
 }
 
 export async function getModelForMode(mode: string): Promise<string> {
@@ -89,13 +90,13 @@ const VISION_MODEL_MAP: Record<string, string[]> = {
  * Returns entries sorted by priority (primary keys first) so the agent loop
  * can use fallback iteration.
  */
-export async function getVisionCapableModels(): Promise<Array<{ model: LanguageModel; provider: string }>> {
+export async function getVisionCapableModels(): Promise<Array<{ model: LanguageModel; provider: string; apiKeyId?: number }>> {
   const db = await getAdapter();
-  const allKeys = await db.all<Array<{ key_value: string; provider: string; model_id_override: string | null; priority: number }>>(
-    'SELECT key_value, provider, model_id_override, priority FROM api_keys WHERE is_active = 1 ORDER BY priority ASC'
+  const allKeys = await db.all<Array<{ id: number; key_value: string; provider: string; model_id_override: string | null; priority: number }>>(
+    'SELECT id, key_value, provider, model_id_override, priority FROM api_keys WHERE is_active = 1 ORDER BY priority ASC'
   );
 
-  const results: Array<{ model: LanguageModel; provider: string }> = [];
+  const results: Array<{ model: LanguageModel; provider: string; apiKeyId?: number }> = [];
   const seen = new Set<string>();
 
   for (const key of allKeys) {
@@ -105,7 +106,7 @@ export async function getVisionCapableModels(): Promise<Array<{ model: LanguageM
       for (const modelId of visionModels) {
         try {
           const model = buildLanguageModel(key, modelId);
-          results.push({ model, provider: key.provider });
+          results.push({ model, provider: key.provider, apiKeyId: key.id });
         } catch {
           // Ignore sync initialization errors
         }
@@ -222,12 +223,13 @@ export function reorderModelsForProTask(
   return [...deepseek, ...anthropic, ...others];
 }
 
-export async function getModelsForMode(mode: string): Promise<Array<{ model: LanguageModel; provider: string }>> {
+export async function getModelsForMode(mode: string): Promise<Array<{ model: LanguageModel; provider: string; apiKeyId?: number }>> {
   const keys = await getKeysForMode(mode);
   if (keys.length === 0) throw new Error(`No active API key configured for mode "${mode}"`);
   const modeModel = await getModelForMode(mode);
   return keys.map((key) => ({
     model: buildLanguageModel(key, key.model_id_override ?? modeModel),
     provider: key.provider,
+    apiKeyId: key.id,
   }));
 }

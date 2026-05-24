@@ -11,13 +11,18 @@ interface ApiKey {
   priority: number;
   model_id_override: string | null;
   key_value: string;
+  base_cost_prompt?: number;
+  base_cost_completion?: number;
+  sale_price_prompt?: number;
+  sale_price_completion?: number;
 }
 
 const PROVIDERS = ['Anthropic', 'DeepSeek', 'Groq', 'OpenRouter', 'OpenAI', 'Gemini', 'Ollama', 'OpenAI-compatible', 'HuggingFace', 'Mistral', 'Cohere', 'Together', 'Perplexity'];
 const MODES = [
   { value: 'free', label: '⚡ Free Mode' },
   { value: 'fast', label: '🚀 Fast Mode' },
-  { value: 'pro', label: '🧠 Pro Mode' },
+  { value: 'smart', label: '🧠 Smart Mode' },
+  { value: 'pro', label: '💎 Pro Mode' },
 ];
 
 export default function AdminApiKeys() {
@@ -29,7 +34,11 @@ export default function AdminApiKeys() {
   const [label, setLabel] = useState('');
   const [priority, setPriority] = useState(1);
   const [modelIdOverride, setModelIdOverride] = useState('');
-  const [error, setError] = useState('');
+  const [baseCostPrompt, setBaseCostPrompt] = useState(0);
+const [baseCostCompletion, setBaseCostCompletion] = useState(0);
+const [salePricePrompt, setSalePricePrompt] = useState(0);
+const [salePriceCompletion, setSalePriceCompletion] = useState(0);
+const [error, setError] = useState('');
   const [modelBrowserOpen, setModelBrowserOpen] = useState(false);
   const [browseSearch, setBrowseSearch] = useState('');
   const [loadError, setLoadError] = useState('');
@@ -57,12 +66,12 @@ export default function AdminApiKeys() {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ provider, key_value: keyValue, mode, label: label || undefined, priority, model_id_override: modelIdOverride || undefined }),
+      body: JSON.stringify({ provider, key_value: keyValue, mode, label: label || undefined, priority, model_id_override: modelIdOverride || undefined, base_cost_prompt: baseCostPrompt, base_cost_completion: baseCostCompletion, sale_price_prompt: salePricePrompt, sale_price_completion: salePriceCompletion }),
     });
     const data = await res.json();
     if (res.ok) {
       setShowAdd(false);
-      setKeyValue(''); setLabel(''); setPriority(1); setModelIdOverride('');
+      setKeyValue(''); setLabel(''); setPriority(1); setModelIdOverride(''); setBaseCostPrompt(0); setBaseCostCompletion(0); setSalePricePrompt(0); setSalePriceCompletion(0);
       loadKeys();
     } else {
       setError(data.error || 'Failed to add key');
@@ -119,7 +128,7 @@ export default function AdminApiKeys() {
                   {k.model_id_override && <div style={{ fontFamily: 'monospace' }}>{k.model_id_override}</div>}
                   {!k.label && !k.model_id_override && '—'}
                 </td>
-                <td>{modeLabel(k.mode)}</td>
+                <td>{modeLabel(k.mode)}</td><td style={{fontFamily:'monospace',fontSize:12,color:'var(--text-muted)'}}>/M</td><td style={{fontFamily:'monospace',fontSize:12,color:'var(--text-muted)'}}>/M</td>
                 <td>
                   <span className={`badge ${k.is_active ? 'badge-green' : 'badge-amber'}`}>
                     {k.is_active ? 'Active' : 'Inactive'}
@@ -170,6 +179,16 @@ export default function AdminApiKeys() {
               <div>
                 <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Label (optional)</label>
                 <input value={label} onChange={e => setLabel(e.target.value)} placeholder="e.g. Anthropic – Pro" />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Sale Price / 1M Prompts ($)</label>
+                  <input type="number" step="0.0001" value={salePricePrompt} onChange={e => setSalePricePrompt(parseFloat(e.target.value) || 0)} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Sale Price / 1M Completions ($)</label>
+                  <input type="number" step="0.0001" value={salePriceCompletion} onChange={e => setSalePriceCompletion(parseFloat(e.target.value) || 0)} />
+                </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>

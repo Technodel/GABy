@@ -33,7 +33,8 @@ export function deductUsage(
   inputTokens: number,
   outputTokens: number,
   cacheWriteTokens = 0,
-  cacheReadTokens = 0
+  cacheReadTokens = 0,
+  apiKeyId?: number
 ): BillingResult {
   const db = getDb();
 
@@ -45,22 +46,48 @@ export function deductUsage(
     throw new Error(`Unknown mode: ${mode}`);
   }
 
+  let inputBase = pricing.input_token_base_cost;
+  let outputBase = pricing.output_token_base_cost;
+  let inputSale = inputBase;
+  let outputSale = outputBase;
+
+  // Use the actual API key's configured token rates if available
+  if (apiKeyId) {
+    const keyPricing = db.prepare('SELECT base_cost_prompt, base_cost_completion, sale_price_prompt, sale_price_completion FROM api_keys WHERE id = ?').get(apiKeyId) as any;
+    if (keyPricing) {
+      if (keyPricing.base_cost_prompt && keyPricing.base_cost_prompt > 0) inputBase = keyPricing.base_cost_prompt / 1000000;
+      if (keyPricing.base_cost_completion && keyPricing.base_cost_completion > 0) outputBase = keyPricing.base_cost_completion / 1000000;
+      
+      if (keyPricing.sale_price_prompt && keyPricing.sale_price_prompt > 0) {
+        inputSale = keyPricing.sale_price_prompt / 1000000;
+      } else {
+        inputSale = inputBase;
+      }
+
+      if (keyPricing.sale_price_completion && keyPricing.sale_price_completion > 0) {
+        outputSale = keyPricing.sale_price_completion / 1000000;
+      } else {
+        outputSale = outputBase;
+      }
+    }
+  }
+
   // Calculate raw cost using per-token base costs from DB.
   // This is what we ACTUALLY pay the provider — used for internal P&L only.
   // Cache write = 1.25x input rate (one-time); cache read = 0.10x input rate (provider discount).
   const rawCost =
-    inputTokens * pricing.input_token_base_cost +
-    outputTokens * pricing.output_token_base_cost +
-    cacheWriteTokens * pricing.input_token_base_cost * 1.25 +
-    cacheReadTokens * pricing.input_token_base_cost * 0.10;
+    inputTokens * inputBase +
+    outputTokens * outputBase +
+    cacheWriteTokens * inputBase * 1.25 +
+    cacheReadTokens * inputBase * 0.10;
 
   // USER-VISIBLE COST: users get a 40% discount on cache reads (we keep 50% of provider's 90% saving).
   // Cache reads are billed to the user at 0.6x input rate (vs 0.10x we pay the provider).
   const userVisibleCost =
-    inputTokens * pricing.input_token_base_cost +
-    outputTokens * pricing.output_token_base_cost +
-    cacheWriteTokens * pricing.input_token_base_cost * 1.25 +
-    cacheReadTokens * pricing.input_token_base_cost * 0.6;
+    inputTokens * inputSale +
+    outputTokens * outputSale +
+    cacheWriteTokens * inputSale * 1.25 +
+    cacheReadTokens * inputSale * 0.6;
 
   // Apply admin markup formula (mathjs expression) — applied to the USER-VISIBLE cost,
   // not the actual provider cost, so the cache discount stays with the platform.

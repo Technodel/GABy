@@ -2473,6 +2473,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           userId, sessionId, projectId ?? null, result.resolvedMode ?? effectiveMode,
           result.inputTokens, result.outputTokens,
           result.cacheWriteTokens, result.cacheReadTokens,
+          result.apiKeyId
         );
       } catch (billErr) {
         const billMsg = (billErr as Error).message;

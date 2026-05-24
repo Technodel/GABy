@@ -182,6 +182,7 @@ export interface AgentLoopResult {
   resolvedMode: string;
   changedFiles: string[];
   stepsExhausted: boolean;
+  apiKeyId?: number;
   proofSummary: {
     durationMs: number;
     toolCalls: string[];
@@ -672,7 +673,7 @@ If your tools are not working, say:
   }
 
   // Try each model in priority order (fallback on error)
-  for (const { model, provider } of modelEntries) {
+  for (const { model, provider, apiKeyId } of modelEntries) {
     // Update model references for lazy-getter tools (subtask delegator, self-heal)
     currentModel = model as LanguageModel;
     currentProvider = provider;
@@ -1794,6 +1795,7 @@ If your tools are not working, say:
         resolvedMode,
         changedFiles: Array.from(changedFiles),
         stepsExhausted,
+        apiKeyId,
         proofSummary: {
           durationMs: Date.now() - startedAt,
           toolCalls: Array.from(toolCallNames),
