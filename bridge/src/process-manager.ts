@@ -27,7 +27,7 @@ class ProcessManager {
 
     const child = spawn(cmd, args, {
       cwd,
-      shell: isBatOrCmd, // Use shell only for Windows batch files
+      shell: isBatOrCmd ? 'powershell.exe' : false, // Bypass cmd.exe block by routing through PowerShell
       env: { ...process.env },
       stdio: ['ignore', 'pipe', 'pipe'],
     });

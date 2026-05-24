@@ -123,7 +123,7 @@ describe('Blueprint Memory — integration (real DB)', () => {
     });
 
     // Retrieve all entries
-    const entries = getBlueprintEntries({ userId, projectId });
+    const  = await getBlueprintEntries({ userId, projectId });
     expect(entries).toHaveLength(3);
 
     // Verify they come back in reverse chronological order (most recent first)
@@ -169,7 +169,7 @@ describe('Blueprint Memory — integration (real DB)', () => {
     storeBlueprintEntry({ userId, projectId, sessionId: 's1', turnIndex: 3, summary: 'Fix logout bug', intent: 'fix', affectedFiles: ['logout.ts'] });
     storeBlueprintEntry({ userId, projectId, sessionId: 's1', turnIndex: 4, summary: 'Another fix', intent: 'fix', affectedFiles: ['auth.ts'] });
 
-    const summary = getBlueprintSummary({ userId, projectId });
+    const summary = await getBlueprintSummary({ userId, projectId });
     expect(summary).toContain('4 entries');
     expect(summary).toContain('bug fix: 3');
     expect(summary).toContain('feature add: 1');
@@ -179,8 +179,8 @@ describe('Blueprint Memory — integration (real DB)', () => {
     storeBlueprintEntry({ userId: 100, projectId: 1, sessionId: 's1', turnIndex: 1, summary: 'User 100 design' });
     storeBlueprintEntry({ userId: 200, projectId: 1, sessionId: 's1', turnIndex: 1, summary: 'User 200 design' });
 
-    const user100Entries = getBlueprintEntries({ userId: 100, projectId: 1 });
-    const user200Entries = getBlueprintEntries({ userId: 200, projectId: 1 });
+    const  = await getBlueprintEntries({ userId: 100, projectId: 1 });
+    const  = await getBlueprintEntries({ userId: 200, projectId: 1 });
 
     expect(user100Entries).toHaveLength(1);
     expect(user200Entries).toHaveLength(1);

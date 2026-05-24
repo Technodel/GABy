@@ -88,10 +88,10 @@ export default function TopBar(props: TopBarProps) {
 
   return (
     <div ref={topbarRef} className="topbar" style={{
-      display: stackHeader ? 'flex' : 'grid',
-      gridTemplateColumns: stackHeader ? undefined : 'minmax(0, 1fr) auto minmax(0, 1fr)',
-      flexDirection: stackHeader ? 'column' : undefined,
+      display: 'flex',
+      flexDirection: stackHeader ? 'column' : 'row',
       alignItems: stackHeader ? 'stretch' : 'center',
+      justifyContent: 'space-between',
       padding: stackHeader ? '8px 12px' : '0 16px',
       minHeight: 52,
       borderBottom: '1px solid var(--border)', gap: 8, flexShrink: 0,
@@ -99,7 +99,7 @@ export default function TopBar(props: TopBarProps) {
       {/* LEFT: brand + username + active project */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6, minWidth: 0, overflow: 'hidden',
-        flex: stackHeader ? '1 1 auto' : undefined,
+        flex: stackHeader ? '1 1 auto' : '1',
         justifyContent: stackHeader ? 'space-between' : 'flex-start',
       }}>
         <button
@@ -137,13 +137,10 @@ export default function TopBar(props: TopBarProps) {
 
       {/* CENTER: Mode selector + routing badge */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 8, justifySelf: 'center', minWidth: 0, pointerEvents: 'auto',
+        display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, pointerEvents: 'auto',
         flexWrap: 'wrap', justifyContent: 'center',
+        flex: stackHeader ? '1 1 auto' : '0 1 auto',
         order: stackHeader ? 2 : undefined,
-        width: stackHeader ? '100%' : undefined,
-        overflow: stackHeader ? 'visible' : 'hidden', // allow flex-wrap overspill if needed, or hidden to avoid blowing out desktop
-        marginLeft: stackHeader ? 0 : 'auto',
-        marginRight: stackHeader ? 0 : 'auto',
       }}>
         {modes.length > 0 && (
           <ModeSelector modes={modes} selected={selectedMode} onChange={changeMode} noBalance={noBalance} />
@@ -167,8 +164,10 @@ export default function TopBar(props: TopBarProps) {
 
       {/* RIGHT: action buttons */}
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 4, justifySelf: 'end', justifyContent: 'flex-end',
-        flexWrap: 'nowrap', marginLeft: stackHeader ? 'auto' : undefined, minWidth: 0,
+        display: 'flex', alignItems: 'center', gap: 4, minWidth: 0,
+        flex: stackHeader ? '1 1 auto' : '1',
+        justifyContent: 'flex-end',
+        flexWrap: 'nowrap',
       }}>
         {activeProject && (
           <button

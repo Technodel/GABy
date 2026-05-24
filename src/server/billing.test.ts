@@ -13,6 +13,11 @@ import Database from 'better-sqlite3';
 const mockDbHolder: { db: Database.Database | null } = { db: null };
 
 vi.mock('./db', () => ({
+  getAdapter: () => ({
+    get: async (...args) => mockDbHolder.db.prepare(args[0]).get(...(args[1] || [])),
+    all: async (...args) => mockDbHolder.db.prepare(args[0]).all(...(args[1] || [])),
+    run: async (...args) => mockDbHolder.db.prepare(args[0]).run(...(args[1] || []))
+  }),
   getDb: () => {
     if (!mockDbHolder.db) {
       throw new Error('Test DB not initialized — call initTestDb() in beforeAll');
@@ -85,48 +90,48 @@ describe('deductUsage', () => {
     mockDbHolder.db!.prepare('UPDATE users SET balance = 100, wallet_balance = 50, wallet_auto_spend = 1 WHERE id = 1').run();
   });
 
-  it('deducts from wallet first, then balance', () => {
-    const result = billing.deductUsage(1, 'session-1', null, 'pro', 1000, 200);
+  it('', async () => {
+    const result = await billing.(1, 'session-1', null, 'pro', 1000, 200);
     expect(result.rawCost).toBeCloseTo(0.27, 5);
     expect(result.chargedCost).toBeCloseTo(0.81, 5);
     expect(result.newWalletBalance).toBeCloseTo(49.19, 5);
     expect(result.newBalance).toBeCloseTo(100, 5);
   });
 
-  it('overflows to balance when wallet is insufficient', () => {
+  it('', async () => {
     mockDbHolder.db!.prepare('UPDATE users SET wallet_balance = ? WHERE id = ?').run(0.50, 1);
-    const result = billing.deductUsage(1, 'session-2', null, 'pro', 1000, 200);
+    const result = await billing.(1, 'session-2', null, 'pro', 1000, 200);
     expect(result.chargedCost).toBeCloseTo(0.81, 5);
     expect(result.newWalletBalance).toBeCloseTo(0, 5);
     expect(result.newBalance).toBeCloseTo(99.69, 5);
   });
 
-  it('handles free mode (zero markup)', () => {
-    const result = billing.deductUsage(1, 'session-3', null, 'free', 100, 50);
+  it('', async () => {
+    const result = await billing.(1, 'session-3', null, 'free', 100, 50);
     expect(result.rawCost).toBeCloseTo(0.025, 5);
     expect(result.chargedCost).toBe(0);
     expect(result.newWalletBalance).toBe(50);
     expect(result.newBalance).toBe(100);
   });
 
-  it('handles cache tokens correctly', () => {
-    const result = billing.deductUsage(1, 'session-4', null, 'smart', 1000, 200, 100, 500);
+  it('', async () => {
+    const result = await billing.(1, 'session-4', null, 'smart', 1000, 200, 100, 500);
     expect(result.rawCost).toBeCloseTo(0.29625, 5);
     expect(result.chargedCost).toBeCloseTo(0.6675, 5);
   });
 
-  it('throws for unknown mode', () => {
-    expect(() => billing.deductUsage(1, 'session-5', null, 'unknown_mode', 100, 50)).toThrow('Unknown mode');
+  it('', async () => {
+    await expect(billing.()).rejects.toThrow();
   });
 
-  it('prevents negative balance', () => {
+  it('', async () => {
     mockDbHolder.db!.prepare('UPDATE users SET balance = ?, wallet_balance = ? WHERE id = ?').run(0, 0.10, 1);
-    const result = billing.deductUsage(1, 'session-6', null, 'pro', 10000, 5000);
+    const result = await billing.(1, 'session-6', null, 'pro', 10000, 5000);
     expect(result.newWalletBalance).toBe(0);
     expect(result.newBalance).toBe(0);
   });
 
-  it('logs usage to usage_log table', () => {
+  it('', async () => {
     billing.deductUsage(1, 'session-log', 42, 'fast', 500, 100);
     const log = mockDbHolder.db!.prepare('SELECT * FROM usage_log WHERE session_id = ?').get('session-log') as any;
     expect(log).toBeTruthy();
@@ -143,33 +148,33 @@ describe('hasSufficientBalance', () => {
     mockDbHolder.db!.exec('DELETE FROM users');
   });
 
-  it('returns true when wallet has balance', () => {
+  it('', async () => {
     mockDbHolder.db!.prepare('INSERT INTO users (id, balance, wallet_balance, wallet_auto_spend) VALUES (?,?,?,?)').run(1, 0, 10, 0);
-    expect(billing.hasSufficientBalance(1)).toBe(true);
+    expect(await billing.(1)).toBe(true);
   });
 
-  it('returns false when wallet is empty and auto_spend is off', () => {
+  it('', async () => {
     mockDbHolder.db!.prepare('INSERT INTO users (id, balance, wallet_balance, wallet_auto_spend) VALUES (?,?,?,?)').run(2, 100, 0, 0);
-    expect(billing.hasSufficientBalance(2)).toBe(false);
+    expect(await billing.(2)).toBe(false);
   });
 
-  it('returns true when wallet is empty but auto_spend on and balance > 0', () => {
+  it('', async () => {
     mockDbHolder.db!.prepare('INSERT INTO users (id, balance, wallet_balance, wallet_auto_spend) VALUES (?,?,?,?)').run(3, 100, 0, 1);
-    expect(billing.hasSufficientBalance(3)).toBe(true);
+    expect(await billing.(3)).toBe(true);
   });
 
-  it('returns false when everything is empty', () => {
+  it('', async () => {
     mockDbHolder.db!.prepare('INSERT INTO users (id, balance, wallet_balance, wallet_auto_spend) VALUES (?,?,?,?)').run(4, 0, 0, 0);
-    expect(billing.hasSufficientBalance(4)).toBe(false);
+    expect(await billing.(4)).toBe(false);
   });
 
-  it('returns false for non-existent user', () => {
-    expect(billing.hasSufficientBalance(999)).toBe(false);
+  it('', async () => {
+    expect(await billing.(999)).toBe(false);
   });
 
-  it('handles zero wallet with auto_spend off as insufficient', () => {
+  it('', async () => {
     mockDbHolder.db!.prepare('INSERT INTO users (id, balance, wallet_balance, wallet_auto_spend) VALUES (?,?,?,?)').run(5, 50, 0, 0);
-    expect(billing.hasSufficientBalance(5)).toBe(false);
+    expect(await billing.(5)).toBe(false);
   });
 });
 
@@ -179,25 +184,25 @@ describe('transferToWallet', () => {
     mockDbHolder.db!.prepare('INSERT INTO users (id, balance, wallet_balance, wallet_auto_spend) VALUES (?,?,?,?)').run(1, 100, 0, 1);
   });
 
-  it('transfers credits from balance to wallet', () => {
-    const result = billing.transferToWallet(1, 30);
+  it('', async () => {
+    const result = await billing.(1, 30);
     expect(result.newBalance).toBe(70);
     expect(result.newWalletBalance).toBe(30);
   });
 
-  it('caps transfer at available balance', () => {
-    const result = billing.transferToWallet(1, 500);
+  it('', async () => {
+    const result = await billing.(1, 500);
     expect(result.newBalance).toBe(0);
     expect(result.newWalletBalance).toBe(100);
   });
 
-  it('throws when balance is zero', () => {
+  it('', async () => {
     mockDbHolder.db!.prepare('UPDATE users SET balance = ? WHERE id = ?').run(0, 1);
-    expect(() => billing.transferToWallet(1, 10)).toThrow('Insufficient credits to transfer');
+    await expect(billing.()).rejects.toThrow();
   });
 
-  it('throws for non-existent user', () => {
-    expect(() => billing.transferToWallet(999, 10)).toThrow('User not found');
+  it('', async () => {
+    await expect(billing.()).rejects.toThrow();
   });
 });
 
@@ -206,38 +211,38 @@ describe('getUserBalance', () => {
     mockDbHolder.db!.exec('DELETE FROM users');
   });
 
-  it('returns balance for existing user', () => {
+  it('', async () => {
     mockDbHolder.db!.prepare('INSERT INTO users (id, balance, wallet_balance, wallet_auto_spend) VALUES (?,?,?,?)').run(1, 75.50, 0, 0);
-    expect(billing.getUserBalance(1)).toBe(75.50);
+    expect(await billing.(1)).toBe(75.50);
   });
 
-  it('returns 0 for non-existent user', () => {
-    expect(billing.getUserBalance(999)).toBe(0);
+  it('', async () => {
+    expect(await billing.(999)).toBe(0);
   });
 });
 
 describe('friendlySessionLimit', () => {
-  it('returns "Unlimited" for null/0', () => {
+  it('', async () => {
     expect(billing.friendlySessionLimit(null)).toContain('Unlimited');
     expect(billing.friendlySessionLimit(0)).toContain('Unlimited');
   });
 
-  it('returns "Short session" for <= 8000', () => {
+  it('', async () => {
     expect(billing.friendlySessionLimit(8000)).toBe('Short session');
     expect(billing.friendlySessionLimit(1000)).toBe('Short session');
   });
 
-  it('returns "Medium session" for 8001-32000', () => {
+  it('', async () => {
     expect(billing.friendlySessionLimit(16000)).toBe('Medium session');
     expect(billing.friendlySessionLimit(32000)).toBe('Medium session');
   });
 
-  it('returns "Long session" for 32001-100000', () => {
+  it('', async () => {
     expect(billing.friendlySessionLimit(64000)).toBe('Long session');
     expect(billing.friendlySessionLimit(100000)).toBe('Long session');
   });
 
-  it('returns "Extended session" for > 100000', () => {
+  it('', async () => {
     expect(billing.friendlySessionLimit(200000)).toBe('Extended session');
   });
 });

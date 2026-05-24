@@ -40,6 +40,7 @@ const visibleWins = [
   { title: 'Proof Panel', text: 'Every run ends with evidence: changed files, checks executed, outcomes, and fixes applied.' },
   { title: 'Live Execution Timeline', text: 'You can watch each stage happen in real time: plan, edit, test, fix, done.' },
   { title: 'Checkpoint Rollback', text: 'Each turn creates a restore point so you can return to any earlier working version instantly.' },
+  { title: 'Project-Specific Rules & Persona', text: 'Customize SUNy per project. You can define specific coding rules, behavioral guidelines, and distinct personas so SUNy perfectly adapts to each codebase\'s unique culture.' },
   { title: '🎭 Prompt Variants', text: 'Switch AI personas, tones, and strategies on the fly. Senior Engineer, Patient Teacher, Test-First, or create your own custom variant.' },
   { title: '🌐 Browser Automation', text: 'SUNy navigates web pages, takes screenshots, fills forms, and extracts live data. Perfect for testing and site verification.' },
   { title: '⏰ Scheduled Agents', text: 'Set it and forget it. Schedule SUNy to run daily code reviews, weekly dependency audits, or hourly health checks automatically.' },

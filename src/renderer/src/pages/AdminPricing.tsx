@@ -157,6 +157,38 @@ export default function AdminPricing() {
                 {fmtCost(getField(m.mode, 'output_token_base_cost', m.output_token_base_cost) as number)}
               </div>
             </div>
+            <div style={{ gridColumn: '1 / -1', padding: '12px 16px', background: 'var(--surface)', borderRadius: 'var(--radius)', border: '1px solid var(--accent)' }}>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)', marginBottom: 8 }}>Final Sale Price (What users pay)</div>
+              <div style={{ display: 'flex', gap: 24, fontSize: 13 }}>
+                <div>
+                  <span style={{ color: 'var(--text-muted)' }}>Input: </span>
+                  <span style={{ fontWeight: 700, fontFamily: 'monospace' }}>
+                    {(() => {
+                      try {
+                        const inputCost = (getField(m.mode, 'input_token_base_cost', m.input_token_base_cost) as number) * 1_000_000;
+                        const formula = (getField(m.mode, 'markup_formula', m.markup_formula) as string) || 'cost';
+                        // A quick naive eval just for display. The real eval uses mathjs.
+                        const final = Function('cost', 'input_tokens', 'output_tokens', 'cache_write_tokens', 'cache_read_tokens', `return ${formula}`)(inputCost, 1_000_000, 0, 0, 0);
+                        return `$${final.toFixed(2)} / 1M`;
+                      } catch { return 'Invalid formula'; }
+                    })()}
+                  </span>
+                </div>
+                <div>
+                  <span style={{ color: 'var(--text-muted)' }}>Output: </span>
+                  <span style={{ fontWeight: 700, fontFamily: 'monospace' }}>
+                    {(() => {
+                      try {
+                        const outputCost = (getField(m.mode, 'output_token_base_cost', m.output_token_base_cost) as number) * 1_000_000;
+                        const formula = (getField(m.mode, 'markup_formula', m.markup_formula) as string) || 'cost';
+                        const final = Function('cost', 'input_tokens', 'output_tokens', 'cache_write_tokens', 'cache_read_tokens', `return ${formula}`)(outputCost, 0, 1_000_000, 0, 0);
+                        return `$${final.toFixed(2)} / 1M`;
+                      } catch { return 'Invalid formula'; }
+                    })()}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>

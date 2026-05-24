@@ -27,7 +27,7 @@ process.env.SERPER_API_KEY = 'test_serper_key_1234567890abcdef';
 process.env.SUNY_SECRET_JWT = 'test-jwt-secret-key-for-testing-only-12345678';
 process.env.SUNY_DB_PATH = TEST_DB_PATH;
 
-import { getDb } from './db';
+import { getDb, getAdapter } from './db';
 import { isFeatureEnabled, getAllFeatureFlags, setFeatureFlag } from './feature-flags';
 import { getKeysForMode, getModelForMode, getModelsForMode, getVisionCapableModels, isCachingEnabled, getEditFormat } from './agent';
 import { loadTrainingAndRules } from './training-loader';
@@ -618,14 +618,14 @@ describe('6. Injection Guard (tests 71-80)', () => {
 
 describe('7. Behavioral Rules (tests 81-90)', () => {
   // 81
-  it('getRelevantRules should return empty array when no rules exist for user', () => {
-    const rules = getRelevantRules(99999);
+  it('getRelevantRules should return empty array when no rules exist for user', async () => {
+    const rules = await getRelevantRules(getAdapter(), );
     expect(Array.isArray(rules)).toBe(true);
   });
 
   // 82
   it('extractMistakeRule should extract a rule from context', async () => {
-    const result = await extractMistakeRule(42, null, 'lint', {
+    const result = await extractMistakeRule(getAdapter(), ), null, 'lint', {
       errorCount: 3,
       retriesUsed: 2,
       gaveUp: false,
@@ -636,7 +636,7 @@ describe('7. Behavioral Rules (tests 81-90)', () => {
 
   // 83
   it('extractMistakeRule should handle test failures', async () => {
-    const result = await extractMistakeRule(42, null, 'test', {
+    const result = await extractMistakeRule(getAdapter(), ), null, 'test', {
       errorCount: 5,
       retriesUsed: 3,
       gaveUp: true,
@@ -647,7 +647,7 @@ describe('7. Behavioral Rules (tests 81-90)', () => {
 
   // 84
   it('extractMistakeRule should handle null projectId', async () => {
-    const result = await extractMistakeRule(42, null, 'lint', {
+    const result = await extractMistakeRule(getAdapter(), ), null, 'lint', {
       errorCount: 1,
       retriesUsed: 0,
       gaveUp: false,
@@ -657,8 +657,8 @@ describe('7. Behavioral Rules (tests 81-90)', () => {
   });
 
   // 85
-  it('formatBehavioralRules should return string or null', () => {
-    const rules = getRelevantRules(99999);
+  it('formatBehavioralRules should return string or null', async () => {
+    const rules = await getRelevantRules(getAdapter(), );
     const result = formatBehavioralRules(rules);
     // Either null (no rules) or a string
     expect(result === null || typeof result === 'string').toBe(true);
@@ -667,7 +667,7 @@ describe('7. Behavioral Rules (tests 81-90)', () => {
   // 86
   it('should handle extractMistakeRule with large context', async () => {
     const largeContext = 'A'.repeat(5000);
-    const result = await extractMistakeRule(42, null, 'runtime', {
+    const result = await extractMistakeRule(getAdapter(), ), null, 'runtime', {
       errorCount: 10,
       retriesUsed: 5,
       gaveUp: true,
@@ -678,7 +678,7 @@ describe('7. Behavioral Rules (tests 81-90)', () => {
 
   // 87
   it('should handle extractMistakeRule for "runtime" category', async () => {
-    const result = await extractMistakeRule(42, null, 'runtime', {
+    const result = await extractMistakeRule(getAdapter(), ), null, 'runtime', {
       errorCount: 2,
       retriesUsed: 1,
       gaveUp: false,
@@ -689,7 +689,7 @@ describe('7. Behavioral Rules (tests 81-90)', () => {
 
   // 88
   it('should handle extractMistakeRule for "logic" category', async () => {
-    const result = await extractMistakeRule(42, null, 'logic', {
+    const result = await extractMistakeRule(getAdapter(), ), null, 'logic', {
       errorCount: 1,
       retriesUsed: 0,
       gaveUp: false,
@@ -700,7 +700,7 @@ describe('7. Behavioral Rules (tests 81-90)', () => {
 
   // 89
   it('should handle extractMistakeRule for "security" category', async () => {
-    const result = await extractMistakeRule(42, null, 'security', {
+    const result = await extractMistakeRule(getAdapter(), ), null, 'security', {
       errorCount: 4,
       retriesUsed: 2,
       gaveUp: false,
@@ -711,7 +711,7 @@ describe('7. Behavioral Rules (tests 81-90)', () => {
 
   // 90
   it('should handle extractMistakeRule for "performance" category', async () => {
-    const result = await extractMistakeRule(42, null, 'performance', {
+    const result = await extractMistakeRule(getAdapter(), ), null, 'performance', {
       errorCount: 2,
       retriesUsed: 1,
       gaveUp: false,
