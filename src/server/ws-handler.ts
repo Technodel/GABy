@@ -19,7 +19,7 @@ import { initializeInteractionPatternsTable } from './interaction-memory';
 import { initializePresenceTable } from './presence';
 import { generateBlueprintForSession } from './blueprint-memory';
 import { loadAgentContext } from './agent-context-assembler';
-import { AgentTurnLog, recordAgentTurn } from './agent-telemetry';
+import { AgentTurnLog, recordAgentTurn } from './metrics';
 
 export function attachWebSockets(server: http.Server) {
   // ── WebSocket server ───────────────────────────────────────────────────────────
@@ -1674,7 +1674,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           const indexKey = `indexed:${projectPath}`;
           const alreadyIndexed = await db.get("SELECT value FROM app_settings WHERE key = ?", [indexKey]) as { value: string } | undefined;
           if (!alreadyIndexed) {
-            setImmediate(() => {
+            setImmediate(async () => {
               try {
                 const stats = indexProject(projectPath);
                 console.log(`[code-index] Indexed ${stats.filesIndexed} files (${stats.totalSymbols} symbols, ${stats.totalImports} imports)`);
@@ -2309,7 +2309,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
     if (queuedMessage) {
       const nextRaw = queuedMessage;
       queuedMessage = null;
-      setImmediate(() => { ws.emit('message', nextRaw); });
+      setImmediate(async () => { ws.emit('message', nextRaw); });
     }
   });
 }
