@@ -221,7 +221,7 @@ export default function PricingPlans() {
                         <div style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: 15, color: MODE_ACCENT[mode] }}>
                           {pm ? fmtPrice(pm.output_price_per_1m) : '—'}
                         </div>
-                        <div style={{ fontSize: 10, color: 'var(--text-muted)', marginTop: 3 }}>after markup applied</div>
+
                       </div>
                     </div>
                   )}
