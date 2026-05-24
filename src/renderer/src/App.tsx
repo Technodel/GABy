@@ -16,6 +16,7 @@ import AdminSettings from './pages/AdminSettings';
 import AdminContactInfo from './pages/AdminContactInfo';
 import AdminFeatureFlags from './pages/AdminFeatureFlags';
 import AdminTopUps from './pages/AdminTopUps';
+import AdminMcpMarketplace from './pages/AdminMcpMarketplace';
 import PricingPlans from './pages/PricingPlans';
 import ClientRequest from './pages/ClientRequest';
 import ClientTickets from './pages/ClientTickets';
@@ -135,6 +136,7 @@ function AppRoutes() {
         <Route path="api-keys" element={<AdminApiKeys />} />
         <Route path="pricing" element={<AdminPricing />} />
         <Route path="usage" element={<AdminUsageStats />} />
+        <Route path="mcp-marketplace" element={<AdminMcpMarketplace />} />
         <Route path="settings" element={<AdminSettings />} />
         <Route path="contact" element={<AdminContactInfo />} />
         <Route path="feature-flags" element={<AdminFeatureFlags />} />

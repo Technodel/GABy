@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { Users, Key, DollarSign, BarChart2, Phone, Settings, LogOut, Menu, X, Flag, CreditCard } from 'lucide-react';
+import { Users, Key, DollarSign, BarChart2, Phone, Settings, LogOut, Menu, X, Flag, CreditCard, Package } from 'lucide-react';
 import { useState } from 'react';
 
 const NAV_ITEMS = [
@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { path: '/admin/top-ups', icon: CreditCard, label: 'Top-Ups' },
   { path: '/admin/usage', icon: BarChart2, label: 'Reports' },
   { path: '/admin/feature-flags', icon: Flag, label: 'Feature Flags' },
+  { path: '/admin/mcp-marketplace', icon: Package, label: 'MCP Servers' },
   { path: '/admin/contact', icon: Phone, label: 'Contact Info' },
   { path: '/admin/settings', icon: Settings, label: 'Settings' },
 ];
