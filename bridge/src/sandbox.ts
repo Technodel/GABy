@@ -5,7 +5,7 @@ import { getRegisteredPaths } from './config';
 const ALLOWED_COMMAND_PREFIXES = [
   'npm', 'npx', 'node', 'python', 'python3', 'pip', 'pip3',
   'git', 'cargo', 'go', 'yarn', 'pnpm', 'bun', 'tsx', 'ts-node',
-  'mvn', 'gradle', 'dotnet', 'ruby', 'bundle', 'cmd', 'powershell', 'pwsh', 'bash', 'sh', 'zsh',
+  'mvn', 'gradle', 'dotnet', 'ruby', 'bundle'
 ];
 
 export class SandboxError extends Error {
