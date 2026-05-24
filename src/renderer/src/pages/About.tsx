@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 type Lang = 'en' | 'ar';
@@ -75,7 +75,6 @@ function EnglishContent() {
             { title: '🧬 Design Memory', desc: 'SUNy remembers every design decision you make — across sessions, projects, and restarts. It never forgets why something was done a certain way.' },
             { title: '🛡️ Change Guardian', desc: 'Before changes reach your code, SUNy checks whether they drift from your stated intent. Unintended contract changes are flagged instantly.' },
             { title: '⏳ Compound Knowledge', desc: 'Every session makes SUNy smarter about your project. Design memory compounds like a knowledge flywheel — the more you use it, the better it gets.' },
-            { title: '🤝 Bidirectional', desc: 'Both you and the AI benefit. SUNy gives you context-aware answers, and you get a sidekick that truly understands your codebase.' },
           ].map(f => (
             <div key={f.title} style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--bg)' }}>
               <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{f.title}</h3>
@@ -220,7 +219,6 @@ function ArabicContent() {
             { title: '🧬 ذاكرة التصميم', desc: 'SUNy يتذكر كل قرار تصميم تتخذه — عبر الجلسات والمشاريع. لا ينسى ابدا لماذا تم عمل شيء بطريقة معينة.' },
             { title: '🛡️ حارس التغيير', desc: 'قبل ان تصل التغييرات الى كودك، يتحقق SUNy مما اذا كانت تنحرف عن نيتك المعلنة. يتم اكتشاف تغييرات العقود غير المقصودة فورا.' },
             { title: '⏳ معرفة متراكمة', desc: 'كل جلسة تجعل SUNy اذكى بشأن مشروعك. ذاكرة التصميم تتراكم مثل دولاب المعرفة — كلما استخدمته اكثر، كلما اصبح افضل.' },
-            { title: '🤝 ثنائي الاتجاه', desc: 'انت والذكاء الاصطناعي تستفيدان معا. SUNy يعطيك اجابات واعية بالسياق، وانت تحصل على مساعد يفهم قاعدة اكوادك حقا.' },
           ].map(f => (
             <div key={f.title} style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--bg)' }}>
               <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{f.title}</h3>
