@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { getDb } from './db';
+import { getAdapter } from './db';
 
 const JWT_SECRET = (() => {
   const secret = process.env.SUNY_SECRET_JWT;
@@ -84,7 +84,7 @@ function extractBearerToken(req: Request): string | null {
 }
 
 // Admin login handler
-export function adminLogin(req: Request, res: Response): void {
+export async function adminLogin(req: Request, res: Response): void {
   const { password } = req.body as { password?: string };
   if (!password) {
     res.status(401).json({ error: 'Password required' });
@@ -93,8 +93,8 @@ export function adminLogin(req: Request, res: Response): void {
   // Use DB-stored hash as single source of truth.
   // One-time bootstrap: if no hash exists yet, set it from SUNY_ADMIN_PASSWORD env (then it's hashed and stored).
   try {
-    const db = getDb();
-    let row = db.prepare("SELECT value FROM app_settings WHERE key = 'admin_password_hash'").get() as { value: string } | undefined;
+    const db = getAdapter();
+    let row = await db.get("SELECT value FROM app_settings WHERE key = 'admin_password_hash'") as { value: string } | undefined;
     if (!row) {
       const bootstrap = process.env.SUNY_ADMIN_PASSWORD;
       if (!bootstrap) {
@@ -102,7 +102,7 @@ export function adminLogin(req: Request, res: Response): void {
         return;
       }
       const hash = bcrypt.hashSync(bootstrap, 12);
-      db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('admin_password_hash', ?)").run(hash);
+      await db.run("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('admin_password_hash', ?)", [hash]);
       console.log('[auth] One-time bootstrap: admin password hashed and stored in DB.');
       row = { value: hash };
     }
@@ -125,15 +125,15 @@ export function adminLogin(req: Request, res: Response): void {
 }
 
 // User login handler
-export function userLogin(req: Request, res: Response): void {
+export async function userLogin(req: Request, res: Response): void {
   const { username, password } = req.body as { username?: string; password?: string };
   if (!username || !password) {
     res.status(400).json({ error: 'Username and password required' });
     return;
   }
 
-  const db = getDb();
-  const user = db.prepare('SELECT * FROM users WHERE username = ? AND is_active = 1').get(username) as UserRow | undefined;
+  const db = getAdapter();
+  const user = await db.get('SELECT * FROM users WHERE username = ? AND is_active = 1', [username]) as UserRow | undefined;
 
   if (!user || !bcrypt.compareSync(password, user.password_hash)) {
     res.status(401).json({ error: 'Invalid credentials' });
@@ -141,7 +141,7 @@ export function userLogin(req: Request, res: Response): void {
   }
 
   // Read role from users table (default 'user' for backward compatibility)
-  const row = db.prepare("SELECT role FROM users WHERE id = ?").get(user.id) as { role: string } | undefined;
+  const row = await db.get("SELECT role FROM users WHERE id = ?", [user.id]) as { role: string } | undefined;
   const role = (row?.role as 'admin' | 'user') || 'user';
 
   const token = signToken({ id: user.id, username: user.username, role });
@@ -180,11 +180,11 @@ export function logout(_req: Request, res: Response): void {
   res.json({ success: true });
 }
 
-export function userRegister(req: Request, res: Response): void {
-  const db = getDb();
+export async function userRegister(req: Request, res: Response): void {
+  const db = getAdapter();
 
   // Check if self-registration is allowed
-  const allowReg = db.prepare("SELECT value FROM app_settings WHERE key='allow_registration'").get() as { value: string } | undefined;
+  const allowReg = await db.get("SELECT value FROM app_settings WHERE key='allow_registration'") as { value: string } | undefined;
   if (allowReg?.value !== 'true') {
     res.status(403).json({ error: 'Registration is currently closed. Please contact support.' });
     return;
@@ -199,7 +199,7 @@ export function userRegister(req: Request, res: Response): void {
     res.status(400).json({ error: 'Password must be at least 6 characters.' }); return;
   }
 
-  const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
+  const existing = await db.get('SELECT id FROM users WHERE username = ?', [username]);
   if (existing) { res.status(409).json({ error: 'Username already taken.' }); return; }
 
   const hash = bcrypt.hashSync(password, 12);

@@ -1,5 +1,5 @@
 import { evaluate } from 'mathjs';
-import { getDb } from './db';
+import { getAdapter } from './db';
 
 interface PricingMode {
   mode: string;
@@ -25,7 +25,7 @@ interface BillingResult {
  *   cacheWriteTokens: 1.25x  (one-time cost to store block in Anthropic's cache)
  *   cacheReadTokens:  0.10x  (90% discount — the payoff on cached turns)
  */
-export function deductUsage(
+export async function deductUsage(
   userId: number,
   sessionId: string,
   projectId: number | null,
@@ -35,12 +35,10 @@ export function deductUsage(
   cacheWriteTokens = 0,
   cacheReadTokens = 0,
   apiKeyId?: number
-): BillingResult {
-  const db = getDb();
+): Promise<BillingResult> {
+  const db = getAdapter();
 
-  const pricing = db
-    .prepare('SELECT * FROM pricing_modes WHERE mode = ?')
-    .get(mode) as PricingMode | undefined;
+  const pricing = await db.get('SELECT * FROM pricing_modes WHERE mode = ?', [mode]) as PricingMode | undefined;
 
   if (!pricing) {
     throw new Error(`Unknown mode: ${mode}`);
@@ -53,7 +51,7 @@ export function deductUsage(
 
   // Use the actual API key's configured token rates if available
   if (apiKeyId) {
-    const keyPricing = db.prepare('SELECT base_cost_prompt, base_cost_completion, sale_price_prompt, sale_price_completion FROM api_keys WHERE id = ?').get(apiKeyId) as any;
+    const keyPricing = await db.get('SELECT base_cost_prompt, base_cost_completion, sale_price_prompt, sale_price_completion FROM api_keys WHERE id = ?', [apiKeyId]) as any;
     if (keyPricing) {
       if (keyPricing.base_cost_prompt && keyPricing.base_cost_prompt > 0) inputBase = keyPricing.base_cost_prompt / 1000000;
       if (keyPricing.base_cost_completion && keyPricing.base_cost_completion > 0) outputBase = keyPricing.base_cost_completion / 1000000;
@@ -112,26 +110,25 @@ export function deductUsage(
   // 2. If wallet runs out, overflow to main balance regardless of auto_spend.
   //    auto_spend only controls whether the UX shows a warning — billing integrity
   //    must never allow undercharging since the AI provider was already called.
-  const userRow = db.prepare('SELECT wallet_balance, wallet_auto_spend, balance FROM users WHERE id = ?')
-    .get(userId) as { wallet_balance: number; wallet_auto_spend: number; balance: number } | undefined;
+  const userRow = await db.get('SELECT wallet_balance, wallet_auto_spend, balance FROM users WHERE id = ?', [userId]) as { wallet_balance: number; wallet_auto_spend: number; balance: number } | undefined;
 
   const currentWallet = userRow?.wallet_balance ?? 0;
 
   const walletDeduct = Math.min(chargedCost, currentWallet);
   const balanceDeduct = Math.max(0, chargedCost - walletDeduct);
 
-  db.prepare('UPDATE users SET wallet_balance = MAX(0, wallet_balance - ?) WHERE id = ?').run(walletDeduct, userId);
+  await db.run('UPDATE users SET wallet_balance = MAX(0, wallet_balance - ?) WHERE id = ?', [walletDeduct, userId]);
   if (balanceDeduct > 0) {
-    db.prepare('UPDATE users SET balance = MAX(0, balance - ?) WHERE id = ?').run(balanceDeduct, userId);
+    await db.run('UPDATE users SET balance = MAX(0, balance - ?) WHERE id = ?', [balanceDeduct, userId]);
   }
 
   // Log usage (internal only)
-  db.prepare(`
+  await db.run(`
     INSERT INTO usage_log (user_id, session_id, project_id, mode, input_tokens, output_tokens, cache_write_tokens, cache_read_tokens, raw_cost, charged_cost)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(userId, sessionId, projectId, mode, inputTokens, outputTokens, cacheWriteTokens, cacheReadTokens, rawCost, chargedCost);
+  `, [userId, sessionId, projectId, mode, inputTokens, outputTokens, cacheWriteTokens, cacheReadTokens, rawCost, chargedCost]);
 
-  const updated = db.prepare('SELECT balance, wallet_balance FROM users WHERE id = ?').get(userId) as { balance: number; wallet_balance: number };
+  const updated = await db.get('SELECT balance, wallet_balance FROM users WHERE id = ?', [userId]) as { balance: number; wallet_balance: number };
 
   return { rawCost, chargedCost, newBalance: updated?.balance ?? 0, newWalletBalance: updated?.wallet_balance ?? 0 };
 }
@@ -140,10 +137,9 @@ export function deductUsage(
  * Check if a user has sufficient funds to proceed.
  * True if wallet_balance > 0, OR (wallet_auto_spend is on AND main balance > 0).
  */
-export function hasSufficientBalance(userId: number): boolean {
-  const db = getDb();
-  const user = db.prepare('SELECT balance, wallet_balance, wallet_auto_spend FROM users WHERE id = ?')
-    .get(userId) as { balance: number; wallet_balance: number | null; wallet_auto_spend: number } | undefined;
+export async function hasSufficientBalance(userId: number): Promise<boolean> {
+  const db = getAdapter();
+  const user = await db.get('SELECT balance, wallet_balance, wallet_auto_spend FROM users WHERE id = ?', [userId]) as { balance: number; wallet_balance: number | null; wallet_auto_spend: number } | undefined;
   if (!user) return false;
   const wallet = user.wallet_balance ?? 0;   // guard against NULL rows pre-migration
   const balance = user.balance ?? 0;
@@ -155,17 +151,14 @@ export function hasSufficientBalance(userId: number): boolean {
 /**
  * Transfer credits from main balance to wallet (bot fuel tank).
  */
-export function transferToWallet(userId: number, amount: number): { newBalance: number; newWalletBalance: number } {
-  const db = getDb();
-  const user = db.prepare('SELECT balance FROM users WHERE id = ?')
-    .get(userId) as { balance: number } | undefined;
+export async function transferToWallet(userId: number, amount: number): Promise<{ newBalance: number; newWalletBalance: number }> {
+  const db = getAdapter();
+  const user = await db.get('SELECT balance FROM users WHERE id = ?', [userId]) as { balance: number } | undefined;
   if (!user) throw new Error('User not found');
   const actual = Math.min(amount, user.balance);
   if (actual <= 0) throw new Error('Insufficient credits to transfer');
-  db.prepare('UPDATE users SET balance = balance - ?, wallet_balance = COALESCE(wallet_balance, 0) + ? WHERE id = ?')
-    .run(actual, actual, userId);
-  const updated = db.prepare('SELECT balance, wallet_balance FROM users WHERE id = ?')
-    .get(userId) as { balance: number; wallet_balance: number };
+  await db.get('UPDATE users SET balance = balance - ?, wallet_balance = COALESCE(wallet_balance, 0) + ? WHERE id = ?', [actual, actual, userId]);
+  const updated = await db.get('SELECT balance, wallet_balance FROM users WHERE id = ?', [userId]) as { balance: number; wallet_balance: number };
   return { newBalance: updated.balance, newWalletBalance: updated.wallet_balance };
 }
 
@@ -173,9 +166,9 @@ export function transferToWallet(userId: number, amount: number): { newBalance: 
  * Get a user's current balance (for top-bar display).
  * Returns only the number — nothing else.
  */
-export function getUserBalance(userId: number): number {
-  const db = getDb();
-  const user = db.prepare('SELECT balance FROM users WHERE id = ?').get(userId) as { balance: number } | undefined;
+export async function getUserBalance(userId: number): Promise<number> {
+  const db = getAdapter();
+  const user = await db.get('SELECT balance FROM users WHERE id = ?', [userId]) as { balance: number } | undefined;
   return user?.balance ?? 0;
 }
 
