@@ -72,7 +72,7 @@ function EnglishContent() {
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
           {[
-            { title: '🧬 Design Memory', desc: 'SUNy remembers every design decision you make — across sessions, projects, and restarts. It never forgets why something was done a certain way.' },
+            { title: '🧬 Design Memory', desc: 'Persistent blueprint memory keeps intent, architecture choices, and outcomes available across sessions — across restarts, projects, and teams.' },
             { title: '🛡️ Change Guardian', desc: 'Before changes reach your code, SUNy checks whether they drift from your stated intent. Unintended contract changes are flagged instantly.' },
             { title: '⏳ Compound Knowledge', desc: 'Every session makes SUNy smarter about your project. Design memory compounds like a knowledge flywheel — the more you use it, the better it gets.' },
           ].map(f => (
@@ -112,18 +112,18 @@ function EnglishContent() {
         </div>
       </div>
 
-      <div className="card" style={{ marginBottom: 24, borderColor: 'var(--accent)', borderWidth: 2, background: 'rgba(108,99,255,0.06)' }}>
-        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 10 }}>🧠 Code Conscience Upgrades</h2>
+      <div className="card" style={{ marginBottom: 24, borderColor: 'var(--success)', borderWidth: 2, background: 'rgba(34,197,94,0.06)' }}>
+        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 10 }}>🗺️ Smart Code Navigation</h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.7, marginBottom: 16 }}>
-          The memory system now has stronger control over how SUNy thinks and remembers on each project.
+          SUNy no longer starts blind. Five new systems dramatically reduce token usage and speed up targeted edits by 60–80%. Instead of reading 50 files to find one line, SUNy navigates directly to the right spot.
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
           {[
-            { title: '🧬 Design Memory', desc: 'Persistent blueprint memory keeps intent, architecture choices, and outcomes available across sessions.' },
-            { title: '🛡️ Change Guardian', desc: 'Intent-aware drift detection flags unexpected contract changes before they ship.' },
-            { title: '🧊 Freeze Brain', desc: 'Project-level snapshot pinning keeps memory and rules stable until you deliberately unfreeze them.' },
-            { title: '🧬 Activation Controller', desc: 'Multiple behavior sources (memories, rules, skills) are composed into a single weighted profile using activation-space techniques. The strongest signals drive SUNy without verbose injection.' },
-            { title: '🧬 Activation Controller', desc: 'Multiple behavior sources (memories, rules, skills) are composed into a single weighted profile using activation-space techniques. The strongest signals drive SUNy without verbose injection.' },
+            { title: '🔍 Semantic Code Search', desc: 'SUNy queries the persistent code index by symbol name or concept — returns exact file paths and line numbers. No more scanning the whole project.' },
+            { title: '📋 On-Demand Repo Map', desc: 'The project map is now a tool SUNy calls only when needed, saving 1,500–2,500 tokens per request compared to auto-injecting it every time.' },
+            { title: '📁 Auto .suny-rules', desc: 'After indexing, SUNy auto-generates a .suny-rules file with the top 50 exports organized by file — a human-readable project map loaded into every session.' },
+            { title: '🔗 Who Imports This?', desc: 'Before editing a symbol, SUNy checks its blast radius — finds every file that imports it so no downstream breakage is missed.' },
+            { title: '📐 Scope Declaration Law', desc: 'SUNy must declare its edit target and confidence level before every change. Low confidence triggers a code_search call first — preventing wrong-file edits.' },
           ].map(f => (
             <div key={f.title} style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--bg)' }}>
               <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{f.title}</h3>
@@ -137,6 +137,7 @@ function EnglishContent() {
 
       {[
         { icon: 'GOAL', title: '🎯 Persistent Goal Tracking', desc: 'SUNy remembers what it was working on across sessions. Active goals persist with success criteria and evidence collection. Pick up exactly where you left off.' },
+        { icon: 'NAV', title: '🗺️ Smart Code Navigation', desc: 'SUNy uses semantic code search, on-demand repo maps, and auto-generated project rules to find files instantly — no more scanning 50 files to find one line.' },
         { icon: 'READ', title: 'It reads your entire project', desc: 'SUNy explores your project automatically to understand how everything fits together before touching a single file.' },
         { icon: 'EDIT', title: 'It writes, edits & creates files', desc: 'SUNy can create new files, modify existing ones, and organize your project -- all without you lifting a finger.' },
         { icon: 'AUTO', title: 'It handles the hard stuff automatically', desc: 'SUNy runs everything behind the scenes while keeping you in the loop with friendly, plain-English updates.' },
@@ -233,6 +234,27 @@ function ArabicContent() {
         </div>
       </div>
 
+      <div className="card" style={{ marginBottom: 24, borderColor: 'var(--success)', borderWidth: 2, background: 'rgba(34,197,94,0.06)' }}>
+        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 10 }}>🗺️ التنقل الذكي في الكود</h2>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.8, marginBottom: 16 }}>
+          لم يعد SUNy يبدأ أعمى. خمسة أنظمة جديدة تقلل استخدام التوكنز وتسرّع التعديلات الموجهة بنسبة 60–80%. بدلاً من قراءة 50 ملفاً للعثور على سطر واحد، يتنقل SUNy مباشرة إلى المكان الصحيح.
+        </p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
+          {[
+            { title: '🔍 البحث الدلالي في الكود', desc: 'يبحث SUNy في فهرس الكود الدائم بالاسم أو المفهوم — ويعيد مسارات الملفات وأرقام الأسطر بالضبط. لا مزيد من تصفح المشروع بأكمله.' },
+            { title: '📋 خريطة المشروع عند الطلب', desc: 'أصبحت خريطة المشروع أداة يستدعيها SUNy فقط عند الحاجة، مما يوفر 1,500–2,500 توكن لكل طلب مقارنة بالحقن التلقائي.' },
+            { title: '📁 التوليد التلقائي لـ .suny-rules', desc: 'بعد الفهرسة، يولّد SUNy ملف .suny-rules بأهم 50 تصديراً مرتبة حسب الملف — خريطة مشروع مقروءة تُحمّل في كل جلسة.' },
+            { title: '🔗 من يستورد هذا؟', desc: 'قبل تعديل أي رمز، يتحقق SUNy من نطاق التأثير — يجد كل ملف يستورده حتى لا يفوت أي كسر.' },
+            { title: '📐 قانون إعلان النطاق', desc: 'يجب على SUNy إعلان هدف التعديل ومستوى الثقة قبل كل تغيير. الثقة المنخفضة تؤدي إلى بحث دلالي أولاً.' },
+          ].map(f => (
+            <div key={f.title} style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--bg)' }}>
+              <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{f.title}</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.8, margin: 0 }}>{f.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
       <div className="card" style={{ marginBottom: 24, borderColor: 'var(--accent)', borderWidth: 2, background: 'rgba(108,99,255,0.06)' }}>
         <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 10 }}>🧪 الجديد في هذه النسخة</h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.8, marginBottom: 16 }}>
@@ -262,6 +284,7 @@ function ArabicContent() {
 
       {[
         { icon: 'GOAL', title: '🎯 تتبع الاهداف المستمر', desc: 'SUNy يتذكر ما كان يعمل عليه عبر الجلسات. الاهداف النشطة تحتفظ بمعايير النجاح والادلة. استمر من حيث توقفت.' },
+        { icon: 'NAV', title: '🗺️ التنقل الذكي في الكود', desc: 'يستخدم SUNy البحث الدلالي، خرائط المشروع عند الطلب، وقواعد المشروع المولّدة تلقائياً للعثور على الملفات فوراً — لا مزيد من تصفح 50 ملفاً للعثور على سطر واحد.' },
         { icon: 'READ', title: 'يقرا مشروعك بالكامل', desc: 'يستكشف SUNy مشروعك تلقائيا ويفهم كيف يرتبط كل شيء ببعضه قبل ان يلمس اي ملف.' },
         { icon: 'EDIT', title: 'يكتب، يعدل، وينشئ الملفات', desc: 'يستطيع SUNy انشاء ملفات جديدة، تعديل الموجودة، وتنظيم مشروعك -- كل ذلك دون ان تحرك اصبعا.' },
         { icon: 'AUTO', title: 'يتعامل مع الامور الصعبة تلقائيا', desc: 'ينجز SUNy كل شيء خلف الكواليس، ويبقيك على اطلاع بتحديثات ودية وبلغة بسيطة.' },

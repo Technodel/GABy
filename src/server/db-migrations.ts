@@ -25,6 +25,13 @@ async function createFoundationTables(adapter: DbAdapter): Promise<void> {
       value TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS user_cache_counters (
+      user_id INTEGER PRIMARY KEY,
+      cached_tokens INTEGER DEFAULT 0,
+      updated_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY(user_id) REFERENCES users(id)
+    );
+
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT UNIQUE NOT NULL,

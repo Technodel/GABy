@@ -253,7 +253,8 @@ router.get('/usage-stats', async (req: Request, res: Response) => {
       COALESCE(SUM(ul.cache_read_tokens), 0) AS total_cache_read,
       ROUND(SUM(ul.raw_cost), 6)            AS total_raw_cost,
       ROUND(SUM(ul.charged_cost), 6)        AS total_charged,
-      ROUND(SUM(ul.charged_cost) - SUM(ul.raw_cost), 6) AS total_profit
+      ROUND(SUM(ul.charged_cost) - SUM(ul.raw_cost), 6) AS total_profit,
+      COALESCE((SELECT SUM(cached_tokens) FROM user_cache_counters), 0) AS total_cached_saved
     FROM usage_log ul ${where}
   `, params);
 
@@ -272,9 +273,11 @@ router.get('/usage-stats', async (req: Request, res: Response) => {
       ROUND(SUM(ul.charged_cost), 6)        AS charged,
       ROUND(SUM(ul.charged_cost) - SUM(ul.raw_cost), 6) AS profit,
       u.balance                             AS balance_left,
-      u.wallet_balance                      AS wallet_balance
+      u.wallet_balance                      AS wallet_balance,
+      COALESCE(ucc.cached_tokens, 0)        AS cached_tokens_saved
     FROM usage_log ul
     JOIN users u ON u.id = ul.user_id
+    LEFT JOIN user_cache_counters ucc ON ucc.user_id = u.id
     ${where}
     GROUP BY ul.user_id
     ORDER BY charged DESC
@@ -342,6 +345,27 @@ router.get('/usage-stats', async (req: Request, res: Response) => {
   `, params);
 
   res.json({ summary, perUser, perMode, recent, perDay });
+});
+
+// ── Cached Tokens per User ─────────────────────────────────────────────────────
+
+router.get('/cached-tokens', async (_req: Request, res: Response) => {
+  const db = await getAdapter();
+  const rows = await db.all(`
+    SELECT ucc.user_id, u.username, u.display_name, ucc.cached_tokens, ucc.updated_at
+    FROM user_cache_counters ucc
+    JOIN users u ON u.id = ucc.user_id
+    ORDER BY ucc.cached_tokens DESC
+  `);
+  res.json(rows);
+});
+
+router.post('/cached-tokens/:userId/reset', async (req: Request, res: Response) => {
+  const db = await getAdapter();
+  const userId = parseInt(req.params.userId, 10);
+  if (!userId) return res.status(400).json({ error: 'Invalid user_id' });
+  await db.run('UPDATE user_cache_counters SET cached_tokens = 0, updated_at = datetime(\'now\') WHERE user_id = ?', [userId]);
+  res.json({ ok: true });
 });
 
 // ── Settings ───────────────────────────────────────────────────────────────────

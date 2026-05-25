@@ -9,6 +9,7 @@ interface Summary {
   total_output_tokens: number;
   total_cache_write: number;
   total_cache_read: number;
+  total_cached_saved: number;
   total_raw_cost: number;
   total_charged: number;
   total_profit: number;
@@ -23,6 +24,7 @@ interface UserStat {
   output_tokens: number;
   cache_write_tokens: number;
   cache_read_tokens: number;
+  cached_tokens_saved: number;
   raw_cost: number;
   charged: number;
   profit: number;
@@ -211,9 +213,17 @@ export default function AdminUsageStats() {
           />
           {(summary.total_cache_write + summary.total_cache_read) > 0 && (
             <SummaryCard
-              label="Cache Tokens"
+              label="Cache Tokens (Session)"
               value={fmtK(summary.total_cache_write + summary.total_cache_read)}
               sub={`${fmtK(summary.total_cache_write)} write · ${fmtK(summary.total_cache_read)} read`}
+            />
+          )}
+          {summary.total_cached_saved > 0 && (
+            <SummaryCard
+              label="💾 Tokens Saved via Cache"
+              value={fmtK(summary.total_cached_saved)}
+              sub="Cumulative — resettable per user"
+              color="var(--success, #22c55e)"
             />
           )}
         </div>
@@ -249,6 +259,7 @@ export default function AdminUsageStats() {
               <tr>
                 <th style={{ textAlign: 'left' }}>User</th>
                 <th>Calls</th>
+                <th>💾 Cached</th>
                 <th>Input Tokens</th>
                 <th>Output Tokens</th>
                 <th>Provider Cost</th>
@@ -269,6 +280,22 @@ export default function AdminUsageStats() {
                     )}
                   </td>
                   <td style={{ textAlign: 'center' }}>{u.sessions}</td>
+                  <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    <span style={{ color: u.cached_tokens_saved > 0 ? 'var(--success, #22c55e)' : 'var(--text-muted)' }}>
+                      {fmtK(u.cached_tokens_saved)}
+                    </span>
+                    {u.cached_tokens_saved > 0 && (
+                      <span
+                        title="Reset cached tokens counter"
+                        style={{ cursor: 'pointer', marginLeft: 6, fontSize: 14, opacity: 0.6 }}
+                        onClick={async () => {
+                          if (!confirm(`Reset cached tokens for ${u.username}?`)) return;
+                          await fetch(`/admin/api/cached-tokens/${u.user_id}/reset`, { method: 'POST', credentials: 'include' });
+                          load();
+                        }}
+                      >🔄</span>
+                    )}
+                  </td>
                   <td style={{ textAlign: 'right' }}>{fmtK(u.input_tokens)}</td>
                   <td style={{ textAlign: 'right' }}>{fmtK(u.output_tokens)}</td>
                   <td style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>{fmt$(u.raw_cost)}</td>
@@ -287,6 +314,7 @@ export default function AdminUsageStats() {
                 <tr style={{ borderTop: '2px solid var(--border)', fontWeight: 700 }}>
                   <td>Total</td>
                   <td style={{ textAlign: 'center' }}>{summary.total_sessions}</td>
+                  <td style={{ textAlign: 'right' }}>{fmtK(summary.total_cached_saved)}</td>
                   <td style={{ textAlign: 'right' }}>{fmtK(summary.total_input_tokens)}</td>
                   <td style={{ textAlign: 'right' }}>{fmtK(summary.total_output_tokens)}</td>
                   <td style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>{fmt$(summary.total_raw_cost)}</td>
