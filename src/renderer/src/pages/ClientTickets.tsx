@@ -333,7 +333,7 @@ export default function ClientTickets({ onBack, onOpenSettings }: { onBack: () =
                     )}
 
                     {/* Link */}
-                    <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 12 }}>
                       <input
                         type="text"
                         readOnly
@@ -347,6 +347,28 @@ export default function ClientTickets({ onBack, onOpenSettings }: { onBack: () =
                       <a href={`/client-link/${ticket.uid}`} target="_blank" rel="noreferrer" className="btn btn-secondary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: 3, textDecoration: 'none' }}>
                         <ExternalLink size={12} /> Open
                       </a>
+                    </div>
+                    
+                    {/* Advanced Visual Portal Snippet */}
+                    <div style={{ padding: 12, background: 'rgba(255, 158, 0, 0.06)', borderRadius: 8, border: '1px solid rgba(255, 158, 0, 0.3)' }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent)', marginBottom: 6 }}>
+                        🔭 Advanced Visual Portal <span style={{ fontSize: 10, padding: '2px 6px', background: 'var(--accent)', color: '#fff', borderRadius: 999, marginLeft: 4 }}>PRO</span>
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 8, lineHeight: 1.5 }}>
+                        Instead of sending the link, paste this snippet into the <code style={{color: 'var(--text-primary)'}}>&lt;head&gt;</code> of your staging website. Your client will see a floating "SUNy" button that lets them click visually on any element to request changes directly to your codebase.
+                      </div>
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                        <input
+                          type="text"
+                          readOnly
+                          value={`<script src="${window.location.origin}/api/portal.js?ticket_uid=${ticket.uid}"></script>`}
+                          style={{ flex: 1, fontSize: 11, fontFamily: 'monospace', background: 'var(--surface)' }}
+                          onClick={e => (e.target as HTMLInputElement).select()}
+                        />
+                        <button className="btn btn-secondary btn-sm" onClick={() => copyLink(`<script src="${window.location.origin}/api/portal.js?ticket_uid=${ticket.uid}"></script>`)}>
+                          Copy Snippet
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}

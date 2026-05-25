@@ -17,6 +17,7 @@ import hypothesisRouter from './hypothesis-routes';
 import checkpointRouter from './checkpoint-routes';
 import clientLinkRouter from './client-link-routes';
 import clientTicketRouter from './client-ticket-routes';
+import portalRouter from './portal';
 import { createMarketplaceRouter } from './mcp-marketplace';
 import { handleBridgeUpgrade } from './bridge-routes';
 import { userClientManager } from './user-client-manager';
@@ -297,6 +298,7 @@ app.use('/api', clientLinkRouter);
 // ── Client Ticket API (redesigned Client Link with AI chat) ─────────────────────
 
 app.use('/api', clientTicketRouter);
+app.use('/api', portalRouter);
 
 // ── Public Client Link endpoint (no auth — renders the public request form) ─────
 

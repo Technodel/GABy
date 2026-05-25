@@ -359,6 +359,66 @@ You are talking to a client about a project. Rules:
   });
 });
 
+// Client sends visual feedback from the Stakeholder Portal overlay
+router.post('/client-ticket/:uid/visual-message', (req: Request, res: Response) => {
+  const { uid } = req.params;
+  const { message, visualContext } = req.body;
+
+  if (!message || typeof message !== 'string') {
+    res.status(400).json({ error: 'Message is required' });
+    return;
+  }
+
+  const ticket = getDb().prepare(
+    "SELECT * FROM client_tickets WHERE uid = ? AND status = 'open'"
+  ).get(uid) as TicketRow | undefined;
+
+  if (!ticket) {
+    res.status(404).json({ error: 'Ticket not found or no longer active.' });
+    return;
+  }
+
+  const messages = JSON.parse(ticket.messages || '[]');
+
+  // Format the visual feedback as a detailed message
+  let content = `[VISUAL FEEDBACK] ${message.trim()}`;
+  if (visualContext) {
+    content += `\n\n--- Visual Context ---`;
+    content += `\nURL: ${visualContext.url || 'Unknown'}`;
+    if (visualContext.tagName) content += `\nElement: <${visualContext.tagName.toLowerCase()}>`;
+    if (visualContext.id) content += `\nID: #${visualContext.id}`;
+    if (visualContext.className) content += `\nClass: ${visualContext.className}`;
+    if (visualContext.innerText) content += `\nText: "${visualContext.innerText}"`;
+    if (visualContext.xpath) content += `\nXPath: ${visualContext.xpath}`;
+  }
+
+  messages.push({
+    role: 'user',
+    content,
+    timestamp: new Date().toISOString(),
+  });
+
+  // AI Assistant acknowledgement
+  const aiAck = `I have received the visual feedback regarding the element. I will map this to the codebase and prepare the fix for the developer.`;
+  messages.push({
+    role: 'assistant',
+    content: aiAck,
+    timestamp: new Date().toISOString(),
+  });
+
+  getDb().prepare(
+    'UPDATE client_tickets SET messages = ? WHERE uid = ?'
+  ).run(JSON.stringify(messages), uid);
+
+  userClientManager.pushChatContent(ticket.user_id, 'client_ticket_message', {
+    ticketId: ticket.id,
+    uid: ticket.uid,
+    preview: `[Visual Feedback]: ${message.trim().slice(0, 80)}`,
+  });
+
+  res.json({ success: true });
+});
+
 // Client confirms the ticket
 router.post('/client-ticket/:uid/confirm', async (req: Request, res: Response) => {
   const { uid } = req.params;
