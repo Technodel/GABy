@@ -6,7 +6,8 @@
  *
  * Usage:
  *   import { ERROR_REPLY_FALLBACKS, EXHAUSTED_REPLY_FALLBACKS,
- *            EMPTY_FINAL_REPLY_FALLBACKS, pickNonRepeatingFallback }
+ *            EMPTY_FINAL_REPLY_FALLBACKS, pickNonRepeatingFallback,
+ *            normalizeFinalContent }
  *     from './fallbacks';
  */
 
@@ -38,6 +39,23 @@ export const EXHAUSTED_REPLY_FALLBACKS = [
 ];
 
 const lastFallbackByUser = new Map<number, string>();
+
+export function normalizeFinalContent(userId: number, rawContent: unknown): string {
+  const content = String(rawContent || '').trim();
+  if (!content) {
+    return pickNonRepeatingFallback(userId, EMPTY_FINAL_REPLY_FALLBACKS);
+  }
+
+  // Guard against model-generated meta-commentary about missing output.
+  // These patterns indicate the model is talking about its own response
+  // instead of producing actual content.
+  const looksLikeMissingFinalText = /didn't receive a final reply text|please send that again|final text didn't come through|was empty on my side/i.test(content);
+  if (looksLikeMissingFinalText) {
+    return pickNonRepeatingFallback(userId, EMPTY_FINAL_REPLY_FALLBACKS);
+  }
+
+  return content;
+}
 
 export function pickNonRepeatingFallback(userId: number, choices: string[]): string {
   if (choices.length === 0) return '';

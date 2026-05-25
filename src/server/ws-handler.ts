@@ -21,7 +21,7 @@ import { generateBlueprintForSession } from './blueprint-memory';
 import { loadAgentContext } from './agent-context-assembler';
 import { AgentTurnLog, recordAgentTurn } from './metrics';
 import { pickRandom, startDidYouKnowTimer } from './personality';
-import { ERROR_REPLY_FALLBACKS, EXHAUSTED_REPLY_FALLBACKS, pickNonRepeatingFallback } from './fallbacks';
+import { ERROR_REPLY_FALLBACKS, EXHAUSTED_REPLY_FALLBACKS, pickNonRepeatingFallback, normalizeFinalContent } from './fallbacks';
 import { lockMessagesSent } from './lock-messages';
 import { logOperation } from './operation-audit';
 import { isFeatureEnabled } from './feature-flags';

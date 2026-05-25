@@ -56,30 +56,13 @@ import { loadTrainingAndRules } from './training-loader';
 import { formatGoalContext, getCurrentGoal, addGoalEvidence, incrementGoalAttempt, tryAutoCompleteGoal } from './goal-tracker';
 import { recordAgentTurn } from './metrics';
 import { prometheusMetricsHandler } from './prometheus-metrics';
-import { EMPTY_FINAL_REPLY_FALLBACKS, ERROR_REPLY_FALLBACKS, EXHAUSTED_REPLY_FALLBACKS, pickNonRepeatingFallback } from './fallbacks';
+import { EMPTY_FINAL_REPLY_FALLBACKS, ERROR_REPLY_FALLBACKS, EXHAUSTED_REPLY_FALLBACKS, pickNonRepeatingFallback, normalizeFinalContent } from './fallbacks';
 
 const PORT = parseInt(process.env.SUNY_PORT || process.env.GABY_PORT || '3500', 10);
 const ALLOWED_ORIGIN = process.env.SUNY_ALLOWED_ORIGIN || process.env.GABY_ALLOWED_ORIGIN || 'http://localhost:5173';
 
 import { lockMessagesSent } from './lock-messages';
 export { lockMessagesSent };
-
-function normalizeFinalContent(userId: number, rawContent: unknown): string {
-  const content = String(rawContent || '').trim();
-  if (!content) {
-    return pickNonRepeatingFallback(userId, EMPTY_FINAL_REPLY_FALLBACKS);
-  }
-
-  // Guard against model-generated meta-commentary about missing output.
-  // These patterns indicate the model is talking about its own response
-  // instead of producing actual content.
-  const looksLikeMissingFinalText = /didn't receive a final reply text|please send that again|final text didn't come through|was empty on my side/i.test(content);
-  if (looksLikeMissingFinalText) {
-    return pickNonRepeatingFallback(userId, EMPTY_FINAL_REPLY_FALLBACKS);
-  }
-
-  return content;
-}
 
 async function quickProjectScan(userId: number, projectPath: string): Promise<string> {
   // Ensure the path is registered with the bridge before listing.
