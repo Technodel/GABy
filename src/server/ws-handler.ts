@@ -24,6 +24,7 @@ import { pickRandom, startDidYouKnowTimer } from './personality';
 import { ERROR_REPLY_FALLBACKS, EXHAUSTED_REPLY_FALLBACKS, pickNonRepeatingFallback } from './fallbacks';
 import { lockMessagesSent } from './lock-messages';
 import { logOperation } from './operation-audit';
+import { isFeatureEnabled } from './feature-flags';
 import { loadTrainingAndRules } from './training-loader';
 import { getSkillIndex } from './skill-loader';
 
