@@ -271,7 +271,7 @@ router.get('/portal.js', (req: Request, res: Response) => {
     return '';
   }
 })();
-  \`;
+  `;
 
   res.setHeader('Content-Type', 'application/javascript');
   res.send(script);

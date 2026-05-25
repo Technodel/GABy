@@ -72,7 +72,7 @@ export default function BalanceBadge({ balance, walletBalance, remainingTokens =
   };
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
       {/* Wallet (bot fuel tank) */}
       <div style={{
         ...pillStyle,

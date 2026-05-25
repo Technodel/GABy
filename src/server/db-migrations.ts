@@ -638,6 +638,7 @@ const SCHEMA_MIGRATIONS: Migration[] = [
       }
       if (!(await adapter.columnExists('api_keys', 'sale_price_completion'))) {
         await adapter.exec('ALTER TABLE api_keys ADD COLUMN sale_price_completion REAL DEFAULT 0');
+      }
     },
   },
   {
@@ -856,7 +857,8 @@ async function seedData(adapter: DbAdapter): Promise<void> {
 
   // Seed feature flags
   const featureFlagDefaults: Array<[string, string, string, string]> = [
-    ['ff_behavioral_rules',    'off', 'Behavioral Rules',   'Learn from past tasks and inject rules into future prompts'],
+    ['ff_behavioral_rules',       'off', 'Behavioral Rules',         'Learn from past tasks and inject rules into future prompts'],
+    ['ff_activation_controller',  'on',  'Activation Controller',    'Composable behavior profiles from multiple sources (ntkmirror-inspired)'],
     ['ff_training_scorer',     'off', 'Training Scorer',    'LLM-as-Judge scoring of SUNy outputs after each task'],
     ['ff_training_loader',     'on',  'Training Loader',    'Auto-load injection files and behavioral rules into system prompt'],
     ['ff_goal_tracker',        'off', 'Goal Tracker',       'Persistent multi-horizon goal tracking across sessions'],

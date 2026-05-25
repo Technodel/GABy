@@ -1,4 +1,4 @@
-﻿import http from 'http';
+import http from 'http';
 import { WebSocket, WebSocketServer } from 'ws';
 import crypto from 'crypto';
 import { getAdapter } from './db';
@@ -16,10 +16,16 @@ import { buildRepoMap } from './repo-map';
 import { initializeDesignIntentTable } from './design-intent';
 import { hookSystem } from './hook-system';
 import { initializeInteractionPatternsTable } from './interaction-memory';
-import { initializePresenceTable } from './presence';
+import { initializePresenceTable, getPresenceProfile, getPresenceInjection, updatePresenceProfile } from './presence-engineering';
 import { generateBlueprintForSession } from './blueprint-memory';
 import { loadAgentContext } from './agent-context-assembler';
 import { AgentTurnLog, recordAgentTurn } from './metrics';
+import { pickRandom, startDidYouKnowTimer } from './personality';
+import { ERROR_REPLY_FALLBACKS, EXHAUSTED_REPLY_FALLBACKS, pickNonRepeatingFallback } from './fallbacks';
+import { lockMessagesSent } from './lock-messages';
+import { logOperation } from './operation-audit';
+import { loadTrainingAndRules } from './training-loader';
+import { getSkillIndex } from './skill-loader';
 
 export function attachWebSockets(server: http.Server) {
   // ── WebSocket server ───────────────────────────────────────────────────────────
@@ -226,9 +232,10 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       const requestedMode = ['free', 'fast', 'smart', 'pro', 'auto'].includes(rawMode) ? rawMode : 'fast';
       const dailyLimitRow = await db.get("SELECT value FROM app_settings WHERE key = 'daily_token_limit'", []) as { value: string } | undefined;
       const dailyTokenLimit = parseInt(dailyLimitRow?.value || '0', 10);
-      const todayUsed = db.prepare(
-        "SELECT COALESCE(SUM(input_tokens + output_tokens), 0) as total_used FROM usage_log WHERE user_id = ? AND DATE(timestamp) = DATE('now')"
-      ).get(userId) as { total_used: number };
+      const todayUsed = await db.get(
+        "SELECT COALESCE(SUM(input_tokens + output_tokens), 0) as total_used FROM usage_log WHERE user_id = ? AND DATE(timestamp) = DATE('now')",
+        [userId]
+      ) as { total_used: number };
       const noCredits = !(await hasSufficientBalance(userId));
       const dailyCapApplies = noCredits || requestedMode === 'free';
       const dailyLimitReached = dailyCapApplies && dailyTokenLimit > 0 && todayUsed.total_used >= dailyTokenLimit;
@@ -289,9 +296,10 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
 
       // ── Session-level token cap ──────────────────────────────────────
       if (userRow?.max_tokens_per_session && userRow.max_tokens_per_session > 0) {
-        const sessStats = db.prepare(
-          'SELECT COALESCE(SUM(input_tokens + output_tokens), 0) as total_used FROM usage_log WHERE user_id = ? AND session_id = ?'
-        ).get(userId, sessionId) as { total_used: number };
+        const sessStats = await db.get(
+          'SELECT COALESCE(SUM(input_tokens + output_tokens), 0) as total_used FROM usage_log WHERE user_id = ? AND session_id = ?',
+          [userId, sessionId]
+        ) as { total_used: number };
         const remaining = userRow.max_tokens_per_session - sessStats.total_used;
         if (remaining <= 0) {
           const limitMessage = pickRandom('session_limit', "You've reached the session token limit. Start a new session to continue! 😊");
@@ -312,7 +320,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
 
       // Load plan info once — used in system prompt
       interface PricingMode { mode: string; display_name: string; description: string; }
-      const pricingModes = await db.get('SELECT mode, display_name, description FROM pricing_modes ORDER BY id').all() as PricingMode[];
+      const pricingModes = await db.all('SELECT mode, display_name, description FROM pricing_modes ORDER BY id') as PricingMode[];
 
       // Resolve project path + persona if a project is active (must be before systemLines
       // construction because the training loader IIFE below references projectPath)
@@ -361,10 +369,11 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         try {
           const proj = await db.get('SELECT frozen_snapshot_uid FROM projects WHERE id = ? AND user_id = ?', [projectId, userId]) as { frozen_snapshot_uid: string | null } | undefined;
           if (proj?.frozen_snapshot_uid) {
-            frozenSnapshot = db.prepare(
+            frozenSnapshot = await db.get(
               `SELECT uid, label, blueprint_json, behavioral_rules_json, tier
                FROM memory_snapshots WHERE uid = ? AND user_id = ?`,
-            ).get(proj.frozen_snapshot_uid, userId) as FrozenSnapshot | null;
+              [proj.frozen_snapshot_uid, userId]
+            ) as FrozenSnapshot | null;
           }
         } catch { /* column missing → treat as unfrozen */ }
       }
@@ -703,7 +712,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         '  and knowing.',
         '',
         '- === SHELL COMMAND ADAPTATION ===',
-        '  Detect the user''s operating system and adapt shell commands accordingly:',
+        "  Detect the user's operating system and adapt shell commands accordingly:",
         '  - Windows (PowerShell): does NOT support &&, ||, ; chaining reliably.',
         '    Use separate bash() calls for each command instead of chaining.',
         '    Prefer writing a temp .mjs script over complex inline shell commands.',
@@ -733,7 +742,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         'Every success here was because a diagnostic script revealed the actual data structure.',
         '',
         'Run TOWARD uncertainty, not away from it.',
-        'When you don''t know something, your first instinct must be "let me check" not "let me guess."',
+        `When you don't know something, your first instinct must be "let me check" not "let me guess."`,
         'The tools are there. The workflow is there. Use them relentlessly.',
         '',
         '',
@@ -1008,12 +1017,13 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         '',
         // ── Skill system: engineering workflow skills (compact index) ────
         ...getSkillIndex().split('\n').filter(l => l !== ''),
-        // ── Training loader: injection files + behavioral rules ──────────
+        // ── Training loader: injection files + behavioral rules + composed profile ──
         ...(() => {
           const tl = trainingLoadResult;
           const blocks: string[] = [];
           if (tl.injectionBlocks.length > 0) blocks.push(...tl.injectionBlocks);
           if (tl.behavioralBlock) blocks.push('', tl.behavioralBlock);
+          if (tl.compositionBlock) blocks.push('', tl.compositionBlock);
           return blocks;
         })(),
         '',
@@ -1445,9 +1455,10 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         const memSettingGlobal = await db.get("SELECT value FROM app_settings WHERE key = 'memory_enabled'", []) as { value: string } | undefined;
         const memoryEnabled = (memSettingScoped?.value ?? memSettingGlobal?.value ?? 'true') === 'true';
         if (memoryEnabled) {
-          const userMemories = db.prepare(
-            'SELECT content FROM user_memories WHERE user_id = ? ORDER BY created_at DESC LIMIT 50'
-          ).all(userId) as { content: string }[];
+          const userMemories = await db.all(
+            'SELECT content FROM user_memories WHERE user_id = ? ORDER BY created_at DESC LIMIT 50',
+            [userId]
+          ) as { content: string }[];
           if (userMemories.length > 0) {
             systemLines.push(
               '',
@@ -1602,9 +1613,10 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       // (which changes every turn) would shift pinned positions and break cache.
       if (projectPath && projectId) {
         try {
-          const pinnedRows = getAdapter().prepare(
-            'SELECT file_path FROM pinned_files WHERE user_id = ? AND project_id = ? ORDER BY created_at ASC'
-          ).all(userId, projectId) as Array<{ file_path: string }>;
+          const pinnedRows = await getAdapter().all(
+            'SELECT file_path FROM pinned_files WHERE user_id = ? AND project_id = ? ORDER BY created_at ASC',
+            [userId, projectId]
+          ) as Array<{ file_path: string }>;
           if (pinnedRows.length > 0) {
             const pinLines: string[] = ['', '=== PINNED FILES (always in context) ==='];
             for (const row of pinnedRows) {
@@ -1775,7 +1787,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
 
                 const stats = await buildChunkVectors(projectPath, projectId);
                 console.log(`[code-chunks] Embedded ${stats.chunksIndexed} chunks across ${stats.filesProcessed} files`);
-                db.prepare("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, 'true')", [chunkKey]);
+                await db.run("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, 'true')", [chunkKey]);
                 // Notify frontend
                 userClientManager.pushToUser(userId, 'suny:vector_index_ready', {
                   projectId, chunks: stats.chunksIndexed, files: stats.filesProcessed,
@@ -1915,7 +1927,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       // Start "Did you know?" timer — fires every 60s for long tasks
       const stopDidYouKnow = startDidYouKnowTimer(userId, currentAbortController.signal);
       const maxTurnMs = projectPath ? 180_000 : 70_000;
-      let timedOutByGuard = false;
+      var timedOutByGuard = false;
       const turnTimeout = setTimeout(() => {
         if (currentAbortController && !currentAbortController.signal.aborted) {
           timedOutByGuard = true;
@@ -2189,9 +2201,10 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         }
       }
 
-      const sessStats = db.prepare(
-        'SELECT SUM(input_tokens + output_tokens) as total_used FROM usage_log WHERE user_id = ? AND session_id = ?'
-      ).get(userId, sessionId) as { total_used: number | null };
+      const sessStats = await db.get(
+        'SELECT SUM(input_tokens + output_tokens) as total_used FROM usage_log WHERE user_id = ? AND session_id = ?',
+        [userId, sessionId]
+      ) as { total_used: number | null };
 
       const totalTokens = result.inputTokens + result.outputTokens + result.cacheWriteTokens + result.cacheReadTokens;
       const toolCalls = result.proofSummary.toolCallCount ?? 0;

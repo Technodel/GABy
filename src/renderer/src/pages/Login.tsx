@@ -114,6 +114,7 @@ export default function Login({ onLogin }: LoginProps) {
     { icon: '\ud83c\udfdb\ufe0f', title: 'Freeze Brain', desc: 'Pin a project to a saved memory snapshot so SUNy keeps using the same blueprint and behavioral rules until you unfreeze it.' },
     { icon: '\ud83d\udd17', title: 'Local Bridge', desc: 'A tiny background agent on your machine lets SUNy edit real local files \u2014 nothing is uploaded to any cloud.' },
     { icon: '\u26a1', title: 'Parallel Agent Swarm (Pro)', desc: 'SUNy acts as a Project Manager, spawning an entire team of independent AI agents to work on your frontend, backend, and tests simultaneously in real-time. Tasks that took minutes now take seconds.' },
+    { icon: '\ud83e\udde0', title: 'Composable Behavior Profiles', desc: 'SUNy composes past interactions, learned rules, project context, and active skills into weighted behavior profiles — inspired by activation-space controllers. Smarter, more focused guidance without verbose memory dumps.' },
     { icon: '\ud83d\udd17', title: 'Client Tickets', desc: 'Generate a secure URL for clients. Fast/Smart plans include text-based AI intake forms to gather requirements.' },
     { icon: '\ud83d\udcf1', title: 'Advanced Visual Portal (Pro)', desc: 'Clients get a Visual Stakeholder Portal. They click visually on the live UI, and SUNy automatically maps it to your code and writes the fix.' },
     { icon: '\ud83d\udcb0', title: 'Pay as you go', desc: 'Add credits and spend them on AI tasks. No subscriptions. No waste. You only pay for what SUNy actually does.' },

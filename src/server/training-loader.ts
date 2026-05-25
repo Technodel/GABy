@@ -19,7 +19,17 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { getAdapter } from './db';
 import { getRelevantRules, formatBehavioralRules } from './behavioral-rules';
-import { isFeatureEnabled } from './feature-flags';
+import { findSimilarInteractions, formatSimilarInteractionsContext, type SimilarInteraction } from './interaction-memory';
+import { isFeatureEnabled, isActivationControllerEnabled } from './feature-flags';
+import {
+  profileFromMemory,
+  profileFromRules,
+  profileFromProject,
+  profileFromSkills,
+  composeProfiles,
+  formatComposedProfile,
+  type BehaviorProfile,
+} from './activation-controller';
 
 // ── Config ───────────────────────────────────────────────────────────────────
 
@@ -39,6 +49,10 @@ const MAX_INJECTION_BYTES = 32 * 1024; // 32 KB per file
 export interface TrainingLoadResult {
   injectionBlocks: string[];
   behavioralBlock: string | null;
+  /** Composed behavior profile from activation controller (ntkmirror-inspired) */
+  compositionBlock: string | null;
+  /** Number of profiles composed */
+  compositionCount: number;
   summary: string;
 }
 
@@ -114,6 +128,8 @@ export async function loadTrainingAndRules(options: {
   const result: TrainingLoadResult = {
     injectionBlocks: [],
     behavioralBlock: null,
+    compositionBlock: null,
+    compositionCount: 0,
     summary: '',
   };
 
@@ -147,12 +163,72 @@ export async function loadTrainingAndRules(options: {
     console.log('[training-loader] ff_behavioral_rules disabled — skipping behavioral rules');
   }
 
+  // 3. Compose behavior profiles from multiple sources (activation controller)
+  if (isActivationControllerEnabled()) {
+    try {
+      const profiles: BehaviorProfile[] = [];
+
+      // 3a. Memory profile from similar interactions
+      if (options.projectRoot) {
+        try {
+          // Get recent interactions for the user (no specific query — grab variety)
+          const memories = findSimilarInteractions(options.userId, '', {
+            limit: 5,
+            minScore: 0.15,
+          });
+          if (memories.length > 0) {
+            const memProfile = profileFromMemory(
+              memories.map(m => ({
+                userMessage: m.userMessage,
+                aiResponse: m.aiResponse,
+                score: m.score,
+              })),
+            );
+            if (memProfile) profiles.push(memProfile);
+          }
+        } catch { /* best-effort */ }
+      }
+
+      // 3b. Rule profile from behavioral rules
+      try {
+        const db = await getAdapter();
+        const rules = await getRelevantRules(db, options.userId, { minConfidence: 0.4, limit: 10 });
+        if (rules.length > 0) {
+          const ruleProfile = profileFromRules(
+            rules.map(r => ({
+              category: r.category,
+              ruleText: r.ruleText,
+              triggerContext: r.triggerContext,
+              confidence: r.confidence,
+            })),
+          );
+          if (ruleProfile) profiles.push(ruleProfile);
+        }
+      } catch { /* best-effort */ }
+
+      // 3c. Compose all profiles
+      if (profiles.length > 0) {
+        const composed = composeProfiles(profiles);
+        if (composed) {
+          result.compositionBlock = formatComposedProfile(composed);
+          result.compositionCount = composed.count;
+          console.log(`[training-loader] Activation controller: composed ${composed.count} profile(s) (coherence: ${(composed.coherenceScore * 100).toFixed(0)}%)`);
+        }
+      }
+    } catch (err) {
+      console.warn('[training-loader] Activation controller composition failed:', (err as Error).message);
+    }
+  }
+
   // Build summary
   const parts: string[] = [];
   if (result.injectionBlocks.length > 0) parts.push(`${result.injectionBlocks.length} injection block(s)`);
   if (result.behavioralBlock) {
     const ruleCount = result.behavioralBlock.match(/\d+/)?.[0] || 'some';
     parts.push(`${ruleCount} behavioral rule(s)`);
+  }
+  if (result.compositionBlock) {
+    parts.push(`${result.compositionCount} composed profile(s)`);
   }
   result.summary = parts.length > 0
     ? `Training loaded: ${parts.join(', ')}`

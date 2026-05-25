@@ -100,3 +100,10 @@ export function isBridgeSetupCodesEnabled(): boolean {
 export function isSessionReplayEnabled(): boolean {
   return isFeatureEnabled('ff_session_replay');
 }
+
+/**
+ * Check if activation controller (composable behavior profiles) is enabled.
+ */
+export function isActivationControllerEnabled(): boolean {
+  return isFeatureEnabled('ff_activation_controller');
+}

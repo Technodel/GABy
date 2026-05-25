@@ -99,6 +99,7 @@ function EnglishContent() {
             { title: '🚧 Scheduled Agents', desc: 'Schedule SUNy to run automatically — daily code reviews, weekly dependency audits, hourly health checks. Set it and forget it.' },
             { title: '🌐 Browser Automation', desc: 'SUNy can navigate web pages, take screenshots, fill forms, and extract data. Perfect for testing, scraping, and live site verification.' },
             { title: '🚧 MCP Marketplace', desc: 'Discover and install community-contributed MCP servers. Databases, search engines, Docker, Slack, GitHub — all pluggable in one command.' },
+            { title: '🧠 Composable Behavior Profiles', desc: 'SUNy now composes multiple behavior sources — past interactions, learned rules, project context, and active skills — into a single weighted behavior profile. Inspired by activation-space controllers, stronger signals dominate while weaker ones still contribute. No more verbose memory dumps.' },
             { title: '🎫 Client Tickets (Fast/Smart)', desc: 'Generate a secure, shareable URL for non-technical clients. SUNy acts as your front-line assistant, chatting warmly with the client to gather detailed project requirements.' },
             { title: '🔭 Advanced Visual Portal (PRO)', desc: 'The ultimate Client Ticket upgrade. Clients get a visual overlay on your live staging app. They click a button on their screen, type a change, and SUNy automatically maps it to your code and writes the fix.' },
             { title: '⚡ Parallel Agent Swarm (PRO)', desc: 'SUNy acts as a Project Manager, spawning a swarm of Junior Developer AIs to handle massive features. Watch it write the frontend, backend, and tests simultaneously in real-time, cutting execution time by 70%.' },
@@ -121,6 +122,8 @@ function EnglishContent() {
             { title: '🧬 Design Memory', desc: 'Persistent blueprint memory keeps intent, architecture choices, and outcomes available across sessions.' },
             { title: '🛡️ Change Guardian', desc: 'Intent-aware drift detection flags unexpected contract changes before they ship.' },
             { title: '🧊 Freeze Brain', desc: 'Project-level snapshot pinning keeps memory and rules stable until you deliberately unfreeze them.' },
+            { title: '🧬 Activation Controller', desc: 'Multiple behavior sources (memories, rules, skills) are composed into a single weighted profile using activation-space techniques. The strongest signals drive SUNy without verbose injection.' },
+            { title: '🧬 Activation Controller', desc: 'Multiple behavior sources (memories, rules, skills) are composed into a single weighted profile using activation-space techniques. The strongest signals drive SUNy without verbose injection.' },
           ].map(f => (
             <div key={f.title} style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--bg)' }}>
               <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{f.title}</h3>
@@ -244,6 +247,7 @@ function ArabicContent() {
             { title: '🚧 الوكلاء المجدولون (قريباً)', desc: 'جدول SUNy للتشغيل التلقائي — مراجعات كود يومية، فحص اعتماديات اسبوعي، فحوصات سلامة كل ساعة. اضبطه وانس امره.' },
             { title: '🌐 أتمتة المتصفح', desc: 'يستطيع SUNy تصفح صفحات الويب، التقاط لقطات شاشة، ملء النماذج، واستخراج البيانات. مثالي للاختبار والفحص المباشر.' },
             { title: '🚧 سوق MCP (قريباً)', desc: 'اكتشف وانصب خوادم MCP من المجتمع. قواعد بيانات، محركات بحث، Docker، Slack، GitHub — كلها قابلة للتوصيل بأمر واحد.' },
+            { title: '🧠 ملفات السلوك القابلة للتركيب', desc: 'يقوم SUNy الآن بتركيب مصادر سلوك متعددة — التفاعلات السابقة، القواعد المستفادة، سياق المشروع، والمهارات النشطة — في ملف سلوك وزني واحد. مستوحى من وحدات التحكم في فضاء التنشيط، الإشارات الأقوى تسيطر بينما الأضعف تساهم.' },
             { title: '🎫 تذاكر العملاء (PRO)', desc: 'أنشئ رابطاً آمناً للعملاء غير التقنيين. يعمل SUNy كمساعدك في الخطوط الأمامية، حيث يدردش بود مع العميل لجمع متطلبات المشروع بدقة. تراجع أنت التذكرة المكتملة، تعتمدها، وينفذ SUNy التغييرات. لا مزيد من رسائل السلاك المتبادلة.' },
           ].map(f => (
             <div key={f.title} style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--bg)' }}>

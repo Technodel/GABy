@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Home, Eraser, BarChart2, HelpCircle, Settings, Phone, LogOut, Ticket } from 'lucide-react';
 import BalanceBadge from './BalanceBadge';
 import BridgeStatusBadge from './BridgeStatusBadge';
@@ -167,7 +167,7 @@ export default function TopBar(props: TopBarProps) {
         display: 'flex', alignItems: 'center', gap: 4, minWidth: 0,
         flex: stackHeader ? '1 1 auto' : '1',
         justifyContent: 'flex-end',
-        flexWrap: 'nowrap',
+        flexWrap: 'wrap',
       }}>
         {activeProject && (
           <button
