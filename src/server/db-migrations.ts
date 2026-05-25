@@ -638,6 +638,14 @@ const SCHEMA_MIGRATIONS: Migration[] = [
       }
       if (!(await adapter.columnExists('api_keys', 'sale_price_completion'))) {
         await adapter.exec('ALTER TABLE api_keys ADD COLUMN sale_price_completion REAL DEFAULT 0');
+    },
+  },
+  {
+    version: 17,
+    name: 'Add last_visit column to users table',
+    up: async (adapter) => {
+      if (!(await adapter.columnExists('users', 'last_visit'))) {
+        await adapter.exec('ALTER TABLE users ADD COLUMN last_visit TEXT DEFAULT NULL');
       }
     },
   },

@@ -144,6 +144,9 @@ export async function userLogin(req: Request, res: Response): void {
   const row = await db.get("SELECT role FROM users WHERE id = ?", [user.id]) as { role: string } | undefined;
   const role = (row?.role as 'admin' | 'user') || 'user';
 
+  // Update last_visit
+  await db.run("UPDATE users SET last_visit = datetime('now') WHERE id = ?", [user.id]);
+
   const token = signToken({ id: user.id, username: user.username, role });
   res.cookie('suny_token', token, {
     httpOnly: true,

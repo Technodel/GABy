@@ -1,4 +1,4 @@
-import { ChevronRight, ChevronDown, Plus, FolderOpen, Folder, Trash2, Edit3, User, Play } from 'lucide-react';
+﻿import { ChevronRight, ChevronDown, Plus, FolderOpen, Folder, Trash2, Edit3, User, Play, Check, X } from 'lucide-react';
 import FileTreeNode from './FileTreeNode';
 import ReportBadgeButton from './ReportBadgeButton';
 import type { Project, ProjectSpend, Memory, FileNode, CheckpointEntry, BlueprintEntry } from '../types';
@@ -194,13 +194,13 @@ export default function SidebarContent(props: SidebarContentProps) {
                       onClick={() => { if (activeProject) { setMemories([]); saveMemories(activeProject.id, []); } setConfirmClearMemories(false); }}
                       title="Confirm clear"
                       style={{ background: 'none', border: 'none', color: 'var(--error)', padding: 2, cursor: 'pointer', fontWeight: 700, fontSize: 12 }}
-                    >✓</button>
+                    ><Check size={12} /></button>
                     <button
                       className="btn btn-icon btn-sm"
                       onClick={() => setConfirmClearMemories(false)}
                       title="Cancel"
                       style={{ background: 'none', border: 'none', color: 'var(--text-muted)', padding: 2, cursor: 'pointer', fontSize: 12 }}
-                    >✗</button>
+                    ><X size={12} /></button>
                   </div>
                 ) : (
                   <button

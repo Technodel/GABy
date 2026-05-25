@@ -140,7 +140,7 @@ export default function ChatInput(props: ChatInputProps) {
           ref={inputRef}
           value={input}
           onChange={e => { setInput(e.target.value); inputHistoryIndex.current = -1; }}
-          placeholder={thinking ? 'SUNy is working...' : activeProject && !bridgeConnected ? 'Bridge offline — I can still reason, explain, and review code! Type your question...' : 'Type your goal here... e.g. Add a dark mode toggle to my app'}
+          placeholder={activeProject && !bridgeConnected ? 'Bridge offline — I can still reason, explain, and review code! Type your question...' : 'Type your goal here... e.g. Add a dark mode toggle to my app'}
           rows={2}
           spellCheck={false}
           autoCorrect="off"
@@ -172,8 +172,8 @@ export default function ChatInput(props: ChatInputProps) {
             }
           }}
           onKeyDown={e => {
-            if (e.key === 'Enter' && !e.shiftKey && !thinking) { e.preventDefault(); sendMessage(); return; }
-            if (e.key === 'ArrowUp' && !e.shiftKey && !thinking) {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); return; }
+            if (e.key === 'ArrowUp' && !e.shiftKey) {
               const userMsgs = messages.filter(m => m.type === 'user').map(m => m.content);
               if (userMsgs.length === 0) return;
               // Only intercept if cursor is on the first line (or field is empty)
@@ -186,7 +186,7 @@ export default function ChatInput(props: ChatInputProps) {
               setInput(userMsgs[userMsgs.length - 1 - next]);
               return;
             }
-            if (e.key === 'ArrowDown' && !e.shiftKey && !thinking && inputHistoryIndex.current >= 0) {
+            if (e.key === 'ArrowDown' && !e.shiftKey && inputHistoryIndex.current >= 0) {
               const userMsgs = messages.filter(m => m.type === 'user').map(m => m.content);
               e.preventDefault();
               const next = inputHistoryIndex.current - 1;
@@ -234,7 +234,16 @@ export default function ChatInput(props: ChatInputProps) {
         {!noBalance && (
           <button
             className="btn btn-icon btn-secondary"
-            onClick={toggleTalkMode}
+            onClick={() => {
+              if (!talkMode && thinking) {
+                if (window.confirm("Switching to Talk mode will interrupt the current task. Continue?")) {
+                  wsSend({ type: 'chat:cancel', requestId: '' });
+                  toggleTalkMode();
+                }
+              } else {
+                toggleTalkMode();
+              }
+            }}
             title={talkMode ? 'Talk Mode - no file changes (click to switch to Write Mode)' : 'Write Mode - full file editing (click to switch to Talk Mode)'}
             style={{
               alignSelf: 'flex-end',
@@ -248,7 +257,7 @@ export default function ChatInput(props: ChatInputProps) {
             {talkMode ? <MessageSquare size={15} /> : <Pencil size={15} />}
           </button>
         )}
-        {thinking ? (
+        {thinking && (
           <button
             className="btn btn-danger"
             onClick={() => wsSend({ type: 'chat:cancel', requestId: '' })}
@@ -257,36 +266,35 @@ export default function ChatInput(props: ChatInputProps) {
           >
             <Square size={15} />
           </button>
-        ) : (
-          <>
-            {onVoiceToggle && (
-              <button
-                className="btn btn-icon btn-secondary"
-                onClick={onVoiceToggle}
-                title={isListening ? 'Stop listening' : 'Dictate with voice'}
-                style={{
-                  alignSelf: 'flex-end',
-                  padding: '10px 12px',
-                  background: isListening ? 'rgba(255,60,60,0.12)' : 'transparent',
-                  border: isListening ? '1px solid rgba(255,60,60,0.5)' : '1px solid var(--border)',
-                  color: isListening ? 'rgba(255,80,80,0.9)' : 'var(--text-muted)',
-                  transition: 'all 0.15s',
-                  animation: isListening ? 'pulse 1.2s infinite' : 'none',
-                }}
-              >
-                {isListening ? <MicOff size={15} /> : <Mic size={15} />}
-              </button>
-            )}
-            <button
-              className="btn btn-primary"
-              onClick={sendMessage}
-              disabled={!input.trim()}
-              style={{ padding: '10px 16px', alignSelf: 'flex-end' }}
-            >
-              <Send size={15} />
-            </button>
-          </>
         )}
+        <>
+          {onVoiceToggle && (
+            <button
+              className="btn btn-icon btn-secondary"
+              onClick={onVoiceToggle}
+              title={isListening ? 'Stop listening' : 'Dictate with voice'}
+              style={{
+                alignSelf: 'flex-end',
+                padding: '10px 12px',
+                background: isListening ? 'rgba(255,60,60,0.12)' : 'transparent',
+                border: isListening ? '1px solid rgba(255,60,60,0.5)' : '1px solid var(--border)',
+                color: isListening ? 'rgba(255,80,80,0.9)' : 'var(--text-muted)',
+                transition: 'all 0.15s',
+                animation: isListening ? 'pulse 1.2s infinite' : 'none',
+              }}
+            >
+              {isListening ? <MicOff size={15} /> : <Mic size={15} />}
+            </button>
+          )}
+          <button
+            className="btn btn-primary"
+            onClick={sendMessage}
+            disabled={!input.trim()}
+            style={{ padding: '10px 16px', alignSelf: 'flex-end' }}
+          >
+            <Send size={15} />
+          </button>
+        </>
       </>
     </div>
   );

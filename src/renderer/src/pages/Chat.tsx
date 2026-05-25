@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect, useRef, useCallback } from 'react';
-import { Plus, Trash2, Settings, LogOut, Edit3, RotateCcw, X, BarChart2, User, HelpCircle, Sparkles, Home, Eraser, Phone, ChevronRight, ChevronDown, FolderOpen, Folder, Play, FileText, GitBranch, Archive, ArchiveRestore, Link } from 'lucide-react';
+import { Plus, Trash2, Settings, LogOut, Edit3, RotateCcw, X, BarChart2, User, HelpCircle, Sparkles, Home, Eraser, Phone, ChevronRight, ChevronDown, FolderOpen, Folder, Play, FileText, GitBranch, Archive, ArchiveRestore, Link, Check, Rocket, ShieldCheck, Undo, Brain, MessageSquare, BookOpen, CheckCircle, Lock, Eye, Globe, Wrench, Users } from 'lucide-react';
 
 import ReportBadgeButton, { ReportMetrics } from '../components/ReportBadgeButton';
 import { useWebSocket } from '../hooks/useWebSocket';
@@ -1383,6 +1383,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
               cacheWriteTokens: typeof rawReport.cacheWriteTokens === 'number' ? rawReport.cacheWriteTokens as number : 0,
               cacheReadTokens: typeof rawReport.cacheReadTokens === 'number' ? rawReport.cacheReadTokens as number : 0,
               chargedCost: typeof rawReport.chargedCost === 'number' ? rawReport.chargedCost as number : 0,
+                rawCost: typeof rawReport.rawCost === 'number' ? rawReport.rawCost as number : 0,
               humanEstimateMinutes: typeof rawReport.humanEstimateMinutes === 'number' ? rawReport.humanEstimateMinutes as number : 0,
               humanEstimateCost: typeof rawReport.humanEstimateCost === 'number' ? rawReport.humanEstimateCost as number : 0,
               messageCount: 1,
@@ -1659,6 +1660,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         cacheWriteTokens: 0,
         cacheReadTokens: 0,
         chargedCost: fallbackSpend?.total_cost ?? 0,
+          rawCost: 0,
         humanEstimateMinutes: 0,
         humanEstimateCost: 0,
         messageCount: 0,
@@ -1674,6 +1676,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       acc.cacheWriteTokens += report.cacheWriteTokens;
       acc.cacheReadTokens += report.cacheReadTokens;
       acc.chargedCost += report.chargedCost;
+        acc.rawCost = (acc.rawCost || 0) + (report.rawCost || 0);
       acc.humanEstimateMinutes += report.humanEstimateMinutes;
       acc.humanEstimateCost += report.humanEstimateCost;
       return acc;
@@ -2125,7 +2128,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
               <line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" />
             </svg>
           </button>
-          <img src="/SLOGO.png" alt="SUNy" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+          <img src="/SLOGO.png" alt="SUNy" style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, cursor: 'pointer' }} onClick={() => setActiveProject(null)} title="Global Chat" />
           <span className="suny-logo" style={{ fontWeight: 700, fontSize: 16, color: 'var(--accent)', marginRight: 2 }}>SUNy</span>
           <span className="topbar-tagline" style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic', opacity: 0.75, whiteSpace: 'nowrap' }}>Consider it done.</span>
           {userData?.username && (
@@ -2517,13 +2520,13 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                         onClick={() => { if (activeProject) { setMemories([]); saveMemories(activeProject.id, []); } setConfirmClearMemories(false); }}
                         title="Confirm clear"
                         style={{ background: 'none', border: 'none', color: 'var(--error)', padding: 2, cursor: 'pointer', fontWeight: 700, fontSize: 12 }}
-                      >?</button>
+                      ><Check size={12} /></button>
                       <button
                         className="btn btn-icon btn-sm"
                         onClick={() => setConfirmClearMemories(false)}
                         title="Cancel"
                         style={{ background: 'none', border: 'none', color: 'var(--text-muted)', padding: 2, cursor: 'pointer', fontSize: 12 }}
-                      >?</button>
+                      ><X size={12} /></button>
                     </div>
                   ) : (
                     <button
@@ -2903,7 +2906,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                         <span style={{ flex: 1, fontSize: 10, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fp}</span>
                         <button onClick={() => togglePinFile({ name: fp.split('/').pop()!, path: fp, isDir: false })}
                           style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 1 }}
-                          title="Unpin">?</button>
+                          title="Unpin"><Check size={12} /><X size={12} /></button>
                       </div>
                     ))}
                   </div>
@@ -3636,7 +3639,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                 <GitBranch size={15} style={{ marginRight: 8, verticalAlign: 'text-bottom' }} />
                 Memory Snapshots
               </h3>
-              <button className="btn btn-icon btn-secondary" onClick={() => setShowSnapshots(false)}><X size={14} /></button>
+              <button className="btn btn-icon btn-secondary" onClick={() => setShowSnapshots(false)}><X size={14} /><Check size={12} /><X size={12} /></button>
             </div>
             {snapshotList.length === 0 ? (
               <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>No snapshots saved yet. Use the ?? button to capture this chat + memory state.</p>
@@ -3665,7 +3668,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                         setRestoreOpts({ conversation: true, memory: snap.has_memory, code: false });
                       }}
                     >Restore</button>
-                    <button className="btn btn-sm btn-secondary" onClick={() => deleteSnapshot(snap.id)}><Trash2 size={12} /></button>
+                    <button className="btn btn-sm btn-secondary" onClick={() => deleteSnapshot(snap.id)}><Trash2 size={12} /><Check size={12} /><X size={12} /></button>
                   </div>
                 ))}
               </div>
@@ -3680,7 +3683,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <h3 className="modal-title" style={{ margin: 0 }}>Restore � what to bring back?</h3>
-              <button className="btn btn-icon btn-secondary" onClick={() => setRestoreTarget(null)}><X size={14} /></button>
+              <button className="btn btn-icon btn-secondary" onClick={() => setRestoreTarget(null)}><X size={14} /><Check size={12} /><X size={12} /></button>
             </div>
             <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 0, marginBottom: 12 }}>
               From snapshot: <strong>{restoreTarget.label}</strong>
@@ -3883,7 +3886,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                 <HelpCircle size={16} style={{ marginRight: 8, verticalAlign: 'text-bottom' }} />
                 Help & Shortcuts
               </h3>
-              <button className="btn btn-icon btn-secondary" onClick={() => setShowHelp(false)}><X size={14} /></button>
+              <button className="btn btn-icon btn-secondary" onClick={() => setShowHelp(false)}><X size={14} /><Check size={12} /><X size={12} /></button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -3912,21 +3915,21 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                 <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)', marginBottom: 8 }}>Features</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
-                    { icon: '??', title: 'One-Click Ship', desc: 'Give one goal � SUNy plans, edits, tests, fixes, and delivers a verified result.' },
-                    { icon: '??', title: 'Proof Panel', desc: 'Every task shows exactly what changed, what passed, and what was fixed.' },
-                    { icon: '?', title: 'One-Click Undo', desc: 'Every edit creates a restore point. Roll back any change instantly.' },
-                    { icon: '??', title: 'Code Conscience', desc: 'Design memory remembers your intent across sessions and alerts on drift.' },
-                    { icon: '??', title: 'Talk / Write mode', desc: 'Toggle between conversational chat and file-focused code editing.' },
-                    { icon: '??', title: 'Project Rules', desc: 'Set persistent instructions SUNy follows in every chat for a project.' },
-                    { icon: '??', title: 'Persona', desc: 'Give SUNy a custom role � e.g. "You are a security expert".' },
-                    { icon: '?', title: 'Auto-Verify', desc: 'SUNy runs tests and lint in a loop until all errors are resolved.' },
-                    { icon: '??', title: '@file mentions', desc: 'Type @file:path in any message to reference a file directly.' },
-                    { icon: '???', title: 'Dev Server', desc: 'Start your dev server from the sidebar and get a clickable URL.' },
-                    { icon: '??', title: 'Secure Bridge', desc: 'Sandboxed bridge connection for safe file operations.' },
-                    { icon: '??', title: 'Symbol Reader', desc: 'Inspect file structure without reading the whole file content.' },
-                    { icon: '??', title: 'URL Fetch', desc: 'SUNy can fetch web pages and docs on demand during tasks.' },
-                    { icon: '??', title: 'Auto-Correction', desc: 'Failed code is analyzed and fixed automatically.' },
-                    { icon: '??', title: 'Subtask Delegation', desc: 'Complex tasks are split into focused sub-tasks with dedicated agents.' },
+                    { icon: <Rocket size={16} />, title: 'One-Click Ship', desc: 'Give one goal — SUNy plans, edits, tests, fixes, and delivers a verified result.' },
+                    { icon: <ShieldCheck size={16} />, title: 'Proof Panel', desc: 'Every task shows exactly what changed, what passed, and what was fixed.' },
+                    { icon: <Undo size={16} />, title: 'One-Click Undo', desc: 'Every edit creates a restore point. Roll back any change instantly.' },
+                    { icon: <Brain size={16} />, title: 'Code Conscience', desc: 'Design memory remembers your intent across sessions and alerts on drift.' },
+                    { icon: <MessageSquare size={16} />, title: 'Talk / Write mode', desc: 'Toggle between conversational chat and file-focused code editing.' },
+                    { icon: <BookOpen size={16} />, title: 'Project Rules', desc: 'Set persistent instructions SUNy follows in every chat for a project.' },
+                    { icon: <User size={16} />, title: 'Persona', desc: 'Give SUNy a custom role — e.g. "You are a security expert".' },
+                    { icon: <CheckCircle size={16} />, title: 'Auto-Verify', desc: 'SUNy runs tests and lint in a loop until all errors are resolved.' },
+                    { icon: <FileText size={16} />, title: '@file mentions', desc: 'Type @file:path in any message to reference a file directly.' },
+                    { icon: <Play size={16} />, title: 'Dev Server', desc: 'Start your dev server from the sidebar and get a clickable URL.' },
+                    { icon: <Lock size={16} />, title: 'Secure Bridge', desc: 'Sandboxed bridge connection for safe file operations.' },
+                    { icon: <Eye size={16} />, title: 'Symbol Reader', desc: 'Inspect file structure without reading the whole file content.' },
+                    { icon: <Globe size={16} />, title: 'URL Fetch', desc: 'SUNy can fetch web pages and docs on demand during tasks.' },
+                    { icon: <Wrench size={16} />, title: 'Auto-Correction', desc: 'Failed code is analyzed and fixed automatically.' },
+                    { icon: <Users size={16} />, title: 'Subtask Delegation', desc: 'Complex tasks are split into focused sub-tasks with dedicated agents.' },
                   ].map(f => (
                     <div key={f.title} style={{ display: 'flex', gap: 10 }}>
                       <span style={{ fontSize: 16, flexShrink: 0 }}>{f.icon}</span>

@@ -9,6 +9,7 @@ export interface ReportMetrics {
   cacheWriteTokens: number;
   cacheReadTokens: number;
   chargedCost: number;
+  rawCost?: number;
   humanEstimateMinutes: number;
   humanEstimateCost: number;
   messageCount?: number;
@@ -125,7 +126,16 @@ export default function ReportBadgeButton({ report, label }: ReportBadgeButtonPr
           </div>
           <div style={rowStyle}>
             <span style={labelStyle}>$ spent</span>
-            <span style={valueStyle}>{formatMoney(report.chargedCost)}</span>
+            <span style={valueStyle}>
+              {report.chargedCost === 0 && report.rawCost && report.rawCost > 0 ? (
+                <>
+                  <span style={{ textDecoration: 'line-through', opacity: 0.5, marginRight: 6 }}>{formatMoney(report.rawCost)}</span>
+                  <span>Free</span>
+                </>
+              ) : (
+                formatMoney(report.chargedCost)
+              )}
+            </span>
           </div>
           <div style={rowStyle}>
             <span style={labelStyle}>Human estimate</span>

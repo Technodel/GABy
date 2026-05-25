@@ -9,6 +9,7 @@ interface User {
   is_active: number;
   max_tokens_per_session: number | null;
   created_at: string;
+  last_visit: string | null;
 }
 
 export default function AdminUsers() {
@@ -122,6 +123,7 @@ export default function AdminUsers() {
               <th>Wallet</th>
               <th>Status</th>
               <th>Max Tokens</th>
+              <th>Last Visit</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -140,6 +142,9 @@ export default function AdminUsers() {
                 </td>
                 <td style={{ color: 'var(--text-muted)' }}>
                   {u.max_tokens_per_session ? u.max_tokens_per_session.toLocaleString() : 'Unlimited'}
+                </td>
+                <td style={{ color: 'var(--text-muted)', fontSize: '0.9em' }}>
+                  {u.last_visit ? new Date(u.last_visit).toLocaleDateString() + ' ' + new Date(u.last_visit).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Never'}
                 </td>
                 <td>
                   <div style={{ display: 'flex', gap: 6 }}>

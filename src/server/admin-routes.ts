@@ -17,7 +17,7 @@ router.use(requireAdmin);
 router.get('/users', async (_req: Request, res: Response) => {
   const db = await getAdapter();
   const users = await db.all(`
-    SELECT id, username, balance, wallet_balance, wallet_auto_spend, is_active, selected_mode, created_at, max_tokens_per_session
+    SELECT id, username, balance, wallet_balance, wallet_auto_spend, is_active, selected_mode, created_at, max_tokens_per_session, last_visit
     FROM users ORDER BY created_at DESC
   `);
   res.json(users);
