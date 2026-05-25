@@ -1,5 +1,7 @@
 import 'dotenv/config';
+import 'express-async-errors';
 import express, { type NextFunction, type Request, type Response } from 'express';
+import { logger } from './logger';
 import http from 'http';
 import path from 'path';
 import cookieParser from 'cookie-parser';
@@ -462,18 +464,25 @@ hookSystem.register('postResponse', 'batch_scorer_trigger', async (ctx) => {
   } catch { /* best-effort */ }
 }, { priority: 60 });
 
-console.log(`[hooks] ${hookSystem.getRegistrations()['postResponse']?.length ?? 0} postResponse hooks registered`);
-console.log(`[hooks] ${hookSystem.getRegistrations()['onError']?.length ?? 0} onError hooks registered`);
+logger.info({ 
+  postResponse: hookSystem.getRegistrations()['postResponse']?.length ?? 0,
+  onError: hookSystem.getRegistrations()['onError']?.length ?? 0 
+}, 'Hooks registered');
 
 // Initialize DB on startup
 getDb();
+
+// Global Error Handler for express-async-errors
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  logger.error({ err, url: req.url, method: req.method }, 'Unhandled Express Error');
+  res.status(500).json({ error: 'Internal Server Error' });
+});
 
 import { attachWebSockets } from './ws-handler';
 attachWebSockets(server);
 
 server.listen(PORT, () => {
-  console.log(`SUNy server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  logger.info({ port: PORT, env: process.env.NODE_ENV || 'development' }, 'SUNy server running');
 
   // Initialize all system tables (best-effort)
   const tableInits: Array<() => Promise<void> | void> = [
