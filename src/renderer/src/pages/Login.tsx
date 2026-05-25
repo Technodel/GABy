@@ -113,7 +113,7 @@ export default function Login({ onLogin }: LoginProps) {
     { icon: '\ud83d\udcc8', title: 'Checkpoint timeline', desc: 'Every turn creates a restore point, so you can roll back to any earlier working version without losing momentum.' },
     { icon: '\ud83c\udfdb\ufe0f', title: 'Freeze Brain', desc: 'Pin a project to a saved memory snapshot so SUNy keeps using the same blueprint and behavioral rules until you unfreeze it.' },
     { icon: '\ud83d\udd17', title: 'Local Bridge', desc: 'A tiny background agent on your machine lets SUNy edit real local files \u2014 nothing is uploaded to any cloud.' },
-    { icon: '\u26a1', title: 'Parallel Agent Swarm (Pro)', desc: 'SUNy spawns multiple AI agents to work on your frontend, backend, and tests simultaneously in real-time.' },
+    { icon: '\u26a1', title: 'Parallel Agent Swarm (Pro)', desc: 'SUNy acts as a Project Manager, spawning an entire team of independent AI agents to work on your frontend, backend, and tests simultaneously in real-time. Tasks that took minutes now take seconds.' },
     { icon: '\ud83d\udd17', title: 'Client Tickets', desc: 'Generate a secure URL for clients. Fast/Smart plans include text-based AI intake forms to gather requirements.' },
     { icon: '\ud83d\udcf1', title: 'Advanced Visual Portal (Pro)', desc: 'Clients get a Visual Stakeholder Portal. They click visually on the live UI, and SUNy automatically maps it to your code and writes the fix.' },
     { icon: '\ud83d\udcb0', title: 'Pay as you go', desc: 'Add credits and spend them on AI tasks. No subscriptions. No waste. You only pay for what SUNy actually does.' },
@@ -157,6 +157,11 @@ export default function Login({ onLogin }: LoginProps) {
             line-height: 1.65 !important;
           }
 
+          .login-hero-circle {
+            width: 240px !important;
+            height: 240px !important;
+          }
+
           .login-columns {
             padding: 18px 12px 24px !important;
             gap: 14px !important;
@@ -174,7 +179,7 @@ export default function Login({ onLogin }: LoginProps) {
 
       {/* Hero */}
       <div className="login-hero" style={{ textAlign: 'center', padding: '48px 20px 36px', background: `linear-gradient(180deg, rgba(${glowRgb},0.08) 0%, transparent 100%)` }}>
-        <div style={{
+        <div className="login-hero-circle" style={{
           width: 440, height: 440, borderRadius: '50%', background: '#000000', margin: '0 auto 24px',
           display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
           boxShadow: '0 0 120px rgba(255, 170, 0, 0.35), 0 0 40px rgba(255, 200, 51, 0.2)',
@@ -182,8 +187,8 @@ export default function Login({ onLogin }: LoginProps) {
         }}>
           <img className="login-hero-logo" src="/SUNy.png" alt="SUNy" style={{ width: '100%', height: '100%', objectFit: 'contain', transform: 'scale(1.6)', display: 'block' }} />
         </div>
-        <h1 className="login-hero-title" style={{ fontSize: 52, fontWeight: 800, marginBottom: 10, letterSpacing: '-1px' }}>SUNy</h1>
-        <p className="login-hero-subtitle" style={{ fontSize: 24, fontWeight: 600, color: 'var(--accent)', marginBottom: 14 }}>Smart Unstoppable Navigator</p>
+        <h1 className="login-hero-title" style={{ fontSize: 52, fontWeight: 800, margin: 0, letterSpacing: '-1px' }}>SUNy</h1>
+        <p className="login-hero-subtitle" style={{ fontSize: 24, fontWeight: 600, color: 'var(--accent)', marginTop: 4, marginBottom: 14 }}>Smart Unstoppable Navigator</p>
         <p className="login-hero-copy" style={{ fontSize: 16, color: 'var(--text-secondary)', maxWidth: 620, margin: '0 auto', lineHeight: 1.75 }}>
           Your unstoppable AI companion. Give SUNy a target {'\u2014'} it maps out the path, handles the complex work, and polishes everything until it&apos;s perfect. No complicated instructions, just results. We added the &quot;y&quot; because it&apos;s your friendly digital builder!
         </p>

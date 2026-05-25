@@ -10,11 +10,11 @@
           var saved = localStorage.getItem('suny_ui_theme');
           var theme = (saved === 'pro' || saved === 'matrix' || saved === 'suny')
             ? saved
-            : (localStorage.getItem('suny_dark_mode') === 'false' ? 'pro' : 'matrix');
+            : (localStorage.getItem('suny_dark_mode') === 'false' ? 'pro' : 'pro');
           document.documentElement.dataset.theme = theme;
-          if (theme === 'pro') document.documentElement.classList.add('theme-pro');
+          if (theme === 'matrix') document.documentElement.classList.add('theme-matrix');
           else if (theme === 'suny') document.documentElement.classList.add('theme-suny');
-          else document.documentElement.classList.add('theme-matrix');
+          else document.documentElement.classList.add('theme-pro');
         } catch (_) {}
       })();
     </script>

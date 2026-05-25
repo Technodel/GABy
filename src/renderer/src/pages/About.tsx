@@ -101,7 +101,7 @@ function EnglishContent() {
             { title: '🚧 MCP Marketplace', desc: 'Discover and install community-contributed MCP servers. Databases, search engines, Docker, Slack, GitHub — all pluggable in one command.' },
             { title: '🎫 Client Tickets (Fast/Smart)', desc: 'Generate a secure, shareable URL for non-technical clients. SUNy acts as your front-line assistant, chatting warmly with the client to gather detailed project requirements.' },
             { title: '🔭 Advanced Visual Portal (PRO)', desc: 'The ultimate Client Ticket upgrade. Clients get a visual overlay on your live staging app. They click a button on their screen, type a change, and SUNy automatically maps it to your code and writes the fix.' },
-            { title: '⚡ Parallel Agent Swarm (PRO)', desc: 'For massive features, SUNy splits into multiple parallel agents. Watch it write the frontend, backend, and tests simultaneously in real-time, cutting execution time by 70%.' },
+            { title: '⚡ Parallel Agent Swarm (PRO)', desc: 'SUNy acts as a Project Manager, spawning a swarm of Junior Developer AIs to handle massive features. Watch it write the frontend, backend, and tests simultaneously in real-time, cutting execution time by 70%.' },
           ].map(f => (
             <div key={f.title} style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--bg)' }}>
               <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{f.title}</h3>
