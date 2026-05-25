@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import { Home, Eraser, BarChart2, HelpCircle, Settings, Phone, LogOut, Ticket } from 'lucide-react';
 import BalanceBadge from './BalanceBadge';
 import BridgeStatusBadge from './BridgeStatusBadge';

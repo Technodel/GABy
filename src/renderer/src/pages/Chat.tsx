@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Plus, Trash2, Settings, LogOut, Edit3, RotateCcw, X, BarChart2, User, HelpCircle, Sparkles, Home, Eraser, Phone, ChevronRight, ChevronDown, FolderOpen, Folder, Play, FileText, GitBranch, Archive, ArchiveRestore } from 'lucide-react';
+ï»¿import { useState, useEffect, useRef, useCallback } from 'react';
+import { Plus, Trash2, Settings, LogOut, Edit3, RotateCcw, X, BarChart2, User, HelpCircle, Sparkles, Home, Eraser, Phone, ChevronRight, ChevronDown, FolderOpen, Folder, Play, FileText, GitBranch, Archive, ArchiveRestore, Link } from 'lucide-react';
 
 import ReportBadgeButton, { ReportMetrics } from '../components/ReportBadgeButton';
 import { useWebSocket } from '../hooks/useWebSocket';
@@ -172,7 +172,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     try { return localStorage.getItem('suny_sounds_enabled') !== 'false'; } catch { return true; }
   }
 
-  // Shared AudioContext — persisted via useRef so it survives re-renders.
+  // Shared AudioContext ï¿½ persisted via useRef so it survives re-renders.
   // Browser autoplay policy suspends new AudioContexts not created from user gestures.
   // We resume on first user interaction (keydown/mousedown) so sounds from WebSocket
   // events (not user gestures) still play.
@@ -256,7 +256,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
           osc.start(now); osc.stop(now + 0.18);
           break;
       }
-      // Don't close the shared context — let the oscillators finish naturally
+      // Don't close the shared context ï¿½ let the oscillators finish naturally
     } catch { /* AudioContext may be unavailable */ }
   }
 
@@ -475,7 +475,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     if (!requestStartedAtRef.current) requestStartedAtRef.current = Date.now();
     thinkingTimedOutRef.current = false;
     thinkingTimeoutRef.current = setTimeout(() => {
-      // No response for 5 min — cancel and notify. (Long installs/builds can take
+      // No response for 5 min ï¿½ cancel and notify. (Long installs/builds can take
       // 2-3 minutes silently between narrations, so we use a generous window.)
       setThinking(false);
       setStreamingContent('');
@@ -542,7 +542,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       if (!explicitTheme || explicitTheme === 'matrix') {
         const fromDarkMode = localStorage.getItem('suny_dark_mode');
         if (!fromDarkMode || fromDarkMode !== 'false') {
-          // No explicit theme — default to PRO on mobile
+          // No explicit theme ï¿½ default to PRO on mobile
           const t = 'pro';
           setUiTheme(t);
           localStorage.setItem('suny_ui_theme', t);
@@ -766,7 +766,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     if (run.toolCalls.length > 0) {
       report += `Tools Used:\n`;
       run.toolCalls.forEach(tool => {
-        report += `  — ${toolLabel(tool)}\n`;
+        report += `  ï¿½ ${toolLabel(tool)}\n`;
       });
       report += `\n`;
     }
@@ -844,6 +844,11 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       return updated;
     });
     activeProofIdRef.current = null;
+      if (activeProject) {
+        loadProjectStateFromServer(activeProject.id).then(remote => {
+          if (remote && remote.messages.length > 0) setMessages(remote.messages);
+        }).catch(() => {});
+      }
   }
 
   function applyProofSummary(summary: Record<string, unknown>) {
@@ -1214,9 +1219,9 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       if (msg.event === 'suny:narration') {
         lastNarrationRef.current = msg.message as string;
         if (thinking) {
-          // Tool narrations are signs of life — keep the watchdog alive.
+          // Tool narrations are signs of life ï¿½ keep the watchdog alive.
           resetThinkingTimeout();
-          // New iteration starting — wipe the previous iteration's streamed text so
+          // New iteration starting ï¿½ wipe the previous iteration's streamed text so
           // intermediate tool-call narration doesn't accumulate in the display bubble.
           setStreamingContent('');
           streamingContentRef.current = '';
@@ -1241,17 +1246,17 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         setVectorIndexStats({ chunks: data.chunks, files: data.files, projectId: data.projectId });
       } else if (msg.event === 'suny:preparation_step') {
         setThinkingStatus(pickStatusVariant('prep', [
-          'Getting everything ready—',
-          'Setting up the best approach—',
-          'Preparing your answer now—',
-          'Organizing the next steps—',
-          'Lining up what needs to happen—',
-          'Getting this ready for you—',
-          'Starting with the essentials—',
-          'Putting the plan in motion—',
-          'Collecting what I need first—',
-          'Preparing a clean run—',
-        ], 'Preparing your answer—'));
+          'Getting everything readyï¿½',
+          'Setting up the best approachï¿½',
+          'Preparing your answer nowï¿½',
+          'Organizing the next stepsï¿½',
+          'Lining up what needs to happenï¿½',
+          'Getting this ready for youï¿½',
+          'Starting with the essentialsï¿½',
+          'Putting the plan in motionï¿½',
+          'Collecting what I need firstï¿½',
+          'Preparing a clean runï¿½',
+        ], 'Preparing your answerï¿½'));
       } else if (msg.event === 'suny:done') {
         clearThinkingTimeout();
         setThinking(false);
@@ -1426,32 +1431,32 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       } else if (msg.event === 'suny:lint_running') {
         pushCheckToProof('Lint check started');
         setThinkingStatus(pickStatusVariant('lint_running', [
-          'Doing a quick quality check—',
-          'Scanning for small issues—',
-          'Checking for fixable problems—',
-          'Running a code quality pass—',
-          'Looking for anything to clean up—',
-          'Reviewing for warnings and errors—',
-          'Making sure everything is neat—',
-        ], 'Checking for issues—'));
+          'Doing a quick quality checkï¿½',
+          'Scanning for small issuesï¿½',
+          'Checking for fixable problemsï¿½',
+          'Running a code quality passï¿½',
+          'Looking for anything to clean upï¿½',
+          'Reviewing for warnings and errorsï¿½',
+          'Making sure everything is neatï¿½',
+        ], 'Checking for issuesï¿½'));
       } else if (msg.event === 'suny:lint_errors') {
         pushCheckToProof(`Lint found ${msg.errorCount as number} error(s) on pass ${msg.attempt as number}`);
         const lintErrorStatus = pickStatusVariant('lint_errors', [
-          'I found {count} issue(s). Fixing them now (round {attempt})—',
-          '{count} issue(s) spotted. Cleaning this up (round {attempt})—',
-          'Found {count} thing(s) to fix. Working on it (round {attempt})—',
-          'A few issues showed up ({count}). Repairing now (round {attempt})—',
-        ], 'I found {count} issue(s). Fixing now (round {attempt})—');
+          'I found {count} issue(s). Fixing them now (round {attempt})ï¿½',
+          '{count} issue(s) spotted. Cleaning this up (round {attempt})ï¿½',
+          'Found {count} thing(s) to fix. Working on it (round {attempt})ï¿½',
+          'A few issues showed up ({count}). Repairing now (round {attempt})ï¿½',
+        ], 'I found {count} issue(s). Fixing now (round {attempt})ï¿½');
         setThinkingStatus(lintErrorStatus
           .replace('{count}', String(msg.errorCount as number))
           .replace('{attempt}', String(msg.attempt as number)));
       } else if (msg.event === 'suny:lint_passed') {
         pushCheckToProof('Lint passed');
         setThinkingStatus(pickStatusVariant('lint_passed', [
-          'Great news — quality checks passed ?',
+          'Great news ï¿½ quality checks passed ?',
           'Looks clean now ?',
           'All quality checks are clear ?',
-          'Nice — no remaining quality issues ?',
+          'Nice ï¿½ no remaining quality issues ?',
         ], 'Quality checks passed ?'));
         playSound('success');
       } else if (msg.event === 'suny:test_running') {
@@ -1462,24 +1467,24 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         );
         setThinkingStatus((msg.attempt as number) === 0
           ? pickStatusVariant('test_running', [
-              'Running checks to confirm everything works—',
-              'Testing the latest changes—',
-              'Validating behavior now—',
-              'Checking that everything still works—',
-              'Running reliability checks—',
-            ], 'Running checks—')
+              'Running checks to confirm everything worksï¿½',
+              'Testing the latest changesï¿½',
+              'Validating behavior nowï¿½',
+              'Checking that everything still worksï¿½',
+              'Running reliability checksï¿½',
+            ], 'Running checksï¿½')
           : pickStatusVariant('test_rerun', [
-              `Trying the checks again (round ${(msg.attempt as number) + 1})—`,
-              `Re-checking after fixes (round ${(msg.attempt as number) + 1})—`,
-              `Running another validation pass (round ${(msg.attempt as number) + 1})—`,
-            ], `Running checks again (round ${(msg.attempt as number) + 1})—`));
+              `Trying the checks again (round ${(msg.attempt as number) + 1})ï¿½`,
+              `Re-checking after fixes (round ${(msg.attempt as number) + 1})ï¿½`,
+              `Running another validation pass (round ${(msg.attempt as number) + 1})ï¿½`,
+            ], `Running checks again (round ${(msg.attempt as number) + 1})ï¿½`));
       } else if (msg.event === 'suny:test_errors') {
         pushCheckToProof(`Tests found ${msg.failCount as number} failure(s) on attempt ${msg.attempt as number}`);
         const testErrorStatus = pickStatusVariant('test_errors', [
-          '{count} check(s) failed. Fixing now (round {attempt})—',
-          'I found {count} failing check(s). Repairing them (round {attempt})—',
-          '{count} issue(s) remain in validation. Working through them (round {attempt})—',
-        ], '{count} check(s) failed. Fixing now (round {attempt})—');
+          '{count} check(s) failed. Fixing now (round {attempt})ï¿½',
+          'I found {count} failing check(s). Repairing them (round {attempt})ï¿½',
+          '{count} issue(s) remain in validation. Working through them (round {attempt})ï¿½',
+        ], '{count} check(s) failed. Fixing now (round {attempt})ï¿½');
         setThinkingStatus(testErrorStatus
           .replace('{count}', String(msg.failCount as number))
           .replace('{attempt}', String(msg.attempt as number)));
@@ -1489,8 +1494,8 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
           ? pickStatusVariant('test_passed', [
               'Everything checked out ?',
               'All validations passed ?',
-              'Looks good — checks are green ?',
-              'Done — all checks passed ?',
+              'Looks good ï¿½ checks are green ?',
+              'Done ï¿½ all checks passed ?',
             ], 'All checks passed ?')
           : pickStatusVariant('test_passed_retry', [
               `All checks are passing now ? (fixed in ${msg.attempt as number} round(s))`,
@@ -1517,13 +1522,18 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       }
     },
     onConnect: () => {
-      // Reset stale state on reconnect — avoids forever-spinning thinking indicator
+      // Reset stale state on reconnect ï¿½ avoids forever-spinning thinking indicator
       clearThinkingTimeout();
       setThinking(false);
       setThinkingStatus('');
       setStreamingContent('');
       streamingContentRef.current = '';
       activeProofIdRef.current = null;
+      if (activeProject) {
+        loadProjectStateFromServer(activeProject.id).then(remote => {
+          if (remote && remote.messages.length > 0) setMessages(remote.messages);
+        }).catch(() => {});
+      }
     },
     onDisconnect: () => { setBridgeConnected(false); },
   });
@@ -1866,9 +1876,9 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     if (activeProject && messages.length > 0) {
       const userMsgs = messages.filter(m => m.type === 'user').map(m => m.content);
       const lastUserMsg = userMsgs[userMsgs.length - 1] || '';
-      const title = lastUserMsg.length > 60 ? lastUserMsg.slice(0, 57) + '—' : (lastUserMsg || 'Chat session');
+      const title = lastUserMsg.length > 60 ? lastUserMsg.slice(0, 57) + 'ï¿½' : (lastUserMsg || 'Chat session');
       // Build a compact summary: last user message + count of messages
-      const summary = `${messages.length} messages · Last asked: "${lastUserMsg.slice(0, 120)}"`;
+      const summary = `${messages.length} messages ï¿½ Last asked: "${lastUserMsg.slice(0, 120)}"`;
       addMemory(title, summary);
     }
     setMessages([]);
@@ -1882,6 +1892,11 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     setProofRuns([]);
     setExpandedRunIds(new Set());
     activeProofIdRef.current = null;
+      if (activeProject) {
+        loadProjectStateFromServer(activeProject.id).then(remote => {
+          if (remote && remote.messages.length > 0) setMessages(remote.messages);
+        }).catch(() => {});
+      }
     if (activeProject) {
       localStorage.removeItem(storageKey(activeProject.id));
     } else {
@@ -1951,7 +1966,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     const label = (() => {
       const last = messages.filter(m => m.type === 'user').slice(-1)[0];
       const raw = last?.content ?? '';
-      return raw.length > 50 ? raw.slice(0, 47) + '…' : (raw || 'Snapshot');
+      return raw.length > 50 ? raw.slice(0, 47) + 'ï¿½' : (raw || 'Snapshot');
     })();
     try {
       const res = await fetch('/api/snapshots', {
@@ -1993,7 +2008,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       if (opts.conversation) parts.push('conversation');
       if (opts.memory && data.memory_restored) parts.push('memory');
       if (opts.code && data.code_checkpoint_id) parts.push(`code (checkpoint #${data.code_checkpoint_id})`);
-      addMessage('system', `?? Restored **"${snap.label}"** — ${parts.join(' + ') || 'nothing selected'}.`);
+      addMessage('system', `?? Restored **"${snap.label}"** ï¿½ ${parts.join(' + ') || 'nothing selected'}.`);
     } catch {}
   }
 
@@ -2012,7 +2027,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
   const [restoreTarget, setRestoreTarget] = useState<MemorySnapshot | null>(null);
   const [restoreOpts, setRestoreOpts] = useState<{ conversation: boolean; memory: boolean; code: boolean }>({ conversation: true, memory: false, code: false });
 
-  // ?? Freeze Brain — per-project pin to a snapshot's memory state
+  // ?? Freeze Brain ï¿½ per-project pin to a snapshot's memory state
   const [freezeStatus, setFreezeStatus] = useState<{ frozen: boolean; snapshot?: { uid: string; label: string; tier: string | null } | null }>({ frozen: false, snapshot: null });
 
   async function loadFreezeStatus() {
@@ -2095,7 +2110,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       }}>
         {/* LEFT: brand + username + active project */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
-          {/* Hamburger — visible only on mobile via CSS */}
+          {/* Hamburger ï¿½ visible only on mobile via CSS */}
           <button
             className="sidebar-toggle-btn"
             onClick={toggleSidebar}
@@ -2124,10 +2139,10 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
             </span>
           )}
           {activeProject && (
-            <span style={{ color: 'var(--text-secondary)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>· {activeProject.name}</span>
+            <span style={{ color: 'var(--text-secondary)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>ï¿½ {activeProject.name}</span>
           )}
           {activeSpend && (
-            <span style={{ color: 'var(--text-muted)', fontSize: 11, whiteSpace: 'nowrap', display: 'none' }}>· {formatSpend(activeSpend.total_cost)}</span>
+            <span style={{ color: 'var(--text-muted)', fontSize: 11, whiteSpace: 'nowrap', display: 'none' }}>ï¿½ {formatSpend(activeSpend.total_cost)}</span>
           )}
         </div>
 
@@ -2184,7 +2199,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                 setActiveProject(null);
                 setMessages([]);
               }}
-              title="Home — back to global chat"
+              title="Home ï¿½ back to global chat"
             >
               <Home size={15} />
             </button>
@@ -2197,7 +2212,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
               <button
                 className="btn btn-icon btn-secondary"
                 onClick={saveSnapshot}
-                title="Save snapshot — store this chat + memory state for later restore"
+                title="Save snapshot ï¿½ store this chat + memory state for later restore"
               >
                 <GitBranch size={15} />
               </button>
@@ -2305,7 +2320,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
 
       {/* Body: sidebar + chat area */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden', minHeight: 0 }}>
-        {/* Sidebar overlay backdrop — only shown on mobile when sidebar is open */}
+        {/* Sidebar overlay backdrop ï¿½ only shown on mobile when sidebar is open */}
         {sidebarOpen && (
           <div className="sidebar-overlay" onClick={closeSidebar} style={{ display: 'none' }} />
         )}
@@ -2334,7 +2349,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                     if (!bridgeConnected) { setShowBridgeTip(true); return; }
                     setShowFileBrowser(v => { const next = !v; if (!v && activeProject) loadFileBrowser(activeProject.id); return next; });
                   }}
-                  title={showFileBrowser ? 'Hide file browser' : (bridgeConnected ? 'Show file browser' : 'Bridge required — click to connect')}
+                  title={showFileBrowser ? 'Hide file browser' : (bridgeConnected ? 'Show file browser' : 'Bridge required ï¿½ click to connect')}
                 >
                   {showFileBrowser ? <FolderOpen size={12} /> : <Folder size={12} />}
                 </button>
@@ -2419,7 +2434,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
               onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--text-secondary)'; }}
               title="Manage client tickets"
             >
-              <span style={{ fontSize: 14, lineHeight: 1 }}>??</span>
+              <Link size={14} />
               <span>Client Tickets</span>
             </div>
           </div>
@@ -2622,7 +2637,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
             </div>
           )}
 
-          {/* ?? Freeze Brain section — pin SUNy's memory to a snapshot */}
+          {/* ?? Freeze Brain section ï¿½ pin SUNy's memory to a snapshot */}
           {activeProject && !isMobile && (
             <div style={{ borderTop: '1px solid var(--border)', marginTop: 4 }}>
               <div style={{ padding: '12px 12px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -2643,7 +2658,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                   <>
                     <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 6 }}>
                       Pinned to: <strong>{freezeStatus.snapshot.label}</strong>
-                      {freezeStatus.snapshot.tier ? ` · tier ${freezeStatus.snapshot.tier}` : ''}
+                      {freezeStatus.snapshot.tier ? ` ï¿½ tier ${freezeStatus.snapshot.tier}` : ''}
                     </div>
                     <button
                       className="btn btn-secondary btn-sm"
@@ -2671,7 +2686,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                         style={{ width: '100%', fontSize: 11, padding: '4px 6px' }}
                         title="Select a snapshot to freeze"
                       >
-                        <option value="">Select snapshot to freeze…</option>
+                        <option value="">Select snapshot to freezeï¿½</option>
                         {snapshotList.filter(s => s.has_memory).map(s => (
                           <option key={s.id} value={s.id}>{s.label}{s.tier ? ` (${s.tier})` : ''}</option>
                         ))}
@@ -2744,7 +2759,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
               </div>
               {!collapsedSections.rules && (projectRules ? (
                 <div style={{ padding: '0 12px 8px', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5, whiteSpace: 'pre-wrap', maxHeight: 100, overflowY: 'auto', opacity: 0.8 }}>
-                  {projectRules.slice(0, 300)}{projectRules.length > 300 ? '—' : ''}
+                  {projectRules.slice(0, 300)}{projectRules.length > 300 ? 'ï¿½' : ''}
                 </div>
               ) : (
                 <p style={{ padding: '0 12px 8px', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
@@ -2776,7 +2791,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
               </div>
               {!collapsedSections.persona && (activeProject.persona ? (
                 <div style={{ padding: '0 12px 8px', fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5, whiteSpace: 'pre-wrap', maxHeight: 70, overflowY: 'auto', opacity: 0.8 }}>
-                  {activeProject.persona.slice(0, 200)}{(activeProject.persona?.length ?? 0) > 200 ? '—' : ''}
+                  {activeProject.persona.slice(0, 200)}{(activeProject.persona?.length ?? 0) > 200 ? 'ï¿½' : ''}
                 </div>
               ) : (
                 <p style={{ padding: '0 12px 8px', fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
@@ -2942,7 +2957,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                       onClick={stopDevServer}
                       disabled={devServerLoading}
                     >
-                      {devServerLoading ? '—' : 'Stop'}
+                      {devServerLoading ? 'ï¿½' : 'Stop'}
                     </button>
                     <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4 }}>
                       Dev server ON means your app is running live for preview/testing. Turning it OFF only stops preview, not SUNy file access.
@@ -3015,7 +3030,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                             disabled={rollingBack === cp.sha}
                             style={{ fontSize: 10, padding: '2px 5px', background: 'var(--error)', color: '#fff', border: 'none', borderRadius: 3, cursor: 'pointer' }}
                           >
-                            {rollingBack === cp.sha ? '—' : 'Yes'}
+                            {rollingBack === cp.sha ? 'ï¿½' : 'Yes'}
                           </button>
                           <button
                             className="btn btn-sm"
@@ -3278,7 +3293,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                         setTopUpSubmitting(false);
                       }
                     }}
-                  >{topUpSubmitting ? 'Submitting…' : 'Submit request'}</button>
+                  >{topUpSubmitting ? 'Submittingï¿½' : 'Submit request'}</button>
                 </div>
               </>
             )}
@@ -3351,7 +3366,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 560 }}>
             <h3 className="modal-title">
               <FileText size={16} style={{ marginRight: 8, verticalAlign: 'text-bottom' }} />
-              Project Rules — {activeProject.name}
+              Project Rules ï¿½ {activeProject.name}
             </h3>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.5 }}>
               These rules are saved to <code style={{ background: 'var(--bg)', padding: '1px 4px', borderRadius: 3 }}>.suny-rules</code> in your project folder and injected into every conversation for this project.
@@ -3579,7 +3594,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
             <h3 className="modal-title">
               <User size={16} style={{ marginRight: 8, verticalAlign: 'text-bottom' }} />
-              AI Persona — {activeProject.name}
+              AI Persona ï¿½ {activeProject.name}
             </h3>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12, lineHeight: 1.5 }}>
               Give SUNy a specific role or personality for this project. This is injected into every conversation.
@@ -3640,7 +3655,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                         {snap.has_memory && <span style={{ marginLeft: 6, fontSize: 10, opacity: 0.6 }}>??</span>}
                       </div>
                       <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
-                        {snap.message_count} msgs{snap.tier ? ` · tier ${snap.tier}` : ''} · {new Date(snap.savedAt).toLocaleString()}
+                        {snap.message_count} msgs{snap.tier ? ` ï¿½ tier ${snap.tier}` : ''} ï¿½ {new Date(snap.savedAt).toLocaleString()}
                       </div>
                     </div>
                     <button
@@ -3664,7 +3679,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         <div className="modal-overlay" onClick={() => setRestoreTarget(null)} style={{ zIndex: 1100 }}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <h3 className="modal-title" style={{ margin: 0 }}>Restore — what to bring back?</h3>
+              <h3 className="modal-title" style={{ margin: 0 }}>Restore ï¿½ what to bring back?</h3>
               <button className="btn btn-icon btn-secondary" onClick={() => setRestoreTarget(null)}><X size={14} /></button>
             </div>
             <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 0, marginBottom: 12 }}>
@@ -3673,15 +3688,15 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
                 <input type="checkbox" checked={restoreOpts.conversation} onChange={e => setRestoreOpts(o => ({ ...o, conversation: e.target.checked }))} />
-                <span>?? <strong>Conversation</strong> — replace current messages ({restoreTarget.message_count})</span>
+                <span>?? <strong>Conversation</strong> ï¿½ replace current messages ({restoreTarget.message_count})</span>
               </label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: restoreTarget.has_memory ? 'pointer' : 'not-allowed', opacity: restoreTarget.has_memory ? 1 : 0.4 }}>
                 <input type="checkbox" disabled={!restoreTarget.has_memory} checked={restoreOpts.memory} onChange={e => setRestoreOpts(o => ({ ...o, memory: e.target.checked }))} />
-                <span>?? <strong>Memory</strong> — blueprint + behavioral rules + tier{!restoreTarget.has_memory && ' (none captured)'}</span>
+                <span>?? <strong>Memory</strong> ï¿½ blueprint + behavioral rules + tier{!restoreTarget.has_memory && ' (none captured)'}</span>
               </label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
                 <input type="checkbox" checked={restoreOpts.code} onChange={e => setRestoreOpts(o => ({ ...o, code: e.target.checked }))} />
-                <span>?? <strong>Code</strong> — rollback to linked checkpoint (if any)</span>
+                <span>?? <strong>Code</strong> ï¿½ rollback to linked checkpoint (if any)</span>
               </label>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
@@ -3774,7 +3789,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                       <div key={m.mode}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
                           <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{m.mode}</span>
-                          <span style={{ color: 'var(--text-muted)' }}>{(total / 1000).toFixed(1)}K · ${m.charged_cost.toFixed(4)}</span>
+                          <span style={{ color: 'var(--text-muted)' }}>{(total / 1000).toFixed(1)}K ï¿½ ${m.charged_cost.toFixed(4)}</span>
                         </div>
                         <div style={{ height: 6, background: 'var(--border)', borderRadius: 3, overflow: 'hidden' }}>
                           <div style={{ width: `${pct}%`, height: '100%', background: 'var(--accent)', transition: 'width 0.4s' }} />
@@ -3799,7 +3814,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                       <div key={`${p.project_id ?? 'global'}-${p.project_name}`}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 12, marginBottom: 4 }}>
                           <span style={{ color: 'var(--text-primary)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.project_name}</span>
-                          <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{(total / 1000).toFixed(1)}K · ${p.charged_cost.toFixed(4)}</span>
+                          <span style={{ color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{(total / 1000).toFixed(1)}K ï¿½ ${p.charged_cost.toFixed(4)}</span>
                         </div>
                         <div style={{ height: 6, background: 'var(--border)', borderRadius: 3, overflow: 'hidden' }}>
                           <div style={{ width: `${pct}%`, height: '100%', background: 'var(--accent)', transition: 'width 0.4s' }} />
@@ -3832,14 +3847,14 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
               <img src="/SLOGO.png" alt="SUNy" style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', marginBottom: 10, boxShadow: '0 4px 16px rgba(108,99,255,0.3)' }} />
               <h2 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 700 }}>Welcome to SUNy!</h2>
               <p style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.6, margin: '0 0 20px' }}>
-                Your personal AI assistant — ask anything, build anything. Here's how to start:
+                Your personal AI assistant ï¿½ ask anything, build anything. Here's how to start:
               </p>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
               {[
                 { icon: '??', title: 'Create or open a project', desc: 'Click "+ New" in the sidebar to link a folder on your computer or let SUNy create one from scratch.' },
                 { icon: '??', title: 'Just talk to SUNy', desc: 'Ask questions, get explanations, request changes. SUNy understands what you want and gets it done.' },
-                { icon: '??', title: 'Connect the Bridge for full power', desc: 'The Bridge lets SUNy actually write files and run commands on your machine — one terminal command to set up.' },
+                { icon: '??', title: 'Connect the Bridge for full power', desc: 'The Bridge lets SUNy actually write files and run commands on your machine ï¿½ one terminal command to set up.' },
               ].map((step, i) => (
                 <div key={i} style={{ display: 'flex', gap: 12, padding: '10px 14px', background: 'var(--bg-secondary)', borderRadius: 8 }}>
                   <span style={{ fontSize: 20, flexShrink: 0 }}>{step.icon}</span>
@@ -3897,13 +3912,13 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                 <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-muted)', marginBottom: 8 }}>Features</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
-                    { icon: '??', title: 'One-Click Ship', desc: 'Give one goal — SUNy plans, edits, tests, fixes, and delivers a verified result.' },
+                    { icon: '??', title: 'One-Click Ship', desc: 'Give one goal ï¿½ SUNy plans, edits, tests, fixes, and delivers a verified result.' },
                     { icon: '??', title: 'Proof Panel', desc: 'Every task shows exactly what changed, what passed, and what was fixed.' },
                     { icon: '?', title: 'One-Click Undo', desc: 'Every edit creates a restore point. Roll back any change instantly.' },
                     { icon: '??', title: 'Code Conscience', desc: 'Design memory remembers your intent across sessions and alerts on drift.' },
                     { icon: '??', title: 'Talk / Write mode', desc: 'Toggle between conversational chat and file-focused code editing.' },
                     { icon: '??', title: 'Project Rules', desc: 'Set persistent instructions SUNy follows in every chat for a project.' },
-                    { icon: '??', title: 'Persona', desc: 'Give SUNy a custom role — e.g. "You are a security expert".' },
+                    { icon: '??', title: 'Persona', desc: 'Give SUNy a custom role ï¿½ e.g. "You are a security expert".' },
                     { icon: '?', title: 'Auto-Verify', desc: 'SUNy runs tests and lint in a loop until all errors are resolved.' },
                     { icon: '??', title: '@file mentions', desc: 'Type @file:path in any message to reference a file directly.' },
                     { icon: '???', title: 'Dev Server', desc: 'Start your dev server from the sidebar and get a clickable URL.' },
@@ -3917,7 +3932,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                       <span style={{ fontSize: 16, flexShrink: 0 }}>{f.icon}</span>
                       <div>
                         <span style={{ fontWeight: 600, fontSize: 12 }}>{f.title}</span>
-                        <span style={{ color: 'var(--text-muted)', fontSize: 12 }}> — {f.desc}</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: 12 }}> ï¿½ {f.desc}</span>
                       </div>
                     </div>
                   ))}
