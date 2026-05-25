@@ -19,6 +19,7 @@ import { createUrlFetchTool } from './url-fetch';
 import { createMemoryTools } from './user-memory';
 import { createSymbolReaderTool } from './symbol-reader';
 import { createSubtaskDelegatorTool } from './subtask-delegator';
+import { createSwarmDelegatorTool } from './swarm-delegator';
 import { createPromptRegistryTool } from './prompt-registry';
 import { createFileDiscoveryTool } from './file-discovery';
 import { createSelfHealTool } from './error-corrector';
@@ -550,6 +551,17 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
         getSystemPrompt: () => fullSystem,
         getHistory: () => history,
       });
+      const swarmDelegatorTool = createSwarmDelegatorTool({
+        getContext: () => ({
+          userId,
+          projectPath,
+          model: currentModel as LanguageModel,
+          provider: currentProvider,
+          signal,
+        }),
+        getSystemPrompt: () => fullSystem,
+        getHistory: () => history,
+      });
       const selfHealTool = createSelfHealTool(() => ({
         model: currentModel as LanguageModel,
         signal,
@@ -561,6 +573,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
         get_prompt_template: promptRegistryTool,
         find_files: fileDiscoveryTool,
         delegate_subtask: subtaskDelegatorTool,
+        delegate_swarm: swarmDelegatorTool,
         self_heal: selfHealTool,
       };
 

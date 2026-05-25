@@ -113,9 +113,10 @@ export default function Login({ onLogin }: LoginProps) {
     { icon: '\ud83d\udcc8', title: 'Checkpoint timeline', desc: 'Every turn creates a restore point, so you can roll back to any earlier working version without losing momentum.' },
     { icon: '\ud83c\udfdb\ufe0f', title: 'Freeze Brain', desc: 'Pin a project to a saved memory snapshot so SUNy keeps using the same blueprint and behavioral rules until you unfreeze it.' },
     { icon: '\ud83d\udd17', title: 'Local Bridge', desc: 'A tiny background agent on your machine lets SUNy edit real local files \u2014 nothing is uploaded to any cloud.' },
-    { icon: '\ud83d\udcf1', title: 'Remote Control Bridge', desc: 'Access your account from your phone. If your computer is running, you can send instructions and watch SUNy execute codebase tasks remotely.' },
+    { icon: '\u26a1', title: 'Parallel Agent Swarm (Pro)', desc: 'SUNy spawns multiple AI agents to work on your frontend, backend, and tests simultaneously in real-time.' },
+    { icon: '\ud83d\udd17', title: 'Client Tickets', desc: 'Generate a secure URL for clients. Fast/Smart plans include text-based AI intake forms to gather requirements.' },
+    { icon: '\ud83d\udcf1', title: 'Advanced Visual Portal (Pro)', desc: 'Clients get a Visual Stakeholder Portal. They click visually on the live UI, and SUNy automatically maps it to your code and writes the fix.' },
     { icon: '\ud83d\udcb0', title: 'Pay as you go', desc: 'Add credits and spend them on AI tasks. No subscriptions. No waste. You only pay for what SUNy actually does.' },
-    { icon: '\ud83d\udd17', title: 'Client Link', desc: 'Generate a secure, shareable URL for non-technical clients. They describe the change they need — you review, approve, and SUNy executes. No more back-and-forth.' },
   ];
 
   return (

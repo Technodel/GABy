@@ -95,11 +95,13 @@ function EnglishContent() {
             { title: '🎭 Prompt Variants', desc: 'A/B test different AI personas, tones, and strategies. Switch between Senior Engineer, Patient Teacher, or Test-First modes — or create your own custom variant.' },
             { title: '📸 Checkpoint Timeline', desc: 'Every change is saved as a named checkpoint. Browse your full history with file counts, tags, and one-click rollback to any earlier state.' },
             { title: '🌿 Fork Conversation', desc: 'Use the fork button in chat to save an instant snapshot before trying a new direction. You can restore any fork later from the Forks menu.' },
-            { title: '🚧 @suny/sdk (Coming Soon)', desc: 'The official SDK for building SUNy extensions. Create custom tools, memory adapters, auth providers, and billing plugins with full TypeScript support.' },
-            { title: '🚧 Scheduled Agents (Coming Soon)', desc: 'Schedule SUNy to run automatically — daily code reviews, weekly dependency audits, hourly health checks. Set it and forget it.' },
+            { title: '🚧 @suny/sdk', desc: 'The official SDK for building SUNy extensions. Create custom tools, memory adapters, auth providers, and billing plugins with full TypeScript support.' },
+            { title: '🚧 Scheduled Agents', desc: 'Schedule SUNy to run automatically — daily code reviews, weekly dependency audits, hourly health checks. Set it and forget it.' },
             { title: '🌐 Browser Automation', desc: 'SUNy can navigate web pages, take screenshots, fill forms, and extract data. Perfect for testing, scraping, and live site verification.' },
-            { title: '🚧 MCP Marketplace (Coming Soon)', desc: 'Discover and install community-contributed MCP servers. Databases, search engines, Docker, Slack, GitHub — all pluggable in one command.' },
-            { title: '🎫 Client Tickets (PRO)', desc: 'Generate a secure, shareable URL for non-technical clients. SUNy acts as your front-line assistant, chatting warmly with the client to gather detailed project requirements. You review the complete ticket, approve, and SUNy executes the changes. No Slack threads, no back-and-forth.' },
+            { title: '🚧 MCP Marketplace', desc: 'Discover and install community-contributed MCP servers. Databases, search engines, Docker, Slack, GitHub — all pluggable in one command.' },
+            { title: '🎫 Client Tickets (Fast/Smart)', desc: 'Generate a secure, shareable URL for non-technical clients. SUNy acts as your front-line assistant, chatting warmly with the client to gather detailed project requirements.' },
+            { title: '🔭 Advanced Visual Portal (PRO)', desc: 'The ultimate Client Ticket upgrade. Clients get a visual overlay on your live staging app. They click a button on their screen, type a change, and SUNy automatically maps it to your code and writes the fix.' },
+            { title: '⚡ Parallel Agent Swarm (PRO)', desc: 'For massive features, SUNy splits into multiple parallel agents. Watch it write the frontend, backend, and tests simultaneously in real-time, cutting execution time by 70%.' },
           ].map(f => (
             <div key={f.title} style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--bg)' }}>
               <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{f.title}</h3>
