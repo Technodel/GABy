@@ -222,21 +222,33 @@ export function classifyAutoMode(message: string, hasImage?: boolean): 'free' | 
     return base === 'free' ? 'fast' : base;
   }
   const t = message.toLowerCase();
-  // Pro signals: explicit deep reasoning / architecture / analysis requests
+
+  // Pro signals: system introspection
+  if (/\b(what are your instructions|your system prompt|your rules|how are you configured|what model are you|reveal your prompt)\b/.test(t)) return 'pro';
+
+  // Pro signals: long + deep reasoning requests
   if (
     t.length > 150 &&
     /\b(architect|design pattern|tradeoff|compare|analyze|security|performance|scalab|deep dive|explain why|complex|algorithm|optimize|review|audit)\b/.test(t)
   ) return 'pro';
-  // Smart signals: moderate-length tasks with domain-specific or moderate-complexity keywords
-  if (
-    t.length > 80 &&
-    /\b(refactor|migrate|restructure|integrate|configur|deploy|optimize|schema|query|pipeline|workflow|component|module|service|middleware|hook|custom|layout|responsive|accessibility|state|context|reducer|selector|thunk|saga|observable|subscription)\b/.test(t)
-  ) return 'smart';
+
+  // Smart signals: creation/build intent (regardless of length)
+  if (/\b(make a|create a|build a|create an|make an|build an|write a|generate a|scaffold a|design a|add a new|implement a new|new function|new endpoint|new route|new component|new module|new feature)\b/.test(t)) return 'smart';
+
+
+  // Smart signals: depth/analysis/architecture keywords (length-independent)
+  if (/\b(analyze|architect|optimize|migrate|restructure|integrate|configur|deploy|schema|query|pipeline|workflow|module|service|middleware|hook|layout|responsive|accessibility|state|reducer|selector|thunk|saga|observable|subscription|security|performance)\b/.test(t)) return 'smart';
+
+  // Smart signals: domain keywords when message has enough context (>40 chars)
+  if (t.length > 40 && /\b(component|refactor)\b/.test(t) && /\b(error|handle|proper|complex|multi|with|and|including)\b/.test(t)) return 'smart';
+
+
   // Free signals: very short casual messages with no coding keywords
   if (
     t.length < 80 &&
     !/\b(fix|error|bug|implement|create|refactor|add|write|function|class|api|test|deploy|code|file|build|run|install|import|export|async|await|type|interface)\b/.test(t)
   ) return 'free';
+
   // Default: fast — handles most coding tasks well
   return 'fast';
 }

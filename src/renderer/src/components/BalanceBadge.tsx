@@ -72,12 +72,18 @@ export default function BalanceBadge({ balance, walletBalance, remainingTokens =
   };
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}>
       {/* Wallet (bot fuel tank) */}
-      <div style={{
-        ...pillStyle,
-        outline: walletFlash ? `2px solid ${walletFlash === 'down' ? 'var(--error, #ef4444)' : 'var(--success, #22c55e)'}` : 'none',
-      }} title="Bot Wallet — dedicated credits for AI tasks">
+      <div 
+        onClick={onOpenWalletSettings}
+        style={{
+          ...pillStyle,
+          cursor: 'pointer',
+          padding: '4px 10px',
+          outline: walletFlash ? `2px solid ${walletFlash === 'down' ? 'var(--error, #ef4444)' : 'var(--success, #22c55e)'}` : 'none',
+        }} 
+        title="Bot Wallet — click to transfer funds from Main Balance"
+      >
         <Wallet size={14} />
         <span>{walletFormatted}</span>
         {walletDelta !== null && (
@@ -87,38 +93,12 @@ export default function BalanceBadge({ balance, walletBalance, remainingTokens =
         )}
       </div>
 
-      {/* Main credits */}
-      <div style={{
-        ...pillStyle,
-        outline: balanceFlash ? `2px solid ${balanceFlash === 'down' ? 'var(--error, #ef4444)' : 'var(--success, #22c55e)'}` : 'none',
-      }} title="Main credits balance">
-        <CreditCard size={14} />
-        <span>{balanceFormatted}</span>
-        {balanceDelta !== null && (
-          <span style={{ fontSize: 11, color: balanceDelta < 0 ? 'var(--error, #ef4444)' : 'var(--success, #22c55e)', marginLeft: 2 }}>
-            {balanceDelta < 0 ? `−${formatCents(-balanceDelta)}` : `+${formatCents(balanceDelta)}`}
-          </span>
-        )}
-      </div>
-
       {remainingTokens != null && (
-        <div style={pillStyle} title="Remaining token budget for this session">
-          <span>Tokens</span>
-          <span>{remainingTokens.toLocaleString()}</span>
+        <div style={{ ...pillStyle, padding: '4px 10px' }} title="Remaining token budget for this session">
+          <span style={{ opacity: 0.7, fontSize: 12 }}>Tokens</span>
+          <span>{remainingTokens >= 1000 ? (remainingTokens/1000).toFixed(0)+'k' : remainingTokens}</span>
         </div>
       )}
-
-      <button
-        onClick={onOpenWalletSettings}
-        style={{
-          ...pillStyle,
-          cursor: 'pointer',
-          fontSize: 13,
-        }}
-        title="Open Wallet Transfer in Settings"
-      >
-        Wallet Transfer
-      </button>
     </div>
   );
 }

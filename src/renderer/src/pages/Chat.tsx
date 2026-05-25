@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Plus, Trash2, Settings, LogOut, Edit3, RotateCcw, X, BarChart2, User, HelpCircle, Sparkles, Home, Eraser, Phone, ChevronRight, ChevronDown, FolderOpen, Folder, Play, FileText, GitBranch, Archive, ArchiveRestore, Link, Check, Rocket, ShieldCheck, Undo, Brain, MessageSquare, BookOpen, CheckCircle, Lock, Eye, Globe, Wrench, Users } from 'lucide-react';
 
 import ReportBadgeButton, { ReportMetrics } from '../components/ReportBadgeButton';
@@ -2142,15 +2142,15 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
             </span>
           )}
           {activeProject && (
-            <span style={{ color: 'var(--text-secondary)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>� {activeProject.name}</span>
+            <span style={{ color: 'var(--text-secondary)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}> {activeProject.name}</span>
           )}
           {activeSpend && (
-            <span style={{ color: 'var(--text-muted)', fontSize: 11, whiteSpace: 'nowrap', display: 'none' }}>� {formatSpend(activeSpend.total_cost)}</span>
+            <span style={{ color: 'var(--text-muted)', fontSize: 11, whiteSpace: 'nowrap', display: 'none' }}> {formatSpend(activeSpend.total_cost)}</span>
           )}
         </div>
 
         {/* CENTER: Mode selector + routing badge */}
-        <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 8, pointerEvents: 'auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, justifyContent: 'center' }}>
           {modes.length > 0 && (
             <ModeSelector modes={modes} selected={selectedMode} onChange={changeMode} noBalance={noBalance} />
           )}
