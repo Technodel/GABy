@@ -13,20 +13,30 @@ import { hasSufficientBalance, deductUsage } from './billing';
 import { runAgentLoop } from './agent-loop';
 import { withUserQueue } from './user-queue';
 import { buildRepoMap } from './repo-map';
-import { initializeDesignIntentTable } from './design-intent';
+import { initializeDesignIntentTable, getDesignIntentsPrompt, processDesignIntents } from './design-intent';
 import { hookSystem } from './hook-system';
 import { initializeInteractionPatternsTable } from './interaction-memory';
 import { initializePresenceTable, getPresenceProfile, getPresenceInjection, updatePresenceProfile } from './presence-engineering';
-import { generateBlueprintForSession } from './blueprint-memory';
+import { generateBlueprintForSession, getBlueprintContext, getBlueprintSummary, storeBlueprintEntry, generateRulesFromPatterns } from './blueprint-memory';
 import { loadAgentContext } from './agent-context-assembler';
 import { AgentTurnLog, recordAgentTurn } from './metrics';
 import { pickRandom, startDidYouKnowTimer } from './personality';
-import { ERROR_REPLY_FALLBACKS, EXHAUSTED_REPLY_FALLBACKS, pickNonRepeatingFallback, normalizeFinalContent } from './fallbacks';
+import { ERROR_REPLY_FALLBACKS, EXHAUSTED_REPLY_FALLBACKS, pickNonRepeatingFallback, normalizeFinalContent, quickProjectScan } from './fallbacks';
 import { lockMessagesSent } from './lock-messages';
 import { logOperation } from './operation-audit';
 import { isFeatureEnabled } from './feature-flags';
 import { loadTrainingAndRules } from './training-loader';
 import { getSkillIndex } from './skill-loader';
+import { formatGoalContext, getCurrentGoal, addGoalEvidence, incrementGoalAttempt, tryAutoCompleteGoal } from './goal-tracker';
+import { searchChunks, formatChunksForPrompt, buildChunkVectors } from './code-chunks';
+import { isDigestCached, buildProjectDigest, formatDigestForPrompt, markDigestCached, buildArchitectureGraph, formatGraphForPrompt, runHealthCheck, formatHealthCheckForPrompt } from './project-digest';
+import { analyzeInteractionPatterns, formatPatternAnalysisForPrompt, silentCodeReview, postMergeValidation, formatValidationForPrompt, recordInteraction } from './verification-obsession';
+import { captureSnapshot, detectDrift } from './change-guardian';
+import { loadProjectRules, RULES_SYSTEM_SECTION } from './project-rules';
+import { acquireLock, getLockInfo, releaseLock } from './project-lock';
+import { updateCrossProjectPersona } from './cross-project-learning';
+import { recordBenchmarkRun } from './benchmark';
+import { indexProject } from './code-index';
 
 export function attachWebSockets(server: http.Server) {
   // ── WebSocket server ───────────────────────────────────────────────────────────

@@ -1,0 +1,878 @@
+{
+  "allMissing": [
+    {
+      "name": "attachWebSockets",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "server.on",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "URL",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "connections",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "socket.destroy",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "wsRateBuckets.get",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "wsRateBuckets.set",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "timestamps.filter",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "valid.push",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "url.searchParams.get",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "c.trim",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "decodeURIComponent",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "userClientManager.register",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "userClientManager.pushToUser",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "fails",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "currentAbortController.abort",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "userClientManager.pushChatContent",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "raw.toString",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "String",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "pattern",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "AbortController",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "db.get",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "parseInt",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "COALESCE",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "SUM",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "DATE",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "mode",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "tokens",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "tier",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "i.test",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "db.all",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "active",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "db.run",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "rules.filter",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "RULES",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "lines.push",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "lines.join",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "contractions",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "commands",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "turn",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "MCP",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "phase",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "A",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "B",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "C",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "D",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "E",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "F",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "G",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "H",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "I",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "J",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "present",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "passes",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "pass",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "script",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "done",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "Windows",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "bash",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "underscore",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "time",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "use",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "Login.tsx",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "model",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "questions",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "features",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "HONESTY",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "something",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "tool",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "PROCESSES",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "running",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "start_server",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "read_server_logs",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "stop_server",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "list_servers",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "listening",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "skills",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "blocks.push",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "exists",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "first",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "structure",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "Context",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "services",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "exist",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "tunnel",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "machine",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "configure",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "verify",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "Protocol",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "COOL",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "WARM",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "EXCITED",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "FRUSTRATED",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "CONFUSED",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "ANXIOUS",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "Dismissive",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "Paternalistic",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "enthusiasm",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "items",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "file",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "step",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "available",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "stable",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "actionable",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "task",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "prefix",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "systemLines.push",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "execution",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "memories",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "apply",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "from",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "have",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "view",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "projectNames.join",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "path",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "connected",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "memory",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "entries.slice",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "e.category.replace",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "c.toUpperCase",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "MEMORY",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "getBlueprintContext",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "getBlueprintSummary",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "context",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "formatGoalContext",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "FILES",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "content.slice",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "pinLines.push",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "prompt",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "injected",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "searchChunks",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "formatChunksForPrompt",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "chunk",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "Digest",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "isDigestCached",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "buildProjectDigest",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "formatDigestForPrompt",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "markDigestCached",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "buildArchitectureGraph",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "formatGraphForPrompt",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "runHealthCheck",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "formatHealthCheckForPrompt",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "getDesignIntentsPrompt",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "analyzeInteractionPatterns",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "formatPatternAnalysisForPrompt",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "glob",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "path.join",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "captureSnapshot",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "loadProjectRules",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "RULES_SYSTEM_SECTION",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "access",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "setImmediate",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "indexProject",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "app_settings",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "VALUES",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "code_index",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "setTimeout",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "buildChunkVectors",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "MODE",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "block",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "lock",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "acquireLock",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "getLockInfo",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "lockMessagesSent.has",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "lockMessagesSent.add",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "session",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "lockMessagesSent.delete",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "b",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "quickProjectScan",
+      "source": "index.ts (directly defined)"
+    },
+    {
+      "name": "loop",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "selected",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "systemLines.join",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "loopMsg.toLowerCase",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "clearTimeout",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "releaseLock",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "changedFiles.map",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "storeBlueprintEntry",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "generateRulesFromPatterns",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "preferences",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "updateCrossProjectPersona",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "processDesignIntents",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "getCurrentGoal",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "addGoalEvidence",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "incrementGoalAttempt",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "tryAutoCompleteGoal",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "activeGoal.description.slice",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "only",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "detectDrift",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "driftReport.summary.slice",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "driftReport.files.flatMap",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "f.changes.filter",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "unintentional.map",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "change",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "silentCodeReview",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "postMergeValidation",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "formatValidationForPrompt",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "error",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "valMsg.slice",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "recordInteraction",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "failed",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "recordBenchmarkRun",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "errMsg.includes",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "errMsg.match",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "finish",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "errMsg.toLowerCase",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "errMsg.slice",
+      "source": "UNKNOWN"
+    },
+    {
+      "name": "dispatch",
+      "source": "UNKNOWN"
+    }
+  ],
+  "indexExports": [
+    "lockMessagesSent"
+  ],
+  "wsImports": [
+    "AgentMessage",
+    "AgentTurnLog",
+    "ERROR_REPLY_FALLBACKS",
+    "EXHAUSTED_REPLY_FALLBACKS",
+    "WebSocket",
+    "WebSocketServer",
+    "buildRepoMap",
+    "deductUsage",
+    "env",
+    "generateBlueprintForSession",
+    "getAdapter",
+    "getPresenceInjection",
+    "getPresenceProfile",
+    "getSkillIndex",
+    "handleBridgeUpgrade",
+    "hasSufficientBalance",
+    "hookSystem",
+    "initializeDesignIntentTable",
+    "initializeInjectionGuardTable",
+    "initializeInteractionPatternsTable",
+    "initializePresenceTable",
+    "isBridgeConnected",
+    "isFeatureEnabled",
+    "killBridgeRequest",
+    "loadAgentContext",
+    "loadTrainingAndRules",
+    "lockMessagesSent",
+    "logOperation",
+    "normalizeFinalContent",
+    "pickNonRepeatingFallback",
+    "pickRandom",
+    "recordAgentTurn",
+    "registerPathForUser",
+    "runAgentLoop",
+    "scanForInjection",
+    "sendToBridge",
+    "startDidYouKnowTimer",
+    "updatePresenceProfile",
+    "userClientManager",
+    "verifyToken",
+    "withUserQueue"
+  ]
+}

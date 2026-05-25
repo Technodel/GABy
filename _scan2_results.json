@@ -1,0 +1,314 @@
+{
+  "missing": [
+    {
+      "name": "quickProjectScan",
+      "source": "index.ts (defined here)"
+    },
+    {
+      "name": "getBlueprintContext",
+      "source": "index.ts → re-exported from ./blueprint-memory"
+    },
+    {
+      "name": "getBlueprintSummary",
+      "source": "index.ts → re-exported from ./blueprint-memory"
+    },
+    {
+      "name": "formatGoalContext",
+      "source": "index.ts → re-exported from ./goal-tracker"
+    },
+    {
+      "name": "searchChunks",
+      "source": "index.ts → re-exported from ./code-chunks"
+    },
+    {
+      "name": "formatChunksForPrompt",
+      "source": "index.ts → re-exported from ./code-chunks"
+    },
+    {
+      "name": "isDigestCached",
+      "source": "index.ts → re-exported from ./project-digest"
+    },
+    {
+      "name": "buildProjectDigest",
+      "source": "index.ts → re-exported from ./project-digest"
+    },
+    {
+      "name": "formatDigestForPrompt",
+      "source": "index.ts → re-exported from ./project-digest"
+    },
+    {
+      "name": "markDigestCached",
+      "source": "index.ts → re-exported from ./project-digest"
+    },
+    {
+      "name": "buildArchitectureGraph",
+      "source": "index.ts → re-exported from ./project-digest"
+    },
+    {
+      "name": "formatGraphForPrompt",
+      "source": "index.ts → re-exported from ./project-digest"
+    },
+    {
+      "name": "runHealthCheck",
+      "source": "index.ts → re-exported from ./project-digest"
+    },
+    {
+      "name": "formatHealthCheckForPrompt",
+      "source": "index.ts → re-exported from ./project-digest"
+    },
+    {
+      "name": "getDesignIntentsPrompt",
+      "source": "index.ts → re-exported from ./design-intent"
+    },
+    {
+      "name": "analyzeInteractionPatterns",
+      "source": "index.ts → re-exported from ./verification-obsession"
+    },
+    {
+      "name": "formatPatternAnalysisForPrompt",
+      "source": "index.ts → re-exported from ./verification-obsession"
+    },
+    {
+      "name": "captureSnapshot",
+      "source": "index.ts → re-exported from ./change-guardian"
+    },
+    {
+      "name": "loadProjectRules",
+      "source": "index.ts → re-exported from ./project-rules"
+    },
+    {
+      "name": "RULES_SYSTEM_SECTION",
+      "source": "index.ts → re-exported from ./project-rules"
+    },
+    {
+      "name": "acquireLock",
+      "source": "index.ts → re-exported from ./project-lock"
+    },
+    {
+      "name": "getLockInfo",
+      "source": "index.ts → re-exported from ./project-lock"
+    },
+    {
+      "name": "releaseLock",
+      "source": "index.ts → re-exported from ./project-lock"
+    },
+    {
+      "name": "storeBlueprintEntry",
+      "source": "index.ts → re-exported from ./blueprint-memory"
+    },
+    {
+      "name": "generateRulesFromPatterns",
+      "source": "index.ts → re-exported from ./blueprint-memory"
+    },
+    {
+      "name": "updateCrossProjectPersona",
+      "source": "index.ts → re-exported from ./cross-project-learning"
+    },
+    {
+      "name": "processDesignIntents",
+      "source": "index.ts → re-exported from ./design-intent"
+    },
+    {
+      "name": "getCurrentGoal",
+      "source": "index.ts → re-exported from ./goal-tracker"
+    },
+    {
+      "name": "addGoalEvidence",
+      "source": "index.ts → re-exported from ./goal-tracker"
+    },
+    {
+      "name": "incrementGoalAttempt",
+      "source": "index.ts → re-exported from ./goal-tracker"
+    },
+    {
+      "name": "tryAutoCompleteGoal",
+      "source": "index.ts → re-exported from ./goal-tracker"
+    },
+    {
+      "name": "detectDrift",
+      "source": "index.ts → re-exported from ./change-guardian"
+    },
+    {
+      "name": "silentCodeReview",
+      "source": "index.ts → re-exported from ./verification-obsession"
+    },
+    {
+      "name": "postMergeValidation",
+      "source": "index.ts → re-exported from ./verification-obsession"
+    },
+    {
+      "name": "formatValidationForPrompt",
+      "source": "index.ts → re-exported from ./verification-obsession"
+    },
+    {
+      "name": "recordInteraction",
+      "source": "index.ts → re-exported from ./verification-obsession"
+    },
+    {
+      "name": "recordBenchmarkRun",
+      "source": "index.ts → re-exported from ./benchmark"
+    },
+    {
+      "name": "indexProject",
+      "source": "index.ts → re-exported from ./code-index"
+    },
+    {
+      "name": "buildChunkVectors",
+      "source": "index.ts → re-exported from ./code-chunks"
+    }
+  ],
+  "existing": [
+    {
+      "name": "getAdapter",
+      "source": "db"
+    },
+    {
+      "name": "verifyToken",
+      "source": "auth"
+    },
+    {
+      "name": "userClientManager",
+      "source": "user-client-manager"
+    },
+    {
+      "name": "handleBridgeUpgrade",
+      "source": "bridge-routes"
+    },
+    {
+      "name": "isBridgeConnected",
+      "source": "bridge-manager"
+    },
+    {
+      "name": "registerPathForUser",
+      "source": "bridge-manager"
+    },
+    {
+      "name": "killBridgeRequest",
+      "source": "bridge-manager"
+    },
+    {
+      "name": "sendToBridge",
+      "source": "bridge-manager"
+    },
+    {
+      "name": "scanForInjection",
+      "source": "injection-guard"
+    },
+    {
+      "name": "initializeInjectionGuardTable",
+      "source": "injection-guard"
+    },
+    {
+      "name": "AgentMessage",
+      "source": "agent"
+    },
+    {
+      "name": "hasSufficientBalance",
+      "source": "billing"
+    },
+    {
+      "name": "deductUsage",
+      "source": "billing"
+    },
+    {
+      "name": "runAgentLoop",
+      "source": "agent-loop"
+    },
+    {
+      "name": "withUserQueue",
+      "source": "user-queue"
+    },
+    {
+      "name": "buildRepoMap",
+      "source": "repo-map"
+    },
+    {
+      "name": "initializeDesignIntentTable",
+      "source": "design-intent"
+    },
+    {
+      "name": "hookSystem",
+      "source": "hook-system"
+    },
+    {
+      "name": "initializeInteractionPatternsTable",
+      "source": "interaction-memory"
+    },
+    {
+      "name": "initializePresenceTable",
+      "source": "presence-engineering"
+    },
+    {
+      "name": "getPresenceProfile",
+      "source": "presence-engineering"
+    },
+    {
+      "name": "getPresenceInjection",
+      "source": "presence-engineering"
+    },
+    {
+      "name": "updatePresenceProfile",
+      "source": "presence-engineering"
+    },
+    {
+      "name": "generateBlueprintForSession",
+      "source": "blueprint-memory"
+    },
+    {
+      "name": "loadAgentContext",
+      "source": "agent-context-assembler"
+    },
+    {
+      "name": "AgentTurnLog",
+      "source": "metrics"
+    },
+    {
+      "name": "recordAgentTurn",
+      "source": "metrics"
+    },
+    {
+      "name": "pickRandom",
+      "source": "personality"
+    },
+    {
+      "name": "startDidYouKnowTimer",
+      "source": "personality"
+    },
+    {
+      "name": "ERROR_REPLY_FALLBACKS",
+      "source": "fallbacks"
+    },
+    {
+      "name": "EXHAUSTED_REPLY_FALLBACKS",
+      "source": "fallbacks"
+    },
+    {
+      "name": "pickNonRepeatingFallback",
+      "source": "fallbacks"
+    },
+    {
+      "name": "normalizeFinalContent",
+      "source": "fallbacks"
+    },
+    {
+      "name": "lockMessagesSent",
+      "source": "lock-messages"
+    },
+    {
+      "name": "logOperation",
+      "source": "operation-audit"
+    },
+    {
+      "name": "isFeatureEnabled",
+      "source": "feature-flags"
+    },
+    {
+      "name": "loadTrainingAndRules",
+      "source": "training-loader"
+    },
+    {
+      "name": "getSkillIndex",
+      "source": "skill-loader"
+    }
+  ]
+}
