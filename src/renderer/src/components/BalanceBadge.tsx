@@ -93,12 +93,25 @@ export default function BalanceBadge({ balance, walletBalance, remainingTokens =
         )}
       </div>
 
-      {remainingTokens != null && (
-        <div style={{ ...pillStyle, padding: '4px 10px' }} title="Remaining token budget for this session">
-          <span style={{ opacity: 0.7, fontSize: 12 }}>Tokens</span>
-          <span>{remainingTokens >= 1000 ? (remainingTokens/1000).toFixed(0)+'k' : remainingTokens}</span>
-        </div>
-      )}
+      {/* Main credits */}
+      <div 
+        onClick={onOpenWalletSettings}
+        style={{
+          ...pillStyle,
+          cursor: 'pointer',
+          padding: '4px 10px',
+          outline: balanceFlash ? `2px solid ${balanceFlash === 'down' ? 'var(--error, #ef4444)' : 'var(--success, #22c55e)'}` : 'none',
+        }} 
+        title="Main credits balance — click to top up or transfer"
+      >
+        <CreditCard size={14} />
+        <span>{balanceFormatted}</span>
+        {balanceDelta !== null && (
+          <span style={{ fontSize: 11, color: balanceDelta < 0 ? 'var(--error, #ef4444)' : 'var(--success, #22c55e)', marginLeft: 2 }}>
+            {balanceDelta < 0 ? `−${formatCents(-balanceDelta)}` : `+${formatCents(balanceDelta)}`}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
