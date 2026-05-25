@@ -12,7 +12,6 @@ import { AgentMessage } from './agent';
 import { hasSufficientBalance, deductUsage } from './billing';
 import { runAgentLoop } from './agent-loop';
 import { withUserQueue } from './user-queue';
-import { buildRepoMap } from './repo-map';
 import { initializeDesignIntentTable, getDesignIntentsPrompt, processDesignIntents } from './design-intent';
 import { hookSystem } from './hook-system';
 import { initializeInteractionPatternsTable } from './interaction-memory';
@@ -32,7 +31,7 @@ import { searchChunks, formatChunksForPrompt, buildChunkVectors } from './code-c
 import { isDigestCached, buildProjectDigest, formatDigestForPrompt, markDigestCached, buildArchitectureGraph, formatGraphForPrompt, runHealthCheck, formatHealthCheckForPrompt } from './project-digest';
 import { analyzeInteractionPatterns, formatPatternAnalysisForPrompt, silentCodeReview, postMergeValidation, formatValidationForPrompt, recordInteraction } from './verification-obsession';
 import { captureSnapshot, detectDrift } from './change-guardian';
-import { loadProjectRules, RULES_SYSTEM_SECTION } from './project-rules';
+import { loadProjectRules, saveProjectRules, RULES_SYSTEM_SECTION } from './project-rules';
 import { acquireLock, getLockInfo, releaseLock } from './project-lock';
 import { updateCrossProjectPersona } from './cross-project-learning';
 import { recordBenchmarkRun } from './benchmark';
@@ -660,6 +659,56 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         'try an alternative approach, write a diagnostic, inspect the real data.',
         'The user should never be your first resort.',
         '',
+        'Rule 7 — SEARCH BEFORE YOU READ:',
+        'Never read a file blindly. Always use code_search or get_repo_map FIRST to locate',
+        'which file contains the symbol or concept you need. Then read only that file at the',
+        'specific line range. Reading files without searching first wastes tokens and time.',
+        '',
+        'Rule 8 — DECLARE YOUR SCOPE:',
+        'Before making any file changes, declare your edit scope:',
+        '  TARGET: [file path + symbol name or line range]',
+        '  CONFIDENCE: [high/medium/low]',
+        'If CONFIDENCE is not "high", call code_search or get_repo_map first, then re-declare.',
+        'This prevents you from editing the wrong file or section.',
+        '',
+        'Rule 2 — NO-GUESS:',
+        'If uncertain about ANY part of the codebase — a file\'s content, a function\'s signature,',
+        'a regex pattern\'s match, a data structure\'s shape — use tools to gather information.',
+        'Do not guess. Write a diagnostic script if needed. Verify, then act.',
+        '',
+        'Rule 3 — ONE CHANGE PER ATTEMPT:',
+        'When debugging extraction logic, parsing rules, or fixing lint/test failures,',
+        'modify exactly ONE logic block per attempt. Run it. Verify the output changed',
+        'as expected. Then change the next. Never change multiple variables at once —',
+        'you won\'t know which fix worked.',
+        '',
+        'Rule 4 — VERIFY AT EVERY BOUNDARY:',
+        'After each pipeline phase (extract, filter, transform, store), run a verification:',
+        'count items, sample rows, check for NULLs/zeros, compare to expected target.',
+        'Report the numbers. If the count doesn\'t match, investigate before proceeding.',
+        '',
+        'Rule 5 — STREAMING FOR SCALE:',
+        'For inputs larger than 100KB, prefer streaming/iterator patterns over loading',
+        'full data structures into memory. Use bash with streaming Node.js scripts.',
+        'Loading entire datasets causes crashes — never do it.',
+        '',
+        'Rule 6 — EXHAUST TOOLS FIRST:',
+        'Exhaust all available tools before asking the user for help. If you hit an error,',
+        'try an alternative approach, write a diagnostic, inspect the real data.',
+        'The user should never be your first resort.',
+        '',
+        'Rule 7 — SEARCH BEFORE YOU READ:',
+        'Never read a file blindly. Always use code_search or get_repo_map FIRST to locate',
+        'which file contains the symbol or concept you need. Then read only that file at the',
+        'specific line range. Reading files without searching first wastes tokens and time.',
+        '',
+        'Rule 8 — DECLARE YOUR SCOPE:',
+        'Before making any file changes, declare your edit scope:',
+        '  TARGET: [file path + symbol name or line range]',
+        '  CONFIDENCE: [high/medium/low]',
+        'If CONFIDENCE is not "high", call code_search or get_repo_map first, then re-declare.',
+        'This prevents you from editing the wrong file or section.',
+        '',
         '<error_taxonomy>',
         'BRIDGE OFFLINE RULE: If a file or shell tool fails with "Bridge not connected" or "Bridge disconnected",',
         'do NOT retry. Do NOT try web_search. Immediately tell the user:',
@@ -1072,6 +1121,24 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         'Diagnostic scripts convert "I think it looks like X" into "The data at offset N contains Y".',
         'That\'s the difference between guessing and knowing.',
         '</diagnostic_scripts>',
+        '',
+        '<shell_adaptation>',
+        'Detect the user\'s operating system and adapt shell commands:',
+        '  - Windows (PowerShell): does NOT support &&, ||, ; chaining reliably.',
+        '    Use separate bash() calls. Prefer temp .mjs scripts over complex inline commands.',
+        '  - Linux/macOS: && and || work as expected.',
+        'When in doubt, write a small temp script and execute it — avoids quoting hell.',
+        '</shell_adaptation>',
+        '',
+        '<throwaway_file_convention>',
+        'Files prefixed with underscore (e.g. _check_data.mjs, _verify_output.mjs)',
+        'are diagnostic throwaways. They:',
+        '  - Are created fresh each time (file_write with overwrite mode)',
+        '  - Print raw data, not summaries',
+        '  - Are deleted after use (bash("rm _check_data.mjs") or del)',
+        '  - Never import from the main codebase',
+        '  - Have a single purpose',
+        '</throwaway_file_convention>',
         '',
         '<shell_adaptation>',
         'Detect the user\'s operating system and adapt shell commands:',
@@ -1648,19 +1715,8 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         }
       }
 
-      // Build repo map and inject into system prompt (after pinned files)
-      if (projectPath) {
-        userClientManager.pushToUser(userId, 'suny:preparation_step', { step: 'Scanning codebase...' });
-        try {
-          const repoMap = await buildRepoMap(userId, projectPath, msg.message as string);
-          if (repoMap) {
-            systemLines.push('', repoMap);
-            console.log(`[index] Repo map injected (${repoMap.length} chars)`);
-          }
-        } catch (err) {
-          console.warn('[index] Repo map failed:', (err as Error).message);
-        }
-      }
+      // Repo map is now available as the get_repo_map tool — no longer auto-injected.
+      // The agent calls it on-demand only when it needs to locate files, saving tokens.
 
       // ── Vector context: semantic chunk retrieval ──────────────────────────
       if (projectPath && projectId && isFeatureEnabled('ff_vector_context')) {
@@ -1775,6 +1831,30 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
                 const stats = indexProject(projectPath);
                 console.log(`[code-index] Indexed ${stats.filesIndexed} files (${stats.totalSymbols} symbols, ${stats.totalImports} imports)`);
                 await db.get("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, 'true')", [indexKey]);
+
+                // Auto-generate .suny-rules with a project map from the index
+                try {
+                  const { searchCodeIndex } = require('./code-index');
+                  const topExports = searchCodeIndex('', { limit: 50 });
+                  if (topExports.length > 0) {
+                    const grouped = new Map<string, string[]>();
+                    for (const r of topExports) {
+                      const f = r.filePath;
+                      if (!grouped.has(f)) grouped.set(f, []);
+                      grouped.get(f)!.push(`${r.symbol?.symbolName} (${r.symbol?.symbolType}, line ${r.symbol?.lineStart})`);
+                    }
+                    const lines = ['# Auto-generated project map — SUNy code index', ''];
+                    for (const [file, symbols] of grouped) {
+                      lines.push(`## ${file}`);
+                      for (const s of symbols) lines.push(`- ${s}`);
+                      lines.push('');
+                    }
+                    saveProjectRules(projectPath, lines.join('\n'));
+                    console.log(`[code-index] Auto-generated .suny-rules for ${projectPath} (${topExports.length} symbols)`);
+                  }
+                } catch (rulesErr) {
+                  console.warn('[code-index] .suny-rules generation failed:', (rulesErr as Error).message);
+                }
               } catch (err) {
                 console.warn('[code-index] Background indexing failed:', (err as Error).message);
               }

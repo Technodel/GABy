@@ -11,7 +11,8 @@
  * No more XML parsing, no more hallucinated tool calls.
  */
 
-import { streamText, generateText, stepCountIs, type CoreMessage, type LanguageModel } from 'ai';
+import { streamText, generateText, stepCountIs, tool, type CoreMessage, type LanguageModel } from 'ai';
+import { z } from 'zod';
 import { getModelsForMode, getVisionCapableModels, isCachingEnabled, getEditFormat, classifyTaskType, reorderModelsForProTask } from './agent';
 import { createPowerTools } from './power-tools';
 import { createWebSearchTool } from './web-search';
@@ -26,7 +27,8 @@ import { createSelfHealTool } from './error-corrector';
 import { mcpManager } from './mcp-manager';
 import { userClientManager } from './user-client-manager';
 import { isBridgeConnected } from './bridge-manager';
-import { invalidateRepoMap } from './repo-map';
+import { invalidateRepoMap, buildRepoMap } from './repo-map';
+import { searchCodeIndex, findImporters } from './code-index';
 import { gitAutoCommit, createCheckpoint } from './git-manager';
 import { trimHistory } from './context-manager';
 import { classifyTask, getActiveSkills } from './skill-loader';
@@ -515,6 +517,48 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
         signal,
       }));
 
+      // ── Codebase navigation tools ──
+      const codeSearchTool = tool({
+        description: 'Search the entire codebase for functions, classes, components, exports by name or keyword. Returns file paths and line numbers so you can go directly to the right file without scanning blindly. Use this BEFORE reading files to locate exactly where symbols live.',
+        inputSchema: z.object({
+          query: z.string().describe('Symbol name, concept, or keyword to search for (e.g. "Header component", "auth middleware", "login form")'),
+          type: z.string().optional().describe('Filter by symbol type: function, class, interface, type, variable, enum, component'),
+          limit: z.number().optional().default(10).describe('Max results to return'),
+        }),
+        execute: async (input: { query: string; type?: string; limit?: number }) => {
+          const results = searchCodeIndex(input.query, { type: input.type, limit: input.limit ?? 10 });
+          if (results.length === 0) return `No symbols found matching "${input.query}". Try a different keyword or use grep to search for the term in file contents.`;
+          return results.map(r =>
+            `${r.filePath}:${r.symbol?.lineStart} — ${r.symbol?.symbolName} (${r.symbol?.symbolType}, ${r.symbol?.exportType} export)`
+          ).join('\n');
+        },
+      });
+
+      const whoImportsTool = tool({
+        description: 'Find all files that import a specific symbol or module. Use this to understand the blast radius of a change before editing.',
+        inputSchema: z.object({
+          symbol: z.string().describe('The symbol or module name to find importers of (e.g. "Header", "./auth", "express")'),
+        }),
+        execute: async (input: { symbol: string }) => {
+          const results = findImporters(input.symbol);
+          if (results.length === 0) return `No files found importing "${input.symbol}".`;
+          return results.map(r =>
+            `${r.filePath} ← imports ${r.importedSymbols.join(', ')} from ${r.source}`
+          ).join('\n');
+        },
+      });
+
+      const repoMapTool = tool({
+        description: 'Get a compact map of the project showing which symbols and components live in which files. Call this once at the start of a task to orient yourself — then target specific files instead of scanning the whole project.',
+        inputSchema: z.object({
+          query: z.string().optional().describe('Optional keyword to filter the map to relevant files (e.g. "header", "auth", "api")'),
+        }),
+        execute: async (input: { query?: string }) => {
+          const repoMap = await buildRepoMap(userId, projectPath!, input.query || userMessage, 2500);
+          return repoMap || 'Repo map unavailable — bridge may be offline. Use code_search and find_files instead.';
+        },
+      });
+
       const extraTools = {
         ...memoryTools,     // save_memory, recall_memories, delete_memory
         read_symbols: symbolReaderTool,
@@ -523,6 +567,9 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
         delegate_subtask: subtaskDelegatorTool,
         delegate_swarm: swarmDelegatorTool,
         self_heal: selfHealTool,
+        code_search: codeSearchTool,
+        who_imports: whoImportsTool,
+        get_repo_map: repoMapTool,
       };
 
       let merged = { ...alwaysTools, ...powerTools, ...extraTools };
@@ -1021,7 +1068,7 @@ If your tools are not working, say:
             const toolFn = (effectiveTools as Record<string, any>)[tc.name];
             if (!toolFn || typeof toolFn.execute !== 'function') {
               console.warn(`[agent-loop] FUNCTION-TAG: unknown tool '${tc.name}' — skipping`);
-              results.push({ call: tc, result: `Error: unknown tool '${tc.name}'` });
+              results.push({ call: tc, result: `Tool '${tc.name}' is not available. Try using a different tool to accomplish your goal.` });
               continue;
             }
             try {
@@ -1037,7 +1084,7 @@ If your tools are not working, say:
               const errMsg = (err as Error).message;
               console.warn(`[agent-loop] FUNCTION-TAG: ${tc.name} failed: ${errMsg}`);
               userClientManager.pushToUser(userId, 'suny:tool_result', { tool: tc.name, input: tc.params, success: false, error: errMsg });
-              results.push({ call: tc, result: `Error: ${errMsg}` });
+              results.push({ call: tc, result: `Tool '${tc.name}' encountered an internal error and could not complete. Try a different approach or tool.` });
             }
           }
 
@@ -1080,6 +1127,10 @@ If your tools are not working, say:
                 fullText = results.map(r =>
                   `**${r.call.name}**: ${r.result.slice(0, 1000)}`
                 ).join('\n\n');
+                // If all results are errors, provide a graceful fallback
+                if (results.every(r => r.result.startsWith(`Tool '`))) {
+                  fullText = "I ran into some internal issues processing your request. Could you try rephrasing or provide more specific guidance?";
+                }
               }
             } catch (fuErr) {
               console.warn('[agent-loop] FUNCTION-TAG: follow-up call failed:', (fuErr as Error).message);
@@ -1087,6 +1138,10 @@ If your tools are not working, say:
               fullText = results.map(r =>
                 `**${r.call.name}**: ${r.result.slice(0, 1000)}`
               ).join('\n\n');
+              // If all results are errors, provide a graceful fallback
+              if (results.every(r => r.result.startsWith(`Tool '`))) {
+                fullText = "I ran into some internal issues processing your request. Could you try rephrasing or provide more specific guidance?";
+              }
             }
           }
         }
@@ -1114,6 +1169,24 @@ If your tools are not working, say:
       const deepseekMeta = experimental?.['deepseek'] as Record<string, unknown> | undefined;
       const deepseekUsage = deepseekMeta?.['usage'] as Record<string, number> | undefined;
       totalCacheRead += deepseekUsage?.prompt_cache_hit_tokens ?? 0;
+
+      // ── Increment per-user cached-tokens counter ────────────────────────
+      const stepCacheTokens = (anthropicMeta?.cacheCreationInputTokens ?? 0) +
+                               (anthropicMeta?.cacheReadInputTokens ?? 0) +
+                               (deepseekUsage?.prompt_cache_hit_tokens ?? 0);
+      if (stepCacheTokens > 0) {
+        try {
+          const db = await (await import('./db')).getAdapter();
+          await db.run(
+            `INSERT INTO user_cache_counters (user_id, cached_tokens, updated_at)
+             VALUES (?, ?, datetime('now'))
+             ON CONFLICT(user_id) DO UPDATE SET
+               cached_tokens = cached_tokens + ?,
+               updated_at = datetime('now')`,
+            [userId, stepCacheTokens, stepCacheTokens],
+          );
+        } catch { /* non-critical — don't fail agent loop for counter update */ }
+      }
 
       // ── Phase 2.1: Real-time self-scoring after main response ─────────────
       // Score SUNy's intermediate response immediately, not just at end of turn.
