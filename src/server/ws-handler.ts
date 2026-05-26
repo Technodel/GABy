@@ -349,7 +349,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       let projectAutoExecuteOverride: number | null = null;
       if (projectId) {
         try {
-          const proj = await db.run('SELECT local_path, persona, auto_execute_override FROM projects WHERE id = ? AND user_id = ?', [projectId, userId]) as { local_path: string; persona: string | null; auto_execute_override: number | null } | undefined;
+          const proj = await db.get('SELECT local_path, persona, auto_execute_override FROM projects WHERE id = ? AND user_id = ?', [projectId, userId]) as { local_path: string; persona: string | null; auto_execute_override: number | null } | undefined;
           projectPath = proj?.local_path;
           projectPersona = proj?.persona ?? null;
           projectAutoExecuteOverride = proj?.auto_execute_override ?? null;

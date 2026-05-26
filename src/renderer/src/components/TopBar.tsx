@@ -145,21 +145,6 @@ export default function TopBar(props: TopBarProps) {
         {modes.length > 0 && (
           <ModeSelector modes={modes} selected={selectedMode} onChange={changeMode} noBalance={noBalance} />
         )}
-        {showRoutingBadge && (
-          <div
-            style={{
-              display: 'flex', alignItems: 'center', gap: 5, padding: '3px 8px',
-              background: 'rgba(108,99,255,0.08)', border: '1px solid rgba(108,99,255,0.2)',
-              borderRadius: 6, fontSize: 11, color: 'var(--accent)', cursor: 'pointer',
-            }}
-            title={routingReason}
-          >
-            <span>{routingIcon(resolvedMode)}</span>
-            <span style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {routingReason}
-            </span>
-          </div>
-        )}
       </div>
 
       {/* RIGHT: action buttons */}

@@ -2011,7 +2011,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       if (opts.conversation) parts.push('conversation');
       if (opts.memory && data.memory_restored) parts.push('memory');
       if (opts.code && data.code_checkpoint_id) parts.push(`code (checkpoint #${data.code_checkpoint_id})`);
-      addMessage('system', `?? Restored **"${snap.label}"** � ${parts.join(' + ') || 'nothing selected'}.`);
+      addMessage('system', `✅ Restored **"${snap.label}"** � ${parts.join(' + ') || 'nothing selected'}.`);
     } catch {}
   }
 
@@ -2030,7 +2030,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
   const [restoreTarget, setRestoreTarget] = useState<MemorySnapshot | null>(null);
   const [restoreOpts, setRestoreOpts] = useState<{ conversation: boolean; memory: boolean; code: boolean }>({ conversation: true, memory: false, code: false });
 
-  // ?? Freeze Brain � per-project pin to a snapshot's memory state
+  // 🧊 Freeze Brain � per-project pin to a snapshot's memory state
   const [freezeStatus, setFreezeStatus] = useState<{ frozen: boolean; snapshot?: { uid: string; label: string; tier: string | null } | null }>({ frozen: false, snapshot: null });
 
   async function loadFreezeStatus() {
@@ -2055,7 +2055,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       if (!res.ok) return;
       await loadFreezeStatus();
       const snap = snapshotList.find(s => s.id === snapshotUid);
-      addMessage('system', `?? Brain frozen to snapshot **"${snap?.label ?? snapshotUid}"**. SUNy will use this memory until you unfreeze.`);
+      addMessage('system', `🧊 Brain frozen to snapshot **"${snap?.label ?? snapshotUid}"**. SUNy will use this memory until you unfreeze.`);
     } catch {}
   }
 
@@ -2068,7 +2068,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       });
       if (!res.ok) return;
       setFreezeStatus({ frozen: false, snapshot: null });
-      addMessage('system', '?? Brain unfrozen. SUNy is back to live memory.');
+      addMessage('system', '🔥 Brain unfrozen. SUNy is back to live memory.');
     } catch {}
   }
 
@@ -2154,22 +2154,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
           {modes.length > 0 && (
             <ModeSelector modes={modes} selected={selectedMode} onChange={changeMode} noBalance={noBalance} />
           )}
-          {routingReason && (
-            <div
-              style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                padding: '3px 8px', background: 'rgba(108,99,255,0.08)',
-                border: '1px solid rgba(108,99,255,0.2)', borderRadius: 6,
-                fontSize: 11, color: 'var(--accent)', cursor: 'pointer',
-              }}
-              title={routingReason}
-            >
-              <span>{routingIcon(resolvedMode)}</span>
-              <span style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {routingReason}
-              </span>
-            </div>
-          )}
+          
           {/* Connection status */}
           <div
             style={{
@@ -2640,7 +2625,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
             </div>
           )}
 
-          {/* ?? Freeze Brain section � pin SUNy's memory to a snapshot */}
+          {/* 🧊 Freeze Brain section � pin SUNy's memory to a snapshot */}
           {activeProject && !isMobile && (
             <div style={{ borderTop: '1px solid var(--border)', marginTop: 4 }}>
               <div style={{ padding: '12px 12px 6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -2649,7 +2634,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                   onClick={() => setCollapsedSections(s => ({ ...s, freezeBrain: !s.freezeBrain }))}
                 >
                   {collapsedSections.freezeBrain ? <ChevronRight size={11} /> : <ChevronDown size={11} />}
-                  ?? Freeze Brain
+                  🧊 Freeze Brain
                 </span>
                 {freezeStatus.frozen && (
                   <span style={{ fontSize: 9, padding: '1px 5px', borderRadius: 4, background: 'var(--accent)', color: '#fff' }}>ACTIVE</span>
@@ -2669,7 +2654,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                       style={{ fontSize: 10, padding: '3px 8px', width: '100%' }}
                       title="Resume live memory (blueprint + rules from current state)"
                     >
-                      ?? Unfreeze
+                      🔥 Unfreeze
                     </button>
                   </>
                 ) : (
@@ -2679,7 +2664,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                     </div>
                     {snapshotList.filter(s => s.has_memory).length === 0 ? (
                       <div style={{ fontSize: 10, color: 'var(--text-muted)', fontStyle: 'italic' }}>
-                        Save a snapshot with memory first (?? button).
+                        Save a snapshot with memory first (📸 button).
                       </div>
                     ) : (
                       <select
@@ -2689,7 +2674,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                         style={{ width: '100%', fontSize: 11, padding: '4px 6px' }}
                         title="Select a snapshot to freeze"
                       >
-                        <option value="">Select snapshot to freeze�</option>
+                        <option value="">Select snapshot to freeze...</option>
                         {snapshotList.filter(s => s.has_memory).map(s => (
                           <option key={s.id} value={s.id}>{s.label}{s.tier ? ` (${s.tier})` : ''}</option>
                         ))}
@@ -3691,15 +3676,15 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
                 <input type="checkbox" checked={restoreOpts.conversation} onChange={e => setRestoreOpts(o => ({ ...o, conversation: e.target.checked }))} />
-                <span>?? <strong>Conversation</strong> � replace current messages ({restoreTarget.message_count})</span>
+                <span>💬 <strong>Conversation</strong> � replace current messages ({restoreTarget.message_count})</span>
               </label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: restoreTarget.has_memory ? 'pointer' : 'not-allowed', opacity: restoreTarget.has_memory ? 1 : 0.4 }}>
                 <input type="checkbox" disabled={!restoreTarget.has_memory} checked={restoreOpts.memory} onChange={e => setRestoreOpts(o => ({ ...o, memory: e.target.checked }))} />
-                <span>?? <strong>Memory</strong> � blueprint + behavioral rules + tier{!restoreTarget.has_memory && ' (none captured)'}</span>
+                <span>🧠 <strong>Memory</strong> � blueprint + behavioral rules + tier{!restoreTarget.has_memory && ' (none captured)'}</span>
               </label>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
                 <input type="checkbox" checked={restoreOpts.code} onChange={e => setRestoreOpts(o => ({ ...o, code: e.target.checked }))} />
-                <span>?? <strong>Code</strong> � rollback to linked checkpoint (if any)</span>
+                <span>💾 <strong>Code</strong> � rollback to linked checkpoint (if any)</span>
               </label>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
