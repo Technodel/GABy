@@ -1,5 +1,5 @@
 /**
- * SUNy Confidence Scorer — self-reported uncertainty with automatic escalation.
+ * SUNy Confidence Scorer â€” self-reported uncertainty with automatic escalation.
  *
  * After every agent turn:
  *   1. The model self-reports confidence (0-1) and uncertainties
@@ -12,14 +12,14 @@
 
 import { getAdapter } from './db';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface ConfidenceReport {
   turnIndex: number;
   userId: number;
   projectId: number;
   sessionId: string;
-  confidence: number;           // 0.0 – 1.0
+  confidence: number;           // 0.0 â€“ 1.0
   uncertainties: string[];      // what the model admits it's unsure about
   escalationNeeded: boolean;    // true if confidence < threshold
   escalatedFrom: string | null; // mode before escalation (e.g., 'free')
@@ -37,18 +37,18 @@ export interface ConfidenceStats {
   topUncertainties: Array<{ topic: string; count: number }>;
 }
 
-// ── Configuration ─────────────────────────────────────────────────────────────
+// â”€â”€ Configuration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const CONFIDENCE_THRESHOLDS = {
-  /** Below this confidence → escalate to stronger model */
+  /** Below this confidence â†’ escalate to stronger model */
   ESCALATE: 0.6,
-  /** Below this confidence → also flag for human review */
+  /** Below this confidence â†’ also flag for human review */
   FLAG_FOR_REVIEW: 0.3,
   /** Mode escalation ladder */
   ESCALATION_LADDER: ['free', 'fast', 'smart', 'pro'] as const,
 };
 
-// ── DB initialization ─────────────────────────────────────────────────────────
+// â”€â”€ DB initialization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function initializeConfidenceTable(): Promise<void> {
   const db = await getAdapter();
@@ -75,7 +75,7 @@ export async function initializeConfidenceTable(): Promise<void> {
   `);
 }
 
-// ── Core operations ───────────────────────────────────────────────────────────
+// â”€â”€ Core operations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Record a confidence report after an agent turn.
@@ -224,7 +224,7 @@ Rate your confidence from 0.0 to 1.0:
 - 0.2 = Very uncertain, probably wrong approach
 - 0.0 = Completely unsure
 
-List specific things you're unsure about (if any). Be honest — low confidence triggers automatic escalation to a stronger model, which often resolves the issue.`;
+List specific things you're unsure about (if any). Be honest â€” low confidence triggers automatic escalation to a stronger model, which often resolves the issue.`;
 }
 
 /**

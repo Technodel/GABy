@@ -1,5 +1,5 @@
 /**
- * SUNy Project Lock — session-level lock per project.
+ * SUNy Project Lock â€” session-level lock per project.
  *
  * Prevents concurrent mutations from multiple tabs/sessions on the same project.
  * Uses the project_locks DB table with expiry to handle crashes gracefully.
@@ -38,7 +38,7 @@ export async function acquireLock(projectId: number, userId: number, sessionId: 
   );
 
   if (existing) {
-    // Same session — refresh the lock
+    // Same session â€” refresh the lock
     if (existing.sessionId === sessionId) {
       const expiresAt = toSqliteDatetime(new Date(Date.now() + LOCK_TIMEOUT_MS));
       await db.run(
@@ -47,11 +47,11 @@ export async function acquireLock(projectId: number, userId: number, sessionId: 
       );
       return true;
     }
-    // Different session holds it — deny
+    // Different session holds it â€” deny
     return false;
   }
 
-  // No existing lock — create one
+  // No existing lock â€” create one
   const expiresAt = toSqliteDatetime(new Date(Date.now() + LOCK_TIMEOUT_MS));
   try {
     await db.run(

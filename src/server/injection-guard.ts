@@ -1,22 +1,22 @@
 /**
- * injection-guard.ts — Prompt injection detection for SUNy.
+ * injection-guard.ts â€” Prompt injection detection for SUNy.
  *
  * Ruflo-inspired: detects and neutralizes prompt injection attempts in
  * user messages, tool outputs, and external content before they reach
  * the model.
  *
- * ── Detection strategies ──
+ * â”€â”€ Detection strategies â”€â”€
  * 1. Keyword patterns ("ignore previous instructions", "you are now", etc.)
  * 2. System prompt override attempts
  * 3. Role-play escape attempts
  * 4. Delimiter manipulation ("forget everything above")
  *
- * ── Mitigation ──
+ * â”€â”€ Mitigation â”€â”€
  * All injections are logged for audit and optionally stripped/sanitized.
- * The system NEVER throws — the guard is purely additive and best-effort.
+ * The system NEVER throws â€” the guard is purely additive and best-effort.
  */
 
-// ── Known injection patterns (case-insensitive regex) ─────────────────────────
+// â”€â”€ Known injection patterns (case-insensitive regex) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const INJECTION_PATTERNS: Array<{ pattern: RegExp; label: string; severity: 'low' | 'medium' | 'high' }> = [
   // Direct system prompt override
@@ -45,11 +45,11 @@ const INJECTION_PATTERNS: Array<{ pattern: RegExp; label: string; severity: 'low
   { pattern: /(separator|delimiter|splitter|boundary):.*\n/i, label: 'payload_separator', severity: 'low' },
 ];
 
-// ── Audit log table name ──────────────────────────────────────────────────────
+// â”€â”€ Audit log table name â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const AUDIT_TABLE = 'injection_attempts';
 
-// ── Initialize DB table ───────────────────────────────────────────────────────
+// â”€â”€ Initialize DB table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function initializeInjectionGuardTable(): Promise<void> {
   try {
@@ -75,7 +75,7 @@ export async function initializeInjectionGuardTable(): Promise<void> {
   }
 }
 
-// ── Scan result ───────────────────────────────────────────────────────────────
+// â”€â”€ Scan result â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface InjectionScanResult {
   detected: boolean;
@@ -89,7 +89,7 @@ export interface InjectionScanResult {
   blocked: boolean;
 }
 
-// ── Scan for injection attempts ───────────────────────────────────────────────
+// â”€â”€ Scan for injection attempts â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Scan a piece of text for prompt injection attempts.
@@ -148,17 +148,17 @@ export function scanForInjection(
   };
 }
 
-// ── Check if user message contains injection before processing ────────────────
+// â”€â”€ Check if user message contains injection before processing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Quick check: does the message contain injection patterns?
- * Lightweight — should be called on every user message before agent loop.
+ * Lightweight â€” should be called on every user message before agent loop.
  */
 export function hasInjection(text: string): boolean {
   return INJECTION_PATTERNS.some(({ pattern }) => pattern.test(text));
 }
 
-// ── Get injection stats for admin panel ───────────────────────────────────────
+// â”€â”€ Get injection stats for admin panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface InjectionStats {
   totalAttempts: number;

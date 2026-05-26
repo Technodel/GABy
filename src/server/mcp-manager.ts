@@ -1,5 +1,5 @@
 /**
- * SUNy MCP Manager — connects to MCP servers and exposes their tools
+ * SUNy MCP Manager â€” connects to MCP servers and exposes their tools
  * as Vercel AI SDK tool() instances for streamText().
  *
  * Architecture: Singleton. All MCP servers are managed centrally.
@@ -238,7 +238,7 @@ class McpManager {
         ListToolsResultSchema,
       );
     } catch {
-      // tools/list not supported — server might be prompt-only
+      // tools/list not supported â€” server might be prompt-only
       return [];
     }
 

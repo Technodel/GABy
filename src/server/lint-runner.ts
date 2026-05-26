@@ -1,5 +1,5 @@
 /**
- * SUNy Lint Runner — Aider's linter self-correction loop ported to TypeScript.
+ * SUNy Lint Runner â€” Aider's linter self-correction loop ported to TypeScript.
  *
  * After every turn where files are changed:
  *   1. Auto-detect the project's lint/type-check command
@@ -7,21 +7,21 @@
  *   3. Return structured results so agent-loop.ts can feed errors back to the AI
  *
  * Detection priority (first match wins):
- *   TypeScript project  → npx tsc --noEmit
- *   "typecheck" script  → npm run typecheck
- *   "lint" script       → npm run lint
- *   Cargo.toml          → cargo check
- *   go.mod              → go build ./...
- *   pyproject.toml      → python -m ruff check . (or flake8)
- *   requirements.txt    → python -m py_compile <changed files>
- *   None                → skip
+ *   TypeScript project  â†’ npx tsc --noEmit
+ *   "typecheck" script  â†’ npm run typecheck
+ *   "lint" script       â†’ npm run lint
+ *   Cargo.toml          â†’ cargo check
+ *   go.mod              â†’ go build ./...
+ *   pyproject.toml      â†’ python -m ruff check . (or flake8)
+ *   requirements.txt    â†’ python -m py_compile <changed files>
+ *   None                â†’ skip
  */
 
 import { sendToBridge, isBridgeConnected } from './bridge-manager';
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Types
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface LintResult {
   /** true = no errors (warnings are OK) */
@@ -37,13 +37,13 @@ export interface LintResult {
 interface DetectedCommand {
   cmd: string;
   label: string;
-  /** cwd relative to project root — usually '.' */
+  /** cwd relative to project root â€” usually '.' */
   cwd?: string;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Command detection cache  (per project path, TTL 5 min)
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const cmdCache = new Map<string, { cmd: DetectedCommand | null; at: number }>();
 const CMD_TTL = 5 * 60_000;
@@ -52,9 +52,9 @@ export function clearLintCache(projectPath: string): void {
   cmdCache.delete(projectPath);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Public API
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Run the auto-detected lint command for the project.
@@ -88,7 +88,7 @@ export async function runLint(
     const msg = (err as Error).message;
     // A non-zero exit code comes back as a thrown error with the output in the message
     if (msg.includes('exit code') || msg.length > 100) {
-      // The shell error *is* the lint output — treat it as a failure
+      // The shell error *is* the lint output â€” treat it as a failure
       return parseResult(msg, detected.cmd);
     }
     console.warn('[lint-runner] lint execution error:', msg);
@@ -96,9 +96,9 @@ export async function runLint(
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Detection
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function detectCommand(
   userId: number,
@@ -133,7 +133,7 @@ async function doDetect(
     const scripts = pkg.scripts ?? {};
     const deps = { ...(pkg.devDependencies ?? {}), ...(pkg.dependencies ?? {}) };
 
-    // TypeScript present → tsc --noEmit is the most reliable
+    // TypeScript present â†’ tsc --noEmit is the most reliable
     if (deps['typescript']) {
       // Check for custom typecheck script first (might include additional flags)
       if (scripts['typecheck']) {
@@ -156,26 +156,26 @@ async function doDetect(
       return { cmd: 'npm run build', label: 'Build check' };
     }
 
-    // Plain Node.js project — no static typing, skip
+    // Plain Node.js project â€” no static typing, skip
     return null;
   }
 
-  // Cargo.toml → Rust
+  // Cargo.toml â†’ Rust
   const hasCargo = await fileExists(userId, `${projectPath}/Cargo.toml`);
   if (hasCargo) return { cmd: 'cargo check', label: 'Rust cargo check' };
 
-  // go.mod → Go
+  // go.mod â†’ Go
   const hasGoMod = await fileExists(userId, `${projectPath}/go.mod`);
   if (hasGoMod) return { cmd: 'go build ./...', label: 'Go build check' };
 
-  // pyproject.toml → Python (ruff preferred, fallback flake8)
+  // pyproject.toml â†’ Python (ruff preferred, fallback flake8)
   const hasPyProject = await fileExists(userId, `${projectPath}/pyproject.toml`);
   if (hasPyProject) {
     // Try ruff first (modern, fast)
     return { cmd: 'python -m ruff check .', label: 'Ruff linter' };
   }
 
-  // requirements.txt → Python, check only changed .py files
+  // requirements.txt â†’ Python, check only changed .py files
   const hasRequirements = await fileExists(userId, `${projectPath}/requirements.txt`);
   if (hasRequirements && changedFiles) {
     const pyFiles = changedFiles
@@ -190,9 +190,9 @@ async function doDetect(
   return null;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Parse linter output into a structured result
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function parseResult(raw: string, command: string): LintResult {
   const output = raw.trim();
@@ -229,9 +229,9 @@ function parseResult(raw: string, command: string): LintResult {
   };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Bridge helpers
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function execShell(userId: number, cmd: string, cwd: string): Promise<string> {
   // Bridge expects `command`, not `cmd`. Result `output` contains combined stream lines.

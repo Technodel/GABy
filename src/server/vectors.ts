@@ -1,5 +1,5 @@
 /**
- * vectors.ts — Text-to-vector conversion using character trigram hashing.
+ * vectors.ts â€” Text-to-vector conversion using character trigram hashing.
  *
  * Pure JS, zero external dependencies. Converts any text into a sparse
  * vector (Map<string, number>) where dimensions are trigram hashes and

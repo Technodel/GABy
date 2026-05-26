@@ -1,5 +1,5 @@
 /**
- * SUNy Smart File Discovery — a `find_files` tool the AI can call proactively
+ * SUNy Smart File Discovery â€” a `find_files` tool the AI can call proactively
  * to discover relevant files in the project.
  *
  * Supplements the auto-injected repo map by allowing the AI to search for files
@@ -12,9 +12,9 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import { sendToBridge, isBridgeConnected } from './bridge-manager';
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Discovery methods
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface DiscoveredFile {
   path: string;
@@ -118,9 +118,9 @@ console.log(JSON.stringify(results.slice(0,15)));
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Tool factory
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface FileDiscoveryContext {
   userId: number;
@@ -131,7 +131,7 @@ export function createFileDiscoveryTool(ctx: FileDiscoveryContext) {
   return tool({
     description:
       'Search the project for files relevant to a specific task or concept. ' +
-      'Use this when you need to find files related to a feature, component, or API — ' +
+      'Use this when you need to find files related to a feature, component, or API â€” ' +
       'especially when the repo map alone is not enough. ' +
       'Returns a list of files with relevance scores and explanations.',
     inputSchema: z.object({
@@ -163,7 +163,7 @@ export function createFileDiscoveryTool(ctx: FileDiscoveryContext) {
       ];
 
       for (const f of files) {
-        const tag = f.relevance === 'high' ? '🔍' : f.relevance === 'medium' ? '📄' : '📁';
+        const tag = f.relevance === 'high' ? 'ðŸ”' : f.relevance === 'medium' ? 'ðŸ“„' : 'ðŸ“';
         lines.push(`  ${tag} \`${f.path}\``);
         lines.push(`     ${f.reason}`);
         lines.push('');

@@ -1,5 +1,5 @@
 /**
- * Unit tests for vectors.ts — trigram hashing, text-to-vector, cosine similarity, serialization
+ * Unit tests for vectors.ts â€” trigram hashing, text-to-vector, cosine similarity, serialization
  *
  * Pure functions, no mocking needed.
  */
@@ -27,7 +27,7 @@ describe('textToVector', () => {
     }
   });
 
-  it('returns an L2-normalized vector (norm ≈ 1)', () => {
+  it('returns an L2-normalized vector (norm â‰ˆ 1)', () => {
     const vec = textToVector('the quick brown fox jumps over the lazy dog');
     let norm = 0;
     for (let i = 0; i < vec.length; i++) {
@@ -55,7 +55,7 @@ describe('textToVector', () => {
     expect(vec.length).toBe(100);
   });
 
-  it('is deterministic — same input produces same vector', () => {
+  it('is deterministic â€” same input produces same vector', () => {
     const a = textToVector('const x = 42;');
     const b = textToVector('const x = 42;');
     for (let i = 0; i < a.length; i++) {
@@ -100,7 +100,7 @@ describe('cosineSimilarity', () => {
 });
 
 describe('serialize / deserialize round-trip', () => {
-  it('preserves vector data through serialize→deserialize', () => {
+  it('preserves vector data through serializeâ†’deserialize', () => {
     const original = textToVector('test vector round trip');
     const serialized = serializeVector(original);
     expect(typeof serialized).toBe('string');

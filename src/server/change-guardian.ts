@@ -1,5 +1,5 @@
 /**
- * SUNy Code Conscience — Intent-Aware Change Guardian
+ * SUNy Code Conscience â€” Intent-Aware Change Guardian
  *
  * Detects unintended semantic drift between the user's stated intent and
  * what the agent loop actually changed. Uses the TypeScript compiler API
@@ -17,7 +17,7 @@ import * as ts from 'typescript';
 import * as fs from 'fs';
 import * as path from 'path';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface TypeSignature {
   fileName: string;
@@ -68,7 +68,7 @@ const INTENT_KEYWORDS: Record<string, string[]> = {
   internal: ['internal', 'private', 'refactor', 'extract', 'inline', 'move'],
 };
 
-// ── TypeScript source file analysis ───────────────────────────────────────────
+// â”€â”€ TypeScript source file analysis â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function extractTypeSignaturesFromSource(filePath: string): TypeSignature | null {
   if (!fs.existsSync(filePath)) return null;
@@ -183,7 +183,7 @@ function extractTypeSignaturesFromSource(filePath: string): TypeSignature | null
   };
 }
 
-// ── Snapshot management ───────────────────────────────────────────────────────
+// â”€â”€ Snapshot management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const snapshotCache = new Map<string, Map<string, TypeSignature>>();
 
@@ -334,7 +334,7 @@ export function detectDrift(
       }
     }
     if (intentional.length > 0) {
-      lines.push(`${fr.fileName} (${fr.status}): ${intentional.length} expected change(s) — consistent with intent`);
+      lines.push(`${fr.fileName} (${fr.status}): ${intentional.length} expected change(s) â€” consistent with intent`);
     }
   }
 
@@ -352,7 +352,7 @@ export function detectDrift(
   };
 }
 
-// ── Intent classification heuristic ───────────────────────────────────────────
+// â”€â”€ Intent classification heuristic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function isChangeIntentional(userMessage: string, changeDescription: string): boolean {
   if (!changeDescription || !userMessage) return false;
@@ -361,9 +361,9 @@ function isChangeIntentional(userMessage: string, changeDescription: string): bo
 
   // Extract the symbol name from the change description.
   // changeDescription patterns:
-  //   "add deleteUser"         → added export
-  //   "remove User"          → removed export
-  //   "getUser (param) => Ret (param2) => Ret2"  → signature change
+  //   "add deleteUser"         â†’ added export
+  //   "remove User"          â†’ removed export
+  //   "getUser (param) => Ret (param2) => Ret2"  â†’ signature change
   const parts = changeDescription.split(/\s+/);
   const symbolName = parts.length > 0 ? parts[0] : '';
 
@@ -382,7 +382,7 @@ function isChangeIntentional(userMessage: string, changeDescription: string): bo
   return false;
 }
 
-// ── Generate system-prompt drift warning ──────────────────────────────────────
+// â”€â”€ Generate system-prompt drift warning â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * If drift is detected, generates compact text that can be injected into the
@@ -398,7 +398,7 @@ export function formatDriftForCorrection(report: DriftReport): string {
   if (unintentionalChanges.length === 0) return '';
 
   const lines: string[] = [
-    '⚠️ SUNy CODE CONSCIENCE — CHANGE GUARDIAN ALERT',
+    'âš ï¸ SUNy CODE CONSCIENCE â€” CHANGE GUARDIAN ALERT',
     'The following export changes appear unintentional and may cause drift:',
     '',
   ];
@@ -423,7 +423,7 @@ export function formatDriftForCorrection(report: DriftReport): string {
   return lines.join('\n');
 }
 
-// ── Clear snapshot cache (on session end, error, etc.) ────────────────────────
+// â”€â”€ Clear snapshot cache (on session end, error, etc.) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function clearSnapshot(label?: string): void {
   if (label) {

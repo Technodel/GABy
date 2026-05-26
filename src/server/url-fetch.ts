@@ -1,5 +1,5 @@
 /**
- * SUNy URL Fetch Tool — fetches web pages, API responses, or raw content
+ * SUNy URL Fetch Tool â€” fetches web pages, API responses, or raw content
  * from any URL and converts it to readable text for the AI.
  *
  * No external dependencies: uses native fetch() (Node 18+) and regex-based
@@ -13,9 +13,9 @@ import { z } from 'zod';
 import { userClientManager } from './user-client-manager';
 import { narrateMessage } from './narrator';
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Types
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 type FetchResult = {
   content: string;
@@ -25,9 +25,9 @@ type FetchResult = {
   truncated: boolean;
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
-// HTML → text conversion (no dependencies)
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// HTML â†’ text conversion (no dependencies)
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function htmlToText(html: string): string {
   // Remove script and style blocks
@@ -44,7 +44,7 @@ function htmlToText(html: string): string {
     .replace(/<\/tr>/gi, '\n')
     .replace(/<h[1-6][^>]*>/gi, '\n## ')
     .replace(/<\/h[1-6]>/gi, '\n')
-    .replace(/<li[^>]*>/gi, '\n• ')
+    .replace(/<li[^>]*>/gi, '\nâ€¢ ')
     .replace(/<th[^>]*>/gi, '\n| ')
     .replace(/<td[^>]*>/gi, ' | ')
     .replace(/<\/tr>/gi, '\n')
@@ -78,9 +78,9 @@ function formatJson(obj: unknown): string {
   return JSON.stringify(obj, null, 2);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Content type detection
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function isHtml(contentType: string): boolean {
   return /text\/html|application\/xhtml|text\/x?htm/i.test(contentType);
@@ -94,9 +94,9 @@ function isPlainText(contentType: string): boolean {
   return /text\/plain|text\/markdown|text\/x?md|application\/octet-stream/i.test(contentType);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Fetch with timeout
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function fetchWithTimeout(
   urlStr: string,
@@ -169,7 +169,7 @@ async function fetchWithTimeout(
       } else {
         content = trimmed;
       }
-      content += `\n\n[...content truncated at ${Math.round(maxBytes / 1024)}KB — use range requests or refine URL for full content]`;
+      content += `\n\n[...content truncated at ${Math.round(maxBytes / 1024)}KB â€” use range requests or refine URL for full content]`;
     } else if (isHtml(contentType)) {
       content = htmlToText(rawContent);
     } else if (isJson(contentType)) {
@@ -195,15 +195,15 @@ async function fetchWithTimeout(
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Tool factory
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function createUrlFetchTool(userId?: number) {
   return tool({
     description:
       'Fetch the content of a URL (web page, API endpoint, raw file, documentation page, etc.). ' +
-      'Returns the content as readable text — HTML pages are automatically converted to plain text. ' +
+      'Returns the content as readable text â€” HTML pages are automatically converted to plain text. ' +
       'JSON responses are pretty-printed. Use this when you need to read documentation, check API ' +
       'responses, download configuration files, or access any online resource. ' +
       'Maximum response size: 512KB (content beyond that is truncated with a notice).',
@@ -221,7 +221,7 @@ export function createUrlFetchTool(userId?: number) {
         .max(120_000)
         .optional()
         .default(30_000)
-        .describe('Timeout in milliseconds (5000–120000, default 30000).'),
+        .describe('Timeout in milliseconds (5000â€“120000, default 30000).'),
     }),
     execute: async ({ url, timeout_ms }) => {
       // Push start narration
@@ -231,26 +231,26 @@ export function createUrlFetchTool(userId?: number) {
       try {
         const result = await fetchWithTimeout(url, timeout_ms, 524_288, userId); // 512KB
 
-        let heading = `📄 Fetched: ${result.url}`;
+        let heading = `ðŸ“„ Fetched: ${result.url}`;
         if (result.status >= 400) {
-          heading = `⚠️ HTTP ${result.status} for: ${result.url}`;
+          heading = `âš ï¸ HTTP ${result.status} for: ${result.url}`;
         }
 
         const meta = [
           heading,
           `Status: ${result.status}`,
           `Content-Type: ${result.contentType}`,
-          result.truncated ? '⚠️ Response was truncated (512KB limit)' : '',
+          result.truncated ? 'âš ï¸ Response was truncated (512KB limit)' : '',
         ]
           .filter(Boolean)
-          .join(' · ');
+          .join(' Â· ');
 
         return `${meta}\n\n${result.content}`;
       } catch (err) {
         if (err instanceof Error && err.name === 'AbortError') {
-          return `⏱️ Request timed out after ${(timeout_ms / 1000).toFixed(0)}s: ${url}`;
+          return `â±ï¸ Request timed out after ${(timeout_ms / 1000).toFixed(0)}s: ${url}`;
         }
-        return `❌ Error fetching ${url}: ${err instanceof Error ? err.message : String(err)}`;
+        return `âŒ Error fetching ${url}: ${err instanceof Error ? err.message : String(err)}`;
       }
     },
   });

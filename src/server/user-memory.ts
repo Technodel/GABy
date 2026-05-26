@@ -1,12 +1,12 @@
 /**
- * SUNy User Memory Tool — persistent fact storage via SQLite.
+ * SUNy User Memory Tool â€” persistent fact storage via SQLite.
  *
  * The AI can save and recall user-specific facts (preferences, project context,
  * decisions) across sessions using the existing user_memories table.
  *
  * Two tools:
- *   save_memory  – save a fact
- *   recall_memories – retrieve all saved facts
+ *   save_memory  â€“ save a fact
+ *   recall_memories â€“ retrieve all saved facts
  */
 
 import { tool } from 'ai';
@@ -63,7 +63,7 @@ export async function createMemoryTools(ctx: MemoryToolContext) {
         [userId, projectId, tagged],
       );
 
-      return `✅ Saved: "${fact}"`;
+      return `âœ… Saved: "${fact}"`;
     },
   });
 
@@ -108,7 +108,7 @@ export async function createMemoryTools(ctx: MemoryToolContext) {
       const lines = rows.map(
         (r, i) => `${i + 1}. ${r.content.replace(/^\[.*?\]\s*/, '')}`,
       );
-      return `📋 Saved memories (${rows.length}):\n${lines.join('\n')}`;
+      return `ðŸ“‹ Saved memories (${rows.length}):\n${lines.join('\n')}`;
     },
   });
 
@@ -121,7 +121,7 @@ export async function createMemoryTools(ctx: MemoryToolContext) {
     execute: async ({ id }) => {
       const db = await getAdapter();
       await db.run('DELETE FROM user_memories WHERE id = ? AND user_id = ?', [id, userId]);
-      return `✅ Deleted memory #${id}.`;
+      return `âœ… Deleted memory #${id}.`;
     },
   });
 

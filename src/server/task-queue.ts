@@ -1,8 +1,8 @@
 /**
- * task-queue.ts — Low-level task queue backed by the DB interaction_memory table.
+ * task-queue.ts â€” Low-level task queue backed by the DB interaction_memory table.
  *
  * Provides atomic claim-and-execute semantics for background workers.
- * This is a lightweight in-process queue — not suitable for multi-process
+ * This is a lightweight in-process queue â€” not suitable for multi-process
  * workloads without a shared lock store.
  */
 

@@ -1,9 +1,9 @@
 /**
- * SUNy Git Manager — ported from Aider's repo.py logic.
+ * SUNy Git Manager â€” ported from Aider's repo.py logic.
  *
  * After every agent step that modifies files, auto-commits the changes to git
  * with a message derived from the user's request.  This gives users a full
- * rollback history of everything SUNy did — exactly like Aider.
+ * rollback history of everything SUNy did â€” exactly like Aider.
  *
  * Non-fatal: git failures are logged but never surface as errors to the user.
  */
@@ -75,7 +75,7 @@ export async function gitAutoCommit(
       requiresConfirmation: false,
     }, 10_000);
 
-    // Commit — use inline config so no global git identity is required
+    // Commit â€” use inline config so no global git identity is required
     await sendToBridge(userId, 'exec:shell', {
       command: `git -c user.email="suny@ai" -c user.name="SUNy" commit -m "${commitMsg}" --no-verify`,
       cwd: projectPath,
@@ -84,7 +84,7 @@ export async function gitAutoCommit(
 
     console.log(`[git] auto-committed ${relFiles.length} file(s): "${commitMsg}"`);
   } catch (err) {
-    // Non-fatal — "nothing to commit" also throws, which is fine
+    // Non-fatal â€” "nothing to commit" also throws, which is fine
     const msg = (err as Error).message || '';
     if (!msg.includes('nothing to commit') && !msg.includes('nothing added')) {
       console.warn('[git] auto-commit failed:', msg.slice(0, 200));
@@ -113,7 +113,7 @@ export async function gitLog(
   }
 }
 
-// ── Checkpoints ────────────────────────────────────────────────────────────────
+// â”€â”€ Checkpoints â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const CHECKPOINT_PREFIX = 'SUNy checkpoint:';
 
@@ -200,7 +200,7 @@ export async function listCheckpoints(
 
 /**
  * Roll back the project to a specific checkpoint commit.
- * Uses `git reset --hard` — destructive, confirms via requiresConfirmation.
+ * Uses `git reset --hard` â€” destructive, confirms via requiresConfirmation.
  */
 export async function rollbackToCheckpoint(
   userId: number,
@@ -217,7 +217,7 @@ export async function rollbackToCheckpoint(
   console.log(`[git] rolled back to ${sha}`);
 }
 
-// ── Hypothesis branch isolation ────────────────────────────────────────────────
+// â”€â”€ Hypothesis branch isolation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const HYPOTHESIS_BRANCH_PREFIX = 'suny-hyp/';
 

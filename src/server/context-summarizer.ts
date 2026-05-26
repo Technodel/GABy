@@ -1,10 +1,10 @@
 /**
- * SUNy Context Summarizer — condenses older conversation history to save tokens.
+ * SUNy Context Summarizer â€” condenses older conversation history to save tokens.
  *
  * Two mechanisms:
- *   1. Tool (`summarize_history`) — AI explicitly requests summarization of
+ *   1. Tool (`summarize_history`) â€” AI explicitly requests summarization of
  *      older turns when it identifies the conversation is getting long.
- *   2. Auto-summarize — Before trimHistory() drops old messages, the agent
+ *   2. Auto-summarize â€” Before trimHistory() drops old messages, the agent
  *      loop can optionally compress them into a single condensed entry.
  *
  * The AI-powered summarization uses generateText() on the same provider/model
@@ -13,9 +13,9 @@
 
 import { generateText, type LanguageModel } from 'ai';
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Types
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface SummarizeOptions {
   /** The conversation text to condense */
@@ -33,28 +33,28 @@ export interface SummarizerContext {
   signal?: AbortSignal;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Summarization prompt
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /** Turn this into SUMMARY.md once we get it right */
 const SUMMARIZE_SYSTEM = `You are a conversation condenser. Your job is to compress the provided conversation history into a dense summary that preserves:
 
-1. **User's actual requirements and goals** — what they're trying to build/fix
-2. **Key decisions** — architecture choices, design tradeoffs, technology selections
-3. **Files changed** — which files were modified, added, or deleted
-4. **Errors encountered and fixes applied** — bugs found and how they were resolved
-5. **Open issues** — anything left incomplete or deferred
-6. **Current state** — what was the last thing that happened before this summary
+1. **User's actual requirements and goals** â€” what they're trying to build/fix
+2. **Key decisions** â€” architecture choices, design tradeoffs, technology selections
+3. **Files changed** â€” which files were modified, added, or deleted
+4. **Errors encountered and fixes applied** â€” bugs found and how they were resolved
+5. **Open issues** â€” anything left incomplete or deferred
+6. **Current state** â€” what was the last thing that happened before this summary
 
 Output format: A single paragraph or concise bullet list (3-8 lines maximum).
 Do NOT include greetings, meta-commentary, or conversational filler.
 Focus on WHAT was accomplished and WHAT remains.
 Only include information that will be NEEDED in future turns.`;
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Core summarization
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function summarizeConversation(
   ctx: SummarizerContext,
@@ -83,9 +83,9 @@ export async function summarizeConversation(
   return (result.text ?? '').trim() || '[Summary unavailable]';
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Auto-summarize check — called before trimHistory in agent-loop.ts
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Auto-summarize check â€” called before trimHistory in agent-loop.ts
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface AutoSummarizeInput {
   rawMessages: Array<{ role: string; content: string }>;

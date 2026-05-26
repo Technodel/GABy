@@ -1,20 +1,20 @@
 /**
- * SUNy Symbol Reader — regex-based function/class/variable/export map.
+ * SUNy Symbol Reader â€” regex-based function/class/variable/export map.
  *
  * F2a deliverable: gives the AI a structural view of a JS/TS file without
  * reading the full content. Reduces context usage on large files and
  * improves edit precision by showing exact symbol locations.
  *
- * No native dependencies — pure regex. Falls back gracefully for non-JS/TS.
+ * No native dependencies â€” pure regex. Falls back gracefully for non-JS/TS.
  */
 
 import { tool } from 'ai';
 import { z } from 'zod';
 import { sendToBridge, isBridgeConnected } from './bridge-manager';
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Types
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface SymbolEntry {
   name: string;
@@ -31,9 +31,9 @@ export interface SymbolMap {
   lineCount: number;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Regex patterns for JS/TS symbol extraction
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface SymbolPattern {
   regex: RegExp;
@@ -63,13 +63,13 @@ const DECLARATION_PATTERNS: SymbolPattern[] = [
   { regex: /(?:^|\n)\s*(?:export\s+)?(?:const|let|var)\s+(\w+)\s*(?::|=)/g, kind: 'variable' },
 ];
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Extraction
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Extract symbol entries from file content.
- * Deduplicates by name — prefers exported over non-exported, keeps first occurrence.
+ * Deduplicates by name â€” prefers exported over non-exported, keeps first occurrence.
  */
 export function extractSymbols(content: string, fileName: string): SymbolMap {
   const lines = content.split('\n');
@@ -101,7 +101,7 @@ export function extractSymbols(content: string, fileName: string): SymbolMap {
     }
   }
 
-  // Scan declarations — only add if not already captured as exported
+  // Scan declarations â€” only add if not already captured as exported
   for (const { regex, kind } of DECLARATION_PATTERNS) {
     regex.lastIndex = 0;
     let match: RegExpExecArray | null;
@@ -138,9 +138,9 @@ export function extractSymbols(content: string, fileName: string): SymbolMap {
   };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Helpers
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function getLineNumber(content: string, index: number): number {
   return content.slice(0, index).split('\n').length;
@@ -165,26 +165,26 @@ function detectLanguage(fileName: string): string {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Format for AI consumption
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Format a SymbolMap into a compact string for the AI.
  */
 export function formatSymbolMap(map: SymbolMap): string {
   if (map.symbols.length === 0) {
-    return `[${map.filePath}] — ${map.language}, ${map.lineCount} lines. No symbols detected.`;
+    return `[${map.filePath}] â€” ${map.language}, ${map.lineCount} lines. No symbols detected.`;
   }
 
   const maxNameLen = Math.max(...map.symbols.map(s => s.name.length));
   const lines: string[] = [
-    `📄 ${map.filePath} — ${map.language}, ${map.lineCount} lines, ${map.symbols.length} symbols`,
+    `ðŸ“„ ${map.filePath} â€” ${map.language}, ${map.lineCount} lines, ${map.symbols.length} symbols`,
     '',
   ];
 
   for (const sym of map.symbols) {
-    const marker = sym.exported ? (sym.defaultExport ? '⬇' : '📤') : '  ';
+    const marker = sym.exported ? (sym.defaultExport ? 'â¬‡' : 'ðŸ“¤') : '  ';
     const lineStr = `L${String(sym.line).padStart(4)}`;
     const namePadded = sym.name.padEnd(maxNameLen);
     lines.push(`  ${marker} ${lineStr}  ${namePadded}  ${sym.kind}`);
@@ -193,9 +193,9 @@ export function formatSymbolMap(map: SymbolMap): string {
   return lines.join('\n');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Tool factory
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function createSymbolReaderTool(ctx: { userId: number; projectPath: string }) {
   const { userId, projectPath } = ctx;
@@ -204,7 +204,7 @@ export function createSymbolReaderTool(ctx: { userId: number; projectPath: strin
     description:
       'Read the symbol structure of a file (functions, classes, interfaces, types, variables, enums) ' +
       'without reading the full content. Returns symbol names, kinds, export status, and line numbers. ' +
-      'Use this to understand a file\'s structure before editing — saves tokens vs reading the whole file. ' +
+      'Use this to understand a file\'s structure before editing â€” saves tokens vs reading the whole file. ' +
       'Supports JS/TS, Python, Go, Rust, Java, and others.',
     inputSchema: z.object({
       filePath: z.string().describe('Path to the file (relative to WorkingDirectory, or absolute).'),

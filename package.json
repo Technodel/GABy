@@ -6,7 +6,7 @@
   "scripts": {
     "build": "node scripts/build.js && npm run build:renderer",
     "build:renderer": "cd src/renderer && npm run build",
-    "start": "node dist/server/index.js",
+    "start": "node --max-old-space-size=2048 dist/server/index.js",
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:renderer\"",
     "dev:server": "ts-node-dev --respawn --transpile-only src/server/index.ts",
     "dev:renderer": "cd src/renderer && npm run dev",

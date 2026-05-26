@@ -1,13 +1,13 @@
 /**
- * SUNy Per-User Request Queue — concurrency cap for agent loops.
+ * SUNy Per-User Request Queue â€” concurrency cap for agent loops.
  *
  * Prevents SQLite contention and runaway token spend by limiting concurrent
  * runAgentLoop invocations per user. Max 2 concurrent; overflow returns 429.
  *
- * Pure in-memory — no DB, no persistence. Resets on server restart.
+ * Pure in-memory â€” no DB, no persistence. Resets on server restart.
  */
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface QueueEntry<T = unknown> {
   fn: () => Promise<T>;
@@ -28,7 +28,7 @@ const MAX_QUEUE_DEPTH = 5;
 
 const userStates = new Map<number, UserQueueState>();
 
-// ── Public API ────────────────────────────────────────────────────────────────
+// â”€â”€ Public API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Wrap an agent loop call with per-user concurrency limiting.
@@ -56,7 +56,7 @@ export async function withUserQueue<T>(
     return runWithTracking(state, fn);
   }
 
-  // At capacity — check queue depth
+  // At capacity â€” check queue depth
   if (state.queue.length >= MAX_QUEUE_DEPTH) {
     throw Object.assign(new Error('Too many pending requests'), {
       statusCode: 429,
@@ -106,7 +106,7 @@ export function getGlobalQueueStats(): {
   return { totalActive, totalQueued, totalUsers };
 }
 
-// ── Internal ──────────────────────────────────────────────────────────────────
+// â”€â”€ Internal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function runWithTracking<T>(state: UserQueueState, fn: () => Promise<T>): Promise<T> {
   state.active++;

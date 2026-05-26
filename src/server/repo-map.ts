@@ -1,5 +1,5 @@
 /**
- * SUNy Repo Map — ported from Aider's repomap.py logic.
+ * SUNy Repo Map â€” ported from Aider's repomap.py logic.
  *
  * Builds a compressed "map" of the project codebase (file paths + exported symbols)
  * and injects it into every prompt so the AI knows what's in the project without
@@ -9,7 +9,7 @@
  *   1. Write a small extraction script to the user's project via the bridge
  *   2. Execute it with exec:shell (single pass over all source files)
  *   3. Parse JSON result of { relPath: string[] } (symbols per file)
- *   4. Cache for 90 seconds — invalidated on any file_edit / file_write
+ *   4. Cache for 90 seconds â€” invalidated on any file_edit / file_write
  *   5. Rank by relevance to current user message, trim to token budget
  *   6. Format as <repo_map>...</repo_map> and inject into system prompt
  */
@@ -20,9 +20,9 @@ import { isBridgeConnected } from './bridge-manager';
 
 interface SymbolMap { [relPath: string]: string[] }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Cache
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const cache = new Map<string, { data: SymbolMap; at: number }>();
 const CACHE_TTL = 90_000; // 90 seconds
@@ -31,9 +31,9 @@ export function invalidateRepoMap(userId: number, projectPath: string): void {
   cache.delete(`${userId}|${projectPath}`);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Public API
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function buildRepoMap(
   userId: number,
@@ -65,11 +65,11 @@ export async function buildRepoMap(
   return formatMap(entry.data, userMessage, tokenBudget);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Extraction script — executed as a single Node.js process on the user's machine
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Extraction script â€” executed as a single Node.js process on the user's machine
 // via exec:shell.  Uses only Node.js built-ins (fs, path, child_process).
 // String.raw preserves backslashes so regex patterns survive the template literal.
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const EXTRACTION_SCRIPT = String.raw`
 (function(projectPath) {
@@ -180,7 +180,7 @@ const EXTRACTION_SCRIPT = String.raw`
 
     let content;
     try { content = fs.readFileSync(fp, 'utf8'); } catch (e) { continue; }
-    if (content.length > 80000) { result[rel] = ['[large file — use file_read to explore]']; continue; }
+    if (content.length > 80000) { result[rel] = ['[large file â€” use file_read to explore]']; continue; }
 
     const syms = new Set();
     for (const rx of pats) {
@@ -208,7 +208,7 @@ async function extractSymbols(userId: number, projectPath: string): Promise<Symb
       content: EXTRACTION_SCRIPT,
     }, 10_000);
 
-    // Run it — pass projectPath as forward-slash for cross-platform compat
+    // Run it â€” pass projectPath as forward-slash for cross-platform compat
     const normalizedPath = projectPath.replace(/\\/g, '/').replace(/"/g, '\\"');
     const result = await sendToBridge(userId, 'exec:shell', {
       command: `node ".suny-repomap.js" "${normalizedPath}"`,
@@ -235,9 +235,9 @@ async function extractSymbols(userId: number, projectPath: string): Promise<Symb
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Relevance scoring — files mentioned in the user's message rank higher
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Relevance scoring â€” files mentioned in the user's message rank higher
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function scoreFile(relPath: string, msg: string): number {
   const lower = msg.toLowerCase();
@@ -255,9 +255,9 @@ function scoreFile(relPath: string, msg: string): number {
   return score;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Format + trim to token budget
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function formatMap(symbols: SymbolMap, userMessage: string, tokenBudget: number): string {
   const entries = Object.entries(symbols);

@@ -1,5 +1,5 @@
 /**
- * SUNy Checkpoint Manager — Rich checkpoint management with metadata,
+ * SUNy Checkpoint Manager â€” Rich checkpoint management with metadata,
  * tagging, snapshots, and rollback timeline.
  *
  * Extends git-manager.ts with a DB-backed checkpoint registry that stores
@@ -15,7 +15,7 @@ import {
   type CheckpointEntry,
 } from './git-manager';
 
-// ── Types ───────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface CheckpointRecord {
   id: number;
@@ -42,7 +42,7 @@ export interface CheckpointCreateRequest {
   metadata?: Record<string, unknown>;
 }
 
-// ── Database ────────────────────────────────────────────────────────────────
+// â”€â”€ Database â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function ensureTable(): Promise<void> {
   const db = await getAdapter();
@@ -69,7 +69,7 @@ async function ensureTable(): Promise<void> {
   `);
 }
 
-// ── Core operations ─────────────────────────────────────────────────────────
+// â”€â”€ Core operations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Create a git checkpoint + DB record in one operation.
@@ -199,7 +199,7 @@ export async function autoCheckpoint(
   return record;
 }
 
-// ── Query operations ────────────────────────────────────────────────────────
+// â”€â”€ Query operations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function getCheckpointById(id: number): Promise<CheckpointRecord | null> {
   await ensureTable();
@@ -251,7 +251,7 @@ export async function getCheckpointTimeline(
   }));
 }
 
-// ── Tag management ──────────────────────────────────────────────────────────
+// â”€â”€ Tag management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function tagCheckpoint(checkpointId: number, tags: string[]): Promise<void> {
   await ensureTable();
@@ -277,7 +277,7 @@ export async function getCheckpointsByTag(
   );
 }
 
-// ── Rollback (with DB record) ───────────────────────────────────────────────
+// â”€â”€ Rollback (with DB record) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function rollbackWithRecord(
   userId: number,
@@ -305,7 +305,7 @@ export async function rollbackWithRecord(
   }
 }
 
-// ── Cleanup ─────────────────────────────────────────────────────────────────
+// â”€â”€ Cleanup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function deleteOldCheckpoints(
   userId: number,

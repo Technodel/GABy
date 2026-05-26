@@ -6,13 +6,14 @@ import { getAdapter } from './db';
 import { getAllFeatureFlags, setFeatureFlag } from './feature-flags';
 import { getAgentMetricsSummary, getRecentTurns } from './metrics';
 import { userClientManager } from './user-client-manager';
+import { validateMarkupFormula } from './billing';
 
 const router = Router();
 
 // All admin routes require admin auth
 router.use(requireAdmin);
 
-// ── Users ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Users â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.get('/users', async (_req: Request, res: Response) => {
   const db = await getAdapter();
@@ -106,7 +107,7 @@ router.delete('/users/:id', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-// ── API Keys ───────────────────────────────────────────────────────────────────
+// â”€â”€ API Keys â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.get('/api-keys', async (_req: Request, res: Response) => {
   const db = await getAdapter();
@@ -183,7 +184,7 @@ router.delete('/api-keys/:id', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-// ── Pricing ────────────────────────────────────────────────────────────────────
+// â”€â”€ Pricing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.get('/pricing', async (_req: Request, res: Response) => {
   const db = await getAdapter();
@@ -214,6 +215,13 @@ router.patch('/pricing/:mode', async (req: Request, res: Response) => {
     return;
   }
   const data = parsed.data;
+  if (data.markup_formula !== undefined) {
+    const formulaError = validateMarkupFormula(data.markup_formula);
+    if (formulaError) {
+      res.status(400).json({ error: formulaError });
+      return;
+    }
+  }
   const db = await getAdapter();
   const fields: string[] = ["updated_at = datetime('now')"];
   const values: unknown[] = [];
@@ -229,7 +237,7 @@ router.patch('/pricing/:mode', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-// ── Usage Stats / Reports ──────────────────────────────────────────────────────
+// â”€â”€ Usage Stats / Reports â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.get('/usage-stats', async (req: Request, res: Response) => {
   const db = await getAdapter();
@@ -347,7 +355,7 @@ router.get('/usage-stats', async (req: Request, res: Response) => {
   res.json({ summary, perUser, perMode, recent, perDay });
 });
 
-// ── Cached Tokens per User ─────────────────────────────────────────────────────
+// â”€â”€ Cached Tokens per User â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.get('/cached-tokens', async (_req: Request, res: Response) => {
   const db = await getAdapter();
@@ -368,7 +376,7 @@ router.post('/cached-tokens/:userId/reset', async (req: Request, res: Response) 
   res.json({ ok: true });
 });
 
-// ── Settings ───────────────────────────────────────────────────────────────────
+// â”€â”€ Settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.get('/settings', async (_req: Request, res: Response) => {
   const db = await getAdapter();
@@ -413,7 +421,7 @@ router.post('/settings/change-password', async (req: Request, res: Response) => 
     res.status(400).json({ error: 'Invalid input' });
     return;
   }
-  // Admin password lives only in env — this updates the env var at runtime (VPS restart required for full persistence)
+  // Admin password lives only in env â€” this updates the env var at runtime (VPS restart required for full persistence)
   // For a more persistent solution, store hashed admin password in app_settings
   const db = await getAdapter();
   const hash = bcrypt.hashSync(parsed.data.new_password, 12);
@@ -421,7 +429,7 @@ router.post('/settings/change-password', async (req: Request, res: Response) => 
   res.json({ success: true, note: 'Password hash updated. Old SUNY_ADMIN_PASSWORD env var still works until restart.' });
 });
 
-// ── Contact Info ───────────────────────────────────────────────────────────────
+// â”€â”€ Contact Info â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.get('/contact', async (_req: Request, res: Response) => {
   const db = await getAdapter();
@@ -455,7 +463,7 @@ router.patch('/contact', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-// ── Available AI models (from models.dev) ──────────────────────────────────────
+// â”€â”€ Available AI models (from models.dev) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 let modelsCache: { ts: number; data: unknown[] } | null = null;
 const MODELS_CACHE_TTL = 3600_000; // 1 hour
@@ -510,7 +518,7 @@ router.get('/models', async (_req: Request, res: Response) => {
   }
 });
 
-// ── Feature Flags ─────────────────────────────────────────────────────────────
+// â”€â”€ Feature Flags â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const FeatureFlagSchema = z.object({
   value: z.enum(['on', 'off']),
@@ -536,7 +544,7 @@ router.patch('/feature-flags/:key', (req: Request, res: Response) => {
   res.json({ success: true, key, value: parsed.data.value });
 });
 
-// ── Agent Metrics ──────────────────────────────────────────────────────────────
+// â”€â”€ Agent Metrics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * GET /api/admin/metrics?days=7

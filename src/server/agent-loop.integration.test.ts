@@ -1,5 +1,5 @@
 /**
- * Integration tests for SUNy Agent Loop — runAgentLoop
+ * Integration tests for SUNy Agent Loop â€” runAgentLoop
  *
  * Tests the full agent loop pipeline with mocked AI SDK, bridge, and DB.
  * Covers: model fallback, tool call extraction, empty output retry,
@@ -11,7 +11,7 @@
 import 'dotenv/config';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-// ── Shared mutable config (vi.hoisted runs BEFORE vi.mock factories) ──────────
+// â”€â”€ Shared mutable config (vi.hoisted runs BEFORE vi.mock factories) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const { mockStreamConfig, mockGenerateConfig, resetMockConfigs, mockStreamTextResult } = vi.hoisted(() => {
   const mockStreamConfig: {
@@ -66,10 +66,10 @@ const { mockStreamConfig, mockGenerateConfig, resetMockConfigs, mockStreamTextRe
   return { mockStreamConfig, mockGenerateConfig, resetMockConfigs, mockStreamTextResult };
 });
 
-// ── Mock 'ai' — Vercel AI SDK ────────────────────────────────────────────────
+// â”€â”€ Mock 'ai' â€” Vercel AI SDK â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 vi.mock('ai', () => {
-  // Use vi.fn() for streamText — mockImplementation creates a proper constructable mock
+  // Use vi.fn() for streamText â€” mockImplementation creates a proper constructable mock
   // that works with vitest's mock system (mockClear, mockReset, etc.)
   return {
     streamText: vi.fn().mockImplementation(() => mockStreamTextResult()),
@@ -84,7 +84,7 @@ vi.mock('ai', () => {
   };
 });
 
-// ── Mock internal dependencies ────────────────────────────────────────────────
+// â”€â”€ Mock internal dependencies â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 vi.mock('./agent', () => ({
   getModelsForMode: vi.fn().mockReturnValue([
@@ -158,7 +158,7 @@ vi.mock('./personality', () => ({
   pickRandom: vi.fn().mockReturnValue(''),
 }));
 
-// ── Tool creators (return empty — no real tool calls in tests) ────────────────
+// â”€â”€ Tool creators (return empty â€” no real tool calls in tests) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 vi.mock('./power-tools', () => ({
   createPowerTools: vi.fn().mockReturnValue({}),
@@ -236,11 +236,11 @@ vi.mock('./skill-loader', () => ({
   getActiveSkills: vi.fn().mockReturnValue([]),
 }));
 
-// ── Module under test ─────────────────────────────────────────────────────────
+// â”€â”€ Module under test â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 import { runAgentLoop } from './agent-loop';
 
-// ── Tests ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe('runAgentLoop (integration)', () => {
   beforeEach(() => {
@@ -248,7 +248,7 @@ describe('runAgentLoop (integration)', () => {
     vi.clearAllMocks();
   });
 
-  // ── Success path ─────────────────────────────────────────────────────────
+  // â”€â”€ Success path â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   it('returns content from streamText when model responds', async () => {
     mockStreamConfig.textChunks = ['Hello, I am SUNy. How can I help you today?'];
@@ -272,7 +272,7 @@ describe('runAgentLoop (integration)', () => {
     expect(Array.isArray(result.changedFiles)).toBe(true);
   });
 
-  it('handles talk mode (no coding — chat response)', async () => {
+  it('handles talk mode (no coding â€” chat response)', async () => {
     mockStreamConfig.textChunks = ['The capital of France is Paris.'];
 
     const result = await runAgentLoop({
@@ -307,7 +307,7 @@ describe('runAgentLoop (integration)', () => {
     expect(result.resolvedMode).toBe('smart');
   });
 
-  // ── Model fallback ───────────────────────────────────────────────────────
+  // â”€â”€ Model fallback â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   it('falls back to secondary model when primary fails', async () => {
     const ai = await import('ai');
@@ -340,10 +340,10 @@ describe('runAgentLoop (integration)', () => {
     expect(result.content.length).toBeGreaterThan(0);
   });
 
-  // ── Empty output auto-retry ──────────────────────────────────────────────
+  // â”€â”€ Empty output auto-retry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   it('auto-retries when model produces empty output with no tool calls', async () => {
-    // streamText returns empty output → triggers auto-retry via generateText
+    // streamText returns empty output â†’ triggers auto-retry via generateText
     mockStreamConfig.textChunks = [];
     // Agent-loop checks retryText.length > 50 || retryResult.steps > 1
     mockGenerateConfig.text = 'Here is the function you requested. It takes two parameters and returns their sum after validating the inputs are numbers. The implementation uses type guards for safety and handles edge cases like negative numbers and zero.';
@@ -385,7 +385,7 @@ describe('runAgentLoop (integration)', () => {
     expect(result.content).toContain('encountered an issue');
   });
 
-  // ── Step exhaustion ──────────────────────────────────────────────────────
+  // â”€â”€ Step exhaustion â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   it('appends warning when steps hit MAX_STEPS limit', async () => {
     mockStreamConfig.textChunks = ['Some response'];
@@ -406,7 +406,7 @@ describe('runAgentLoop (integration)', () => {
     expect(typeof result.proofSummary.durationMs).toBe('number');
   });
 
-  // ── Error handling ───────────────────────────────────────────────────────
+  // â”€â”€ Error handling â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   it('throws when all models fail', async () => {
     const ai = await import('ai');
@@ -444,7 +444,7 @@ describe('runAgentLoop (integration)', () => {
     ]);
   });
 
-  // ── Proof summary structure ──────────────────────────────────────────────
+  // â”€â”€ Proof summary structure â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   it('returns complete proofSummary with all expected fields', async () => {
     mockStreamConfig.textChunks = ['Task completed successfully.'];

@@ -1,12 +1,12 @@
 /**
- * activation-controller.ts — Composable AI Behavior Profiles
+ * activation-controller.ts â€” Composable AI Behavior Profiles
  *
  * Inspired by ntkmirror's activation-space controllers (leochlon/ntkmirror),
  * this module replaces raw verbatim memory text injection with composable
  * "behavior profiles" that are weighted, combined, and decoded into concise
  * behavioral instructions.
  *
- * ── How it works ──
+ * â”€â”€ How it works â”€â”€
  * In ntkmirror, each controller scales model hidden states:
  *   h' = exp(s) * h  (scale activation by logit score)
  * Multiple controllers compose via log-space addition.
@@ -17,12 +17,12 @@
  * representation. Profiles are composed via weighted combination, and the
  * result is decoded into a compact natural-language instruction block.
  *
- * ── Composability ──
+ * â”€â”€ Composability â”€â”€
  * Profiles from different sources are merged by importance weight:
  *   composed = sum(exp(weight_i * 3) * vector_i) / sum(exp(weight_i * 3))
  *
  * This gives stronger signals (higher weight) exponentially more influence
- * while weaker signals still contribute meaningfully — exactly like ntkmirror's
+ * while weaker signals still contribute meaningfully â€” exactly like ntkmirror's
  * log-space composition.
  */
 
@@ -30,20 +30,20 @@ import { textToVector, cosineSimilarity } from './vectors';
 
 const PROFILE_DIMS = 2000;
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface BehaviorProfile {
   /** Unique identifier (source_type + hash) */
   id: string;
   /** Source type */
   source: 'memory' | 'rule' | 'project' | 'skill';
-  /** Importance weight (0..1) — controls influence in composition */
+  /** Importance weight (0..1) â€” controls influence in composition */
   weight: number;
   /** Trigram vector encoding the behavioral essence */
   vector: Float64Array;
   /** Human-readable label */
   label: string;
-  /** Decoded instruction — what SUNy should do */
+  /** Decoded instruction â€” what SUNy should do */
   instruction: string;
   /** Context category for grouping (e.g., "when editing files", "general") */
   context: string;
@@ -64,14 +64,14 @@ export interface ComposedProfile {
   coherenceScore: number;
 }
 
-// ── Profile sources ───────────────────────────────────────────────────────────
+// â”€â”€ Profile sources â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /** Profile source priorities for conflict resolution */
 const SOURCE_WEIGHTS: Record<BehaviorProfile['source'], number> = {
-  memory: 0.5,   // past interactions — moderately important
-  rule:   0.8,   // behavioral rules — highly important (explicit lessons)
-  project: 0.7,  // project blueprint/guide — important context
-  skill:  0.4,   // active skills — lighter touch
+  memory: 0.5,   // past interactions â€” moderately important
+  rule:   0.8,   // behavioral rules â€” highly important (explicit lessons)
+  project: 0.7,  // project blueprint/guide â€” important context
+  skill:  0.4,   // active skills â€” lighter touch
 };
 
 /**
@@ -96,7 +96,7 @@ export function profileFromMemory(
   const avgScore = interactions.reduce((s, m) => s + m.score, 0) / interactions.length;
   const weight = opts?.weight ?? Math.min(0.7, avgScore * 0.8);
 
-  // Extract behavioral essence — what SUNy should do based on this memory
+  // Extract behavioral essence â€” what SUNy should do based on this memory
   const essence = interactions.length === 1
     ? `Refer to a similar past interaction where the user asked about a related topic. Apply the same successful approach.`
     : `${interactions.length} similar past interactions suggest a consistent approach for this kind of request. Follow established patterns that worked before.`;
@@ -135,8 +135,8 @@ export function profileFromRules(
   const mistakes = rules.filter(r => r.category === 'mistake');
 
   // Build concise instruction text from rules
-  const winLines = wins.map(r => `  ✓ ${r.ruleText}`);
-  const mistakeLines = mistakes.map(r => `  ✗ ${r.ruleText}`);
+  const winLines = wins.map(r => `  âœ“ ${r.ruleText}`);
+  const mistakeLines = mistakes.map(r => `  âœ— ${r.ruleText}`);
 
   const parts: string[] = [];
   if (winLines.length > 0) {
@@ -238,7 +238,7 @@ export function profileFromSkills(
   };
 }
 
-// ── Composition ───────────────────────────────────────────────────────────────
+// â”€â”€ Composition â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Compose multiple behavior profiles into a single profile.
@@ -246,9 +246,9 @@ export function profileFromSkills(
  * Uses ntkmirror-inspired weighted combination:
  *   composed = sum(exp(weight_i * AMPLIFY) * vector_i) / sum(exp(weight_i * AMPLIFY))
  *
- * The AMPLIFY factor (3.0) creates exponential separation — a profile with
- * weight 0.8 has ~e^(2.4) ≈ 11x more influence than one with weight 0.1
- * (e^(0.3) ≈ 1.35), mirroring how ntkmirror uses logit scores in activation space.
+ * The AMPLIFY factor (3.0) creates exponential separation â€” a profile with
+ * weight 0.8 has ~e^(2.4) â‰ˆ 11x more influence than one with weight 0.1
+ * (e^(0.3) â‰ˆ 1.35), mirroring how ntkmirror uses logit scores in activation space.
  */
 export function composeProfiles(profiles: BehaviorProfile[]): ComposedProfile | null {
   if (profiles.length === 0) return null;
@@ -293,7 +293,7 @@ export function composeProfiles(profiles: BehaviorProfile[]): ComposedProfile | 
   };
 }
 
-// ── Decoding ──────────────────────────────────────────────────────────────────
+// â”€â”€ Decoding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Decode a composed profile into a natural-language instruction block.
@@ -325,10 +325,10 @@ function decodeComposedProfile(
   }
 
   const sourceLabels: Record<BehaviorProfile['source'], string> = {
-    memory: '📖 Past Experience',
-    rule: '🧠 Learned Rules',
-    project: '📐 Project Context',
-    skill: '🔧 Active Skills',
+    memory: 'ðŸ“– Past Experience',
+    rule: 'ðŸ§  Learned Rules',
+    project: 'ðŸ“ Project Context',
+    skill: 'ðŸ”§ Active Skills',
   };
 
   for (const [source, group] of bySource) {

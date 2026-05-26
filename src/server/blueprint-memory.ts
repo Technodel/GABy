@@ -1,21 +1,21 @@
 /**
- * SUNy Code Conscience — Blueprint Memory Layer
+ * SUNy Code Conscience â€” Blueprint Memory Layer
  *
  * Persistently stores design decisions, architectural intent, and session
  * outcomes so that every turn compounds knowledge rather than starting fresh.
  *
  * Two capabilities:
- *   1. POST-TURN EXTRACTION — after the agent loop completes, this module
+ *   1. POST-TURN EXTRACTION â€” after the agent loop completes, this module
  *      analyzes what happened (what files changed, what intent drove the
  *      changes, what the outcome was) and writes a concise blueprint entry.
- *   2. PRE-TURN INJECTION — before the agent loop starts, relevant prior
+ *   2. PRE-TURN INJECTION â€” before the agent loop starts, relevant prior
  *      blueprint entries are injected into the system prompt so the AI
  *      operates with full memory of past design decisions.
  */
 
 import { getAdapter } from './db';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface BlueprintEntry {
   id: number;
@@ -43,7 +43,7 @@ export type BlueprintCategory =
   | 'user_preference'
   | 'goal_completed';
 
-// ── Category heuristics ───────────────────────────────────────────────────────
+// â”€â”€ Category heuristics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function classifyCategory(summary: string, changedFiles: string[], userMessage: string): BlueprintCategory {
   const t = `${summary} ${userMessage}`.toLowerCase();
@@ -59,7 +59,7 @@ function classifyCategory(summary: string, changedFiles: string[], userMessage: 
   return 'design_decision';
 }
 
-// ── Extract intent from user message ──────────────────────────────────────────
+// â”€â”€ Extract intent from user message â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function extractIntent(userMessage: string): string {
   // Use the first sentence or question as the core intent
@@ -70,7 +70,7 @@ function extractIntent(userMessage: string): string {
   return cleaned.length > 200 ? cleaned.slice(0, 200) : cleaned;
 }
 
-// ── Store a blueprint entry ───────────────────────────────────────────────────
+// â”€â”€ Store a blueprint entry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function storeBlueprintEntry(entry: {
   userId: number;
@@ -118,7 +118,7 @@ export async function storeBlueprintEntry(entry: {
   };
 }
 
-// ── Query blueprint entries ───────────────────────────────────────────────────
+// â”€â”€ Query blueprint entries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function getBlueprintEntries(options: {
   userId: number;
@@ -151,13 +151,13 @@ export async function getBlueprintEntries(options: {
   return await db.all<BlueprintEntry>(sql, params);
 }
 
-// ── Get compact context string for system prompt injection ────────────────────
+// â”€â”€ Get compact context string for system prompt injection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Returns a plain-text context block of recent blueprint entries for the given
  * user/project. Designed to be injected into the system prompt before each turn.
  *
- * The output is intentionally concise — 3-5 most recent entries with category
+ * The output is intentionally concise â€” 3-5 most recent entries with category
  * labels, summaries, and intents. This keeps token overhead low while giving
  * the AI full design memory continuity.
  */
@@ -188,7 +188,7 @@ export async function getBlueprintContext(options: {
   }).join('\n');
 
   return (
-    '\n\n=== SUNy CODE CONSCIENCE — DESIGN MEMORY ===\n' +
+    '\n\n=== SUNy CODE CONSCIENCE â€” DESIGN MEMORY ===\n' +
     'The following entries record past design decisions and outcomes from this project.\n' +
     'Use them to maintain consistency with prior intent.\n\n' +
     sections +
@@ -196,10 +196,10 @@ export async function getBlueprintContext(options: {
   );
 }
 
-// ── Aggregate summaries (lightweight knowledge flywheel) ──────────────────────
+// â”€â”€ Aggregate summaries (lightweight knowledge flywheel) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
- * Returns a high-level "design trajectory" summary — the categories of decisions
+ * Returns a high-level "design trajectory" summary â€” the categories of decisions
  * made and how many entries each has. Gives the AI a sense of thematic focus.
  */
 export async function getBlueprintSummary(options: {
@@ -232,10 +232,10 @@ export async function getBlueprintSummary(options: {
     return `  ${label}: ${r.count}`;
   }).join('\n');
 
-  return `\n[Blueprint memory contains ${total} entries — project design knowledge:\n${lines}]`;
+  return `\n[Blueprint memory contains ${total} entries â€” project design knowledge:\n${lines}]`;
 }
 
-// ── Phase 2.2: Blueprint → Behavioral Rule Pipeline ───────────────────────────
+// â”€â”€ Phase 2.2: Blueprint â†’ Behavioral Rule Pipeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Detect repeated patterns in blueprint memory and auto-generate behavioral rules.
@@ -273,7 +273,7 @@ export async function generateRulesFromPatterns(options: {
     try {
       const files: string[] = JSON.parse(row.affected_files);
       const fileList = files.slice(0, 3).join(', ');
-      const ruleText = `File "${fileList}" has been modified ${row.cnt} times in context of "${row.category}" — verify imports and dependents when touching it`;
+      const ruleText = `File "${fileList}" has been modified ${row.cnt} times in context of "${row.category}" â€” verify imports and dependents when touching it`;
 
       // Check if rule already exists
       const existing = await db.get<{ id: number }>(
@@ -288,7 +288,7 @@ export async function generateRulesFromPatterns(options: {
           [options.userId, options.projectId, ruleText, `when working in this project (pattern detected from ${row.cnt} turns)`],
         );
         generated++;
-        console.log(`[blueprint→rule] Generated rule: ${ruleText.slice(0, 100)}`);
+        console.log(`[blueprintâ†’rule] Generated rule: ${ruleText.slice(0, 100)}`);
       }
     } catch { /* skip malformed entries */ }
   }

@@ -39,4 +39,4 @@ ENV SUNY_DB_PATH=/data/suny.db
 EXPOSE 3000
 
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "dist/server/index.js"]
+CMD ["node", "--max-old-space-size=2048", "dist/server/index.js"]

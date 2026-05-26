@@ -1,10 +1,10 @@
 /**
- * SUNy Operation Audit — centralized operation logging.
+ * SUNy Operation Audit â€” centralized operation logging.
  *
  * Records every tool call, error, and state transition into the operation_log
  * table for session replay, debugging, and admin oversight.
  *
- * Respects the ff_operation_audit feature flag — can be disabled at runtime.
+ * Respects the ff_operation_audit feature flag â€” can be disabled at runtime.
  */
 
 import { getDb } from './db';
@@ -46,7 +46,7 @@ export function logOperation(entry: OperationEntry): void {
       entry.durationMs ?? 0,
     );
   } catch {
-    // Audit logging is best-effort — never crash the main flow
+    // Audit logging is best-effort â€” never crash the main flow
   }
 }
 

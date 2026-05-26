@@ -1,10 +1,10 @@
 /**
- * SUNy Goal Tracker — persistent multi-horizon goal stack.
+ * SUNy Goal Tracker â€” persistent multi-horizon goal stack.
  *
  * Tracks goals across sessions with:
  *   1. Hierarchical goals with success criteria
  *   2. Evidence collection (proof that a goal is done)
- *   3. Session resume — pick up exactly where you left off
+ *   3. Session resume â€” pick up exactly where you left off
  *   4. Progress measurement by criteria, not by chat history
  *
  * Feature flag: ff_goal_tracker
@@ -13,7 +13,7 @@
 
 import { getAdapter } from './db';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export type GoalStatus = 'active' | 'blocked' | 'completed' | 'abandoned';
 export type GoalPriority = 'critical' | 'high' | 'normal' | 'low';
@@ -46,7 +46,7 @@ export interface GoalProgress {
   percentComplete: number;
 }
 
-// ── DB initialization ─────────────────────────────────────────────────────────
+// â”€â”€ DB initialization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function initializeGoalTrackerTable(): Promise<void> {
   const db = await getAdapter();
@@ -79,7 +79,7 @@ export async function initializeGoalTrackerTable(): Promise<void> {
   `);
 }
 
-// ── Core operations ───────────────────────────────────────────────────────────
+// â”€â”€ Core operations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Create a new goal. Returns the goal ID.
@@ -281,8 +281,8 @@ export async function formatGoalContext(userId: number, projectId: number): Prom
   if (!current) return '';
 
   const progress = await getGoalProgress(userId, projectId);
-  const criteria = current.successCriteria.join('\n    • ');
-  const evidence = current.evidence.join('\n    • ');
+  const criteria = current.successCriteria.join('\n    â€¢ ');
+  const evidence = current.evidence.join('\n    â€¢ ');
 
   let ctx = `<current_goal>\n`;
   ctx += `  Description: ${current.description}\n`;
@@ -290,8 +290,8 @@ export async function formatGoalContext(userId: number, projectId: number): Prom
   ctx += `  Priority: ${current.priority}\n`;
   ctx += `  Progress: ${progress.percentComplete}% (${progress.completed}/${progress.total} goals)\n`;
 
-  if (criteria) ctx += `  Success criteria:\n    • ${criteria}\n`;
-  if (evidence) ctx += `  Evidence collected:\n    • ${evidence}\n`;
+  if (criteria) ctx += `  Success criteria:\n    â€¢ ${criteria}\n`;
+  if (evidence) ctx += `  Evidence collected:\n    â€¢ ${evidence}\n`;
   if (current.blockedReason) ctx += `  Blocked by: ${current.blockedReason}\n`;
 
   ctx += `</current_goal>`;
@@ -311,7 +311,7 @@ export async function getActiveGoalCount(userId: number, projectId: number): Pro
   return row.c;
 }
 
-// ── Internal helpers ──────────────────────────────────────────────────────────
+// â”€â”€ Internal helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface GoalRow {
   id: string;

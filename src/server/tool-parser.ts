@@ -1,5 +1,5 @@
 /**
- * SUNy Tool Parser — Extracts structured tool calls from AI responses.
+ * SUNy Tool Parser â€” Extracts structured tool calls from AI responses.
  *
  * The AI can request bridge operations by embedding XML-style tags:
  *   <suny_tool name="read_file" path="src/file.tsx" />
@@ -156,7 +156,7 @@ export function parseFunctionTagCalls(content: string): ParsedResponse {
       try {
         params = JSON.parse(bodyStr);
       } catch {
-        // Not valid JSON — try to extract key=value pairs as fallback
+        // Not valid JSON â€” try to extract key=value pairs as fallback
         params = { _raw: bodyStr };
       }
     }

@@ -15,7 +15,7 @@ import { evaluate } from 'mathjs';
 
 const router = Router();
 
-// ── Public routes (no auth required) ──────────────────────────────────────────
+// â”€â”€ Public routes (no auth required) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.get('/contact', (_req: Request, res: Response) => {
   const info = getDb().prepare('SELECT phone, email, website, whatsapp, support_message FROM contact_info WHERE id = 1').get();
@@ -23,16 +23,17 @@ router.get('/contact', (_req: Request, res: Response) => {
 });
 
 router.get('/pricing-public', (_req: Request, res: Response) => {
-
+  // Only expose user-facing fields — never expose base token costs, markup formulas, or model IDs.
   const modes = getDb().prepare(
-    'SELECT mode, display_name, description, input_token_base_cost, output_token_base_cost, markup_formula, model_id FROM pricing_modes ORDER BY id'
+    'SELECT mode, display_name, description, input_token_base_cost, output_token_base_cost, markup_formula FROM pricing_modes ORDER BY id'
   ).all() as Array<{
     mode: string; display_name: string; description: string;
     input_token_base_cost: number; output_token_base_cost: number;
-    markup_formula: string; model_id: string;
+    markup_formula: string;
   }>;
   const enriched = modes.map(m => {
-    // Compute display price per 1M tokens (input-only, output-only) with markup formula applied
+    // Compute display price per 1M tokens with markup applied — only the final
+    // user-facing price is returned, never the raw base cost or formula.
     let priceInput1M = m.input_token_base_cost * 1_000_000;
     let priceOutput1M = m.output_token_base_cost * 1_000_000;
     try {
@@ -49,7 +50,6 @@ router.get('/pricing-public', (_req: Request, res: Response) => {
       mode: m.mode,
       display_name: m.display_name,
       description: m.description,
-      model_id: m.model_id,
       input_price_per_1m: typeof priceInput1M === 'number' && !isNaN(priceInput1M) ? priceInput1M : m.input_token_base_cost * 1_000_000,
       output_price_per_1m: typeof priceOutput1M === 'number' && !isNaN(priceOutput1M) ? priceOutput1M : m.output_token_base_cost * 1_000_000,
     };
@@ -59,7 +59,7 @@ router.get('/pricing-public', (_req: Request, res: Response) => {
 
 router.use(requireAuth);
 
-// ── Folder picker (bridge-first, native fallback) ───────────────────────────
+// â”€â”€ Folder picker (bridge-first, native fallback) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.post('/pick-folder', async (req: Request, res: Response) => {
   const user = (req as AuthRequest).user;
@@ -142,7 +142,7 @@ router.post('/pick-folder', async (req: Request, res: Response) => {
   }
 });
 
-// ── User profile & balance ─────────────────────────────────────────────────────
+// â”€â”€ User profile & balance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.get('/me', (req: Request, res: Response) => {
   const user = (req as AuthRequest).user;
@@ -197,11 +197,11 @@ router.get('/me', (req: Request, res: Response) => {
           has_active_key: keyCount > 0,
         };
       });
-      // AUTO mode: virtual entry — routes to the best real mode per message
+      // AUTO mode: virtual entry â€” routes to the best real mode per message
       list.push({
         mode: 'auto',
-        display_name: '🤖 Auto',
-        description: 'Smartly picks the right model for each message — fast for code, powerful for analysis',
+        display_name: 'ðŸ¤– Auto',
+        description: 'Smartly picks the right model for each message â€” fast for code, powerful for analysis',
         session_limit_label: 'Adaptive',
         has_active_key: list.some(m => m.has_active_key),
       });
@@ -212,7 +212,7 @@ router.get('/me', (req: Request, res: Response) => {
   });
 });
 
-// ── Update display name ────────────────────────────────────────────────────────────────────────
+// â”€â”€ Update display name â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.patch('/me/name', (req: Request, res: Response) => {
   const user = (req as AuthRequest).user;
@@ -231,7 +231,7 @@ router.patch('/me/mode', (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-// ── Projects ───────────────────────────────────────────────────────────────────
+// â”€â”€ Projects â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.get('/projects', (req: Request, res: Response) => {
   const user = (req as AuthRequest).user;
@@ -247,7 +247,7 @@ router.get('/projects', (req: Request, res: Response) => {
   try {
     projects = getDb().prepare('SELECT id, name, local_path, persona, auto_execute_override, default_tier, created_at FROM projects WHERE user_id = ?').all(user.id) as typeof projects;
   } catch {
-    // Column may not exist on older DBs — fall back to query without it
+    // Column may not exist on older DBs â€” fall back to query without it
     const rows = getDb().prepare('SELECT id, name, local_path, persona, created_at FROM projects WHERE user_id = ?').all(user.id) as Array<{
       id: number; name: string; local_path: string; persona: string | null; created_at: string;
     }>;
@@ -395,7 +395,7 @@ router.patch('/projects/:id/default-tier', (req: Request, res: Response) => {
   res.json({ success: true, default_tier: parsed.data.tier });
 });
 
-// ── Memories ───────────────────────────────────────────────────────────────────
+// â”€â”€ Memories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.get('/memories', (req: Request, res: Response) => {
   const user = (req as AuthRequest).user;
@@ -431,7 +431,7 @@ router.delete('/memories', (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-// ── User settings ──────────────────────────────────────────────────────────────
+// â”€â”€ User settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const UserSettingsSchema = z.object({
   dark_mode: z.boolean().optional(),
@@ -465,7 +465,7 @@ router.patch('/settings', (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-// ── Change password ────────────────────────────────────────────────────────────
+// â”€â”€ Change password â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const ChangePasswordSchema = z.object({
   current_password: z.string().min(1),
@@ -487,7 +487,7 @@ router.post('/change-password', (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-// ── Balance check ──────────────────────────────────────────────────────────────
+// â”€â”€ Balance check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.get('/balance', (req: Request, res: Response) => {
   const user = (req as AuthRequest).user;
@@ -514,10 +514,10 @@ interface PricingRow {
   global_max_tokens: number | null;
 }
 
-// ── Bridge token (for BridgeSetup page) ───────────────────────────────────────
+// â”€â”€ Bridge token (for BridgeSetup page) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Issues a long-lived (1 year) JWT scoped for bridge use. The frontend can't
 // read the httpOnly cookie directly, and the user's session token would expire
-// in hours — neither is good UX for a background bridge process. Instead we
+// in hours â€” neither is good UX for a background bridge process. Instead we
 // mint a fresh long-lived token tied to the authenticated user.
 router.get('/bridge-token', (req: Request, res: Response) => {
   const sessionToken = req.cookies?.suny_token;
@@ -531,7 +531,7 @@ router.get('/bridge-token', (req: Request, res: Response) => {
   res.json({ token: bridgeToken });
 });
 
-// ── Launch a local terminal with the bridge install command pre-loaded ─────────
+// â”€â”€ Launch a local terminal with the bridge install command pre-loaded â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Only works when the server is running on the user's own machine.
 router.post('/bridge/launch-terminal', async (req: Request, res: Response) => {
   const token = req.cookies?.suny_token;
@@ -614,13 +614,13 @@ Read-Host '  [ Press Enter to exit ]'
   }
 });
 
-// ── Wallet ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Wallet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const TransferSchema = z.object({
   amount: z.number().positive(),
 });
 
-/** Transfer credits → wallet (bot fuel tank). */
+/** Transfer credits â†’ wallet (bot fuel tank). */
 router.post('/wallet/transfer', (req: Request, res: Response) => {
   const user = (req as AuthRequest).user;
   const parsed = TransferSchema.safeParse(req.body);
@@ -648,10 +648,10 @@ router.patch('/wallet/auto-spend', (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-// ── Top-up Requests ────────────────────────────────────────────────────────────
+// â”€â”€ Top-up Requests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Users file a request; an admin reviews it in the admin dashboard and either
 // approves (which calls the existing wallet_balance_set / transferToWallet path)
-// or rejects with a note. No live payment processor yet — keeps things honest.
+// or rejects with a note. No live payment processor yet â€” keeps things honest.
 
 const TopupRequestSchema = z.object({
   amount: z.number().positive().max(10000),
@@ -661,7 +661,7 @@ const TopupRequestSchema = z.object({
 router.post('/billing/topup-request', (req: Request, res: Response) => {
   const user = (req as AuthRequest).user;
   const parsed = TopupRequestSchema.safeParse(req.body);
-  if (!parsed.success) { res.status(400).json({ error: 'Enter a valid amount (positive, ≤ 10000)' }); return; }
+  if (!parsed.success) { res.status(400).json({ error: 'Enter a valid amount (positive, â‰¤ 10000)' }); return; }
   // Throttle: reject if user already has 3+ pending requests.
   const pending = getDb().prepare("SELECT COUNT(*) as c FROM topup_requests WHERE user_id = ? AND status = 'pending'")
     .get(user.id) as { c: number };
@@ -683,7 +683,7 @@ router.get('/billing/topup-requests', (req: Request, res: Response) => {
   res.json(rows);
 });
 
-// ── Project Rules (.suny-rules) ─────────────────────────────────────────────
+// â”€â”€ Project Rules (.suny-rules) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /** Get rules for a project (returns null if none set) */
 router.get('/projects/:id/rules', (req: Request, res: Response) => {
@@ -727,7 +727,7 @@ router.delete('/projects/:id/rules', (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-// ── Usage Stats ──────────────────────────────────────────────────────────────
+// â”€â”€ Usage Stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /** Return daily + mode + project token/cost summary for the authenticated user */
 router.get('/me/usage', (req: Request, res: Response) => {
@@ -783,7 +783,7 @@ router.get('/me/usage', (req: Request, res: Response) => {
   res.json({ by_day: byDay, by_mode: byMode, by_project: byProject, totals });
 });
 
-// ── Checkpoints ───────────────────────────────────────────────────────────────
+// â”€â”€ Checkpoints â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /** List recent checkpoint commits for a project */
 router.get('/projects/:id/checkpoints', async (req: Request, res: Response) => {
@@ -801,7 +801,7 @@ router.get('/projects/:id/checkpoints', async (req: Request, res: Response) => {
   }
 });
 
-// ── Cross-device project state (chat + memories) ───────────────────────────
+// â”€â”€ Cross-device project state (chat + memories) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const MessageReportSchema = z.object({
   durationMs: z.number().int().nonnegative(),
@@ -913,7 +913,7 @@ router.post('/projects/:id/checkpoints/rollback', async (req: Request, res: Resp
   }
 });
 
-// ── File browser ──────────────────────────────────────────────────────────────
+// â”€â”€ File browser â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /** Return a shallow 2-level file tree for a project via the bridge */
 router.get('/projects/:id/files', async (req: Request, res: Response) => {
@@ -953,9 +953,9 @@ router.get('/projects/:id/files', async (req: Request, res: Response) => {
   }
 });
 
-// ── Dev server ─────────────────────────────────────────────────────────────────
+// â”€â”€ Dev server â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-// In-memory map: userId → { pid, url }
+// In-memory map: userId â†’ { pid, url }
 const devServers = new Map<number, { url: string }>();
 
 /** Start the project's dev server (npm run dev / vite / python server) */
@@ -978,7 +978,7 @@ router.post('/projects/:id/dev-server/start', async (req: Request, res: Response
     if (pkg.scripts?.dev) startCmd = 'npm run dev';
     else if (pkg.scripts?.start) startCmd = 'npm start';
     else if (pkg.scripts?.serve) startCmd = 'npm run serve';
-  } catch { /* no package.json — use python fallback */ }
+  } catch { /* no package.json â€” use python fallback */ }
 
   try {
     // Fire-and-forget: bridge runs the process detached
@@ -1015,7 +1015,7 @@ router.post('/projects/:id/dev-server/stop', async (req: Request, res: Response)
   res.json({ success: true });
 });
 
-// ── Pinned Files ──────────────────────────────────────────────────────────────
+// â”€â”€ Pinned Files â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.get('/projects/:id/pinned-files', (req: Request, res: Response) => {
   const user = (req as AuthRequest).user;
@@ -1054,7 +1054,7 @@ router.delete('/projects/:id/pinned-files/:filePath', (req: Request, res: Respon
   res.json({ ok: true });
 });
 
-// ── Vector Context: chunk stats + re-index ────────────────────────────────────
+// â”€â”€ Vector Context: chunk stats + re-index â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.get('/projects/:id/vector-stats', async (req: Request, res: Response) => {
   const user = (req as AuthRequest).user;
@@ -1095,11 +1095,11 @@ router.post('/projects/:id/reindex', async (req: Request, res: Response) => {
   });
 });
 
-// ── Memory Snapshots (unified replacement for forks) ───────────────────────
+// â”€â”€ Memory Snapshots (unified replacement for forks) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //
 // A snapshot captures the *full mind-state* of a moment: conversation +
 // (optionally) blueprint memory, behavioral rules, tier, and active skills.
-// Restoring is selective — user picks Conversation / Memory / Code via flags.
+// Restoring is selective â€” user picks Conversation / Memory / Code via flags.
 
 interface SnapshotRow {
   uid: string;
@@ -1243,7 +1243,7 @@ router.post('/snapshots/:uid/restore', (req: Request, res: Response) => {
   }
 
   if (parsed.data.restore_memory && snap.blueprint_json) {
-    // Memory restore is informational here — the agent-loop will read from the
+    // Memory restore is informational here â€” the agent-loop will read from the
     // frozen snapshot when projects.frozen_snapshot_uid is set. We don't
     // overwrite blueprint_entries / behavioral_rules tables on restore (would
     // destroy ongoing learning). Use the Freeze Brain toggle to apply the
@@ -1252,7 +1252,7 @@ router.post('/snapshots/:uid/restore', (req: Request, res: Response) => {
   }
 
   if (parsed.data.restore_code) {
-    // Code rollback is intentionally NOT auto-executed here — git operations
+    // Code rollback is intentionally NOT auto-executed here â€” git operations
     // run through the bridge, which the client invokes via the existing
     // checkpoint-rollback endpoint. Surface the checkpoint_id so the UI can
     // chain the call.
@@ -1276,7 +1276,7 @@ router.delete('/snapshots/:uid', (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-// ── Freeze Brain (per-project) ────────────────────────────────────────────
+// â”€â”€ Freeze Brain (per-project) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /** Get current freeze status for a project */
 router.get('/projects/:id/freeze', (req: Request, res: Response) => {
@@ -1328,7 +1328,7 @@ router.post('/projects/:id/unfreeze', (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-// ── Blueprint Memory Graph ────────────────────────────────────────────────────
+// â”€â”€ Blueprint Memory Graph â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /** Return the design-decision timeline for a project */
 router.get('/projects/:id/blueprint', (req: Request, res: Response) => {

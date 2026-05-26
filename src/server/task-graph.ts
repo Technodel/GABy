@@ -1,10 +1,10 @@
 /**
- * SUNy Task Dependency Graph — DAG-based task decomposition.
+ * SUNy Task Dependency Graph â€” DAG-based task decomposition.
  *
  * Enables the agent to:
  *   1. Decompose complex tasks into dependency-ordered nodes
  *   2. Understand what must be done before what
- *   3. Work the graph — unblock nodes, complete leaves first, roll up
+ *   3. Work the graph â€” unblock nodes, complete leaves first, roll up
  *   4. Track completion proof per node
  *
  * Feature flag: ff_task_graph
@@ -12,7 +12,7 @@
 
 import { getDb } from './db';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export type TaskNodeStatus = 'pending' | 'in_progress' | 'completed' | 'blocked' | 'failed';
 
@@ -43,7 +43,7 @@ export interface GraphStatus {
   readyToExecute: string[];      // node IDs that are unblocked and pending
 }
 
-// ── DB initialization ─────────────────────────────────────────────────────────
+// â”€â”€ DB initialization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function initializeTaskGraphTable(): void {
   const db = getDb();
@@ -73,7 +73,7 @@ export function initializeTaskGraphTable(): void {
   `);
 }
 
-// ── Core operations ───────────────────────────────────────────────────────────
+// â”€â”€ Core operations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Create a task node in the dependency graph.
@@ -277,10 +277,10 @@ export function formatGraphContext(goalId: string): string {
     ctx += `    [${statusIcon(node.status)}] ${node.description}${depMarker}\n`;
 
     if (node.blockedBy.length > 0) {
-      ctx += `      ⛔ Blocked: ${node.blockedBy.join('; ')}\n`;
+      ctx += `      â›” Blocked: ${node.blockedBy.join('; ')}\n`;
     }
     if (node.completionProof.length > 0) {
-      ctx += `      ✅ Proof: ${node.completionProof[node.completionProof.length - 1]}\n`;
+      ctx += `      âœ… Proof: ${node.completionProof[node.completionProof.length - 1]}\n`;
     }
   }
 
@@ -288,7 +288,7 @@ export function formatGraphContext(goalId: string): string {
     ctx += `\n  Ready to execute: ${status.readyToExecute.length} node(s)\n`;
     for (const nodeId of status.readyToExecute) {
       const node = nodes.find(n => n.id === nodeId);
-      if (node) ctx += `    → ${node.description}\n`;
+      if (node) ctx += `    â†’ ${node.description}\n`;
     }
   }
 
@@ -296,7 +296,7 @@ export function formatGraphContext(goalId: string): string {
   return ctx;
 }
 
-// ── Internal helpers ──────────────────────────────────────────────────────────
+// â”€â”€ Internal helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface TaskNodeRow {
   id: string;
@@ -366,10 +366,10 @@ function updateBlockedStatus(nodeId: string): void {
 
 function statusIcon(status: string): string {
   switch (status) {
-    case 'completed': return '✅';
-    case 'in_progress': return '🔄';
-    case 'blocked': return '⛔';
-    case 'failed': return '❌';
-    default: return '⏳';
+    case 'completed': return 'âœ…';
+    case 'in_progress': return 'ðŸ”„';
+    case 'blocked': return 'â›”';
+    case 'failed': return 'âŒ';
+    default: return 'â³';
   }
 }

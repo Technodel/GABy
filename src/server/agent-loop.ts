@@ -72,12 +72,12 @@ export { AgentMessage };
  * and the conversation history before the current turn are cached.
  *
  * Strategy:
- *   1. System prompt → passed as a `role:'system'` message with cacheControl,
- *      so Anthropic caches it (saves the most tokens — repo map lives here).
- *   2. Last assistant message in history → also marked with cacheControl,
+ *   1. System prompt Ã¢â€ â€™ passed as a `role:'system'` message with cacheControl,
+ *      so Anthropic caches it (saves the most tokens Ã¢â‚¬â€ repo map lives here).
+ *   2. Last assistant message in history Ã¢â€ â€™ also marked with cacheControl,
  *      so on turn 2+ the full prior conversation is cached too.
  *
- * DeepSeek auto-caches without any markers — no special handling needed.
+ * DeepSeek auto-caches without any markers Ã¢â‚¬â€ no special handling needed.
  * This function is Anthropic-only.
  *
  * When this is used, `system` is NOT passed separately to streamText
@@ -121,8 +121,14 @@ function buildAnthropicCachedMessages(
   return { messages: [systemMsg, ...tagged], useSystemParam: false };
 }
 
-// Per-user LoopDetector instances — each user gets their own to avoid cross-user contamination
+// Per-user LoopDetector instances Ã¢â‚¬â€ each user gets their own to avoid cross-user contamination
 const loopDetectors = new Map<number, LoopDetector>();
+
+/** Remove a user's loop detector on WS disconnect to prevent memory leaks. */
+export function clearLoopDetector(userId: number): void {
+  loopDetectors.delete(userId);
+}
+
 function getLoopDetector(userId: number): LoopDetector {
   let detector = loopDetectors.get(userId);
   if (!detector) {
@@ -147,7 +153,7 @@ function suggestUpgrade(currentMode: string): { next: string; label: string } | 
     case 'fast': return { next: 'smart', label: 'Smart' };
     case 'smart': return { next: 'pro', label: 'Pro' };
     case 'auto': return { next: 'pro', label: 'Pro' };
-    default: return null; // 'pro' or unknown — no upgrade
+    default: return null; // 'pro' or unknown Ã¢â‚¬â€ no upgrade
   }
 }
 
@@ -155,7 +161,7 @@ function buildUpgradeHint(currentMode: string, reason: string): string {
   const sug = suggestUpgrade(currentMode);
   if (!sug) return '';
   return (
-    `\n\n💡 **${reason}** This task may be too complex for **${currentMode}** mode. ` +
+    `\n\nÃ°Å¸â€™Â¡ **${reason}** This task may be too complex for **${currentMode}** mode. ` +
     `Switch to **${sug.label}** mode in the mode selector for a stronger model that can handle multi-step reasoning, longer plans, and tougher edits.`
   );
 }
@@ -249,11 +255,11 @@ export function classifyAutoMode(message: string, hasImage?: boolean): 'free' | 
     !/\b(fix|error|bug|implement|create|refactor|add|write|function|class|api|test|deploy|code|file|build|run|install|import|export|async|await|type|interface)\b/.test(t)
   ) return 'free';
 
-  // Default: fast — handles most coding tasks well
+  // Default: fast Ã¢â‚¬â€ handles most coding tasks well
   return 'fast';
 }
 
-// ── Function-tag fallback parser ──────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ Function-tag fallback parser Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 // Some models (especially via OpenRouter) emit tool calls as raw XML:
 //   <function.name=glob>{"pattern":"README.md","cwd":"D:\\Projects\\SEO"}</function>
 // The Vercel AI SDK v5 doesn't parse these, so we intercept them post-hoc.
@@ -294,19 +300,19 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
   const { userId, mode, systemPrompt, projectId, projectPath, history, userMessage, imageData, sessionId, talkMode, signal, onChunk } = req;
   const startedAt = Date.now();
 
-  // Resolve AUTO → real mode via keyword classification
+  // Resolve AUTO Ã¢â€ â€™ real mode via keyword classification
   let resolvedMode = mode === 'auto' ? classifyAutoMode(userMessage, !!imageData) : mode;
 
-  // ── Anti-hallucination guard ──────────────────────────────────────────
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Anti-hallucination guard Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   // Free-mode models are too weak to reliably drive the bridge tool calls.
   // When a project is selected, the user almost always expects the agent to
   // actually read files. If Auto routed a short message to 'free' but a
   // project context is active, bump to 'fast' so a tool-capable model runs.
-  // This prevents the "I see the issue — earlier scans worked but now the
+  // This prevents the "I see the issue Ã¢â‚¬â€ earlier scans worked but now the
   // tools lost access" hallucination class on questions like
   // "what does this app do" inside a real project.
   if (mode === 'auto' && resolvedMode === 'free' && projectPath && !talkMode) {
-    console.log(`[agent-loop] Auto-bump: free → fast (project context active, projectPath=${projectPath})`);
+    console.log(`[agent-loop] Auto-bump: free Ã¢â€ â€™ fast (project context active, projectPath=${projectPath})`);
     resolvedMode = 'fast';
   }
 
@@ -325,16 +331,16 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
       })()
     : await getModelsForMode(resolvedMode);
 
-  // ── Pro mode: task-based model routing ────────────────────────────────
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Pro mode: task-based model routing Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   // DeepSeek excels at coding/implementation; Anthropic at analysis/review.
   // Reorder the fallback chain so the best model for the task gets first shot.
   if (resolvedMode === 'pro' && modelEntries.length >= 2) {
     const taskType = classifyTaskType(userMessage);
-    const prevOrder = modelEntries.map(e => e.provider).join(' → ');
+    const prevOrder = modelEntries.map(e => e.provider).join(' Ã¢â€ â€™ ');
     modelEntries = reorderModelsForProTask(modelEntries, taskType);
-    const newOrder = modelEntries.map(e => e.provider).join(' → ');
+    const newOrder = modelEntries.map(e => e.provider).join(' Ã¢â€ â€™ ');
     if (prevOrder !== newOrder) {
-      console.log(`[agent-loop] Pro task-routing: "${taskType}" → ${newOrder}`);
+      console.log(`[agent-loop] Pro task-routing: "${taskType}" Ã¢â€ â€™ ${newOrder}`);
     }
   }
 
@@ -393,8 +399,8 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
     ? `${systemPrompt}\n\n${ARCHITECT_PLAN_INSTRUCTIONS}\n\n<WorkingDirectory>${projectPath ?? '(no project)'}</WorkingDirectory>`
     : null;
 
-  // ── DeepSeek cache exploitation ──────────────────────────────────────
-  // DeepSeek auto-caches the common prefix across consecutive turns — no
+  // Ã¢â€â‚¬Ã¢â€â‚¬ DeepSeek cache exploitation Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+  // DeepSeek auto-caches the common prefix across consecutive turns Ã¢â‚¬â€ no
   // explicit cache_control markers needed (unlike Anthropic). The static
   // portions (behavioral rules, project guide, pinned files) are built into
   // systemPrompt first in index.ts. Dynamic parts (repo map, hyp block,
@@ -405,7 +411,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
     ? `${systemPrompt}${formatSystemAddition}\n\n<WorkingDirectory>${projectPath}</WorkingDirectory>\nAll relative file paths are resolved against this directory.`
     : systemPrompt + formatSystemAddition);
 
-  // ── Runtime skill classification: inject relevant skill instructions ─────
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Runtime skill classification: inject relevant skill instructions Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   // Identify which engineering skill applies to this specific task and inject
   // its process guidance into the system prompt.
   if (userMessage) {
@@ -417,10 +423,10 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
         '<active_skills>',
         `Detected phase: ${classification.phase} | Skill: ${classification.skillName ?? 'none'} (confidence: ${(classification.confidence * 100).toFixed(0)}%)`,
         'The following skills are active for this task. Follow their processes:',
-        ...activeSkills.map(s => `  • ${s.name}: ${s.description}`),
+        ...activeSkills.map(s => `  Ã¢â‚¬Â¢ ${s.name}: ${s.description}`),
         '</active_skills>',
       ].join('\n');
-      // Inject into fullSystem — append before the WorkingDirectory block or at the end
+      // Inject into fullSystem Ã¢â‚¬â€ append before the WorkingDirectory block or at the end
       const insertionPoint = fullSystem.lastIndexOf('\n<WorkingDirectory>');
       if (insertionPoint >= 0) {
         // Insert skill block right before the working directory tag
@@ -428,11 +434,11 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
       } else {
         fullSystem = fullSystem + '\n' + skillBlock;
       }
-      console.log(`[agent-loop] Skill classification: ${classification.phase} → ${classification.skillName} (${(classification.confidence * 100).toFixed(0)}%)`);
+      console.log(`[agent-loop] Skill classification: ${classification.phase} Ã¢â€ â€™ ${classification.skillName} (${(classification.confidence * 100).toFixed(0)}%)`);
     }
   }
 
-  // ── Cross-project learning: inject aggregated patterns into system prompt
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Cross-project learning: inject aggregated patterns into system prompt
   if (projectId && await isCrossProjectLearningEnabled(userId)) {
     try {
       const crossProjectBlock = await buildCrossProjectPrompt(userId);
@@ -450,11 +456,11 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
 
   // Build tools (only if bridge is connected, project is set, and NOT in talk mode)
   // MCP tools from connected servers are merged automatically
-  // ── Model references (set inside model loop, used by lazy-getter tools) ──
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Model references (set inside model loop, used by lazy-getter tools) Ã¢â€â‚¬Ã¢â€â‚¬
   let currentModel: LanguageModel | undefined;
   let currentProvider: string = '';
 
-  // ── Web tools (always available — server-side, no bridge needed) ────────
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Web tools (always available Ã¢â‚¬â€ server-side, no bridge needed) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   const webSearch = createWebSearchTool();
   const urlFetch = createUrlFetchTool(userId);
   const alwaysTools: Record<string, any> = { web_search: webSearch, url_fetch: urlFetch };
@@ -497,7 +503,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
           if (projectPath) invalidateRepoMap(userId, projectPath);
         },
       });
-      // ── Additional SUNy tools (memory, symbol, prompt, discovery, delegation, healing) ──
+      // Ã¢â€â‚¬Ã¢â€â‚¬ Additional SUNy tools (memory, symbol, prompt, discovery, delegation, healing) Ã¢â€â‚¬Ã¢â€â‚¬
       const memoryTools = await createMemoryTools({ userId, projectPath });
       const symbolReaderTool = createSymbolReaderTool({ userId, projectPath });
       const promptRegistryTool = createPromptRegistryTool({ userId });
@@ -529,7 +535,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
         signal,
       }));
 
-      // ── Codebase navigation tools ──
+      // Ã¢â€â‚¬Ã¢â€â‚¬ Codebase navigation tools Ã¢â€â‚¬Ã¢â€â‚¬
       const codeSearchTool = tool({
         description: 'Search the entire codebase for functions, classes, components, exports by name or keyword. Returns file paths and line numbers so you can go directly to the right file without scanning blindly. Use this BEFORE reading files to locate exactly where symbols live.',
         inputSchema: z.object({
@@ -541,7 +547,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
           const results = searchCodeIndex(input.query, { type: input.type, limit: input.limit ?? 10 });
           if (results.length === 0) return `No symbols found matching "${input.query}". Try a different keyword or use grep to search for the term in file contents.`;
           return results.map(r =>
-            `${r.filePath}:${r.symbol?.lineStart} — ${r.symbol?.symbolName} (${r.symbol?.symbolType}, ${r.symbol?.exportType} export)`
+            `${r.filePath}:${r.symbol?.lineStart} Ã¢â‚¬â€ ${r.symbol?.symbolName} (${r.symbol?.symbolType}, ${r.symbol?.exportType} export)`
           ).join('\n');
         },
       });
@@ -555,19 +561,19 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
           const results = findImporters(input.symbol);
           if (results.length === 0) return `No files found importing "${input.symbol}".`;
           return results.map(r =>
-            `${r.filePath} ← imports ${r.importedSymbols.join(', ')} from ${r.source}`
+            `${r.filePath} Ã¢â€ Â imports ${r.importedSymbols.join(', ')} from ${r.source}`
           ).join('\n');
         },
       });
 
       const repoMapTool = tool({
-        description: 'Get a compact map of the project showing which symbols and components live in which files. Call this once at the start of a task to orient yourself — then target specific files instead of scanning the whole project.',
+        description: 'Get a compact map of the project showing which symbols and components live in which files. Call this once at the start of a task to orient yourself Ã¢â‚¬â€ then target specific files instead of scanning the whole project.',
         inputSchema: z.object({
           query: z.string().optional().describe('Optional keyword to filter the map to relevant files (e.g. "header", "auth", "api")'),
         }),
         execute: async (input: { query?: string }) => {
           const repoMap = await buildRepoMap(userId, projectPath!, input.query || userMessage, 2500);
-          return repoMap || 'Repo map unavailable — bridge may be offline. Use code_search and find_files instead.';
+          return repoMap || 'Repo map unavailable Ã¢â‚¬â€ bridge may be offline. Use code_search and find_files instead.';
         },
       });
 
@@ -594,7 +600,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
       }
       return merged;
     }
-    // Bridge offline, no project, or talk mode — still provide web tools
+    // Bridge offline, no project, or talk mode Ã¢â‚¬â€ still provide web tools
     const reasons: string[] = [];
     if (!bridgeConnected) reasons.push('bridge offline');
     if (!projectPath) reasons.push('no project path');
@@ -603,14 +609,14 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
     return alwaysTools;
   })();
 
-  // Always pass tools to streamText — even in text-format modes (diff/whole).
+  // Always pass tools to streamText Ã¢â‚¬â€ even in text-format modes (diff/whole).
   // Previously this was set to `undefined` for text formats, which meant the AI
-  // had zero tool access — couldn't even use web_search or url_fetch. The format
+  // had zero tool access Ã¢â‚¬â€ couldn't even use web_search or url_fetch. The format
   // instructions in the system prompt guide the AI toward text-based edits, but
   // tools must still be available for reading files, searching, web access, etc.
   const effectiveTools = tools;
 
-  // ── Hypothesis Engine: Branch-isolated parallel strategy testing ─────────
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Hypothesis Engine: Branch-isolated parallel strategy testing Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   // For complex tasks with tools available, spawn 2-3 mini-agents with
   // different strategies on isolated git branches (gated by ff_hypothesis_engine).
   // Each strategy runs independently. The winner's branch is merged, losers discarded.
@@ -623,7 +629,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
       try {
         const proEntries = await getModelsForMode('pro');
         if (proEntries.length > 0) proModel = proEntries[0].model as LanguageModel;
-      } catch { /* pro model unavailable — fall through, hypothesis uses primaryModel */ }
+      } catch { /* pro model unavailable Ã¢â‚¬â€ fall through, hypothesis uses primaryModel */ }
       const hypResult = await runHypothesisStrategies({
         userId, projectId: projectId!, projectPath, userMessage, fullSystem,
         rawMessages, primaryModel, proModel, signal,
@@ -641,7 +647,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
     } catch (e) { console.warn('[agent-loop] Hypothesis engine failed:', (e as Error).message); }
   }
 
-  // ── Tool-calling enforcement ──────────────────────────────────
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Tool-calling enforcement Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   // Some models (especially DeepSeek) do not reliably generate tool
   // calls from instructions buried in a long system prompt. This
   // ultra-explicit directive at the very END of the system prompt
@@ -659,14 +665,14 @@ Do NOT answer from your training data or prior knowledge alone.
 READ the files first. SEARCH the web. RUN commands. USE YOUR TOOLS.
 
 Every task that involves looking up information, reading files, checking code,
-or verifying assumptions MUST start with a tool call — not a guess.
+or verifying assumptions MUST start with a tool call Ã¢â‚¬â€ not a guess.
 
 IMPORTANT: After you make a tool call and receive the result, you MUST
 always produce a text response summarizing what you found or did.
-Never send tool calls alone — always include a text reply for the user.
+Never send tool calls alone Ã¢â‚¬â€ always include a text reply for the user.
 
 If your tools are not working, say:
-"I'm having trouble accessing my tools — let me try a different approach."
+"I'm having trouble accessing my tools Ã¢â‚¬â€ let me try a different approach."
 </tool_mandate>`;
     }
   }
@@ -702,7 +708,7 @@ If your tools are not working, say:
       // Trim history to fit this provider's context window
       const messages = trimHistory(rawMessages, fullSystem, provider);
       if (messages.length < rawMessages.length) {
-        console.log(`[agent-loop] trimmed history ${rawMessages.length} → ${messages.length} msgs for ${provider}`);
+        console.log(`[agent-loop] trimmed history ${rawMessages.length} Ã¢â€ â€™ ${messages.length} msgs for ${provider}`);
       }
 
       // Inject Anthropic cache breakpoints when caching is enabled
@@ -712,13 +718,13 @@ If your tools are not working, say:
         ? buildAnthropicCachedMessages(messages, fullSystem)
         : { messages, useSystemParam: true as const };
 
-      // ── DIAGNOSTIC: Log model call details ──────────────────────────────
+      // Ã¢â€â‚¬Ã¢â€â‚¬ DIAGNOSTIC: Log model call details Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
       const toolCount = effectiveTools ? Object.keys(effectiveTools).length : 0;
       const providerModelId = provider + '/' + ((model as any)?.modelId || 'unknown');
       console.log(`[agent-loop] MODEL CALL: provider=${provider}, modelId=${providerModelId}, tools=${toolCount}, messages=${finalMessages.length}, systemLen=${(useSystemParam ? fullSystem?.length : '(in-msg cache)') ?? 0}`);
-      // ── End diagnostic ──────────────────────────────────────────────────
+      // Ã¢â€â‚¬Ã¢â€â‚¬ End diagnostic Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
-      // ── Force-first-tool-call guard ─────────────────────────────────────
+      // Ã¢â€â‚¬Ã¢â€â‚¬ Force-first-tool-call guard Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
       // Some models (notably DeepSeek-chat under a large system prompt) emit
       // a few tokens of narration ("Let me check the README...") and stop
       // without ever calling a tool. When the user is clearly asking SUNy to
@@ -728,7 +734,7 @@ If your tools are not working, say:
       // DeepSeek under our 60KB+ system prompt has been observed narrating
       // "Let me check..." / "Got it running!" without ever calling a tool.
       // In a project context the right answer is almost always grounded in a
-      // tool call, so force step 0 to make one — UNLESS the message is pure
+      // tool call, so force step 0 to make one Ã¢â‚¬â€ UNLESS the message is pure
       // chitchat (greetings, short acks, thanks). After step 0 we return to
       // 'auto' so the model can synthesize the final answer.
       const trimmedMsg = userMessage.trim();
@@ -742,7 +748,7 @@ If your tools are not working, say:
         messages: finalMessages,
         tools: effectiveTools,
         // AI SDK v5 defaults stopWhen to stepCountIs(1), which kills agentic
-        // multi-step flows (e.g. read → edit, or write A → write B). When the
+        // multi-step flows (e.g. read Ã¢â€ â€™ edit, or write A Ã¢â€ â€™ write B). When the
         // model has tools available we need to let it iterate, otherwise it
         // stops after the first tool call without ever producing the final
         // text answer or follow-up tool calls.
@@ -775,7 +781,7 @@ If your tools are not working, say:
       let fullText = '';
       let textDeltas = 0;
 
-      // Stream text chunks to frontend — with filtering for model-generated
+      // Stream text chunks to frontend Ã¢â‚¬â€ with filtering for model-generated
       // tool-description technical output (e.g. "Writing web request", "Writing request stream...")
       // These are produced by some AI models as verbal chatter before tool calls.
       // Use sentence-boundary flushing at 30 chars for low latency on short responses.
@@ -800,13 +806,13 @@ If your tools are not working, say:
         if (suppressingTechnical) {
           // Check if this feels like more technical chatter (continuation text)
           const trimmed = toolDescBuffer.trim();
-          const isContinuation = /^[(\-–—]/.test(trimmed) || /bytes\s+written/i.test(trimmed) || /request\s+stream/i.test(trimmed);
+          const isContinuation = /^[(\-Ã¢â‚¬â€œÃ¢â‚¬â€]/.test(trimmed) || /bytes\s+written/i.test(trimmed) || /request\s+stream/i.test(trimmed);
           if (isContinuation) {
-            // Still inside the technical output — keep suppressing
+            // Still inside the technical output Ã¢â‚¬â€ keep suppressing
             toolDescBuffer = '';
             continue;
           }
-          // We've moved past technical output — clear the flag and let
+          // We've moved past technical output Ã¢â‚¬â€ clear the flag and let
           // the text flow normally through the buffer/flush logic below
           suppressingTechnical = false;
         }
@@ -815,7 +821,7 @@ If your tools are not working, say:
         const match = TECHNICAL_PATTERNS.find(p => p.test(toolDescBuffer.trim()));
         if (match) {
           suppressingTechnical = true;
-          // Suppress this technical output — push friendlier narration
+          // Suppress this technical output Ã¢â‚¬â€ push friendlier narration
           if (/bytes\s+written/i.test(toolDescBuffer) && userId) {
             const bytesMatch = toolDescBuffer.match(/Number of bytes written:\s*(\d+)/i);
             if (bytesMatch) {
@@ -843,7 +849,7 @@ If your tools are not working, say:
           toolDescBuffer = '';
         }
       }
-      // Flush any remaining buffer content — strip trailing orphan surrogate to avoid garbled output
+      // Flush any remaining buffer content Ã¢â‚¬â€ strip trailing orphan surrogate to avoid garbled output
       if (toolDescBuffer.length > 0) {
         let finalFlush = toolDescBuffer;
         const lastCode = finalFlush.charCodeAt(finalFlush.length - 1);
@@ -854,26 +860,26 @@ If your tools are not working, say:
         if (onChunk && finalFlush.length > 0) onChunk(finalFlush);
       }
 
-      // ── DIAGNOSTIC: Log model response summary ──────────────────────────
+      // Ã¢â€â‚¬Ã¢â€â‚¬ DIAGNOSTIC: Log model response summary Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
       console.log(`[agent-loop] MODEL RESPONSE: textDeltas=${textDeltas}, fullText.length=${fullText.length}, steps=${steps}, totalInput=${totalInput}, totalOutput=${totalOutput}, toolCallNames=${Array.from(toolCallNames).join(',') || 'none'}`);
       if (fullText.length > 0) {
         console.log(`[agent-loop] MODEL RESPONSE PREVIEW: ${fullText.slice(0, 500).replace(/\n/g, '\\n')}`);
       } else {
-        console.warn(`[agent-loop] MODEL RESPONSE EMPTY — no text produced, no tool calls after ${steps} steps`);
+        console.warn(`[agent-loop] MODEL RESPONSE EMPTY Ã¢â‚¬â€ no text produced, no tool calls after ${steps} steps`);
       }
-      // ── End diagnostic ──────────────────────────────────────────────────
+      // Ã¢â€â‚¬Ã¢â€â‚¬ End diagnostic Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
-      // ── Auto-retry on empty/no-tool output ────────────────────────────────
+      // Ã¢â€â‚¬Ã¢â€â‚¬ Auto-retry on empty/no-tool output Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
       // If the model produced absolutely nothing (no text, no tool calls) and
       // this is a coding task, re-invoke with a stronger tool mandate rather
       // than silently returning empty output. Retry up to 2 times.
       const isEmptyOutput = fullText.length === 0 && toolCallNames.size === 0;
       const isCodingTask = bridgeConnected && projectPath && !talkMode;
       if (isEmptyOutput && isCodingTask) {
-        console.warn('[agent-loop] AUTO-RETRY: empty output with no tools — re-invoking with stronger mandate');
-        userClientManager.pushToUser(userId, 'suny:stage', { stage: 'processing', label: 'Model produced empty output — retrying...' });
+        console.warn('[agent-loop] AUTO-RETRY: empty output with no tools Ã¢â‚¬â€ re-invoking with stronger mandate');
+        userClientManager.pushToUser(userId, 'suny:stage', { stage: 'processing', label: 'Model produced empty output Ã¢â‚¬â€ retrying...' });
         userClientManager.pushToUser(userId, 'suny:narration', {
-          message: narrateMessage('Model produced empty output — retrying...', 'thinking'),
+          message: narrateMessage('Model produced empty output Ã¢â‚¬â€ retrying...', 'thinking'),
         });
 
         let retryAttempt = 0;
@@ -885,7 +891,7 @@ If your tools are not working, say:
             content:
               'I asked you to work on a coding task but you produced no output and made no tool calls.\n\n' +
               'You MUST make at least one tool call (read files, search the web, run commands).\n' +
-              'Do NOT just explain what you would do — actually DO it.\n\n' +
+              'Do NOT just explain what you would do Ã¢â‚¬â€ actually DO it.\n\n' +
               'Original request: ' + userMessage,
           };
 
@@ -923,12 +929,12 @@ If your tools are not working, say:
         }
 
         if (fullText.length === 0 && toolCallNames.size === 0) {
-          // All retries exhausted — produce a fallback message + tier hint
+          // All retries exhausted Ã¢â‚¬â€ produce a fallback message + tier hint
           const upgradeHint = buildUpgradeHint(mode === 'auto' ? 'auto' : resolvedMode, 'The model could not produce a response after multiple attempts.');
           fullText = 'I encountered an issue generating a response. Let me try a different approach.\n\n' +
                      'Could you please rephrase your request or let me know what specific task you need help with?' +
                      upgradeHint;
-          console.warn(`[agent-loop] AUTO-RETRY exhausted — using fallback message (mode=${resolvedMode})`);
+          console.warn(`[agent-loop] AUTO-RETRY exhausted Ã¢â‚¬â€ using fallback message (mode=${resolvedMode})`);
           const sug = suggestUpgrade(resolvedMode);
           if (sug) {
             userClientManager.pushToUser(userId, 'suny:suggest_tier_upgrade', {
@@ -941,7 +947,7 @@ If your tools are not working, say:
         }
       }
 
-      // ── Deferred-placeholder recovery ────────────────────────────────────
+      // Ã¢â€â‚¬Ã¢â€â‚¬ Deferred-placeholder recovery Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
       // Some models reply with short stalling text like
       //   "Let me search for the latest World Cup schedule."
       //   "Let me look that up for you!"
@@ -957,7 +963,7 @@ If your tools are not working, say:
         /\b(let me|i(?:'| )?ll|i will|i'm going to|going to|hold on|one moment|just a (?:sec|moment))\b.*\b(search|look|check|find|fetch|get|look up|look that up|pull up|grab|see)\b/i.test(fullText);
       const hasWebSearch = !!effectiveTools && typeof (effectiveTools as Record<string, any>).web_search?.execute === 'function';
       if (looksLikePlaceholder && hasWebSearch) {
-        console.warn('[agent-loop] DEFERRED-PLACEHOLDER: short stalling output with no tool calls — forcing tool step');
+        console.warn('[agent-loop] DEFERRED-PLACEHOLDER: short stalling output with no tool calls Ã¢â‚¬â€ forcing tool step');
         // Tell the UI to clear the stalling placeholder so the user sees
         // active progress instead of a frozen "Let me look that up for you!".
         // The frontend treats suny:stream_start as a reset of streamingContent.
@@ -1043,7 +1049,7 @@ If your tools are not working, say:
             // Replace the stalling placeholder with the real answer
             fullText = fuText;
           } else {
-            // Both stages produced nothing — give the user a clear message
+            // Both stages produced nothing Ã¢â‚¬â€ give the user a clear message
             fullText = 'I tried to look that up but could not get a clear answer right now. Please try again in a moment.';
           }
           // Stream the recovered answer progressively so the UI doesn't jump
@@ -1063,7 +1069,7 @@ If your tools are not working, say:
         }
       }
 
-      // ── Function-tag fallback: intercept <function.name=X> XML tool calls ──
+      // Ã¢â€â‚¬Ã¢â€â‚¬ Function-tag fallback: intercept <function.name=X> XML tool calls Ã¢â€â‚¬Ã¢â€â‚¬
       // Some models (especially via OpenRouter) emit tool calls as raw XML text
       // instead of native JSON tool calls. The Vercel AI SDK v5 doesn't parse
       // these, so we intercept them here, execute the tools, and feed results
@@ -1079,7 +1085,7 @@ If your tools are not working, say:
           for (const tc of parsed.calls) {
             const toolFn = (effectiveTools as Record<string, any>)[tc.name];
             if (!toolFn || typeof toolFn.execute !== 'function') {
-              console.warn(`[agent-loop] FUNCTION-TAG: unknown tool '${tc.name}' — skipping`);
+              console.warn(`[agent-loop] FUNCTION-TAG: unknown tool '${tc.name}' Ã¢â‚¬â€ skipping`);
               results.push({ call: tc, result: `Tool '${tc.name}' is not available. Try using a different tool to accomplish your goal.` });
               continue;
             }
@@ -1135,7 +1141,7 @@ If your tools are not working, say:
                 totalOutput += fuResult.usage?.outputTokens ?? 0;
                 console.log(`[agent-loop] FUNCTION-TAG: follow-up produced ${fuText.length} chars`);
               } else {
-                // Model didn't respond — stitch results together as a best-effort answer
+                // Model didn't respond Ã¢â‚¬â€ stitch results together as a best-effort answer
                 fullText = results.map(r =>
                   `**${r.call.name}**: ${r.result.slice(0, 1000)}`
                 ).join('\n\n');
@@ -1159,9 +1165,9 @@ If your tools are not working, say:
         }
       }
 
-      // ── Loop detection: if AI was stuck in a loop, inject self-correction ──
+      // Ã¢â€â‚¬Ã¢â€â‚¬ Loop detection: if AI was stuck in a loop, inject self-correction Ã¢â€â‚¬Ã¢â€â‚¬
       if (getLoopDetector(userId).isLoopReported) {
-        const loopMsg = '\n\n[SYSTEM: You were stuck in a repetitive loop. Step back, stop repeating yourself, and try a completely different approach. If you were reading the same files, stop — you already have the information you need.]\n\n';
+        const loopMsg = '\n\n[SYSTEM: You were stuck in a repetitive loop. Step back, stop repeating yourself, and try a completely different approach. If you were reading the same files, stop Ã¢â‚¬â€ you already have the information you need.]\n\n';
         fullText = loopMsg + fullText;
         getLoopDetector(userId).rearm();
       }
@@ -1182,7 +1188,7 @@ If your tools are not working, say:
       const deepseekUsage = deepseekMeta?.['usage'] as Record<string, number> | undefined;
       totalCacheRead += deepseekUsage?.prompt_cache_hit_tokens ?? 0;
 
-      // ── Increment per-user cached-tokens counter ────────────────────────
+      // Ã¢â€â‚¬Ã¢â€â‚¬ Increment per-user cached-tokens counter Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
       const stepCacheTokens = (anthropicMeta?.cacheCreationInputTokens ?? 0) +
                                (anthropicMeta?.cacheReadInputTokens ?? 0) +
                                (deepseekUsage?.prompt_cache_hit_tokens ?? 0);
@@ -1197,10 +1203,10 @@ If your tools are not working, say:
                updated_at = datetime('now')`,
             [userId, stepCacheTokens, stepCacheTokens],
           );
-        } catch { /* non-critical — don't fail agent loop for counter update */ }
+        } catch { /* non-critical Ã¢â‚¬â€ don't fail agent loop for counter update */ }
       }
 
-      // ── Phase 2.1: Real-time self-scoring after main response ─────────────
+      // Ã¢â€â‚¬Ã¢â€â‚¬ Phase 2.1: Real-time self-scoring after main response Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
       // Score SUNy's intermediate response immediately, not just at end of turn.
       // This catches drift while the conversation is still fresh.
       if (fullText && userMessage && projectPath) {
@@ -1220,7 +1226,7 @@ If your tools are not working, say:
           .catch(e => console.warn('[agent-loop] main scoring failed:', (e as Error).message));
       }
 
-      // ── Confidence Scorer: self-assessment after main response ──────────
+      // Ã¢â€â‚¬Ã¢â€â‚¬ Confidence Scorer: self-assessment after main response Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
       // Model self-reports confidence (0-1) and uncertainties; low confidence
       // is logged for escalation tracking.
       if (fullText && projectId && !talkMode) {
@@ -1258,7 +1264,7 @@ If your tools are not working, say:
           totalOutput += assessResult.usage?.outputTokens ?? 0;
           console.log(`[confidence] Self-assessed: ${(confidence * 100).toFixed(0)}% (${uncertainties.length} uncertainties)`);
 
-          // ── Low-Confidence Self-Revision (PRO mode) ────────────────────
+          // Ã¢â€â‚¬Ã¢â€â‚¬ Low-Confidence Self-Revision (PRO mode) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
           // When the model self-reports low confidence, give it one shot to
           // revise before proceeding to lint/test/architect.  This addresses
           // the "first draft vs second draft" accuracy gap at minimal cost:
@@ -1277,7 +1283,7 @@ If your tools are not working, say:
                 role: 'user',
                 content:
                   `You flagged uncertainty about: ${uncertainties.join('; ')}.\n\n` +
-                  `Review your own response above — not the question, but what you wrote.\n` +
+                  `Review your own response above Ã¢â‚¬â€ not the question, but what you wrote.\n` +
                   `Fix any inaccuracies, fill edge-case gaps, and output ONLY the corrected version.\n` +
                   `Do not re-explain. Do not add fluff. Just the corrected response.`,
               };
@@ -1298,7 +1304,7 @@ If your tools are not working, say:
                 model: model as LanguageModel,
                 system: revUse ? fullSystem : undefined,
                 messages: revMsgs,
-                // No tools — this is a pure text refinement pass
+                // No tools Ã¢â‚¬â€ this is a pure text refinement pass
                 stopWhen: stepCountIs(1),
                 abortSignal: signal,
                 onStepFinish: ({ usage }) => {
@@ -1332,13 +1338,13 @@ If your tools are not working, say:
         }
       }
 
-      // ── Architect mode: plan → execute ───────────────────────────────────
+      // Ã¢â€â‚¬Ã¢â€â‚¬ Architect mode: plan Ã¢â€ â€™ execute Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
       // First pass (above) was the planning pass. Now run a second pass that
       // actually applies edits using diff format (or tool-call if tools available).
       if (editFormat === 'architect' && projectPath && bridgeConnected) {
-        userClientManager.pushToUser(userId, 'suny:stage', { stage: 'executing', label: 'Plan ready — now executing...' });
+        userClientManager.pushToUser(userId, 'suny:stage', { stage: 'executing', label: 'Plan ready Ã¢â‚¬â€ now executing...' });
         userClientManager.pushToUser(userId, 'suny:narration', {
-          message: narrateMessage('Plan ready — now executing...', 'plan'),
+          message: narrateMessage('Plan ready Ã¢â‚¬â€ now executing...', 'plan'),
         });
 
         const execFormatInstructions = tools ? '' : '\n\n' + DIFF_FORMAT_INSTRUCTIONS;
@@ -1349,7 +1355,7 @@ If your tools are not working, say:
           { role: 'assistant' as const, content: fullText },
           {
             role: 'user' as const,
-            content: 'Great plan. Now execute it — make all the changes described above.',
+            content: 'Great plan. Now execute it Ã¢â‚¬â€ make all the changes described above.',
           },
         ];
 
@@ -1364,7 +1370,7 @@ If your tools are not working, say:
           system: execUseSystem ? execSystem : undefined,
           messages: execMessages,
           tools: tools, // use tool-call for execution if available
-          // Allow multi-step execution (read → edit → write across files).
+          // Allow multi-step execution (read Ã¢â€ â€™ edit Ã¢â€ â€™ write across files).
           stopWhen: tools ? stepCountIs(8) : undefined,
           abortSignal: signal,
           onStepFinish: ({ usage: u, text, toolCalls, toolResults }) => {
@@ -1403,7 +1409,7 @@ If your tools are not working, say:
               changedFiles.add(r.file.startsWith('/') ? r.file : `${projectPath}/${r.file}`);
               invalidateRepoMap(userId, projectPath);
             } else {
-              console.warn(`[agent-loop] architect diff apply failed: ${r.file} — ${r.error}`);
+              console.warn(`[agent-loop] architect diff apply failed: ${r.file} Ã¢â‚¬â€ ${r.error}`);
             }
           }
         }
@@ -1411,7 +1417,7 @@ If your tools are not working, say:
         fullText = `**Plan:**\n${fullText}\n\n**Execution:**\n${execText}`;
       }
 
-      // ── Apply text-based edit formats ─────────────────────────────────────
+      // Ã¢â€â‚¬Ã¢â€â‚¬ Apply text-based edit formats Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
       if (textFormat && projectPath && fullText) {
         const applyFn = editFormat === 'diff' ? applyDiffFormat : applyWholeFormat;
         const applied = applyFn(fullText, projectPath);
@@ -1420,7 +1426,7 @@ If your tools are not working, say:
             changedFiles.add(r.file.startsWith('/') ? r.file : `${projectPath}/${r.file}`);
             invalidateRepoMap(userId, projectPath);
           } else {
-            console.warn(`[agent-loop] ${editFormat} apply failed: ${r.file} — ${r.error}`);
+            console.warn(`[agent-loop] ${editFormat} apply failed: ${r.file} Ã¢â‚¬â€ ${r.error}`);
           }
         }
       }
@@ -1437,7 +1443,7 @@ If your tools are not working, say:
         userClientManager.pushToUser(userId, 'suny:stage', { stage: 'linting', label: 'Checking code quality...' });
       }
 
-      // ── Aider-style lint self-correction loop ────────────────────────────
+      // Ã¢â€â‚¬Ã¢â€â‚¬ Aider-style lint self-correction loop Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
       // After files were changed, run the project linter/compiler.
       // If it reports errors, feed them back to the AI and retry (up to MAX_LINT_RETRIES).
       if (projectPath && changedFiles.size > 0) {
@@ -1462,7 +1468,7 @@ If your tools are not working, say:
                 command: lintResult.command,
               });
             }
-            break; // clean — no errors to fix
+            break; // clean Ã¢â‚¬â€ no errors to fix
           }
 
           lintPass++;
@@ -1482,7 +1488,7 @@ If your tools are not working, say:
             content:
               `The ${lintResult.command} checker reported ${lintResult.errorCount} error(s):\n\n` +
               '```\n' + lintResult.output.slice(0, 4000) + '\n```\n\n' +
-              'Fix ALL errors above. Do not ask for permission — just fix them.',
+              'Fix ALL errors above. Do not ask for permission Ã¢â‚¬â€ just fix them.',
           };
 
           // Append the previous AI reply + the lint correction request
@@ -1504,7 +1510,7 @@ If your tools are not working, say:
             system: lintUseSystem ? fullSystem : undefined,
             messages: trimmedLint,
             tools,
-            // Allow multi-step fixes (read → edit across files).
+            // Allow multi-step fixes (read Ã¢â€ â€™ edit across files).
             stopWhen: tools ? stepCountIs(8) : undefined,
             abortSignal: signal,
             onStepFinish: ({ usage, text, toolCalls, toolResults }) => {
@@ -1545,7 +1551,7 @@ If your tools are not working, say:
         }
 
         if (lintPass === MAX_LINT_RETRIES) {
-          // Exhausted retries — warn the user but still return
+          // Exhausted retries Ã¢â‚¬â€ warn the user but still return
           const finalLint = await runLint(userId, projectPath, Array.from(changedFiles), signal);
           if (finalLint && !finalLint.passed) {
             lintGaveUp = true;
@@ -1557,15 +1563,15 @@ If your tools are not working, say:
         }
         lintRetryCount = lintPass;
       }
-      // ── End lint loop ────────────────────────────────────────────────────
+      // Ã¢â€â‚¬Ã¢â€â‚¬ End lint loop Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
-      // ── Post-change file verification ─────────────────────────────────────
+      // Ã¢â€â‚¬Ã¢â€â‚¬ Post-change file verification Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
       // After files have been written and linted, verify that all files in
       // changedFiles actually exist on disk. This catches cases where the AI
       // claimed to write a file but the write was silently skipped or failed.
       //
       // NOTE: When the user runs through the bridge, project files live on
-      // their machine — NOT the server. Server-side fs.existsSync would always
+      // their machine Ã¢â‚¬â€ NOT the server. Server-side fs.existsSync would always
       // return false and falsely flag every change as phantom. In that case we
       // skip verification entirely (the bridge already errors on write failure).
       const bridgeActive = isBridgeConnected(userId);
@@ -1579,7 +1585,7 @@ If your tools are not working, say:
               verifiedFiles.add(filePath);
             } else {
               missingCount++;
-              console.warn(`[agent-loop] FILE VERIFICATION FAILED: ${filePath} — file does not exist despite being reported as changed`);
+              console.warn(`[agent-loop] FILE VERIFICATION FAILED: ${filePath} Ã¢â‚¬â€ file does not exist despite being reported as changed`);
             }
           } catch {
             missingCount++;
@@ -1594,7 +1600,7 @@ If your tools are not working, say:
         }
       }
 
-      // ── Phase 2.3: Extract mistake rules from lint failures ───────────────
+      // Ã¢â€â‚¬Ã¢â€â‚¬ Phase 2.3: Extract mistake rules from lint failures Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
       if (lintErrorsFound > 0 && projectPath) {
         try {
           await extractMistakeRule(await getAdapter(), userId, projectId ?? null, 'lint', {
@@ -1613,7 +1619,7 @@ If your tools are not working, say:
         userClientManager.pushToUser(userId, 'suny:stage', { stage: 'testing', label: 'Running tests...' });
       }
 
-      // ── Test self-correction loop ─────────────────────────────────────────
+      // Ã¢â€â‚¬Ã¢â€â‚¬ Test self-correction loop Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
       // After lint is green (or skipped), run the test suite and loop until
       // all tests pass or MAX_TEST_RETRIES is exhausted.
       // Each retry escalates the prompt depth so the AI goes deeper on each pass.
@@ -1665,7 +1671,7 @@ If your tools are not working, say:
               system: testUseSystem ? fullSystem : undefined,
               messages: trimmedTest,
               tools,
-              // Allow multi-step fixes (read → edit across files).
+              // Allow multi-step fixes (read Ã¢â€ â€™ edit across files).
               stopWhen: tools ? stepCountIs(8) : undefined,
               abortSignal: signal,
               onStepFinish: ({ usage: u, text, toolCalls, toolResults }) => {
@@ -1706,7 +1712,7 @@ If your tools are not working, say:
               ).catch(() => {});
             }
 
-            // Re-run — scope-narrowed to only failing tests on pass 2+ for speed
+            // Re-run Ã¢â‚¬â€ scope-narrowed to only failing tests on pass 2+ for speed
             userClientManager.pushToUser(userId, 'suny:test_running', {
               attempt: testPass,
               message: `Re-running tests (attempt ${testPass + 1})...`,
@@ -1729,18 +1735,18 @@ If your tools are not working, say:
               framework: testResult.framework,
             });
             // Surface the remaining failures in the chat
-            const remaining = testResult.failedTests.slice(0, 5).map(t => `• ${t.name}`).join('\n');
+            const remaining = testResult.failedTests.slice(0, 5).map(t => `Ã¢â‚¬Â¢ ${t.name}`).join('\n');
             fullText = (testFullText || fullText) +
-              `\n\n⚠️ ${testResult.failCount} test(s) still failing after ${testPass} attempt(s):\n${remaining || testResult.output.slice(0, 400)}`;
+              `\n\nÃ¢Å¡Â Ã¯Â¸Â ${testResult.failCount} test(s) still failing after ${testPass} attempt(s):\n${remaining || testResult.output.slice(0, 400)}`;
           }
         } else if (testResult?.passed) {
           testPassed = true;
           userClientManager.pushToUser(userId, 'suny:test_passed', { attempt: 0 });
         }
       }
-      // ── End test loop ─────────────────────────────────────────────────────
+      // Ã¢â€â‚¬Ã¢â€â‚¬ End test loop Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
-      // ── Phase 2.3: Extract mistake rules from test failures ───────────────
+      // Ã¢â€â‚¬Ã¢â€â‚¬ Phase 2.3: Extract mistake rules from test failures Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
       if (testFailuresFound > 0 && projectPath) {
         try {
           await extractMistakeRule(await getAdapter(), userId, projectId ?? null, 'test', {
@@ -1754,7 +1760,7 @@ If your tools are not working, say:
         }
       }
 
-      // ── Silent self-reflection pass ───────────────────────────────────────
+      // Ã¢â€â‚¬Ã¢â€â‚¬ Silent self-reflection pass Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
       // For substantial conversational responses (no file edits made), run a
       // hidden review on the same model to catch errors before sending.
       // Skipped when: files were changed (lint loop already handles quality),
@@ -1774,7 +1780,7 @@ If your tools are not working, say:
               content:
                 'Review this AI response to the user\'s request.\n' +
                 'If it is accurate and complete, reply with exactly: LGTM\n' +
-                'If it has factual errors, incomplete code, or misses the request — reply with the fully corrected response ONLY. No preamble, no explanations.\n\n' +
+                'If it has factual errors, incomplete code, or misses the request Ã¢â‚¬â€ reply with the fully corrected response ONLY. No preamble, no explanations.\n\n' +
                 'User request:\n' + userMessage.slice(0, 1200) + '\n\n' +
                 'Draft response:\n' + fullText.slice(0, 5000),
             }],
@@ -1789,13 +1795,13 @@ If your tools are not working, say:
           totalInput += reflectResult.usage?.inputTokens ?? 0;
           totalOutput += reflectResult.usage?.outputTokens ?? 0;
         } catch {
-          // Reflection is best-effort — never block the main response
+          // Reflection is best-effort Ã¢â‚¬â€ never block the main response
         }
       }
       // Emit stage complete
       userClientManager.pushToUser(userId, 'suny:stage', { stage: 'complete', label: 'Done!' });
 
-      // ── Cross-project learning: share patterns from this task ────────────
+      // Ã¢â€â‚¬Ã¢â€â‚¬ Cross-project learning: share patterns from this task Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
       if (projectId && await isCrossProjectLearningEnabled(userId)) {
         try {
           // Share lint-fix patterns
@@ -1827,7 +1833,7 @@ If your tools are not working, say:
         }
       }
 
-      // ── End self-reflection ───────────────────────────────────────────────
+      // Ã¢â€â‚¬Ã¢â€â‚¬ End self-reflection Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
       const stepsExhausted = false;
 
@@ -1870,7 +1876,7 @@ If your tools are not working, say:
           message: narrateMessage('Provider failed, trying fallback...', 'error'),
         });
       } else {
-        console.error(`[agent-loop] ALL PROVIDERS EXHAUSTED — last error: ${lastError.message}`);
+        console.error(`[agent-loop] ALL PROVIDERS EXHAUSTED Ã¢â‚¬â€ last error: ${lastError.message}`);
         
         if (isVisionRequest && lastError.message === 'No models available') {
           userClientManager.pushToUser(userId, 'suny:suggest_tier_upgrade', {

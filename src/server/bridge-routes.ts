@@ -43,7 +43,7 @@ export function handleBridgeUpgrade(ws: WebSocket, req: IncomingMessage): void {
   userClientManager.pushToUser(userId, 'bridge:connected', { connected: true });
 
   // Send all of this user's project paths to the bridge so the sandbox
-  // allows file operations immediately — even if the paths were registered
+  // allows file operations immediately â€” even if the paths were registered
   // while the bridge was offline and never reached the bridge process.
   // Fired asynchronously so the handshake isn't blocked.
   (async () => {
@@ -64,7 +64,7 @@ export function handleBridgeUpgrade(ws: WebSocket, req: IncomingMessage): void {
             failed++;
             // Older bridges acknowledged with `bridge:ack` only, causing this
             // call to time out even though the path was registered on the
-            // bridge side. Log at debug-level only — the agent will retry
+            // bridge side. Log at debug-level only â€” the agent will retry
             // path registration before each shell op anyway.
             const msg = err instanceof Error ? err.message : String(err);
             if (!msg.includes('timed out')) {

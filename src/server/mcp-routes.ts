@@ -1,10 +1,10 @@
 /**
- * SUNy MCP Routes — user-facing API endpoints for MCP server management.
+ * SUNy MCP Routes â€” user-facing API endpoints for MCP server management.
  *
- * POST /api/mcp/connect   — connect to an MCP server
- * POST /api/mcp/disconnect — disconnect an MCP server
- * GET  /api/mcp/servers   — list all servers and their status
- * GET  /api/mcp/tools     — list all discovered MCP tools
+ * POST /api/mcp/connect   â€” connect to an MCP server
+ * POST /api/mcp/disconnect â€” disconnect an MCP server
+ * GET  /api/mcp/servers   â€” list all servers and their status
+ * GET  /api/mcp/tools     â€” list all discovered MCP tools
  */
 
 import { Router, Request, Response } from 'express';
@@ -17,7 +17,7 @@ const router = Router();
 // All MCP routes require auth
 router.use(requireAuth);
 
-// ── Connect ───────────────────────────────────────────────────────────────────
+// â”€â”€ Connect â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const ConnectSchema = z.object({
   name: z.string().min(1).max(64),
@@ -68,7 +68,7 @@ router.post('/mcp/connect', async (req: Request, res: Response) => {
   }
 });
 
-// ── Disconnect ────────────────────────────────────────────────────────────────
+// â”€â”€ Disconnect â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const DisconnectSchema = z.object({
   name: z.string().min(1),
@@ -92,7 +92,7 @@ router.post('/mcp/disconnect', async (req: Request, res: Response) => {
   }
 });
 
-// ── List servers ─────────────────────────────────────────────────────────────
+// â”€â”€ List servers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.get('/mcp/servers', (_req: Request, res: Response) => {
   const servers = mcpManager.getAllStatuses();
@@ -103,14 +103,14 @@ router.get('/mcp/servers', (_req: Request, res: Response) => {
   });
 });
 
-// ── List tools ───────────────────────────────────────────────────────────────
+// â”€â”€ List tools â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.get('/mcp/tools', (_req: Request, res: Response) => {
   const servers = mcpManager.getAllStatuses();
   const toolList = servers.flatMap((s) => ({
     server: s.name,
     serverStatus: s.status,
-    // Tools detail — we'd need a richer query, but this gives an overview
+    // Tools detail â€” we'd need a richer query, but this gives an overview
     toolCount: s.toolCount,
   }));
 

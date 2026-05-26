@@ -1,5 +1,5 @@
 /**
- * SUNy Multi-Agent Review — mandatory reviewer persona for diffs/output.
+ * SUNy Multi-Agent Review â€” mandatory reviewer persona for diffs/output.
  *
  * After the main agent produces changes, an independent reviewer profile
  * inspects the diff + test output + user intent and signs off with a
@@ -10,9 +10,9 @@
 
 import { generateText, type LanguageModel } from 'ai';
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Types
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface ReviewInput {
   userRequest: string;
@@ -40,9 +40,9 @@ export interface ReviewResult {
   correctedResponse?: string;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Reviewer system prompts
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const REVIEWER_SYSTEM = `You are an expert code reviewer with 20 years of experience across full-stack development, security, and systems architecture.
 
@@ -52,12 +52,12 @@ Your job is to review AI-generated code changes and provide a structured sign-of
 
 For each review, evaluate:
 
-1. **Correctness** — Does the code do what the user asked? Are there logic errors?
-2. **Completeness** — Are all aspects of the request addressed? Nothing missing?
-3. **Security** — Any injection risks, exposed credentials, authorization gaps, unsafe patterns?
-4. **Edge Cases** — What happens with empty/null/malformed input? Concurrent access? Error states?
-5. **Test Coverage** — Are there tests for the new code? Do existing tests still pass?
-6. **Breaking Changes** — Does this change existing behavior? API contract changes? Schema migrations?
+1. **Correctness** â€” Does the code do what the user asked? Are there logic errors?
+2. **Completeness** â€” Are all aspects of the request addressed? Nothing missing?
+3. **Security** â€” Any injection risks, exposed credentials, authorization gaps, unsafe patterns?
+4. **Edge Cases** â€” What happens with empty/null/malformed input? Concurrent access? Error states?
+5. **Test Coverage** â€” Are there tests for the new code? Do existing tests still pass?
+6. **Breaking Changes** â€” Does this change existing behavior? API contract changes? Schema migrations?
 
 ## Output Format
 
@@ -83,7 +83,7 @@ Rules:
 - Only FAIL for real problems: logic errors, security holes, incomplete implementation.
 - If the review identifies issues, provide the FULL corrected response in correctedResponse.
 - If approved, correctedResponse must be null.
-- Return ONLY valid JSON — no markdown, no code fences around the JSON.`;
+- Return ONLY valid JSON â€” no markdown, no code fences around the JSON.`;
 
 const REVIEWER_SYSTEM_SIMPLE = `You are a senior code reviewer. Review the following AI response and code changes.
 
@@ -96,9 +96,9 @@ Respond with a JSON object:
 
 Be strict but fair. Only reject for real problems. Return ONLY valid JSON.`;
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Review function
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Run a multi-agent review on the AI's output.
@@ -117,7 +117,7 @@ export async function runReview(
   ];
 
   if (input.changedFiles.length > 0) {
-    contextParts.push(`## Changed Files\n${input.changedFiles.map(f => `  • ${f}`).join('\n')}`);
+    contextParts.push(`## Changed Files\n${input.changedFiles.map(f => `  â€¢ ${f}`).join('\n')}`);
   }
 
   if (input.diffSnippet) {
@@ -170,7 +170,7 @@ export async function runReview(
         correctedResponse: parsed.correctedResponse || undefined,
       };
     } catch {
-      // Parsing failed — return a best-effort result
+      // Parsing failed â€” return a best-effort result
       const approved = !text.toLowerCase().includes('fail') && !text.toLowerCase().includes('reject');
       return {
         approved,
@@ -181,14 +181,14 @@ export async function runReview(
           edgeCases: [],
           testCoverage: 'none',
           breakingChanges: [],
-          suggestions: ['Unable to parse reviewer JSON — manual review recommended.'],
+          suggestions: ['Unable to parse reviewer JSON â€” manual review recommended.'],
         },
         reviewSummary: text.slice(0, 300) || 'Review completed (non-JSON response).',
       };
     }
   } catch (err) {
     return {
-      approved: true, // Fail open — don't block the response on review failure
+      approved: true, // Fail open â€” don't block the response on review failure
       checklist: {
         correctness: 'pass',
         completeness: 'pass',
@@ -196,7 +196,7 @@ export async function runReview(
         edgeCases: [],
         testCoverage: 'none',
         breakingChanges: [],
-        suggestions: ['Reviewer model call failed — manual review recommended.'],
+        suggestions: ['Reviewer model call failed â€” manual review recommended.'],
       },
       reviewSummary: `Reviewer error: ${err instanceof Error ? err.message : 'unknown error'}`,
     };
@@ -208,22 +208,22 @@ export async function runReview(
  */
 export function formatReviewForOutput(review: ReviewResult): string {
   if (review.approved) {
-    return `\n\n📋 **Review: Approved** ✅\n${review.reviewSummary}`;
+    return `\n\nðŸ“‹ **Review: Approved** âœ…\n${review.reviewSummary}`;
   }
 
   const c = review.checklist;
   const issues: string[] = [];
 
-  if (c.correctness === 'fail') issues.push('❌ Correctness: Logic errors detected');
-  if (c.correctness === 'warn') issues.push('⚠️ Correctness: Minor concerns');
-  if (c.completeness === 'fail') issues.push('❌ Completeness: Not all requirements met');
-  if (c.completeness === 'warn') issues.push('⚠️ Completeness: Could be more thorough');
-  if (c.securityConcerns.length) issues.push(`🔒 Security: ${c.securityConcerns.join('; ')}`);
-  if (c.edgeCases.length) issues.push(`⚠️ Edge cases: ${c.edgeCases.join('; ')}`);
-  if (c.breakingChanges.length) issues.push(`💥 Breaking: ${c.breakingChanges.join('; ')}`);
+  if (c.correctness === 'fail') issues.push('âŒ Correctness: Logic errors detected');
+  if (c.correctness === 'warn') issues.push('âš ï¸ Correctness: Minor concerns');
+  if (c.completeness === 'fail') issues.push('âŒ Completeness: Not all requirements met');
+  if (c.completeness === 'warn') issues.push('âš ï¸ Completeness: Could be more thorough');
+  if (c.securityConcerns.length) issues.push(`ðŸ”’ Security: ${c.securityConcerns.join('; ')}`);
+  if (c.edgeCases.length) issues.push(`âš ï¸ Edge cases: ${c.edgeCases.join('; ')}`);
+  if (c.breakingChanges.length) issues.push(`ðŸ’¥ Breaking: ${c.breakingChanges.join('; ')}`);
 
   return [
-    '\n\n📋 **Review: Needs Revision** 🔄',
+    '\n\nðŸ“‹ **Review: Needs Revision** ðŸ”„',
     review.reviewSummary,
     ...issues.map(i => `- ${i}`),
     c.suggestions.length ? `\n**Suggestions:**\n${c.suggestions.map(s => `- ${s}`).join('\n')}` : '',

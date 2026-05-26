@@ -1,5 +1,5 @@
 /**
- * SUNy Session Benchmark Tracker — per-session performance metrics.
+ * SUNy Session Benchmark Tracker â€” per-session performance metrics.
  *
  * Records execution metrics for every task turn so SUNy can:
  *   1. Track improvement over time (week-over-week, month-over-month)
@@ -11,7 +11,7 @@
 
 import { getDb } from './db';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface SessionBenchmark {
   id: number;
@@ -67,7 +67,7 @@ export interface BenchmarkTrend {
   avgSteps: number;
 }
 
-// ── DB initialization ─────────────────────────────────────────────────────────
+// â”€â”€ DB initialization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function initializeSessionBenchmarkTable(): void {
   const db = getDb();
@@ -106,7 +106,7 @@ export function initializeSessionBenchmarkTable(): void {
   `);
 }
 
-// ── Record a benchmark entry ──────────────────────────────────────────────────
+// â”€â”€ Record a benchmark entry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function recordBenchmark(entry: {
   userId: number;
@@ -167,7 +167,7 @@ export function recordBenchmark(entry: {
   );
 }
 
-// ── Query methods ─────────────────────────────────────────────────────────────
+// â”€â”€ Query methods â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Get a summary of benchmark performance for a user.
@@ -307,7 +307,7 @@ export function getProjectBenchmarks(projectId: number, limit: number = 20): Ses
 export function formatBenchmarkSummary(summary: BenchmarkSummary): string {
   if (summary.totalTasks === 0) return 'No benchmark data yet.';
 
-  let result = `[BENCHMARK SUMMARY — ${summary.totalTasks} tasks across ${summary.totalSessions} sessions]\n`;
+  let result = `[BENCHMARK SUMMARY â€” ${summary.totalTasks} tasks across ${summary.totalSessions} sessions]\n`;
   result += `  Success rate: ${summary.successRate}%\n`;
   result += `  Avg duration: ${summary.avgDurationMs}ms\n`;
   result += `  Avg tokens: ${summary.avgTokens}\n`;

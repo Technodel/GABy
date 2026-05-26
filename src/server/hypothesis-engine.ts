@@ -1,5 +1,5 @@
 /**
- * SUNy Hypothesis Engine — parallel multi-agent testing.
+ * SUNy Hypothesis Engine â€” parallel multi-agent testing.
  *
  * For complex problems, instead of one linear attempt, spawn 2-3 mini-agents
  * with different strategies and pick the best result.
@@ -18,7 +18,7 @@ import {
   gitGetCurrentBranch,
 } from './git-manager';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export type HypothesisStrategy =
   | 'direct_edit'       // Direct file modification
@@ -49,17 +49,17 @@ export interface HypothesisResult {
   winner: boolean;
 }
 
-// ── Strategy descriptions ─────────────────────────────────────────────────────
+// â”€â”€ Strategy descriptions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const STRATEGY_DESCRIPTIONS: Record<HypothesisStrategy, string> = {
   direct_edit: 'Targeted edits to existing files with minimal changes',
   refactor_first: 'Clean up / restructure the code first, then make changes',
   test_first: 'Write failing tests first, then implement to make them pass',
   from_scratch: 'Rewrite the module entirely with clean implementation',
-  minimal_patch: 'Smallest possible change — single line or import fix',
+  minimal_patch: 'Smallest possible change â€” single line or import fix',
 };
 
-// ── DB initialization ─────────────────────────────────────────────────────────
+// â”€â”€ DB initialization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function initializeHypothesisTable(): Promise<void> {
   const db = await getAdapter();
@@ -88,7 +88,7 @@ export async function initializeHypothesisTable(): Promise<void> {
   `);
 }
 
-// ── Core operations ───────────────────────────────────────────────────────────
+// â”€â”€ Core operations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Select the best strategies for a given problem type.
@@ -260,7 +260,7 @@ export function formatHypothesisContext(problem: string, strategies: HypothesisS
   ].join('\n');
 }
 
-// ── Internal helpers ──────────────────────────────────────────────────────────
+// â”€â”€ Internal helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface HypothesisRow {
   id: string;
@@ -298,7 +298,7 @@ function rowToHypothesis(row: HypothesisRow): Hypothesis {
   };
 }
 
-// ── Branch-isolated parallel hypothesis execution ─────────────────────────────
+// â”€â”€ Branch-isolated parallel hypothesis execution â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface HypothesisRunnerInput {
   userId: number;

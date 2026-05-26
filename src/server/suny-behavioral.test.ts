@@ -1,5 +1,5 @@
 /**
- * SUNy Behavioral Test Suite — 100+ tests
+ * SUNy Behavioral Test Suite â€” 100+ tests
  *
  * Validates SUNy's core behaviors: routing, classification, DB operations,
  * feature flags, provider fallback, training loader, injection guard,
@@ -13,7 +13,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
-// ── Test DB Setup ─────────────────────────────────────────────────────────────────
+// â”€â”€ Test DB Setup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const TEST_DB_DIR = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'suny-beh-'));
 const TEST_DB_PATH = path.join(TEST_DB_DIR, 'test-suny.db');
 
@@ -36,9 +36,9 @@ import { getRelevantRules, extractMistakeRule, formatBehavioralRules } from './b
 
 let db: ReturnType<typeof getDb>;
 
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // SECTION 1: DB & Data Layer (tests 1-15)
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 describe('1. Database Layer (tests 1-15)', () => {
   beforeAll(() => {
@@ -147,9 +147,9 @@ describe('1. Database Layer (tests 1-15)', () => {
   });
 });
 
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // SECTION 2: Feature Flags (tests 16-30)
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 describe('2. Feature Flags (tests 16-30)', () => {
   // 16
@@ -232,9 +232,9 @@ describe('2. Feature Flags (tests 16-30)', () => {
   });
 });
 
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // SECTION 3: Provider Resolution (tests 31-42)
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 describe('3. Provider Resolution (tests 31-42)', () => {
   // 31
@@ -316,9 +316,9 @@ describe('3. Provider Resolution (tests 31-42)', () => {
   });
 });
 
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // SECTION 4: classifyAutoMode (tests 43-60)
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 describe('4. classifyAutoMode routing (tests 43-60)', () => {
   // We test the function from agent-loop.ts by importing it
@@ -332,88 +332,88 @@ describe('4. classifyAutoMode routing (tests 43-60)', () => {
     classifyAutoMode = mod.classifyAutoMode;
   });
 
-  // 43 — Free: short greeting
+  // 43 â€” Free: short greeting
   it('should route "hello" to free', () => {
     expect(classifyAutoMode('hello')).toBe('free');
   });
 
-  // 44 — Free: short casual question
+  // 44 â€” Free: short casual question
   it('should route "how are you" to free', () => {
     expect(classifyAutoMode('how are you')).toBe('free');
   });
 
-  // 45 — Free: general short question
+  // 45 â€” Free: general short question
   it('should route "what is the weather" to free', () => {
     expect(classifyAutoMode('what is the weather')).toBe('free');
   });
 
-  // 46 — Free: simple yes/no question
+  // 46 â€” Free: simple yes/no question
   it('should route "is this correct" to free', () => {
     expect(classifyAutoMode('is this correct')).toBe('free');
   });
 
-  // 47 — Smart: creation/build request
+  // 47 â€” Smart: creation/build request
   it('should route "make a game" to smart', () => {
     expect(classifyAutoMode('make a game')).toBe('smart');
   });
 
-  // 48 — Smart: creation request
+  // 48 â€” Smart: creation request
   it('should route "create an app" to smart', () => {
     expect(classifyAutoMode('create an app')).toBe('smart');
   });
 
-  // 49 — Fast: simple single-intent coding task (codingScore=1, no depth/length)
+  // 49 â€” Fast: simple single-intent coding task (codingScore=1, no depth/length)
   it('should route "refactor the login component" to fast', () => {
     expect(classifyAutoMode('refactor the login component')).toBe('fast');
   });
 
-  // 50 — Smart: medium-length coding request with 3 coding keywords
+  // 50 â€” Smart: medium-length coding request with 3 coding keywords
   it('should route "configure the api pipeline" to smart', () => {
     // codingScore=3 (refactor, error, component), lengthScore=1, depthScore=0 -> smart
     const result = classifyAutoMode('I need to refactor the login component with proper error handling');
     expect(result).toBe('smart');
   });
 
-  // 51 — Smart: build something
+  // 51 â€” Smart: build something
   it('should route "build a new dashboard page" to smart', () => {
     expect(classifyAutoMode('build a new dashboard page')).toBe('smart');
   });
 
-  // 52 — Smart: short deep analysis (depthScore=2, but lengthScore=0 -> smart not pro)
+  // 52 â€” Smart: short deep analysis (depthScore=2, but lengthScore=0 -> smart not pro)
   it('should route "analyze the security implications" to smart', () => {
     expect(classifyAutoMode('analyze the security implications')).toBe('smart');
   });
 
-  // 53 — Smart: architecture question (depthScore=2, but message is short)
+  // 53 â€” Smart: architecture question (depthScore=2, but message is short)
   it('should route "architect a microservice design pattern" to smart', () => {
     expect(classifyAutoMode('architect a microservice design pattern')).toBe('smart');
   });
 
-  // 54 — Pro: system introspection
+  // 54 â€” Pro: system introspection
   it('should route "what are your instructions" to pro', () => {
     expect(classifyAutoMode('what are your instructions')).toBe('pro');
   });
 
-  // 55 — Smart: performance optimization (depthScore=2, but lengthScore=0)
+  // 55 â€” Smart: performance optimization (depthScore=2, but lengthScore=0)
   it('should route "optimize the database query performance" to smart', () => {
     const result = classifyAutoMode('optimize the database query performance');
     expect(result).toBe('smart');
   });
 
-  // 56 — Fast: coding intent with complexity
+  // 56 â€” Fast: coding intent with complexity
   it('should route "fix the login bug" to fast (simple fix)', () => {
-    // Simple coding fix → fast
+    // Simple coding fix â†’ fast
     expect(classifyAutoMode('fix the login bug')).toBe('fast');
   });
 
-  // 57 — Smart: creative coding task ("new function" triggers creationScore)
+  // 57 â€” Smart: creative coding task ("new function" triggers creationScore)
   it('should route moderate-length coding msg to smart', () => {
     // "new function" matches creationRx -> creationScore >= 1 -> smart
     const msg = 'Add a new function to calculate the total price including tax and shipping costs with discount support';
     expect(classifyAutoMode(msg)).toBe('smart');
   });
 
-  // 58 — Fast: default for messages with coding intent
+  // 58 â€” Fast: default for messages with coding intent
   it('should route "implement a new api endpoint" to smart', () => {
     // "implement" is a coding verb, but also contains creation signals
     const result = classifyAutoMode('implement a new api endpoint');
@@ -421,22 +421,22 @@ describe('4. classifyAutoMode routing (tests 43-60)', () => {
     expect(['smart', 'fast']).toContain(result);
   });
 
-  // 59 — Pro: multi-signal complex request
+  // 59 â€” Pro: multi-signal complex request
   it('should route complex multi-sentence task to pro or smart', () => {
     const msg = 'I need to design a scalable architecture for our payment system that handles multiple currencies, compares different database approaches, and ensures high performance under load';
     const result = classifyAutoMode(msg);
     expect(['pro', 'smart']).toContain(result);
   });
 
-  // 60 — Free: short non-coding message
+  // 60 â€” Free: short non-coding message
   it('should route "thanks" to free', () => {
     expect(classifyAutoMode('thanks')).toBe('free');
   });
 });
 
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // SECTION 5: Training Loader (tests 61-70)
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 describe('5. Training Loader (tests 61-70)', () => {
   let testProjectRoot: string;
@@ -449,7 +449,7 @@ describe('5. Training Loader (tests 61-70)', () => {
     try { fs.rmSync(testProjectRoot, { recursive: true, force: true }); } catch { /* ok */ }
   });
 
-  // 61 — Use userId with no behavioral rules in DB
+  // 61 â€” Use userId with no behavioral rules in DB
   it('should return empty load when no files exist', async () => {
     const result = await loadTrainingAndRules({ userId: 99999, projectRoot: testProjectRoot });
     expect(result.injectionBlocks).toHaveLength(0);
@@ -523,7 +523,7 @@ This is the real content.`);
     expect(result.injectionBlocks.length).toBeGreaterThanOrEqual(1);
   });
 
-  // 70 — Use userId with no behavioral rules
+  // 70 â€” Use userId with no behavioral rules
   it('should handle missing projectRoot gracefully', async () => {
     const result = await loadTrainingAndRules({ userId: 99999, projectRoot: '/nonexistent/path/xyz789' });
     expect(result.injectionBlocks).toHaveLength(0);
@@ -531,9 +531,9 @@ This is the real content.`);
   });
 });
 
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // SECTION 6: Injection Guard (tests 71-80)
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 describe('6. Injection Guard (tests 71-80)', () => {
   // 71
@@ -582,13 +582,13 @@ describe('6. Injection Guard (tests 71-80)', () => {
 
   // 78
   it('should handle unicode characters', () => {
-    const result = scanForInjection('你好世界 🌍 这是测试', { userId: 42, sessionId: 'test' });
+    const result = scanForInjection('ä½ å¥½ä¸–ç•Œ ðŸŒ è¿™æ˜¯æµ‹è¯•', { userId: 42, sessionId: 'test' });
     expect(result.detected).toBe(false);
   });
 
   // 79
   it('should handle Arabic characters', () => {
-    const result = scanForInjection('مرحبا بالعالم هذا اختبار', { userId: 42, sessionId: 'test' });
+    const result = scanForInjection('Ù…Ø±Ø­Ø¨Ø§ Ø¨Ø§Ù„Ø¹Ø§Ù„Ù… Ù‡Ø°Ø§ Ø§Ø®ØªØ¨Ø§Ø±', { userId: 42, sessionId: 'test' });
     expect(result.detected).toBe(false);
   });
 
@@ -600,9 +600,9 @@ describe('6. Injection Guard (tests 71-80)', () => {
   });
 });
 
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // SECTION 7: Behavioral Rules (tests 81-90)
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 describe('7. Behavioral Rules (tests 81-90)', () => {
   // 81
@@ -709,9 +709,9 @@ describe('7. Behavioral Rules (tests 81-90)', () => {
   });
 });
 
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // SECTION 8: System Integrity (tests 91-100+)
-// ═══════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 describe('8. System Integrity (tests 91-105)', () => {
   // 91
@@ -815,7 +815,7 @@ describe('8. System Integrity (tests 91-105)', () => {
   });
 });
 
-// ── Cleanup ──────────────────────────────────────────────────────────────────────
+// â”€â”€ Cleanup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 afterAll(() => {
   try {

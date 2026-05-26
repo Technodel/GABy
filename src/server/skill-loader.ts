@@ -1,14 +1,14 @@
 /**
- * skill-loader.ts — SUNy Skill System
+ * skill-loader.ts â€” SUNy Skill System
  *
  * Loads SKILL.md files from the skills/ directory, parses YAML frontmatter
  * and markdown sections, and provides runtime task classification.
  *
  * Architecture:
- *   skillLoader.loadAll()         → scan skills/ dir, parse all SKILL.md
- *   skillLoader.getSkillSystemPrompt()  → full block for system prompt injection
- *   skillLoader.classifyTask(msg)      → which phase/skill matches the task
- *   skillLoader.getActiveSkills(msg)    → skill instructions relevant to task
+ *   skillLoader.loadAll()         â†’ scan skills/ dir, parse all SKILL.md
+ *   skillLoader.getSkillSystemPrompt()  â†’ full block for system prompt injection
+ *   skillLoader.classifyTask(msg)      â†’ which phase/skill matches the task
+ *   skillLoader.getActiveSkills(msg)    â†’ skill instructions relevant to task
  *
  * Each skill has:
  *   - name, description (YAML frontmatter)
@@ -19,7 +19,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as fsp from 'fs/promises';
 
-// ── Types ───────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface SkillFrontmatter {
   name: string;
@@ -50,7 +50,7 @@ export interface Classification {
   confidence: number; // 0-1
 }
 
-// ── Phase keywords — maps task content to phase ────────────────────────────
+// â”€â”€ Phase keywords â€” maps task content to phase â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const PHASE_KEYWORDS: Record<TaskPhase, RegExp[]> = {
   define: [
@@ -81,7 +81,7 @@ const PHASE_KEYWORDS: Record<TaskPhase, RegExp[]> = {
   unknown: [],
 };
 
-// ── Phase to skill name mapping ────────────────────────────────────────────
+// â”€â”€ Phase to skill name mapping â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const PHASE_TO_SKILL: Record<TaskPhase, string | null> = {
   define: 'spec-driven-development',
@@ -93,10 +93,10 @@ const PHASE_TO_SKILL: Record<TaskPhase, string | null> = {
   unknown: null,
 };
 
-// ── YAML frontmatter parser ────────────────────────────────────────────────
+// â”€â”€ YAML frontmatter parser â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function parseYamlFrontmatter(raw: string): { frontmatter: Record<string, string>; body: string } | null {
-  // Normalize CRLF → LF (Windows line endings break the regex)
+  // Normalize CRLF â†’ LF (Windows line endings break the regex)
   const normalized = raw.replace(/\r\n/g, '\n');
   // Match --- frontmatter ---
   const match = normalized.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
@@ -116,7 +116,7 @@ function parseYamlFrontmatter(raw: string): { frontmatter: Record<string, string
   return { frontmatter, body };
 }
 
-// ── Extract sections from markdown body ────────────────────────────────────
+// â”€â”€ Extract sections from markdown body â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function extractSections(body: string): Partial<SkillSections> {
   const sections: Partial<SkillSections> = {};
@@ -174,7 +174,7 @@ function extractSections(body: string): Partial<SkillSections> {
   return sections;
 }
 
-// ── Skill Registry ─────────────────────────────────────────────────────────
+// â”€â”€ Skill Registry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class SkillRegistry {
   private skills: Map<string, Skill> = new Map();
@@ -247,7 +247,7 @@ class SkillRegistry {
   }
 }
 
-// ── Classifier ─────────────────────────────────────────────────────────────
+// â”€â”€ Classifier â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function classifyTaskInternal(userMessage: string): Classification {
   const lower = userMessage.toLowerCase();
@@ -279,15 +279,15 @@ function classifyTaskInternal(userMessage: string): Classification {
   };
 }
 
-// ── System Prompt Builder ───────────────────────────────────────────────────
+// â”€â”€ System Prompt Builder â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function buildSkillSystemPrompt(skills: Skill[]): string {
   const lines: string[] = [
     '<skill_system>',
-    '╔══════════════════════════════════════════════════════════════╗',
-    '║  SKILL SYSTEM — Engineering workflow skills                 ║',
-    '║  Skills encode structured processes that prevent mistakes.  ║',
-    '╚══════════════════════════════════════════════════════════════╝',
+    'â•”â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•—',
+    'â•‘  SKILL SYSTEM â€” Engineering workflow skills                 â•‘',
+    'â•‘  Skills encode structured processes that prevent mistakes.  â•‘',
+    'â•šâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•',
     '',
     'Every task should be approached through the lens of the applicable skill.',
     'Before starting work, check which skill applies to your current task phase.',
@@ -317,13 +317,13 @@ function buildSkillSystemPrompt(skills: Skill[]): string {
 
     if (ra) {
       // Extract rationalizations table rows
-      const raLines = ra.split('\n').filter(l => l.includes('|') && l.includes('—'));
+      const raLines = ra.split('\n').filter(l => l.includes('|') && l.includes('â€”'));
       if (raLines.length > 0) {
-        lines.push('Common Rationalizations — excuses to avoid:');
+        lines.push('Common Rationalizations â€” excuses to avoid:');
         for (const rl of raLines.slice(0, 3)) {
           const cells = rl.split('|').map(c => c.trim()).filter(c => c);
           if (cells.length >= 2) {
-            lines.push(`  • "${cells[0]}" → ${cells[1]}`);
+            lines.push(`  â€¢ "${cells[0]}" â†’ ${cells[1]}`);
           }
         }
       }
@@ -348,12 +348,12 @@ function buildSkillSystemPrompt(skills: Skill[]): string {
   return lines.join('\n');
 }
 
-// ── Singleton ───────────────────────────────────────────────────────────────
+// â”€â”€ Singleton â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const SKILLS_DIR = path.resolve(__dirname, '../../skills');
 const registry = new SkillRegistry(SKILLS_DIR);
 
-// ── Public API ──────────────────────────────────────────────────────────────
+// â”€â”€ Public API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Initialize the skill system. Call once at startup (e.g., in index.ts).
@@ -376,7 +376,7 @@ export function getSkillSystemPrompt(): string {
 }
 
 /**
- * Get a compact skill INDEX for the system prompt — name + one-line description
+ * Get a compact skill INDEX for the system prompt â€” name + one-line description
  * only, no inlined process/rationalizations/red-flags. Cuts the skill block from
  * ~50 KB to ~3 KB. The model can ask to read the full SKILL.md via file_read if
  * needed (skills/<name>/SKILL.md).
@@ -386,7 +386,7 @@ export function getSkillIndex(): string {
   const skills = registry.getAllSkills();
   if (skills.length === 0) return '';
   const lines: string[] = [
-    '─── ENGINEERING SKILLS (index) ───',
+    'â”€â”€â”€ ENGINEERING SKILLS (index) â”€â”€â”€',
     'Skill packs live on disk under `skills/<name>/SKILL.md`. Read the full file',
     'with file_read when you actually need the detailed process for a skill.',
     '',
@@ -394,7 +394,7 @@ export function getSkillIndex(): string {
   for (const skill of skills) {
     const fm = skill.frontmatter;
     const desc = (fm.description || '').replace(/\s+/g, ' ').trim();
-    const short = desc.length > 200 ? desc.slice(0, 200) + '…' : desc;
+    const short = desc.length > 200 ? desc.slice(0, 200) + 'â€¦' : desc;
     lines.push(`- ${fm.name}: ${short}`);
   }
   return lines.join('\n');

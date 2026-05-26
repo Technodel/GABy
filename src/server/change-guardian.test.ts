@@ -1,5 +1,5 @@
 /**
- * Unit tests for SUNy Code Conscience — Change Guardian
+ * Unit tests for SUNy Code Conscience â€” Change Guardian
  *
  * Tests TypeScript signature extraction, snapshot capture/drift detection,
  * and report formatting using temporary test source files.
@@ -19,7 +19,7 @@ import {
   type DriftReport,
 } from './change-guardian';
 
-// ── Test file management ──────────────────────────────────────────────────────
+// â”€â”€ Test file management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface TestFiles {
   dir: string;
@@ -46,7 +46,7 @@ function removeTestDir(files: TestFiles): void {
   try { fs.rmdirSync(files.dir); } catch { /* ignore */ }
 }
 
-// ── Test source code samples ──────────────────────────────────────────────────
+// â”€â”€ Test source code samples â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const ORIGINAL_SERVICE = `
 export interface User {
@@ -122,9 +122,9 @@ export function newFeature(): string {
 }
 `;
 
-// ── Tests ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe('Change Guardian — no drift when nothing changes', () => {
+describe('Change Guardian â€” no drift when nothing changes', () => {
   let files: TestFiles;
 
   beforeEach(() => {
@@ -144,14 +144,14 @@ describe('Change Guardian — no drift when nothing changes', () => {
     files.filePaths.push(fp);
 
     captureSnapshot('test1', [fp]);
-    // Don't change the file — same content
+    // Don't change the file â€” same content
     const report = detectDrift('test1', [fp], '');
     expect(report).not.toBeNull();
     expect(report!.hasDrift).toBe(false);
   });
 });
 
-describe('Change Guardian — signature drift detection', () => {
+describe('Change Guardian â€” signature drift detection', () => {
   let files: TestFiles;
 
   beforeEach(() => {
@@ -189,7 +189,7 @@ describe('Change Guardian — signature drift detection', () => {
     expect(report).not.toBeNull();
     expect(report!.hasDrift).toBe(true);
 
-    // Should detect: User.role added, getUser param changed id: number→string, deleteUser added
+    // Should detect: User.role added, getUser param changed id: numberâ†’string, deleteUser added
     const allChanges = report!.files.flatMap(f => f.changes);
     expect(allChanges.length).toBeGreaterThanOrEqual(3);
 
@@ -225,7 +225,7 @@ describe('Change Guardian — signature drift detection', () => {
     const fp = writeSource(files.dir, 'newfile.ts', NEW_FILE_CONTENT);
     files.filePaths.push(fp);
 
-    // No snapshot for this file — it's new
+    // No snapshot for this file â€” it's new
     captureSnapshot('test_added', []);
 
     const report = detectDrift('test_added', [fp], '');
@@ -235,7 +235,7 @@ describe('Change Guardian — signature drift detection', () => {
   });
 });
 
-describe('Change Guardian — intent classification', () => {
+describe('Change Guardian â€” intent classification', () => {
   let files: TestFiles;
 
   beforeEach(() => {
@@ -266,7 +266,7 @@ describe('Change Guardian — intent classification', () => {
       f.changes.filter(c => !c.isIntentional)
     );
     // UserService is removed in MODIFIED_SERVICE_DRIFTED_CONTRACT but user
-    // intent doesn't mention removing it — so 1 unintentional (UserService)
+    // intent doesn't mention removing it â€” so 1 unintentional (UserService)
     const unintentionalNames = unintentional.map(c => c.name);
     expect(unintentionalNames).toContain('UserService');
     expect(unintentionalNames).not.toContain('getUser');
@@ -292,12 +292,12 @@ describe('Change Guardian — intent classification', () => {
     const unintentional = report!.files.flatMap(f =>
       f.changes.filter(c => !c.isIntentional)
     );
-    // User said "fix a typo in README" — none of these changes match
+    // User said "fix a typo in README" â€” none of these changes match
     expect(unintentional.length).toBeGreaterThanOrEqual(3);
   });
 });
 
-describe('Change Guardian — report formatting', () => {
+describe('Change Guardian â€” report formatting', () => {
   it('returns empty string for no drift', () => {
     const report: DriftReport = { hasDrift: false, files: [], summary: 'No drift.' };
     const formatted = formatDriftForCorrection(report);

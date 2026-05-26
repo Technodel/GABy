@@ -1,8 +1,8 @@
 /**
  * SUNy Hypothesis Engine API Routes.
  *
- * GET  /api/hypotheses/:projectId    — list hypothesis runs for a project
- * GET  /api/hypotheses/:projectId/:id  — get a single hypothesis run details
+ * GET  /api/hypotheses/:projectId    â€” list hypothesis runs for a project
+ * GET  /api/hypotheses/:projectId/:id  â€” get a single hypothesis run details
  */
 
 import { Router, Request, Response } from 'express';

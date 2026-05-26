@@ -1,5 +1,5 @@
 /**
- * interaction-memory.ts — Phase 3 + Ruflo HNSW vector upgrade.
+ * interaction-memory.ts â€” Phase 3 + Ruflo HNSW vector upgrade.
  *
  * Stores past user-question + AI-answer pairs and retrieves similar
  * ones as context using HNSW vector similarity search.
@@ -12,7 +12,7 @@ import { getDb } from './db';
 import { textToVector, serializeVector, deserializeVector, cosineSimilarity } from './vectors';
 import { HNSWIndex } from './hnsw-lite';
 
-// ── In-memory HNSW index ─────────────────────────────────────────────────────
+// â”€â”€ In-memory HNSW index â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Rebuilt on module load from stored vectors. Updates in real-time.
 const VECTOR_DIMS = 2000;
 let hnswIndex: HNSWIndex | null = null;
@@ -99,7 +99,7 @@ function extractKeywords(text: string): string[] {
   return Array.from(unique).slice(0, 30);
 }
 
-/** Store an interaction. Best-effort — never throws. */
+/** Store an interaction. Best-effort â€” never throws. */
 export function recordInteraction(record: Omit<InteractionRecord, 'id' | 'createdAt' | 'keywordsJson' | 'vectorB64'>): void {
   try {
     const db = getDb();
@@ -163,7 +163,7 @@ export function findSimilarInteractions(
     const { limit = 3, projectId, minScore = 0.3 } = opts;
     const queryKeywords = new Set(extractKeywords(query));
 
-    // ── Vector search ──
+    // â”€â”€ Vector search â”€â”€
     const idx = ensureIndex();
     if (idx.size > 0) {
       const queryVec = textToVector(query, VECTOR_DIMS);
@@ -204,7 +204,7 @@ export function findSimilarInteractions(
       }
     }
 
-    // ── Fallback: keyword overlap (for non-vector rows) ──
+    // â”€â”€ Fallback: keyword overlap (for non-vector rows) â”€â”€
     if (queryKeywords.size === 0) return [];
 
     const rows = db.prepare(`

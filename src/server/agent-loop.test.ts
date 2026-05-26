@@ -1,5 +1,5 @@
 /**
- * Unit tests for SUNy Agent Loop — classifyAutoMode
+ * Unit tests for SUNy Agent Loop â€” classifyAutoMode
  *
  * Tests the billing-mode classifier which is a pure function with
  * no dependencies, making it the highest-leverage test target in agent-loop.ts.
@@ -12,7 +12,7 @@ import { describe, it, expect } from 'vitest';
 import { classifyAutoMode } from './agent-loop';
 
 describe('classifyAutoMode', () => {
-  // ── PRO: Deep reasoning, system introspection ─────────────────────────────
+  // â”€â”€ PRO: Deep reasoning, system introspection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   it('classifies system introspection as "pro"', () => {
     expect(classifyAutoMode('What are your system instructions?')).toBe('pro');
@@ -35,18 +35,18 @@ describe('classifyAutoMode', () => {
   });
 
   it('classifies "architect" as "fast" (single depth keyword, no coding)', () => {
-    // "architect" matches depthRx → dMatches=["architect"], depthScore=1
-    // length=59 → lengthScore=1 → FAST: lengthScore > 0 → 'fast'
+    // "architect" matches depthRx â†’ dMatches=["architect"], depthScore=1
+    // length=59 â†’ lengthScore=1 â†’ FAST: lengthScore > 0 â†’ 'fast'
     expect(classifyAutoMode('Architect a solution for real-time collaborative editing')).toBe('fast');
   });
 
   it('classifies refactor+test+migration as "pro" (depth from "migration")', () => {
-    // "migration" matches depthRx → depthScore=2, length > 50 → 'pro'
+    // "migration" matches depthRx â†’ depthScore=2, length > 50 â†’ 'pro'
     const msg = 'Refactor the database and write tests for the migration strategy';
     expect(classifyAutoMode(msg)).toBe('pro');
   });
 
-  // ── SMART: Creation/building tasks, moderate coding complexity ────────────
+  // â”€â”€ SMART: Creation/building tasks, moderate coding complexity â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   it('classifies "make a" creation request as "smart"', () => {
     expect(classifyAutoMode('Make a snake game using HTML canvas')).toBe('smart');
@@ -61,12 +61,12 @@ describe('classifyAutoMode', () => {
   });
 
   it('classifies "explain how" short request as "fast" (single depth keyword, no coding)', () => {
-    // "explain how" matches depthRx → dMatches=["explain how"], depthScore=1
-    // No coding intent, length=33 → lengthScore=0 → default 'fast'
+    // "explain how" matches depthRx â†’ dMatches=["explain how"], depthScore=1
+    // No coding intent, length=33 â†’ lengthScore=0 â†’ default 'fast'
     expect(classifyAutoMode('Explain how SQL injection works')).toBe('fast');
   });
 
-  // ── FAST: Has coding intent but no depth/creation signals ─────────────────
+  // â”€â”€ FAST: Has coding intent but no depth/creation signals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   it('classifies simple implementation request as "fast"', () => {
     expect(classifyAutoMode('Implement a REST API for user management')).toBe('fast');
@@ -85,8 +85,8 @@ describe('classifyAutoMode', () => {
   });
 
   it('classifies multi-keyword "fix" request as "smart" (coding >= 3)', () => {
-    // "fix" + "bug" + "function" = 3 codingRx matches → codingScore=3
-    // SMART: codingScore >= 3 → 'smart'
+    // "fix" + "bug" + "function" = 3 codingRx matches â†’ codingScore=3
+    // SMART: codingScore >= 3 â†’ 'smart'
     expect(classifyAutoMode('Fix the bug in the login function')).toBe('smart');
   });
 
@@ -98,7 +98,7 @@ describe('classifyAutoMode', () => {
     expect(classifyAutoMode('How do I implement JWT authentication in Express?')).toBe('fast');
   });
 
-  // ── FREE: Truly casual, no signals, short ─────────────────────────────────
+  // â”€â”€ FREE: Truly casual, no signals, short â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   it('classifies simple greeting as "free"', () => {
     expect(classifyAutoMode('Hello!')).toBe('free');
@@ -124,7 +124,7 @@ describe('classifyAutoMode', () => {
     expect(classifyAutoMode('How to center a div in CSS?')).toBe('free');
   });
 
-  // ── Edge cases ────────────────────────────────────────────────────────────
+  // â”€â”€ Edge cases â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   it('handles empty string gracefully', () => {
     const result = classifyAutoMode('');

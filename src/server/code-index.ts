@@ -1,5 +1,5 @@
 /**
- * SUNy Code Index — lightweight import/export/symbol graph using regex.
+ * SUNy Code Index â€” lightweight import/export/symbol graph using regex.
  *
  * Scans JS/TS files to build a searchable index of:
  *   - imports (source module + imported symbols)
@@ -8,7 +8,7 @@
  *   - file-level metadata (path, last modified)
  *
  * Stored in SQLite for persistent querying across sessions.
- * No native dependencies — pure regex, fast enough for projects up to ~10K files.
+ * No native dependencies â€” pure regex, fast enough for projects up to ~10K files.
  *
  * Feature flag: ff_code_index
  */
@@ -17,9 +17,9 @@ import fs from 'fs';
 import path from 'path';
 import { getDb } from './db';
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Types
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface IndexedSymbol {
   filePath: string;
@@ -46,9 +46,9 @@ export interface CodeSearchResult {
   matchContext: string;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Regex patterns for JS/TS code analysis
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const IMPORT_PATTERN = /^import\s+(?:(?<default>\w+)\s*,?\s*)?(?:{\s*(?<named>[^}]+)\s*})?\s*from\s+['"](?<source>[^'"]+)['"]/gm;
 const RE_EXPORT_PATTERN = /^export\s+\*?\s*(?:from\s+['"](?<source>[^'"]+)['"]|{\s*(?<named>[^}]+)\s*}\s*from\s+['"](?<source2>[^'"]+)['"])/gm;
@@ -66,9 +66,9 @@ const DECLARE_INTERFACE = /^interface\s+(?<name>\w+)/gm;
 const DECLARE_TYPE = /^type\s+(?<name>\w+)/gm;
 const COMPONENT_PATTERN = /^(?:export\s+)?(?:const|function)\s+(?<name>[A-Z]\w*)\s*(?::\s*\w+\s*)?=[\s\S]{0,50}(?:=>|\(|React\.)/gm;
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Index management
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function initializeCodeIndexTable(): void {
   const db = getDb();
@@ -122,7 +122,7 @@ export function indexFile(filePath: string): { symbols: number; imports: number 
   db.prepare('DELETE FROM code_index WHERE file_path = ?').run(filePath);
   db.prepare('DELETE FROM code_imports WHERE file_path = ?').run(filePath);
 
-  // ── Extract imports ─────────────────────────────────────────────────
+  // â”€â”€ Extract imports â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   let importCount = 0;
   let match: RegExpExecArray | null;
 
@@ -150,7 +150,7 @@ export function indexFile(filePath: string): { symbols: number; imports: number 
     importCount++;
   }
 
-  // ── Extract exports / declarations ──────────────────────────────────
+  // â”€â”€ Extract exports / declarations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const patterns: Array<{ pattern: RegExp; type: IndexedSymbol['symbolType']; exportType: 'named' | 'default' | 'none' }> = [
     { pattern: EXPORT_FUNCTION, type: 'function', exportType: 'named' },
     { pattern: EXPORT_CLASS, type: 'class', exportType: 'named' },
@@ -238,7 +238,7 @@ export function indexProject(projectPath: string): { filesIndexed: number; total
         }
       }
     } catch {
-      // Permission errors or broken symlinks — skip
+      // Permission errors or broken symlinks â€” skip
     }
   }
 
@@ -383,9 +383,9 @@ export function getIndexSummary(): { totalFiles: number; totalSymbols: number; t
   return { totalFiles: files.c, totalSymbols: symbols.c, totalImports: imports.c };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Helpers
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function findBlockEnd(lines: string[], startLine: number): number {
   let depth = 0;

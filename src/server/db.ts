@@ -1,10 +1,10 @@
 /**
- * db.ts — Database factory for SUNy.
+ * db.ts â€” Database factory for SUNy.
  *
  * Provides TWO access patterns:
- *   1. `getDb()` ⇒ Database.Database (sync better-sqlite3 API) — legacy, for gradual migration
- *   2. `getAdapter()` ⇒ DbAdapter (async API) — new code should use this
- *   3. `closeDb()` ⇒ cleanup
+ *   1. `getDb()` â‡’ Database.Database (sync better-sqlite3 API) â€” legacy, for gradual migration
+ *   2. `getAdapter()` â‡’ DbAdapter (async API) â€” new code should use this
+ *   3. `closeDb()` â‡’ cleanup
  *
  * Both share the same underlying connection. The adapter wraps the sync DB in Promises.
  *
@@ -22,21 +22,21 @@ import { runMigrations } from './db-migrations';
 import { seedBehavioralRules } from './behavioral-rules';
 import type { DbAdapter, DbBackendType } from './db-types';
 
-// ── Configuration ────────────────────────────────────────────────────────────
+// â”€â”€ Configuration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const BACKEND: DbBackendType = (process.env.DB_BACKEND as DbBackendType) || 'sqlite';
 const DB_PATH = process.env.SUNY_DB_PATH || './data/suny.db';
 
-// ── Lazy singleton ───────────────────────────────────────────────────────────
+// â”€â”€ Lazy singleton â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 let db: Database.Database | null = null;
 let adapter: DbAdapter | null = null;
 
-// ── Legacy sync API (returns raw better-sqlite3 Database instance) ──────────
+// â”€â”€ Legacy sync API (returns raw better-sqlite3 Database instance) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Get the database instance (sync better-sqlite3 API).
- * Legacy API — kept for backward compatibility during the migration.
+ * Legacy API â€” kept for backward compatibility during the migration.
  *
  * Usage (existing code):
  *   import { getDb } from './db';
@@ -64,16 +64,8 @@ export function getDb(): Database.Database {
       // Create adapter from same connection for async API
       adapter = new SqliteAdapter(resolvedPath, db);
 
-      // Run migrations (async but we fire and forget — migrations complete before
-      // any real queries because the Node event loop doesn't process microtasks
-      // until after the current synchronous call stack unwinds)
-      runMigrations(adapter).then(() => {
-        seedBehavioralRules(adapter, 1).catch((err: Error) =>
-          console.warn('[db] seedBehavioralRules skipped:', err.message),
-        );
-      }).catch((err: Error) => {
-        console.error('[db] Migration failed:', err);
-      });
+      // Migrations are run via initializeDb() at startup — NOT here,
+      // so the server never accepts requests before the schema is ready.
 
       console.log(`[db] Initialized SQLite backend at ${resolvedPath}`);
       return db;
@@ -87,7 +79,7 @@ export function getDb(): Database.Database {
   }
 }
 
-// ── New async API (DbAdapter interface) ────────────────────────────────────
+// â”€â”€ New async API (DbAdapter interface) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Get the database adapter (async API, backend-agnostic).
@@ -109,7 +101,7 @@ export function getAdapter(): DbAdapter {
   return adapter!;
 }
 
-// ── Lifecycle ──────────────────────────────────────────────────────────────
+// â”€â”€ Lifecycle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Close the database connection gracefully.
@@ -124,4 +116,22 @@ export async function closeDb(): Promise<void> {
 
 export async function resetDb(): Promise<void> {
   await closeDb();
+}
+
+
+// ── Startup initialization ──────────────────────────────────────────────────
+
+/**
+ * Initialize the database and run all migrations + seed data.
+ * Must be awaited before server.listen() to guarantee schema is ready.
+ */
+export async function initializeDb(): Promise<void> {
+  const db = getDb();
+  if (!db) throw new Error('[db] Failed to initialize database');
+  const adp = getAdapter();
+  await runMigrations(adp);
+  await seedBehavioralRules(adp, 1).catch((err: Error) =>
+    console.warn('[db] seedBehavioralRules skipped:', err.message),
+  );
+  console.log('[db] Migrations and seed complete');
 }

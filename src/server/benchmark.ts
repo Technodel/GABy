@@ -1,5 +1,5 @@
 /**
- * benchmark.ts — Benchmark session recording.
+ * benchmark.ts â€” Benchmark session recording.
  *
  * Records agent benchmark runs (speed, token usage, task completion)
  * for performance analysis and regression detection.

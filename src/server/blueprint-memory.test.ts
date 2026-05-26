@@ -1,5 +1,5 @@
 /**
- * Unit tests for SUNy Code Conscience — Blueprint Memory Layer
+ * Unit tests for SUNy Code Conscience â€” Blueprint Memory Layer
  *
  * Uses an in-memory SQLite database to isolate tests from any
  * running SUNy instance.
@@ -11,7 +11,7 @@ import path from 'path';
 // We will inject our own test DB by mocking getDb
 let testDb: Database.Database;
 
-// ── Helper: Create the blueprint_entries table in the test DB ────────────────
+// â”€â”€ Helper: Create the blueprint_entries table in the test DB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function createTestTable(db: Database.Database): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS blueprint_entries (
@@ -30,7 +30,7 @@ function createTestTable(db: Database.Database): void {
   `);
 }
 
-// ── Module-level mock ─────────────────────────────────────────────────────────
+// â”€â”€ Module-level mock â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // We replace getDb in the blueprint-memory module with our test DB
 import * as blueprintMemory from './blueprint-memory';
 
@@ -150,7 +150,7 @@ function buildContextString(entries: Record<string, unknown>[], maxEntries = 5):
   }).join('\n');
 
   return (
-    '\n\n=== SUNy CODE CONSCIENCE — DESIGN MEMORY ===\n' +
+    '\n\n=== SUNy CODE CONSCIENCE â€” DESIGN MEMORY ===\n' +
     'The following entries record past design decisions and outcomes from this project.\n' +
     'Use them to maintain consistency with prior intent.\n\n' +
     sections +
@@ -179,12 +179,12 @@ function getTestSummary(options: { userId: number; projectId?: number }): string
 
   const total = rows.reduce((s, r) => s + r.count, 0);
   const lines = rows.map(r => `  ${r.category.replace(/_/g, ' ')}: ${r.count}`);
-  return `\n[Blueprint memory contains ${total} entries — project design knowledge:\n${lines.join('\n')}]`;
+  return `\n[Blueprint memory contains ${total} entries â€” project design knowledge:\n${lines.join('\n')}]`;
 }
 
-// ── Tests ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-describe('Blueprint Memory — store & retrieve', () => {
+describe('Blueprint Memory â€” store & retrieve', () => {
   it('stores a basic design decision entry', () => {
     const entry = storeTestEntry({
       userId: 1,
@@ -298,7 +298,7 @@ describe('Blueprint Memory — store & retrieve', () => {
   });
 });
 
-describe('Blueprint Memory — context string generation', () => {
+describe('Blueprint Memory â€” context string generation', () => {
   it('returns empty string for no entries', () => {
     const ctx = buildContextString([]);
     expect(ctx).toBe('');
@@ -314,7 +314,7 @@ describe('Blueprint Memory — context string generation', () => {
 
     const entries = getTestEntries({ userId: 1, projectId: 10 });
     const ctx = buildContextString(entries);
-    expect(ctx).toContain('=== SUNy CODE CONSCIENCE — DESIGN MEMORY ===');
+    expect(ctx).toContain('=== SUNy CODE CONSCIENCE â€” DESIGN MEMORY ===');
     expect(ctx).toContain('=== END DESIGN MEMORY ===');
     expect(ctx).toContain('Feature Add');
     expect(ctx).toContain('Create dark mode');
@@ -333,7 +333,7 @@ describe('Blueprint Memory — context string generation', () => {
   });
 });
 
-describe('Blueprint Memory — summary aggregation', () => {
+describe('Blueprint Memory â€” summary aggregation', () => {
   it('returns empty for no entries', () => {
     const summary = getTestSummary({ userId: 999 });
     expect(summary).toBe('');

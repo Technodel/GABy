@@ -1,9 +1,9 @@
 /**
- * SUNy Subtask Delegator — spawns focused sub-agents for multi-file refactors.
+ * SUNy Subtask Delegator â€” spawns focused sub-agents for multi-file refactors.
  *
  * When the main agent identifies a complex multi-file task (e.g., "refactor the
  * auth system"), it can delegate sub-tasks to independent sub-agents that each
- * get their own model context, tools, and scope — then merge results back.
+ * get their own model context, tools, and scope â€” then merge results back.
  *
  * Architecture:
  *   1. Main agent calls `delegate_subtask({ task, files, goal, success_criteria })`
@@ -11,7 +11,7 @@
  *   3. Returns structured result: changed files, summary, errors
  *   4. Main agent merges the results into its own context
  *
- * Each sub-agent is stateless and self-contained — no shared memory, no side effects
+ * Each sub-agent is stateless and self-contained â€” no shared memory, no side effects
  * beyond the files it modifies (which are real files on the user's machine).
  */
 
@@ -20,18 +20,18 @@ import { z } from 'zod';
 import { createPowerTools, type PowerToolContext } from './power-tools';
 import type { AgentMessage } from './agent';
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Types
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface SubtaskInput {
-  /** Description of the sub-task — what to accomplish */
+  /** Description of the sub-task â€” what to accomplish */
   task: string;
   /** Files to focus on (relative or absolute paths) */
   files: string[];
   /** Overall goal for context */
   goal: string;
-  /** Success criteria — how to know the task is done */
+  /** Success criteria â€” how to know the task is done */
   success_criteria: string;
   /** Max sub-agent steps (default: 5) */
   max_steps?: number;
@@ -61,28 +61,28 @@ export interface SubtaskContext {
   signal?: AbortSignal;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Sub-agent system prompt
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const SUBAGENT_SYSTEM = `You are a focused sub-agent. Your job is to complete ONE specific task precisely.
 
 ## Rules
-1. ONLY modify the files listed in your task — do not touch unrelated files.
-2. Read files before editing them — never assume their content.
+1. ONLY modify the files listed in your task â€” do not touch unrelated files.
+2. Read files before editing them â€” never assume their content.
 3. Make surgical, minimal changes. Do not refactor beyond what's requested.
 4. After each change, verify the result by reading the file back.
 5. If you hit an error, try once to fix it, then report it.
-6. Do NOT run tests, linters, or dev servers — those are handled by the main agent.
+6. Do NOT run tests, linters, or dev servers â€” those are handled by the main agent.
 7. When done, summarize exactly what you changed and why.
 
 ## Available tools
 You have file read/write/edit, shell commands (bash), directory listing, glob, and grep.
 Use file_read first to understand existing code, then file_edit for targeted changes.`;
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Delegation
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function runSubtask(
   ctx: SubtaskContext,
@@ -107,7 +107,7 @@ export async function runSubtask(
   const subChangedFiles = new Set<string>();
   const errors: string[] = [];
 
-  // Create limited tools for sub-agent (bridge tools only — no web/search/memory)
+  // Create limited tools for sub-agent (bridge tools only â€” no web/search/memory)
   const subTools = createPowerTools({
     userId,
     projectPath,
@@ -171,10 +171,10 @@ export async function runSubtask(
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Tool factory — returns the `delegate_subtask` tool for registration
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Tool factory â€” returns the `delegate_subtask` tool for registration
 // in the main agent loop.
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface DelegatorContext {
   /** Already established subtask context (userId, projectPath, model, provider) */
@@ -192,13 +192,13 @@ export function createSubtaskDelegatorTool(ctx: DelegatorContext) {
       'implementing isolated features, or any task that benefits from its own dedicated ' +
       'context without cluttering the main conversation. ' +
       'The sub-agent will read files, make changes, and report back what it did. ' +
-      'PASS the EXACT task description, file list, and success criteria — precision matters.',
+      'PASS the EXACT task description, file list, and success criteria â€” precision matters.',
     inputSchema: z.object({
       task: z
         .string()
         .min(10)
         .describe(
-          'Precise description of what the sub-agent should do. Example: "Add input validation to the login form — check email format, min password length 8, and show inline error messages."',
+          'Precise description of what the sub-agent should do. Example: "Add input validation to the login form â€” check email format, min password length 8, and show inline error messages."',
         ),
       files: z
         .array(z.string())
@@ -226,7 +226,7 @@ export function createSubtaskDelegatorTool(ctx: DelegatorContext) {
         .max(10)
         .optional()
         .default(5)
-        .describe('Maximum steps for the sub-agent (1–10, default: 5).'),
+        .describe('Maximum steps for the sub-agent (1â€“10, default: 5).'),
     }),
     execute: async (input) => {
       const subtaskCtx = ctx.getContext();
@@ -240,18 +240,18 @@ export function createSubtaskDelegatorTool(ctx: DelegatorContext) {
 
       // Format result for main agent
       const header = result.success
-        ? `✅ Subtask complete (${result.changed_files.length} file(s) changed)`
-        : `⚠️ Subtask had issues`;
+        ? `âœ… Subtask complete (${result.changed_files.length} file(s) changed)`
+        : `âš ï¸ Subtask had issues`;
 
       const changedList = result.changed_files.length
-        ? `\nFiles changed:\n${result.changed_files.map((f) => `  • ${f}`).join('\n')}`
+        ? `\nFiles changed:\n${result.changed_files.map((f) => `  â€¢ ${f}`).join('\n')}`
         : '';
 
       const errorList = result.errors.length
-        ? `\nErrors:\n${result.errors.map((e) => `  • ${e}`).join('\n')}`
+        ? `\nErrors:\n${result.errors.map((e) => `  â€¢ ${e}`).join('\n')}`
         : '';
 
-      return `${header}${changedList}${errorList}\n\n${result.summary}\n\n— Tokens: ${result.input_tokens} in / ${result.output_tokens} out —`;
+      return `${header}${changedList}${errorList}\n\n${result.summary}\n\nâ€” Tokens: ${result.input_tokens} in / ${result.output_tokens} out â€”`;
     },
   });
 }

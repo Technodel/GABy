@@ -1,5 +1,5 @@
 /**
- * SUNy Loop Detector — detects when the AI is stuck in repetitive cycles.
+ * SUNy Loop Detector â€” detects when the AI is stuck in repetitive cycles.
  *
  * Adapted from ANUS loop detection. Works at the turn level:
  *   - Monitors consecutive tool calls for identical repeats
@@ -116,7 +116,7 @@ export class LoopDetector {
             detected: true,
             type: LoopType.ALTERNATING_TOOLS,
             message: `You are alternating between "${names[0]}" and "${names[1]}" with the same arguments. This is a loop. Step back and try a completely different approach.`,
-            repeatedTool: `${names[0]} ↔ ${names[1]}`,
+            repeatedTool: `${names[0]} â†” ${names[1]}`,
             repetitionCount: ALTERNATING_PATTERN_LENGTH,
           };
         }

@@ -9,7 +9,7 @@
 
 import { getAdapter } from './db';
 
-// ── Types ──────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface TurnRecord {
   userId: number;
@@ -30,7 +30,7 @@ export interface TurnRecord {
   durationMs: number;
 }
 
-// ── Write ──────────────────────────────────────────────────────────────────
+// â”€â”€ Write â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Record a single agent turn outcome.  Call this at the end of every turn,
@@ -58,11 +58,11 @@ export async function recordAgentTurn(rec: TurnRecord): Promise<void> {
       rec.durationMs,
     ]);
   } catch {
-    // Metrics must never crash the server — swallow silently
+    // Metrics must never crash the server â€” swallow silently
   }
 }
 
-// ── Read ──────────────────────────────────────────────────────────────────
+// â”€â”€ Read â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /** Overall platform health for the last N days */
 export async function getAgentMetricsSummary(days = 7) {

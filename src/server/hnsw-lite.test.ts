@@ -1,5 +1,5 @@
 /**
- * Unit tests for hnsw-lite.ts — HNSWIndex construction, insertion, search, serialization
+ * Unit tests for hnsw-lite.ts â€” HNSWIndex construction, insertion, search, serialization
  *
  * Uses pure JS data structures. No mocking needed.
  */
@@ -156,7 +156,7 @@ describe('HNSWIndex serialization (toJSON / fromJSON)', () => {
   });
 });
 
-describe('HNSWIndex ANN quality — similar vectors cluster correctly', () => {
+describe('HNSWIndex ANN quality â€” similar vectors cluster correctly', () => {
   it('finds the closest vector among many random vectors', () => {
     const idx = new HNSWIndex(16, 8, 100);
 

@@ -1,5 +1,5 @@
 /**
- * SUNy Browser Automation — Headless browser control for the agent.
+ * SUNy Browser Automation â€” Headless browser control for the agent.
  *
  * Allows SUNy to:
  *   - Take screenshots of web pages
@@ -17,7 +17,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import { sendToBridge } from './bridge-manager';
 
-// ── Types ───────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface BrowserScreenshot {
   base64: string;
@@ -40,7 +40,7 @@ export interface BrowserActionResult {
   durationMs: number;
 }
 
-// ── Core operations ─────────────────────────────────────────────────────────
+// â”€â”€ Core operations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Navigate to a URL and return the page content as text.
@@ -243,7 +243,7 @@ export async function browserPdf(
   }
 }
 
-// ── Tool factory ────────────────────────────────────────────────────────────
+// â”€â”€ Tool factory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function createBrowserTools(userId: number) {
   return {
@@ -276,7 +276,7 @@ export function createBrowserTools(userId: number) {
     }),
 
     browser_interact: tool({
-      description: 'Interact with a web page — click buttons, fill forms, select options. Provide a list of actions to perform sequentially.',
+      description: 'Interact with a web page â€” click buttons, fill forms, select options. Provide a list of actions to perform sequentially.',
       inputSchema: z.object({
         url: z.string().url().describe('The URL to interact with'),
         actions: z.array(z.object({

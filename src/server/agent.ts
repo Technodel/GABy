@@ -72,7 +72,7 @@ const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai
 
 /**
  * Known vision-capable model IDs per provider, in preference order (cheapest/fastest first).
- * Used when imageData is present in a request — we search ALL active keys across all modes.
+ * Used when imageData is present in a request â€” we search ALL active keys across all modes.
  */
 const VISION_MODEL_MAP: Record<string, string[]> = {
   'OpenRouter': [
@@ -173,7 +173,7 @@ export type TaskType = 'coding' | 'analysis' | 'general';
 
 /**
  * Classify a user message as coding, analysis, or general for Pro mode
- * task→model routing. DeepSeek excels at coding/implementation; Anthropic
+ * taskâ†’model routing. DeepSeek excels at coding/implementation; Anthropic
  * excels at analysis/reasoning/code review.
  */
 export function classifyTaskType(message: string): TaskType {
@@ -195,8 +195,8 @@ export function classifyTaskType(message: string): TaskType {
 
 /**
  * Reorder model entries for Pro mode based on task type.
- * - coding/general → DeepSeek primary, Anthropic secondary
- * - analysis/review → Anthropic primary, DeepSeek secondary
+ * - coding/general â†’ DeepSeek primary, Anthropic secondary
+ * - analysis/review â†’ Anthropic primary, DeepSeek secondary
  */
 export function reorderModelsForProTask(
   models: Array<{ model: LanguageModel; provider: string }>,

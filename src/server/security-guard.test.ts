@@ -8,7 +8,7 @@ import {
   isPathWithinProject,
 } from './security-guard';
 
-// ─── isProtectedFile ────────────────────────────────────────────────────────
+// â”€â”€â”€ isProtectedFile â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe('isProtectedFile', () => {
   it('should return true for .env by basename', () => {
@@ -44,7 +44,7 @@ describe('isProtectedFile', () => {
   });
 });
 
-// ─── buildProtectedFileMessage ──────────────────────────────────────────────
+// â”€â”€â”€ buildProtectedFileMessage â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe('buildProtectedFileMessage', () => {
   it('should include the file path in the message', () => {
@@ -59,7 +59,7 @@ describe('buildProtectedFileMessage', () => {
   });
 });
 
-// ─── scanForCredentials ─────────────────────────────────────────────────────
+// â”€â”€â”€ scanForCredentials â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe('scanForCredentials', () => {
   it('should detect API keys in content', () => {
@@ -112,7 +112,7 @@ describe('scanForCredentials', () => {
   });
 });
 
-// ─── scanShellForCredentials ────────────────────────────────────────────────
+// â”€â”€â”€ scanShellForCredentials â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe('scanShellForCredentials', () => {
   it('should detect cat of .env file', () => {
@@ -136,7 +136,7 @@ describe('scanShellForCredentials', () => {
   });
 });
 
-// ─── isPathWithinProject ────────────────────────────────────────────────────
+// â”€â”€â”€ isPathWithinProject â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe('isPathWithinProject', () => {
   it('should accept files within the project path', () => {

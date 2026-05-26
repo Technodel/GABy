@@ -1,30 +1,30 @@
 /**
- * SUNy Behavioral Rules — extract lessons from scored tasks and inject them
+ * SUNy Behavioral Rules â€” extract lessons from scored tasks and inject them
  * into future prompts to create a self-improving feedback loop.
  *
- * ── How it works ──
+ * â”€â”€ How it works â”€â”€
  * 1. After every task, the training scorer evaluates SUNy's output against a rubric.
- * 2. High/low scoring tasks yield a "behavioral lesson" — a one-sentence insight
+ * 2. High/low scoring tasks yield a "behavioral lesson" â€” a one-sentence insight
  *    about what SUNy did well or poorly.
  * 3. This module stores those lessons as "behavioral rules" in the DB.
  * 4. Before the next task, relevant rules are injected into the system prompt,
  *    guiding SUNy to repeat good behaviors and avoid mistakes.
  *
- * ── Rule lifecycle ──
- *    Extracted → stored (confidence=0.5) → applied (each application increases
- *    confidence) → pruned (rules below confidence threshold after N applications
+ * â”€â”€ Rule lifecycle â”€â”€
+ *    Extracted â†’ stored (confidence=0.5) â†’ applied (each application increases
+ *    confidence) â†’ pruned (rules below confidence threshold after N applications
  *    are removed).
  *
  * Feature flag: ff_behavioral_rules
  *
- * ── DbAdapter integration ──
+ * â”€â”€ DbAdapter integration â”€â”€
  * All DB functions accept a DbAdapter parameter instead of calling getDb()
- * directly, breaking the circular dependency chain (behavioral-rules ↔ db).
+ * directly, breaking the circular dependency chain (behavioral-rules â†” db).
  */
 
 import type { DbAdapter, DbRow } from './db-types';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface BehavioralRule {
   id: number;
@@ -40,7 +40,7 @@ export interface BehavioralRule {
   createdAt: string;
 }
 
-// ── DB initialization ─────────────────────────────────────────────────────────
+// â”€â”€ DB initialization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function initializeBehavioralRulesTable(adapter: DbAdapter): Promise<void> {
   await adapter.exec(`
@@ -64,7 +64,7 @@ export async function initializeBehavioralRulesTable(adapter: DbAdapter): Promis
   `);
 }
 
-// ── Infer trigger context from rule text ──────────────────────────────────────
+// â”€â”€ Infer trigger context from rule text â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function inferTriggerContext(ruleText: string, category: string): string {
   const lower = ruleText.toLowerCase();
@@ -96,7 +96,7 @@ function inferTriggerContext(ruleText: string, category: string): string {
     : 'general coding tasks (watch for this pattern)';
 }
 
-// ── Extract a behavioral rule from a training score ───────────────────────────
+// â”€â”€ Extract a behavioral rule from a training score â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function extractBehavioralRule(
   adapter: DbAdapter,
@@ -141,7 +141,7 @@ export async function extractBehavioralRule(
   return adapter.get<BehavioralRule>('SELECT * FROM behavioral_rules WHERE id = ?', [result.lastInsertRowid]);
 }
 
-// ── Get relevant behavioral rules for a given context ─────────────────────────
+// â”€â”€ Get relevant behavioral rules for a given context â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function getRelevantRules(
   adapter: DbAdapter,
@@ -169,7 +169,7 @@ export async function getRelevantRules(
   return adapter.all<BehavioralRule>(query, params);
 }
 
-// ── Format behavioral rules for system prompt injection ───────────────────────
+// â”€â”€ Format behavioral rules for system prompt injection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function formatBehavioralRules(rules: BehavioralRule[]): string {
   if (rules.length === 0) return '';
@@ -190,21 +190,21 @@ export function formatBehavioralRules(rules: BehavioralRule[]): string {
     if (groupWins.length > 0) {
       parts.push(`[When ${context}, always:]`);
       for (const r of groupWins) {
-        parts.push(`  ✓ ${r.ruleText}`);
+        parts.push(`  âœ“ ${r.ruleText}`);
       }
     }
     if (groupMistakes.length > 0) {
       parts.push(`[When ${context}, avoid:]`);
       for (const r of groupMistakes) {
-        parts.push(`  ✗ ${r.ruleText}`);
+        parts.push(`  âœ— ${r.ruleText}`);
       }
     }
   }
 
-  return `[BEHAVIORAL RULES — learned from ${rules.length} past tasks]\n${parts.join('\n')}`;
+  return `[BEHAVIORAL RULES â€” learned from ${rules.length} past tasks]\n${parts.join('\n')}`;
 }
 
-// ── Prune low-confidence rules ────────────────────────────────────────────────
+// â”€â”€ Prune low-confidence rules â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function pruneLowConfidenceRules(
   adapter: DbAdapter,
@@ -217,7 +217,7 @@ export async function pruneLowConfidenceRules(
   return { totalRemoved: result.changes };
 }
 
-// ── Phase 2.3: Extract mistake rules from lint/test failures ──────────────────
+// â”€â”€ Phase 2.3: Extract mistake rules from lint/test failures â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface MistakeContext {
   errorCount: number;
@@ -239,8 +239,8 @@ export async function extractMistakeRule(
     : `resolved in ${info.retriesUsed} attempt(s)`;
 
   const ruleText = info.gaveUp
-    ? `${sourceLabel} pattern (${info.errorCount} error(s), ${retryDesc}) — task: "${info.context}"`
-    : `${sourceLabel} pattern (${info.errorCount} error(s), ${retryDesc}) — task: "${info.context}"`;
+    ? `${sourceLabel} pattern (${info.errorCount} error(s), ${retryDesc}) â€” task: "${info.context}"`
+    : `${sourceLabel} pattern (${info.errorCount} error(s), ${retryDesc}) â€” task: "${info.context}"`;
 
   const triggerContext = source === 'lint'
     ? 'when writing or modifying TypeScript files'
@@ -274,7 +274,7 @@ export async function extractMistakeRule(
   return adapter.get<BehavioralRule>('SELECT * FROM behavioral_rules WHERE id = ?', [result.lastInsertRowid]);
 }
 
-// ── Get training progress report ──────────────────────────────────────────────
+// â”€â”€ Get training progress report â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function getTrainingProgress(
   adapter: DbAdapter,
@@ -306,7 +306,7 @@ export async function getTrainingProgress(
   };
 }
 
-// ── Seed AiderDesk behavioral rules ─────────────────────────────────────────
+// â”€â”€ Seed AiderDesk behavioral rules â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function seedBehavioralRules(adapter: DbAdapter, userId: number = 1): Promise<number> {
   const seedRules: Array<{
@@ -316,7 +316,7 @@ export async function seedBehavioralRules(adapter: DbAdapter, userId: number = 1
   }> = [
     {
       category: 'win',
-      ruleText: 'Always read and understand existing files before making any edits — never guess file contents.',
+      ruleText: 'Always read and understand existing files before making any edits â€” never guess file contents.',
       triggerContext: 'when editing existing files',
     },
     {
@@ -326,17 +326,17 @@ export async function seedBehavioralRules(adapter: DbAdapter, userId: number = 1
     },
     {
       category: 'win',
-      ruleText: 'Never give up after a single failed attempt — retry with a different approach, different tools, or a stronger instruction mandate.',
+      ruleText: 'Never give up after a single failed attempt â€” retry with a different approach, different tools, or a stronger instruction mandate.',
       triggerContext: 'when tools produce empty or error output',
     },
     {
       category: 'win',
-      ruleText: 'Use one tool at a time and build on previous results — do not fire all tool calls simultaneously.',
+      ruleText: 'Use one tool at a time and build on previous results â€” do not fire all tool calls simultaneously.',
       triggerContext: 'when executing multi-step tasks',
     },
     {
       category: 'win',
-      ruleText: 'When lint errors or test failures are reported, fix ALL of them and re-run until green — do not leave errors unresolved.',
+      ruleText: 'When lint errors or test failures are reported, fix ALL of them and re-run until green â€” do not leave errors unresolved.',
       triggerContext: 'when fixing lint errors or test failures',
     },
     {
@@ -346,12 +346,12 @@ export async function seedBehavioralRules(adapter: DbAdapter, userId: number = 1
     },
     {
       category: 'win',
-      ruleText: 'Decompose complex tasks into smaller subtasks and tackle them one at a time — do not try to solve everything in one step.',
+      ruleText: 'Decompose complex tasks into smaller subtasks and tackle them one at a time â€” do not try to solve everything in one step.',
       triggerContext: 'when faced with complex multi-file changes',
     },
     {
       category: 'win',
-      ruleText: 'Always start a coding task by using tools (file_read, grep, glob) to gather context — never answer from training data alone.',
+      ruleText: 'Always start a coding task by using tools (file_read, grep, glob) to gather context â€” never answer from training data alone.',
       triggerContext: 'at the start of every coding task',
     },
     {
@@ -361,7 +361,7 @@ export async function seedBehavioralRules(adapter: DbAdapter, userId: number = 1
     },
     {
       category: 'win',
-      ruleText: 'After completing all changes and verifying them, confirm the task requirements are fully met — do not deliver partial solutions.',
+      ruleText: 'After completing all changes and verifying them, confirm the task requirements are fully met â€” do not deliver partial solutions.',
       triggerContext: 'at the end of every task',
     },
   ];

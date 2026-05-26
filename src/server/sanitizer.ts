@@ -1,9 +1,9 @@
 /**
- * Information Firewall — sanitizeForUser() and friendlyError()
+ * Information Firewall â€” sanitizeForUser() and friendlyError()
  *
  * This module is the single enforcement point for Phase 11.
  * ALL data leaving the server toward user-facing clients MUST pass through here.
- * Technical terms, model names, token counts, costs — none of it ever reaches users.
+ * Technical terms, model names, token counts, costs â€” none of it ever reaches users.
  *
  * Strategy:
  *   - BLOCKED_KEYS strips technical metadata keys from object payloads (e.g. model_id,
@@ -11,7 +11,7 @@
  *   - BLOCKED_PATTERNS applies regex replacement to string values in UI chrome payloads
  *     (narration messages, tool call displays, status badges, error messages, etc.) to
  *     prevent model/provider names from appearing in the UI shell.
- *   - Chat content (suny:stream_chunk, suny:stream_end) is NEVER string-sanitized — doing so
+ *   - Chat content (suny:stream_chunk, suny:stream_end) is NEVER string-sanitized â€” doing so
  *     corrupts the AI's legitimate responses. Use buildChatEvent() for those events.
  *     The AI's system prompt handles preventing technical leaks in natural language.
  */
@@ -62,7 +62,7 @@ const BLOCKED_PATTERNS = [
 ];
 
 /**
- * Full sanitization — strips blocked keys AND applies regex patterns to string values.
+ * Full sanitization â€” strips blocked keys AND applies regex patterns to string values.
  * Use this for UI chrome payloads (narration, tool calls, status, errors, etc.).
  */
 export function sanitizeForUser(data: unknown): unknown {
@@ -89,14 +89,14 @@ export function sanitizeForUser(data: unknown): unknown {
 }
 
 /**
- * Lightweight sanitization — strips blocked keys only, leaves string values untouched.
+ * Lightweight sanitization â€” strips blocked keys only, leaves string values untouched.
  * Use this for AI chat content (stream chunks, final responses) where the AI should
  * be free to use natural language including model/provider names.
  */
 export function sanitizeForChatContent(data: unknown): unknown {
   if (data === null || data === undefined) return data;
 
-  // Strings pass through unchanged — the AI prompt handles language-level sanitization
+  // Strings pass through unchanged â€” the AI prompt handles language-level sanitization
   if (typeof data === 'string') return data;
 
   if (Array.isArray(data)) {
@@ -132,27 +132,27 @@ export function friendlyError(err: unknown): string {
   const lowerMsg = message.toLowerCase();
 
   if (lowerMsg.includes('invalid_api_key') || lowerMsg.includes('401') || lowerMsg.includes('unauthorized')) {
-    return "SUNy is having a bit of trouble connecting. We're on it! 🔧";
+    return "SUNy is having a bit of trouble connecting. We're on it! ðŸ”§";
   }
   if (lowerMsg.includes('rate_limit') || lowerMsg.includes('429') || lowerMsg.includes('too many')) {
-    return 'SUNy needs a quick breather — try again in a moment 😄';
+    return 'SUNy needs a quick breather â€” try again in a moment ðŸ˜„';
   }
   if (lowerMsg.includes('balance') || lowerMsg.includes('credit') || lowerMsg.includes('insufficient')) {
-    return "Looks like you're out of credits! Reach out and we'll top you up 😊";
+    return "Looks like you're out of credits! Reach out and we'll top you up ðŸ˜Š";
   }
   if (lowerMsg.includes('timeout') || lowerMsg.includes('timed out')) {
-    return "SUNy is taking a bit longer than usual — hang tight or try again! ⏳";
+    return "SUNy is taking a bit longer than usual â€” hang tight or try again! â³";
   }
   if (lowerMsg.includes('network') || lowerMsg.includes('econnrefused') || lowerMsg.includes('enotfound')) {
-    return "Having a little trouble reaching the network. Let's try that again! 🌐";
+    return "Having a little trouble reaching the network. Let's try that again! ðŸŒ";
   }
 
-  return 'Hmm, something unexpected happened. SUNy is already trying again! 💪';
+  return 'Hmm, something unexpected happened. SUNy is already trying again! ðŸ’ª';
 }
 
 /**
  * Build a safe WebSocket event payload for user clients.
- * Applies full sanitization (keys + string patterns) — use for UI chrome events.
+ * Applies full sanitization (keys + string patterns) â€” use for UI chrome events.
  * Chat content (stream chunks, final responses) should use buildChatEvent() instead.
  */
 export function buildUserEvent(event: string, payload: Record<string, unknown>): string {
@@ -162,7 +162,7 @@ export function buildUserEvent(event: string, payload: Record<string, unknown>):
 
 /**
  * Build a chat content WebSocket event for user clients.
- * Applies key-only sanitization — string values (the AI's actual responses) pass through unchanged.
+ * Applies key-only sanitization â€” string values (the AI's actual responses) pass through unchanged.
  */
 export function buildChatEvent(event: string, payload: Record<string, unknown>): string {
   const safePayload = sanitizeForChatContent(payload) as Record<string, unknown>;

@@ -3,7 +3,7 @@
  *
  * Exposes agent performance data in Prometheus text format at GET /metrics
  * for scraping by Prometheus + Grafana. All data comes from the existing
- * agent_turn_metrics DB table — no new instrumentation needed.
+ * agent_turn_metrics DB table â€” no new instrumentation needed.
  *
  * Usage: app.get('/metrics', prometheusMetricsHandler);
  */
@@ -13,12 +13,12 @@ import promClient from 'prom-client';
 import { getAdapter } from './db';
 import { getGlobalQueueStats } from './user-queue';
 
-// ── Registry ──────────────────────────────────────────────────────────────────
+// â”€â”€ Registry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const register = new promClient.Registry();
 promClient.collectDefaultMetrics({ register });
 
-// ── Gauges ────────────────────────────────────────────────────────────────────
+// â”€â”€ Gauges â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const turnsTotalGauge = new promClient.Gauge({
   name: 'suny_turns_total',
@@ -93,7 +93,7 @@ const userQueueQueuedGauge = new promClient.Gauge({
   registers: [register],
 });
 
-// ── Data refresh interval ─────────────────────────────────────────────────────
+// â”€â”€ Data refresh interval â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 let lastRefresh = 0;
 const REFRESH_INTERVAL_MS = 15_000; // refresh from DB every 15s
@@ -149,7 +149,7 @@ async function refreshMetrics(): Promise<void> {
   tokenUsageGauge.set({ type: 'input' }, tokenUsage.input);
   tokenUsageGauge.set({ type: 'output' }, tokenUsage.output);
 
-  // Step exhaustion — count completed turns where steps >= 24 (MAX_STEPS)
+  // Step exhaustion â€” count completed turns where steps >= 24 (MAX_STEPS)
   const exhausted = await db.get<{ count: number }>(`
     SELECT COUNT(*) AS count FROM agent_turn_metrics
     WHERE ts >= ${since}
@@ -162,7 +162,7 @@ async function refreshMetrics(): Promise<void> {
   `) ?? { count: 0 };
   stepsExhaustedGauge.set(zeroToolFailures.count);
 
-  // Hypothesis win rate — counting ratio of positive scores from hypothesis_runs
+  // Hypothesis win rate â€” counting ratio of positive scores from hypothesis_runs
   const hypStats = await db.get<{ total: number; high_score: number }>(`
     SELECT
       COUNT(*) AS total,
@@ -180,7 +180,7 @@ async function refreshMetrics(): Promise<void> {
   userQueueQueuedGauge.set(queueStats.totalQueued);
 }
 
-// ── Express handler ───────────────────────────────────────────────────────────
+// â”€â”€ Express handler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function prometheusMetricsHandler(_req: Request, res: Response): Promise<void> {
   // Refresh data from DB if interval has elapsed

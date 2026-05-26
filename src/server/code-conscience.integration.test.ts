@@ -1,5 +1,5 @@
 /**
- * Integration tests for SUNy Code Conscience — full end-to-end flow
+ * Integration tests for SUNy Code Conscience â€” full end-to-end flow
  *
  * Spins up the Express server on a test port with an isolated SQLite database
  * and tests the blueprint memory and change guardian modules in context.
@@ -10,7 +10,7 @@ import * as path from 'path';
 import * as os from 'os';
 import * as crypto from 'crypto';
 
-// ── Test DB ───────────────────────────────────────────────────────────────────
+// â”€â”€ Test DB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const TEST_DB_DIR = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'suny-int-'));
 const TEST_DB_PATH = path.join(TEST_DB_DIR, 'test-suny.db');
 
@@ -21,7 +21,7 @@ process.env.NODE_ENV = 'test';
 
 import { getDb } from './db';
 
-// ── Blueprint memory ──────────────────────────────────────────────────────────
+// â”€â”€ Blueprint memory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 import {
   getBlueprintContext,
   getBlueprintEntries,
@@ -29,7 +29,7 @@ import {
   storeBlueprintEntry,
 } from './blueprint-memory';
 
-// ── Change Guardian ──────────────────────────────────────────────────────────
+// â”€â”€ Change Guardian â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 import {
   captureSnapshot,
   clearSnapshot,
@@ -83,11 +83,11 @@ afterAll(() => {
   } catch { /* ignore */ }
 });
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // BLUEPRINT MEMORY INTEGRATION
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-describe('Blueprint Memory — integration (real DB)', () => {
+describe('Blueprint Memory â€” integration (real DB)', () => {
   beforeEach(() => {
     // Clear all blueprint entries between tests to prevent data pollution
     try { db.exec('DELETE FROM blueprint_entries'); } catch { /* table may not exist yet */ }
@@ -151,7 +151,7 @@ describe('Blueprint Memory — integration (real DB)', () => {
     const ctx = getBlueprintContext({ userId, projectId, maxEntries: 5 });
 
     // Context must be a valid injection block
-    expect(ctx).toContain('=== SUNy CODE CONSCIENCE — DESIGN MEMORY ===');
+    expect(ctx).toContain('=== SUNy CODE CONSCIENCE â€” DESIGN MEMORY ===');
     expect(ctx).toContain('=== END DESIGN MEMORY ===');
     expect(ctx).toContain('Set up PostgreSQL');
     expect(ctx).toContain('Design Decision');
@@ -188,11 +188,11 @@ describe('Blueprint Memory — integration (real DB)', () => {
   });
 });
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // CHANGE GUARDIAN INTEGRATION
-// ═══════════════════════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-describe('Change Guardian — integration (real TS files)', () => {
+describe('Change Guardian â€” integration (real TS files)', () => {
   const userId = 50;
   const projectId = 200;
 
@@ -230,7 +230,7 @@ export function multiply(a: number, b: number): number {
 
     captureSnapshot('int_drift', [mathPath]);
 
-    // Now change the signature — add changes to accept strings too
+    // Now change the signature â€” add changes to accept strings too
     fs.writeFileSync(mathPath, `
 export function add(a: string | number, b: string | number): number {
   return Number(a) + Number(b);
@@ -333,11 +333,11 @@ export function subtract(a: number, b: number): number {
       f.changes.filter(c => !c.isIntentional)
     );
 
-    // subtract was mentioned → intentional
+    // subtract was mentioned â†’ intentional
     const subtractChange = intentional.find(c => c.name === 'subtract');
     expect(subtractChange).toBeDefined();
 
-    // No unintentional changes here — only subtract was added
+    // No unintentional changes here â€” only subtract was added
     expect(unintentional.length).toBe(0);
   });
 });

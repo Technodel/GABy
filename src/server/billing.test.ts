@@ -1,5 +1,5 @@
 /**
- * Unit tests for SUNy Billing — deductUsage, hasSufficientBalance, transferToWallet
+ * Unit tests for SUNy Billing â€” deductUsage, hasSufficientBalance, transferToWallet
  *
  * Uses an in-memory SQLite database to isolate tests.
  * Mocks the getDb() call from ./db using vi.mock.
@@ -8,7 +8,7 @@ import 'dotenv/config';
 import { describe, it, expect, beforeAll, beforeEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 
-// ── Mutable holder for the test DB reference ───────────────────────────────────
+// â”€â”€ Mutable holder for the test DB reference â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // vi.mock factory is hoisted so we use a plain object as a mutable reference.
 const mockDbHolder: { db: Database.Database | null } = { db: null };
 
@@ -20,7 +20,7 @@ vi.mock('./db', () => ({
   }),
   getDb: () => {
     if (!mockDbHolder.db) {
-      throw new Error('Test DB not initialized — call initTestDb() in beforeAll');
+      throw new Error('Test DB not initialized â€” call initTestDb() in beforeAll');
     }
     return mockDbHolder.db;
   },

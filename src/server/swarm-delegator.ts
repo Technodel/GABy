@@ -1,5 +1,5 @@
 /**
- * SUNy Swarm Delegator — spawns parallel multi-model sub-agents.
+ * SUNy Swarm Delegator â€” spawns parallel multi-model sub-agents.
  *
  * Architecture:
  *   1. Main agent calls `delegate_swarm({ tasks: [...] })`
@@ -66,24 +66,24 @@ export function createSwarmDelegatorTool(ctx: DelegatorContext) {
       // Merge results
       let totalInputTokens = 0;
       let totalOutputTokens = 0;
-      let combinedSummary = `⚡ SWARM EXECUTION COMPLETE (${results.length} agents)\n\n`;
+      let combinedSummary = `âš¡ SWARM EXECUTION COMPLETE (${results.length} agents)\n\n`;
 
       for (const { role, result } of results) {
         totalInputTokens += result.input_tokens;
         totalOutputTokens += result.output_tokens;
         
         combinedSummary += `--- Agent: ${role.toUpperCase()} ---\n`;
-        combinedSummary += `Status: ${result.success ? '✅ Success' : '⚠️ Failed'}\n`;
+        combinedSummary += `Status: ${result.success ? 'âœ… Success' : 'âš ï¸ Failed'}\n`;
         if (result.changed_files.length) {
-          combinedSummary += `Files Changed:\n${result.changed_files.map(f => `  • ${f}`).join('\n')}\n`;
+          combinedSummary += `Files Changed:\n${result.changed_files.map(f => `  â€¢ ${f}`).join('\n')}\n`;
         }
         if (result.errors.length) {
-          combinedSummary += `Errors:\n${result.errors.map(e => `  • ${e}`).join('\n')}\n`;
+          combinedSummary += `Errors:\n${result.errors.map(e => `  â€¢ ${e}`).join('\n')}\n`;
         }
         combinedSummary += `Summary: ${result.summary}\n\n`;
       }
 
-      combinedSummary += `— Total Swarm Tokens: ${totalInputTokens} in / ${totalOutputTokens} out —`;
+      combinedSummary += `â€” Total Swarm Tokens: ${totalInputTokens} in / ${totalOutputTokens} out â€”`;
       return combinedSummary;
     },
   });

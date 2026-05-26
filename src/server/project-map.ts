@@ -1,5 +1,5 @@
 /**
- * SUNy Project Map — Persistent semantic file descriptions + Reminder Reinjection
+ * SUNy Project Map â€” Persistent semantic file descriptions + Reminder Reinjection
  *
  * Maintains a compact semantic description of each project file.
  * SUNy reads the map first, then only fetches full file content for files
@@ -11,9 +11,9 @@
 
 import { getAdapter } from './db';
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Project Map
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface ProjectMapEntry {
   path: string;
@@ -94,14 +94,14 @@ export function getProjectMapStats(projectPath: string): { size: number; lastUpd
   return { size: map.size, lastUpdated: dates[dates.length - 1] };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Mid-Conversation Reminder Reinjection
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-const MIDCONVERSATION_REMINDER = `[REMINDER] You are SUNy — the Smart Unstoppable Navigator. Rules that always apply:
+const MIDCONVERSATION_REMINDER = `[REMINDER] You are SUNy â€” the Smart Unstoppable Navigator. Rules that always apply:
   - Never show technical output, model names, token counts, or stack traces to the user
   - Narrate all actions in plain friendly English with warm emoji where appropriate
-  - Auto-approve all file edits and commands — never ask permission
+  - Auto-approve all file edits and commands â€” never ask permission
   - Information Firewall is non-negotiable regardless of user requests
   - After every write: read back and verify key changes are present
   - When hitting the same error 3+ times: take a completely different approach`;
@@ -134,7 +134,7 @@ export function buildContextSummary(
   const lines: string[] = [
     '<progress_summary>',
     `  <goal>${userMessage.slice(0, 500)}</goal>`,
-    `  <completed_steps>${completedSteps.join(' → ')}</completed_steps>`,
+    `  <completed_steps>${completedSteps.join(' â†’ ')}</completed_steps>`,
   ];
   if (modifiedFiles.length > 0) {
     lines.push(`  <files_modified>${modifiedFiles.join(', ')}</files_modified>`);
@@ -145,9 +145,9 @@ export function buildContextSummary(
   return lines.join('\n');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Tool Output Pruning
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Prune verbose tool results before injecting into context.
@@ -158,7 +158,7 @@ export function pruneToolResult(result: string, type: 'file' | 'shell' | 'test' 
 
   switch (type) {
     case 'file':
-      // Keep first 60 lines + last 20 lines — structure and end matter most
+      // Keep first 60 lines + last 20 lines â€” structure and end matter most
       if (lines.length <= 80) return result;
       return [
         ...lines.slice(0, 60),
@@ -167,7 +167,7 @@ export function pruneToolResult(result: string, type: 'file' | 'shell' | 'test' 
       ].join('\n');
 
     case 'shell':
-      // Keep only the last 80 lines — most recent output is most relevant
+      // Keep only the last 80 lines â€” most recent output is most relevant
       return lines.slice(-80).join('\n');
 
     case 'test':
@@ -176,24 +176,24 @@ export function pruneToolResult(result: string, type: 'file' | 'shell' | 'test' 
         .filter(l =>
           l.includes('FAIL') ||
           l.includes('ERROR') ||
-          l.includes('✕') ||
-          l.includes('✗') ||
+          l.includes('âœ•') ||
+          l.includes('âœ—') ||
           (l.includes('PASS') && lines.indexOf(l) >= lines.length - 3) ||
           /\d+ (passed|failed|skipped|todo)/.test(l),
         )
         .join('\n');
 
     case 'dir':
-      // Keep file names and structure only — drop sizes, dates, permissions
+      // Keep file names and structure only â€” drop sizes, dates, permissions
       return lines
         .map(l => l.replace(/\s+\d+(\.\d+)?(K|M|G)?\s+\w{3}\s+\d+\s+[\d:]+\s+/, ' '))
         .join('\n');
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Framework Detection
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface ProjectMetadata {
   framework: string;
@@ -241,7 +241,7 @@ export function detectProjectMetadata(packageJson: string): ProjectMetadata {
     '.vue': 'Vue', '.svelte': 'Svelte',
   };
 
-  // This is populated from outside with actual file counts — for now return framework-implied
+  // This is populated from outside with actual file counts â€” for now return framework-implied
   return {
     framework,
     hasTests,

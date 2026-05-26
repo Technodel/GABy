@@ -1,8 +1,8 @@
 /**
- * SUNy Bridge Onboarding — setup code flow for first-time users.
+ * SUNy Bridge Onboarding â€” setup code flow for first-time users.
  *
  * Flow:
- *   1. User clicks "Connect" → server generates a random setup code
+ *   1. User clicks "Connect" â†’ server generates a random setup code
  *   2. User runs `suny-bridge start --code <CODE> --server <URL>` in their terminal
  *   3. Bridge client calls POST /api/bridge/activate with the code
  *   4. Server marks the code as redeemed and returns a scoped auth token
@@ -61,7 +61,7 @@ function checkRateLimit(ip: string): boolean {
   return true;
 }
 
-// ── POST /api/bridge/setup-code — Generate a new setup code ─────────────────
+// â”€â”€ POST /api/bridge/setup-code â€” Generate a new setup code â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface BridgeSetupCodeRequest extends Request {
   userId?: number;
@@ -123,7 +123,7 @@ router.post('/setup-code', async (req: BridgeSetupCodeRequest, res: Response) =>
   res.json({ code, serverUrl });
 });
 
-// ── POST /api/bridge/activate — Redeem a setup code (called by bridge CLI) ──
+// â”€â”€ POST /api/bridge/activate â€” Redeem a setup code (called by bridge CLI) â”€â”€
 
 router.post('/activate', async (req: Request, res: Response) => {
   if (!isBridgeSetupCodesEnabled()) {
@@ -178,7 +178,7 @@ router.post('/activate', async (req: Request, res: Response) => {
   });
 });
 
-// ── GET /api/bridge/status — Check bridge connection status (requires auth) ──
+// â”€â”€ GET /api/bridge/status â€” Check bridge connection status (requires auth) â”€â”€
 
 interface BridgeStatusRequest extends Request {
   userId?: number;
@@ -208,7 +208,7 @@ router.get('/status', (req: BridgeStatusRequest, res: Response) => {
   }
 });
 
-// ── GET /api/bridge/setup-codes — List pending/redeemed codes ──────────────
+// â”€â”€ GET /api/bridge/setup-codes â€” List pending/redeemed codes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface BridgeSetupCodesRequest extends Request {
   userId?: number;
@@ -234,7 +234,7 @@ router.get('/setup-codes', async (req: BridgeSetupCodesRequest, res: Response) =
   res.json({ codes });
 });
 
-// ── POST /api/bridge/disconnect — Disconnect the bridge for this user ────
+// â”€â”€ POST /api/bridge/disconnect â€” Disconnect the bridge for this user â”€â”€â”€â”€
 
 router.post('/disconnect', (req: BridgeStatusRequest, res: Response) => {
   const userId = req.userId;

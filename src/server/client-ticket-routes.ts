@@ -28,11 +28,11 @@ interface TicketRow {
   closed_at: string | null;
 }
 
-// ── All auth-required routes ─────────────────────────────────────────────
+// â”€â”€ All auth-required routes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.use('/client-tickets', requireAuth);
 
-// ── List tickets for authenticated user ──────────────────────────────────
+// â”€â”€ List tickets for authenticated user â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.get('/client-tickets', (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
@@ -45,7 +45,7 @@ router.get('/client-tickets', (req: Request, res: Response) => {
   res.json({ tickets: tickets.map(t => ({ ...t, messages: JSON.parse(t.messages || '[]') })) });
 });
 
-// ── Create a new ticket (with AI-generated initial form) ─────────────────
+// â”€â”€ Create a new ticket (with AI-generated initial form) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.post('/client-tickets', async (req: Request, res: Response) => {
   try {
@@ -60,7 +60,7 @@ router.post('/client-tickets', async (req: Request, res: Response) => {
     }
 
     if (!goal || typeof goal !== 'string' || goal.trim().length === 0) {
-      res.status(400).json({ error: 'Goal is required — tell SUNy what you need from your client.' });
+      res.status(400).json({ error: 'Goal is required â€” tell SUNy what you need from your client.' });
       return;
     }
 
@@ -95,7 +95,7 @@ Keep it under 150 words. Respond with the message text only, no JSON.`,
     } catch (e) {
       console.error('[client-ticket] AI generation failed:', e);
       // Fallback message if AI generation fails
-      openingMessage = `Hi there! 👋 I'm SUNy, the AI assistant for ${companyName}. I'm here to help with: "${goal}". Could you tell me more about what you're looking for? Any specific details or requirements you have in mind would be great!`;
+      openingMessage = `Hi there! ðŸ‘‹ I'm SUNy, the AI assistant for ${companyName}. I'm here to help with: "${goal}". Could you tell me more about what you're looking for? Any specific details or requirements you have in mind would be great!`;
     }
 
     const initialMessages = JSON.stringify([{
@@ -121,7 +121,7 @@ Keep it under 150 words. Respond with the message text only, no JSON.`,
   }
 });
 
-// ── Get ticket details ───────────────────────────────────────────────────
+// â”€â”€ Get ticket details â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.get('/client-tickets/:id', (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
@@ -139,7 +139,7 @@ router.get('/client-tickets/:id', (req: Request, res: Response) => {
   res.json({ ticket: { ...ticket, messages: JSON.parse(ticket.messages || '[]') } });
 });
 
-// ── Close ticket (with AI summary) ───────────────────────────────────────
+// â”€â”€ Close ticket (with AI summary) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.post('/client-tickets/:id/close', async (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
@@ -211,7 +211,7 @@ Respond in JSON format: { "summary": "...", "suggestions": "... (bullet points)"
   res.json({ ticket: { ...updated, messages: JSON.parse(updated.messages || '[]') } });
 });
 
-// ── Reopen ticket ────────────────────────────────────────────────────────
+// â”€â”€ Reopen ticket â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.post('/client-tickets/:id/reopen', (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
@@ -234,7 +234,7 @@ router.post('/client-tickets/:id/reopen', (req: Request, res: Response) => {
   res.json({ ticket: { ...updated, messages: JSON.parse(updated.messages || '[]') } });
 });
 
-// ── Delete ticket ────────────────────────────────────────────────────────
+// â”€â”€ Delete ticket â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.delete('/client-tickets/:id', (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
@@ -253,7 +253,7 @@ router.delete('/client-tickets/:id', (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-// ── Public routes (no auth required) ─────────────────────────────────────
+// â”€â”€ Public routes (no auth required) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 // Get public ticket info
 router.get('/client-ticket/:uid', (req: Request, res: Response) => {
@@ -460,7 +460,7 @@ Do not mention costs, models, or technical details. Keep it warm and professiona
       closingMessage = result.text.trim();
     }
   } catch {
-    closingMessage = `Thank you so much for sharing all the details! I've noted everything and ${ticket.company_name} will review your request and follow up with you. Have a great day! 😊`;
+    closingMessage = `Thank you so much for sharing all the details! I've noted everything and ${ticket.company_name} will review your request and follow up with you. Have a great day! ðŸ˜Š`;
   }
 
   messages.push({

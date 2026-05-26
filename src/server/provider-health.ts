@@ -1,5 +1,5 @@
 /**
- * provider-health.ts — API provider health monitoring.
+ * provider-health.ts â€” API provider health monitoring.
  *
  * Periodically checks provider endpoints (Groq, OpenRouter, HuggingFace, etc.)
  * to surface issues like rate limiting, credential expiry, or downtime.

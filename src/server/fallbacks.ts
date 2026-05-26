@@ -1,5 +1,5 @@
 /**
- * fallbacks.ts — Shared reply-fallback utilities + project-scan helper.
+ * fallbacks.ts â€” Shared reply-fallback utilities + project-scan helper.
  *
  * Extracted from index.ts to break the circular dependency
  * between index.ts and ws-handler.ts.
@@ -21,23 +21,23 @@ export const EMPTY_FINAL_REPLY_FALLBACKS = [
 ];
 
 export const ERROR_REPLY_FALLBACKS = [
-  'Something unexpected happened on my side. Please try again in a moment. 💪',
+  'Something unexpected happened on my side. Please try again in a moment. ðŸ’ª',
   "I hit a temporary issue while finishing that request. Please send it again and I'll retry.",
   "That run failed unexpectedly. Try once more and I'll take another path.",
   'I ran into an internal hiccup just now. Please retry and I will continue.',
 ];
 
 export const EXHAUSTED_REPLY_FALLBACKS = [
-  'All AI models are currently unavailable. Please try again later or contact support. 🤖💤',
+  'All AI models are currently unavailable. Please try again later or contact support. ðŸ¤–ðŸ’¤',
   'Looks like every model is taking a nap right now. Try again in a bit or reach out to support!',
   'All providers are tapped out at the moment. Please retry later or ping support for help.',
-  'No AI model could complete your request — they\'re all down. Try again soon, or contact support.',
+  'No AI model could complete your request â€” they\'re all down. Try again soon, or contact support.',
   'The AI backend is having a moment. All models exhausted. Please try again later or contact support.',
-  'Every single model returned an error. Something\'s wrong on the backend — try again later or contact support.',
+  'Every single model returned an error. Something\'s wrong on the backend â€” try again later or contact support.',
   'We\'ve hit a full provider blackout. All models exhausted. Please retry later or contact support.',
   'All AI models are currently offline. Please try again later or contact support for assistance.',
   'The AI service is completely unavailable right now. All models exhausted. Try again later or contact support.',
-  'Well, this is awkward — every model failed. Please try again later or contact support.',
+  'Well, this is awkward â€” every model failed. Please try again later or contact support.',
 ];
 
 const lastFallbackByUser = new Map<number, string>();

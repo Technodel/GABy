@@ -6,7 +6,7 @@ import { userClientManager } from './user-client-manager';
 
 const router = Router();
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function generateUid(): string {
   return crypto.randomBytes(16).toString('hex');
@@ -36,11 +36,11 @@ interface ClientRequestRow {
   created_at: string;
 }
 
-// ── All routes require auth ──────────────────────────────────────────────────
+// â”€â”€ All routes require auth â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.use(requireAuth);
 
-// ── List all client links for the authenticated user ─────────────────────────
+// â”€â”€ List all client links for the authenticated user â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.get('/client-links', (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
@@ -70,7 +70,7 @@ router.get('/client-links', (req: Request, res: Response) => {
   res.json({ links: enriched });
 });
 
-// ── Create a new client link ─────────────────────────────────────────────────
+// â”€â”€ Create a new client link â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.post('/client-links', (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
@@ -93,7 +93,7 @@ router.post('/client-links', (req: Request, res: Response) => {
   res.status(201).json({ link });
 });
 
-// ── Update a client link ─────────────────────────────────────────────────────
+// â”€â”€ Update a client link â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.put('/client-links/:id', (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
@@ -130,7 +130,7 @@ router.put('/client-links/:id', (req: Request, res: Response) => {
   res.json({ link: updated });
 });
 
-// ── Delete a client link ─────────────────────────────────────────────────────
+// â”€â”€ Delete a client link â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.delete('/client-links/:id', (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
@@ -152,7 +152,7 @@ router.delete('/client-links/:id', (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-// ── List requests for a specific link ────────────────────────────────────────
+// â”€â”€ List requests for a specific link â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.get('/client-links/:id/requests', (req: Request, res: Response) => {
   const authReq = req as AuthRequest;
@@ -174,7 +174,7 @@ router.get('/client-links/:id/requests', (req: Request, res: Response) => {
   res.json({ requests });
 });
 
-// ── Update request status (approve/deny) ─────────────────────────────────────
+// â”€â”€ Update request status (approve/deny) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.put('/client-requests/:id', (req: Request, res: Response) => {
   const authReq = req as AuthRequest;

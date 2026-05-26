@@ -1,9 +1,9 @@
 /**
- * Edit Format Parser — Aider-compatible text-based edit formats
+ * Edit Format Parser â€” Aider-compatible text-based edit formats
  *
  * Supported formats:
- *   diff     — Aider search/replace blocks
- *   whole    — fenced code blocks (full file rewrites)
+ *   diff     â€” Aider search/replace blocks
+ *   whole    â€” fenced code blocks (full file rewrites)
  */
 
 import * as fs from 'fs';
@@ -15,7 +15,7 @@ export interface ApplyResult {
   error?: string;
 }
 
-// ── DIFF FORMAT ───────────────────────────────────────────────────────────────
+// â”€â”€ DIFF FORMAT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //
 // The model outputs one or more blocks like:
 //   path/to/file.ts
@@ -75,7 +75,7 @@ export function applyDiffFormat(text: string, workingDir: string): ApplyResult[]
   return results;
 }
 
-// ── WHOLE FORMAT ──────────────────────────────────────────────────────────────
+// â”€â”€ WHOLE FORMAT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 //
 // The model outputs fenced code blocks preceded by a filename, e.g.:
 //   src/app.ts
@@ -114,7 +114,7 @@ export function applyWholeFormat(text: string, workingDir: string): ApplyResult[
   return results;
 }
 
-// ── System prompt injections ──────────────────────────────────────────────────
+// â”€â”€ System prompt injections â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const DIFF_FORMAT_INSTRUCTIONS = `
 === EDIT FORMAT: SEARCH/REPLACE ===
@@ -122,7 +122,7 @@ To edit files, output one or more blocks in this exact format:
 
 path/to/file.ext
 <<<<<<< SEARCH
-[exact content to find — must match the file verbatim]
+[exact content to find â€” must match the file verbatim]
 =======
 [new content to replace it with]
 >>>>>>> REPLACE
@@ -146,7 +146,7 @@ path/to/file.ext
 \`\`\`
 
 Rules:
-- Always include the full file content — not just the changed parts.
+- Always include the full file content â€” not just the changed parts.
 - Output one block per file.
 - Use the correct language tag (ts, tsx, py, js, etc.).
 `.trim();
@@ -158,5 +158,5 @@ You are the Architect. Think carefully about the request and produce a detailed 
 - What is the exact change needed in each file?
 - Are there any edge cases or risks?
 
-Do NOT write actual code yet — just the plan. Be specific about file paths and function names.
+Do NOT write actual code yet â€” just the plan. Be specific about file paths and function names.
 `.trim();

@@ -1,5 +1,5 @@
 /**
- * SUNy MCP Marketplace — Discover, share, and install MCP server configurations.
+ * SUNy MCP Marketplace â€” Discover, share, and install MCP server configurations.
  *
  * A registry of community-contributed MCP server definitions that users
  * can browse, install, and share. Each entry includes:
@@ -14,7 +14,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import { getDb } from './db';
 
-// ── Types ───────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface MarketplaceEntry {
   id: number;
@@ -63,7 +63,7 @@ export type MarketplaceCategory =
   | 'utility'
   | 'other';
 
-// ── Database ────────────────────────────────────────────────────────────────
+// â”€â”€ Database â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function ensureTable(): void {
   const db = getDb();
@@ -112,7 +112,7 @@ function ensureTable(): void {
   `);
 }
 
-// ── Marketplace CRUD ────────────────────────────────────────────────────────
+// â”€â”€ Marketplace CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function seedMarketplaceEntries(): void {
   ensureTable();
@@ -137,7 +137,7 @@ export function seedMarketplaceEntries(): void {
     {
       name: 'github',
       displayName: 'GitHub API',
-      description: 'Interact with GitHub — repos, issues, PRs, code search, and more via the GitHub API.',
+      description: 'Interact with GitHub â€” repos, issues, PRs, code search, and more via the GitHub API.',
       author: 'SUNy Core',
       transport: 'stdio',
       config: { command: 'npx', args: ['-y', '@modelcontextprotocol/server-github'] },
@@ -214,7 +214,7 @@ export function seedMarketplaceEntries(): void {
     {
       name: 'playwright',
       displayName: 'Playwright Browser',
-      description: 'Automate browsers — navigate, screenshot, fill forms, extract data from web pages.',
+      description: 'Automate browsers â€” navigate, screenshot, fill forms, extract data from web pages.',
       author: 'MCP Community',
       transport: 'stdio',
       config: { command: 'npx', args: ['-y', '@modelcontextprotocol/server-playwright'] },
@@ -247,7 +247,7 @@ export function seedMarketplaceEntries(): void {
     {
       name: 'everything',
       displayName: 'Everything Server',
-      description: 'MCP test server with every type of tool, resource, and prompt — useful for testing.',
+      description: 'MCP test server with every type of tool, resource, and prompt â€” useful for testing.',
       author: 'MCP Team',
       transport: 'stdio',
       config: { command: 'npx', args: ['-y', '@modelcontextprotocol/server-everything'] },
@@ -300,7 +300,7 @@ export function seedMarketplaceEntries(): void {
   }
 }
 
-// ── Queries ─────────────────────────────────────────────────────────────────
+// â”€â”€ Queries â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function listMarketplaceEntries(
   options?: {
@@ -363,7 +363,7 @@ export function incrementInstallCount(marketplaceId: number): void {
   db.prepare('UPDATE mcp_marketplace SET install_count = install_count + 1 WHERE id = ?').run(marketplaceId);
 }
 
-// ── User installed MCP ──────────────────────────────────────────────────────
+// â”€â”€ User installed MCP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function installMarketplaceMcp(
   userId: number,
@@ -440,7 +440,7 @@ export function uninstallUserMcp(id: number, userId: number): boolean {
   return result.changes > 0;
 }
 
-// ── Tool factory ────────────────────────────────────────────────────────────
+// â”€â”€ Tool factory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function createMarketplaceTools(userId: number) {
   return {
@@ -456,7 +456,7 @@ export function createMarketplaceTools(userId: number) {
         if (result.entries.length === 0) return 'No MCP servers found matching your criteria.';
 
         return result.entries.map(e =>
-          `[${e.category}] ${e.display_name} — ${e.description.slice(0, 100)}` +
+          `[${e.category}] ${e.display_name} â€” ${e.description.slice(0, 100)}` +
           `\n  Transport: ${e.transport} | Author: ${e.author} | Rating: ${e.rating}/5 | Installs: ${e.install_count}` +
           `\n  Install: \`mcp-marketplace install ${e.id}\``
         ).join('\n\n');
@@ -476,7 +476,7 @@ export function createMarketplaceTools(userId: number) {
         if (!installed) return `Failed to install "${entry.display_name}".`;
 
         return [
-          `✅ Installed "${entry.display_name}" from marketplace!`,
+          `âœ… Installed "${entry.display_name}" from marketplace!`,
           `Transport: ${entry.transport}`,
           `Config: ${entry.config_example}`,
           `Connect it via \`/mcp connect ${installed.name}\` to start using its tools.`,
@@ -492,7 +492,7 @@ export function createMarketplaceTools(userId: number) {
         if (installed.length === 0) return 'No MCP servers installed. Browse the marketplace with `mcp_marketplace_search`.';
 
         return installed.map(i =>
-          `${i.is_active ? '🟢' : '⭕'} ${i.display_name} (${i.transport})` +
+          `${i.is_active ? 'ðŸŸ¢' : 'â­•'} ${i.display_name} (${i.transport})` +
           `\n  Installed: ${i.installed_at}`
         ).join('\n\n');
       },
@@ -511,13 +511,13 @@ export function createMarketplaceTools(userId: number) {
 
         if (!installed) return `No installed MCP server found with name "${name}".`;
         uninstallUserMcp(installed.id, userId);
-        return `✅ Uninstalled "${name}".`;
+        return `âœ… Uninstalled "${name}".`;
       },
     }),
   };
 }
 
-// ── MCP marketplace API routes ──────────────────────────────────────────────
+// â”€â”€ MCP marketplace API routes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 import { Router } from 'express';
 import { requireAuth } from './auth';

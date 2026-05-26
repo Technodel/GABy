@@ -1,13 +1,13 @@
 /**
- * SUNy Project Digest — Proactive project understanding on first connect.
+ * SUNy Project Digest â€” Proactive project understanding on first connect.
  *
  * Phase 3.1: Auto-reads README, package.json, tsconfig.json on first project
  *   connection and produces a concise internal digest for the system prompt.
  *
- * Phase 3.2: Lightweight dependency graph — maps which files import which,
+ * Phase 3.2: Lightweight dependency graph â€” maps which files import which,
  *   injected as context so SUNy understands file relationships immediately.
  *
- * Phase 3.4: Health Check on Resume — on project reopen, checks git status
+ * Phase 3.4: Health Check on Resume â€” on project reopen, checks git status
  *   and failing tests so SUNy starts the conversation with awareness.
  */
 
@@ -15,7 +15,7 @@ import { getAdapter } from './db';
 import * as fs from 'fs';
 import * as path from 'path';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface ProjectDigest {
   readme: string;         // First 300 chars of README or ''
@@ -31,7 +31,7 @@ export interface DepGraphEntry {
   isEntry: boolean;
 }
 
-// ── 3.1: Auto Project Digest ──────────────────────────────────────────────────
+// â”€â”€ 3.1: Auto Project Digest â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * On first project connection, silently read key files and produce a digest.
@@ -78,7 +78,7 @@ export function formatDigestForPrompt(digest: ProjectDigest): string {
     `Entry points: ${digest.entryPoints.join(', ') || 'unknown'}`,
     '',
     'Use this digest to ground your understanding of the project.',
-    'It was generated automatically when SUNy first connected — you do not need to re-read these files.',
+    'It was generated automatically when SUNy first connected â€” you do not need to re-read these files.',
     '=== END PROJECT DIGEST ===',
   ].join('\n');
 }
@@ -102,7 +102,7 @@ export async function markDigestCached(projectPath: string): Promise<void> {
   await db.run("INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, datetime('now'))", [key]);
 }
 
-// ── 3.2: Architecture Graph ───────────────────────────────────────────────────
+// â”€â”€ 3.2: Architecture Graph â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Build a lightweight import dependency graph from the project files.
@@ -191,7 +191,7 @@ export function formatGraphForPrompt(graph: DepGraphEntry[]): string {
   ].join('\n');
 }
 
-// ── 3.4: Health Check on Resume ───────────────────────────────────────────────
+// â”€â”€ 3.4: Health Check on Resume â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface HealthCheckResult {
   hasUncommittedChanges: boolean;
@@ -230,7 +230,7 @@ export function runHealthCheck(projectPath: string): HealthCheckResult {
     const lastCommit = execSync('git log -1 --format=%ci', { cwd: projectPath, encoding: 'utf-8', timeout: 3000 }).trim();
     result.lastCommitDate = lastCommit.slice(0, 10);
   } catch {
-    // Git might not be available — that's OK
+    // Git might not be available â€” that's OK
   }
 
   // Check for existing test results or quickly scan for failing tests
@@ -261,20 +261,20 @@ export function formatHealthCheckForPrompt(health: HealthCheckResult): string {
   }
 
   if (health.hasUncommittedChanges) {
-    lines.push(`⚠️ Uncommitted changes: ${health.uncommittedFiles.slice(0, 5).join(', ')}`);
+    lines.push(`âš ï¸ Uncommitted changes: ${health.uncommittedFiles.slice(0, 5).join(', ')}`);
   } else {
-    lines.push('✅ Working tree clean');
+    lines.push('âœ… Working tree clean');
   }
 
   if (health.hasFailingTests) {
-    lines.push(`⚠️ ${health.failingTestCount} test(s) failing`);
+    lines.push(`âš ï¸ ${health.failingTestCount} test(s) failing`);
   }
 
   lines.push('=== END HEALTH CHECK ===');
   return lines.join('\n');
 }
 
-// ── Internal Helpers ──────────────────────────────────────────────────────────
+// â”€â”€ Internal Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function readFirstLines(filePath: string, maxChars: number): string {
   try {
@@ -347,7 +347,7 @@ function walkTsFiles(projectPath: string, max: number): string[] {
         }
       }
     } catch {
-      // Permission errors — skip
+      // Permission errors â€” skip
     }
   }
 

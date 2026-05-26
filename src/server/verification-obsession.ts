@@ -1,22 +1,22 @@
 /**
- * SUNy Verification Obsession — Phase 4
+ * SUNy Verification Obsession â€” Phase 4
  *
  * SUNy is obsessed with verifying its own work before calling it done.
  * Three sub-systems:
  *
- * 4.1 SILENT CODE REVIEW PASS — After each set of file changes, SUNy reviews
+ * 4.1 SILENT CODE REVIEW PASS â€” After each set of file changes, SUNy reviews
  *     its own diff like a senior engineer, checking for:
  *     - Security issues (secrets, injection, unsafe ops)
  *     - Obvious bugs (null refs, type mismatches, logic holes)
  *     - Code quality (missed edge cases, inconsistent patterns)
- *     The review is silent — only injected into the system prompt so SUNy
+ *     The review is silent â€” only injected into the system prompt so SUNy
  *     can self-correct before responding to the user.
  *
- * 4.2 POST-MERGE VALIDATION — After file writes, checks if the project
+ * 4.2 POST-MERGE VALIDATION â€” After file writes, checks if the project
  *     still compiles (tsc --noEmit), if tests pass, and warns about
  *     dev server crashes.
  *
- * 4.3 INTERACTION PATTERN ANALYZER — Spot repeated error patterns across
+ * 4.3 INTERACTION PATTERN ANALYZER â€” Spot repeated error patterns across
  *     turns: same lint error 3+ times, same kind of revert, same
  *     verification skip. Feeds insights back into behavioral rules.
  */
@@ -25,7 +25,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { getAdapter } from './db';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface CodeReviewIssue {
   severity: 'critical' | 'warning' | 'info';
@@ -61,7 +61,7 @@ export interface InteractionPattern {
   suggestion: string;
 }
 
-// ── 4.1: Silent Code Review Pass ──────────────────────────────────────────────
+// â”€â”€ 4.1: Silent Code Review Pass â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const SECURITY_PATTERNS: Array<{ pattern: RegExp; message: string; suggestion: string }> = [
   {
@@ -81,17 +81,17 @@ const SECURITY_PATTERNS: Array<{ pattern: RegExp; message: string; suggestion: s
   },
   {
     pattern: /\beval\s*\(/i,
-    message: 'eval() usage detected — security risk',
+    message: 'eval() usage detected â€” security risk',
     suggestion: 'Avoid eval(); use JSON.parse() for data or Function constructor only if necessary',
   },
   {
     pattern: /\bexec\s*\(\s*['"][^'"]*\$\{[^}]+\}/,
-    message: 'Shell injection risk — template literal in exec()',
+    message: 'Shell injection risk â€” template literal in exec()',
     suggestion: 'Use child_process.spawn() with argument arrays instead of exec() with string interpolation',
   },
   {
     pattern: /(\bINSERT\b|\bUPDATE\b|\bDELETE\b).*\$\{/i,
-    message: 'Potential SQL injection — template literal in SQL query',
+    message: 'Potential SQL injection â€” template literal in SQL query',
     suggestion: 'Use parameterized queries (?) instead of string interpolation',
   },
 ];
@@ -99,22 +99,22 @@ const SECURITY_PATTERNS: Array<{ pattern: RegExp; message: string; suggestion: s
 const BUG_PATTERNS: Array<{ pattern: RegExp; message: string; suggestion: string }> = [
   {
     pattern: /\bif\s*\(\s*\w+\s*\)\s*\{\s*\}\s*else\s*\{\s*\w+\./,
-    message: 'Possible null reference — accessing property after checking truthiness without null guard',
+    message: 'Possible null reference â€” accessing property after checking truthiness without null guard',
     suggestion: 'Use optional chaining (?.) or explicit null check',
   },
   {
     pattern: /\.map\s*\([^)]*\)\s*\.(?!filter|join|reduce|flat)/,
-    message: '.map() without using the return value — may be a missing assignment',
+    message: '.map() without using the return value â€” may be a missing assignment',
     suggestion: 'Assign .map() result to a variable or use .forEach() if no return is needed',
   },
   {
     pattern: /\bawait\s+\w+\s*\(\s*\)\s*[;,]\s*$|\.then\s*\(/i,
-    message: 'Mixed await and .then() patterns — inconsistent async style',
+    message: 'Mixed await and .then() patterns â€” inconsistent async style',
     suggestion: 'Stick to one async pattern (prefer async/await) for consistency',
   },
   {
     pattern: /\btry\s*\{[^}]*\}\s*catch\s*\([^)]*\)\s*\{\s*\}/,
-    message: 'Empty catch block — error is silently swallowed',
+    message: 'Empty catch block â€” error is silently swallowed',
     suggestion: 'At minimum, log the error or add a comment explaining why it is safe to ignore',
   },
   {
@@ -124,7 +124,7 @@ const BUG_PATTERNS: Array<{ pattern: RegExp; message: string; suggestion: string
   },
   {
     pattern: /TODO|FIXME|HACK|XXX/i,
-    message: 'TODO/FIXME/HACK comment found — may indicate unfinished work',
+    message: 'TODO/FIXME/HACK comment found â€” may indicate unfinished work',
     suggestion: 'Address the TODO or create a tracking issue before merging',
   },
 ];
@@ -212,7 +212,7 @@ export function formatCodeReviewForPrompt(review: CodeReviewResult): string {
 
   const lines: string[] = [
     '',
-    '=== POST-EDIT CODE REVIEW (silent — fix before responding) ===',
+    '=== POST-EDIT CODE REVIEW (silent â€” fix before responding) ===',
     `Reviewed ${review.filesReviewed} file(s). ${review.summary}`,
     '',
   ];
@@ -226,7 +226,7 @@ export function formatCodeReviewForPrompt(review: CodeReviewResult): string {
   byFile.forEach((fileIssues, file) => {
     lines.push(`  ${file}:`);
     for (const issue of fileIssues) {
-      const icon = issue.severity === 'critical' ? '🔴' : issue.severity === 'warning' ? '🟡' : '🔵';
+      const icon = issue.severity === 'critical' ? 'ðŸ”´' : issue.severity === 'warning' ? 'ðŸŸ¡' : 'ðŸ”µ';
       const loc = issue.line ? `:${issue.line}` : '';
       lines.push(`    ${icon} [${issue.category}] ${issue.message}${loc}`);
       lines.push(`       Fix: ${issue.suggestion}`);
@@ -234,18 +234,18 @@ export function formatCodeReviewForPrompt(review: CodeReviewResult): string {
   });
 
   lines.push('');
-  lines.push('Fix all 🔴 critical issues before responding to the user.');
-  lines.push('Fix 🟡 warnings if they are fast; otherwise acknowledge them.');
+  lines.push('Fix all ðŸ”´ critical issues before responding to the user.');
+  lines.push('Fix ðŸŸ¡ warnings if they are fast; otherwise acknowledge them.');
   lines.push('=== END CODE REVIEW ===');
 
   return lines.join('\n');
 }
 
-// ── 4.2: Post-Merge Validation ───────────────────────────────────────────────
+// â”€â”€ 4.2: Post-Merge Validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Run a lightweight post-merge validation: TypeScript compilation check.
- * Best-effort — does not block the main flow.
+ * Best-effort â€” does not block the main flow.
  */
 export function postMergeValidation(projectPath: string): ValidationResult {
   const result: ValidationResult = {
@@ -257,7 +257,7 @@ export function postMergeValidation(projectPath: string): ValidationResult {
     crashOutput: '',
   };
 
-  // Check if tsconfig.json exists — if so, run tsc --noEmit
+  // Check if tsconfig.json exists â€” if so, run tsc --noEmit
   const tsconfigPath = path.join(projectPath, 'tsconfig.json');
   if (fs.existsSync(tsconfigPath)) {
     try {
@@ -267,7 +267,7 @@ export function postMergeValidation(projectPath: string): ValidationResult {
         encoding: 'utf-8',
         timeout: 30000,
       });
-      // Success — no type errors
+      // Success â€” no type errors
     } catch (err: any) {
       const output = err.stdout || err.stderr || err.message || '';
       const errorLines = output.split('\n').filter((l: string) => l.includes('error TS'));
@@ -277,7 +277,7 @@ export function postMergeValidation(projectPath: string): ValidationResult {
     }
   }
 
-  // Quick test check — look for vitest/jest config and recent test output
+  // Quick test check â€” look for vitest/jest config and recent test output
   try {
     const hasVitest = fs.existsSync(path.join(projectPath, 'vitest.config.ts')) ||
       fs.existsSync(path.join(projectPath, 'vitest.config.js'));
@@ -346,29 +346,29 @@ export function formatValidationForPrompt(validation: ValidationResult): string 
   const lines: string[] = ['', '=== POST-MERGE VALIDATION ==='];
 
   if (validation.typeCheckPassed) {
-    lines.push('✅ TypeScript compilation: PASSED');
+    lines.push('âœ… TypeScript compilation: PASSED');
   } else {
-    lines.push(`❌ TypeScript compilation: ${validation.typeCheckErrors} error(s)`);
+    lines.push(`âŒ TypeScript compilation: ${validation.typeCheckErrors} error(s)`);
     if (validation.crashOutput) {
       lines.push(`   ${validation.crashOutput.split('\n').slice(0, 3).join('\n   ')}`);
     }
   }
 
   if (validation.testsPassed === true) {
-    lines.push('✅ Tests: PASSED');
+    lines.push('âœ… Tests: PASSED');
   } else if (validation.testsPassed === false) {
-    lines.push(`❌ Tests: ${validation.testFailures} failure(s)`);
+    lines.push(`âŒ Tests: ${validation.testFailures} failure(s)`);
   }
 
   if (validation.devServerCrash) {
-    lines.push('⚠️ Dev server may have crashed — check logs');
+    lines.push('âš ï¸ Dev server may have crashed â€” check logs');
   }
 
   lines.push('=== END VALIDATION ===');
   return lines.join('\n');
 }
 
-// ── 4.3: Interaction Pattern Analyzer ─────────────────────────────────────────
+// â”€â”€ 4.3: Interaction Pattern Analyzer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface InteractionRecord {
   id: number;
@@ -475,7 +475,7 @@ export function formatPatternAnalysisForPrompt(patterns: InteractionPattern[]): 
   ];
 
   for (const p of patterns) {
-    lines.push(`  🔁 ${p.pattern} (${p.count}x since ${p.firstSeen.slice(0, 10)})`);
+    lines.push(`  ðŸ” ${p.pattern} (${p.count}x since ${p.firstSeen.slice(0, 10)})`);
     lines.push(`     ${p.suggestion}`);
     lines.push('');
   }

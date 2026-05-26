@@ -1,5 +1,5 @@
 /**
- * SUNy Prompt Variants — A/B testing and persona-driven prompt templates.
+ * SUNy Prompt Variants â€” A/B testing and persona-driven prompt templates.
  *
  * Extends the registry with reusable variant sets that can be assigned
  * per user or per session. Supports:
@@ -13,7 +13,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import { getDb } from './db';
 
-// ── Types ───────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export type PromptVariantType = 'persona' | 'tone' | 'strategy' | 'custom';
 
@@ -36,7 +36,7 @@ export interface PromptVariantAssignment {
   assigned_at: string;
 }
 
-// ── Built-in variants ───────────────────────────────────────────────────────
+// â”€â”€ Built-in variants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const BUILTIN_VARIANTS: Record<string, {
   type: PromptVariantType;
@@ -48,7 +48,7 @@ export const BUILTIN_VARIANTS: Record<string, {
   'persona:senior-engineer': {
     type: 'persona',
     label: 'Senior Engineer',
-    description: 'Speaks like a principal engineer — direct, technical, assumes competence',
+    description: 'Speaks like a principal engineer â€” direct, technical, assumes competence',
     content: 'You are a senior staff engineer mentoring a peer. Be direct, technically precise, and assume the user understands engineering concepts. Use precise terminology. Prioritize production-quality solutions. Challenge assumptions when warranted.',
   },
   'persona:teacher': {
@@ -60,7 +60,7 @@ export const BUILTIN_VARIANTS: Record<string, {
   'persona:concise': {
     type: 'persona',
     label: 'Ultra Concise',
-    description: 'Short, direct answers — no fluff, no narration',
+    description: 'Short, direct answers â€” no fluff, no narration',
     content: 'Be extremely concise. Give the shortest possible correct answer. No greetings. No sign-offs. No narration. No emoji. Get straight to the point. If code is the answer, show only the code.',
   },
   'persona:creative': {
@@ -80,7 +80,7 @@ export const BUILTIN_VARIANTS: Record<string, {
   'tone:casual': {
     type: 'tone',
     label: 'Casual & Friendly',
-    description: 'Relaxed, friendly conversation — like a coworker',
+    description: 'Relaxed, friendly conversation â€” like a coworker',
     content: 'Be warm, casual, and friendly. Use contractions. Crack light jokes. Use emoji naturally. Talk like you are pair programming with a friend over coffee. Keep it real and human.',
   },
   'tone:encouraging': {
@@ -111,7 +111,7 @@ export const BUILTIN_VARIANTS: Record<string, {
   },
 };
 
-// ── Database operations ─────────────────────────────────────────────────────
+// â”€â”€ Database operations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function ensureTable(): void {
   const db = getDb();
@@ -195,7 +195,7 @@ export function deleteVariant(key: string): boolean {
   return result.changes > 0;
 }
 
-// ── Assignment management ───────────────────────────────────────────────────
+// â”€â”€ Assignment management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function assignVariantToUser(userId: number, variantKey: string): void {
   ensureTable();
@@ -248,7 +248,7 @@ export function renderUserVariants(userId: number): string {
   ].join('\n');
 }
 
-// ── Tool factory ────────────────────────────────────────────────────────────
+// â”€â”€ Tool factory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface PromptVariantContext {
   userId: number;
@@ -257,10 +257,10 @@ export interface PromptVariantContext {
 export function createPromptVariantTool(ctx: PromptVariantContext) {
   return tool({
     description:
-      'Manage prompt variants — create, list, assign, or unassign persona/tone/strategy variants. ' +
+      'Manage prompt variants â€” create, list, assign, or unassign persona/tone/strategy variants. ' +
       'Available built-in variants: ' +
       Object.entries(BUILTIN_VARIANTS)
-        .map(([key, v]) => `"${key}" — ${v.label} (${v.type})`)
+        .map(([key, v]) => `"${key}" â€” ${v.label} (${v.type})`)
         .join(', ') +
       '. Custom variants can also be created.',
     inputSchema: z.object({
@@ -275,7 +275,7 @@ export function createPromptVariantTool(ctx: PromptVariantContext) {
         case 'list': {
           const all = listVariants();
           return all.map(v =>
-            `[${v.type}] ${v.key}: ${v.label} — ${v.description}${v.is_active ? '' : ' (inactive)'}`
+            `[${v.type}] ${v.key}: ${v.label} â€” ${v.description}${v.is_active ? '' : ' (inactive)'}`
           ).join('\n') || 'No variants found.';
         }
         case 'get': {

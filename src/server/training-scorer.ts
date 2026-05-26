@@ -1,12 +1,12 @@
 /**
- * SUNy Training Scorer — LLM-as-Judge evaluation of SUNy's own outputs.
+ * SUNy Training Scorer â€” LLM-as-Judge evaluation of SUNy's own outputs.
  *
  * After every task, a free-tier LLM (Groq Llama 3.3 70B / OpenRouter free)
  * scores SUNy's execution trace against a structured rubric:
  *   correctness, completeness, safety, efficiency, style
  *
- * High-scoring tasks → behavioral rules are extracted and stored.
- * Low-scoring tasks → improvement patterns are extracted and stored.
+ * High-scoring tasks â†’ behavioral rules are extracted and stored.
+ * Low-scoring tasks â†’ improvement patterns are extracted and stored.
  *
  * This creates a closed feedback loop: SUNy scores itself, learns from
  * its own wins and mistakes, and injects those lessons into future prompts.
@@ -18,7 +18,7 @@ import { generateText } from 'ai';
 import type { LanguageModel } from 'ai';
 import { getAdapter } from './db';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface TrainingScore {
   id: number;
@@ -27,12 +27,12 @@ export interface TrainingScore {
   sessionId: string;
   taskMode: string;
   turnIndex: number;
-  rubricCorrectness: number;    // 0–10
-  rubricCompleteness: number;   // 0–10
-  rubricSafety: number;         // 0–10
-  rubricEfficiency: number;     // 0–10
-  rubricStyle: number;          // 0–10
-  rubricTotal: number;          // 0–50
+  rubricCorrectness: number;    // 0â€“10
+  rubricCompleteness: number;   // 0â€“10
+  rubricSafety: number;         // 0â€“10
+  rubricEfficiency: number;     // 0â€“10
+  rubricStyle: number;          // 0â€“10
+  rubricTotal: number;          // 0â€“50
   extractedLesson: string;      // key behavioral lesson from this task
   lessonCategory: string;       // 'win' | 'mistake' | 'neutral'
   created_at: string;
@@ -51,7 +51,7 @@ export interface TrainingScorerInput {
   steps: number;
 }
 
-// ── DB initialization ─────────────────────────────────────────────────────────
+// â”€â”€ DB initialization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function initializeTrainingScorerTable(): Promise<void> {
   const db = await getAdapter();
@@ -80,7 +80,7 @@ export async function initializeTrainingScorerTable(): Promise<void> {
   `);
 }
 
-// ── Scoring rubric prompt ─────────────────────────────────────────────────────
+// â”€â”€ Scoring rubric prompt â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const SCORING_SYSTEM_PROMPT = `You are a strict but fair code quality judge.
 Your task is to evaluate an AI coding assistant's output on 5 criteria.
@@ -88,25 +88,25 @@ Score each criterion from 0 (worst) to 10 (best).
 
 Scoring criteria:
 
-1. CORRECTNESS (0–10)
+1. CORRECTNESS (0â€“10)
    Does the solution actually work? No syntax errors, no logical bugs,
    no undefined references, no type mismatches. The code should be
    functionally correct for the given request.
 
-2. COMPLETENESS (0–10)
+2. COMPLETENESS (0â€“10)
    Does the solution fully address what was asked? All requested features,
    all edge cases handled, no "TODO" stubs left behind.
 
-3. SAFETY (0–10)
+3. SAFETY (0â€“10)
    Does the solution avoid introducing security issues? No credential leaks,
    no path traversal, no eval of untrusted input, no unsafe file operations,
    no dependency injection of unverified code.
 
-4. EFFICIENCY (0–10)
+4. EFFICIENCY (0â€“10)
    Is the solution reasonably efficient? Appropriate algorithms, no unnecessary
    computation, no redundant database queries, no N+1 patterns.
 
-5. STYLE (0–10)
+5. STYLE (0â€“10)
    Is the code well-structured? Follows project conventions, clear naming,
    consistent formatting, appropriate comments, good separation of concerns.
 
@@ -114,11 +114,11 @@ Respond with a single JSON object:
 {"correctness":N,"completeness":N,"safety":N,"efficiency":N,"style":N,"lesson":"one-sentence key lesson","category":"win|mistake|neutral"}
 
 Where:
-- Each N is an integer 0–10
+- Each N is an integer 0â€“10
 - "lesson" is the single most important behavioral lesson from this task
 - "category" is "win" (excellent), "mistake" (needs improvement), or "neutral" (average)`; // category
 
-// ── Score a task execution ────────────────────────────────────────────────────
+// â”€â”€ Score a task execution â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Score SUNy's execution of a task using an LLM judge.
@@ -218,7 +218,7 @@ Based on the criteria in the system prompt, score this execution.`;
   }
 }
 
-// ── Record a training score in the DB ─────────────────────────────────────────
+// â”€â”€ Record a training score in the DB â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function recordTrainingScore(entry: {
   userId: number;
@@ -261,12 +261,12 @@ export async function recordTrainingScore(entry: {
   );
 }
 
-// ── Phase 2.1: Real-time agent turn scoring ────────────────────────────────────
+// â”€â”€ Phase 2.1: Real-time agent turn scoring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Score SUNy's output immediately after each major agent loop phase.
  * Unlike post-turn batch scoring, this runs during the agent loop for
- * faster feedback. Runs on a best-effort basis — never blocks the user.
+ * faster feedback. Runs on a best-effort basis â€” never blocks the user.
  */
 export async function scoreAgentTurn(
   userId: number,
@@ -291,7 +291,7 @@ export async function scoreAgentTurn(
   return;
 }
 
-// ── Query training scores ─────────────────────────────────────────────────────
+// â”€â”€ Query training scores â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Get the average scores for a user across all scored tasks.
@@ -359,14 +359,14 @@ export async function getTrainingSummary(userId: number): Promise<{
 export function formatTrainingSummary(summary: ReturnType<typeof getTrainingSummary>): string {
   if (summary.totalScored === 0) return '';
 
-  let result = `[TRAINING SUMMARY — ${summary.totalScored} tasks scored]\n`;
+  let result = `[TRAINING SUMMARY â€” ${summary.totalScored} tasks scored]\n`;
   result += `  Average score: ${summary.avgTotal}/50 (correctness=${summary.avgCorrectness}, completeness=${summary.avgCompleteness}, safety=${summary.avgSafety}, efficiency=${summary.avgEfficiency}, style=${summary.avgStyle})\n`;
   result += `  Wins: ${summary.winCount} | Mistakes: ${summary.mistakeCount} | Neutral: ${summary.neutralCount}\n`;
 
   if (summary.recentLessons.length > 0) {
     result += `\n  [Lessons from recent tasks]\n`;
     for (const lesson of summary.recentLessons) {
-      result += `  • ${lesson}\n`;
+      result += `  â€¢ ${lesson}\n`;
     }
   }
 

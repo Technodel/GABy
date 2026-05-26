@@ -1,5 +1,5 @@
 /**
- * SUNy Feature Flags — DB-backed feature gating.
+ * SUNy Feature Flags â€” DB-backed feature gating.
  *
  * Every risky or optional feature ships behind a flag.
  * Flags are stored in the feature_flags DB table and can be toggled

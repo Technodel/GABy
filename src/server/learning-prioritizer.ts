@@ -1,11 +1,11 @@
 /**
- * SUNy Learning Signal Prioritizer — scores memories by value and prunes low-value ones.
+ * SUNy Learning Signal Prioritizer â€” scores memories by value and prunes low-value ones.
  *
  * Every memory/failure/blueprint entry gets a "learning value score" based on:
- *   1. Frequency — how often has this pattern been seen?
- *   2. Recency — when was it last accessed/used?
- *   3. Outcome — did the fix succeed? Was the design decision followed?
- *   4. Cross-reference count — how many other entries reference or relate to this one?
+ *   1. Frequency â€” how often has this pattern been seen?
+ *   2. Recency â€” when was it last accessed/used?
+ *   3. Outcome â€” did the fix succeed? Was the design decision followed?
+ *   4. Cross-reference count â€” how many other entries reference or relate to this one?
  *
  * Periodic pruning removes low-value entries so high-signal memories dominate.
  *
@@ -14,7 +14,7 @@
 
 import { getAdapter } from './db';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface MemoryScore {
   source: 'failure_memory' | 'blueprint_entries' | 'user_memories';
@@ -32,7 +32,7 @@ export interface PruningResult {
   details: string[];
 }
 
-// ── Scoring constants ─────────────────────────────────────────────────────────
+// â”€â”€ Scoring constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const SCORE_WEIGHTS = {
   FREQUENCY_BASE: 10,         // per recurrence count
@@ -44,7 +44,7 @@ const SCORE_WEIGHTS = {
   MIN_RETENTION_SCORE: 15,    // entries below this score are pruning candidates
 };
 
-// ── Score calculation ─────────────────────────────────────────────────────────
+// â”€â”€ Score calculation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function daysSince(dateStr: string): number {
   const then = new Date(dateStr).getTime();
@@ -126,7 +126,7 @@ function scoreUserMemory(row: {
   };
 }
 
-// ── Public API ────────────────────────────────────────────────────────────────
+// â”€â”€ Public API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Get scored memories for a user, sorted by value (highest first).
@@ -236,10 +236,10 @@ export function formatTopMemories(scores: MemoryScore[], maxEntries: number = 10
   let result = '[HIGH-VALUE LEARNING SIGNALS]\n';
 
   for (const s of top) {
-    const label = s.source === 'failure_memory' ? '⚠️ Failure Pattern'
-      : s.source === 'blueprint_entries' ? '📐 Design Decision'
-      : '💡 User Memory';
-    result += `  • ${label} (score=${s.score}, ${s.createdAt.slice(0, 10)}): ${s.reason}\n`;
+    const label = s.source === 'failure_memory' ? 'âš ï¸ Failure Pattern'
+      : s.source === 'blueprint_entries' ? 'ðŸ“ Design Decision'
+      : 'ðŸ’¡ User Memory';
+    result += `  â€¢ ${label} (score=${s.score}, ${s.createdAt.slice(0, 10)}): ${s.reason}\n`;
   }
 
   return result;

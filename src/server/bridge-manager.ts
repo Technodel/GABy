@@ -40,10 +40,10 @@ const MAX_BG_LOG_LINES = 500;
 const MAX_BG_PROCESSES_PER_USER = 5;
 const backgroundProcesses = new Map<string, BackgroundProcessRecord>();
 
-// Map: userId → active bridge connection
+// Map: userId â†’ active bridge connection
 const activeBridges = new Map<number, BridgeConnection>();
 
-// Map: pending request id → resolve/reject callbacks (with userId tracking)
+// Map: pending request id â†’ resolve/reject callbacks (with userId tracking)
 const pendingRequests = new Map<string, PendingRequest>();
 
 export function registerBridge(userId: number, username: string, ws: WebSocket): void {
@@ -55,7 +55,7 @@ export function registerBridge(userId: number, username: string, ws: WebSocket):
     existing.ws.close();
   }
 
-  // Set up the new bridge connection — handlers are attached synchronously
+  // Set up the new bridge connection â€” handlers are attached synchronously
   // so they're ready before any async operation (e.g. DB write below).
   const conn: BridgeConnection = { ws, userId, username, connectedAt: new Date(), lastPing: new Date() };
   activeBridges.set(userId, conn);
@@ -63,7 +63,7 @@ export function registerBridge(userId: number, username: string, ws: WebSocket):
   ws.on('message', (raw) => handleBridgeMessage(userId, raw.toString()));
   ws.on('close', (code, reason) => {
     console.log(`[bridge-manager] Bridge DISCONNECTED for user ${userId} (code=${code}, reason=${reason?.toString() || 'none'})`);
-    // Only clean up if this ws is still the active connection — prevents a
+    // Only clean up if this ws is still the active connection â€” prevents a
     // stale close handler from a replaced bridge from deleting the new bridge
     // AND from rejecting the new bridge's pending requests.
     const current = activeBridges.get(userId);
@@ -107,7 +107,7 @@ function handleBridgeMessage(userId: number, raw: string): void {
   // Only process if request belongs to this user
   if (pending && pending.userId !== userId) return;
 
-  // bridge:stream — append to pending request buffer AND background-process log buffer.
+  // bridge:stream â€” append to pending request buffer AND background-process log buffer.
   if (type === 'bridge:stream') {
     const payload = msg.payload as { line?: string; stream?: string } | undefined;
     const line = payload?.line;
@@ -126,12 +126,12 @@ function handleBridgeMessage(userId: number, raw: string): void {
     return;
   }
 
-  // bridge:ack — request received. Do NOT resolve; just confirm we got it.
+  // bridge:ack â€” request received. Do NOT resolve; just confirm we got it.
   if (type === 'bridge:ack') {
     return;
   }
 
-  // bridge:server_ready — background mode: resolve early with collected logs.
+  // bridge:server_ready â€” background mode: resolve early with collected logs.
   if (type === 'bridge:server_ready') {
     const bg = backgroundProcesses.get(id as string);
     if (bg) bg.status = 'ready';
@@ -147,7 +147,7 @@ function handleBridgeMessage(userId: number, raw: string): void {
     return;
   }
 
-  // bridge:server_crashed — background mode: reject; one-shot ignored (done arrives separately).
+  // bridge:server_crashed â€” background mode: reject; one-shot ignored (done arrives separately).
   if (type === 'bridge:server_crashed') {
     const bg = backgroundProcesses.get(id as string);
     if (bg) bg.status = 'crashed';
@@ -195,7 +195,7 @@ function handleBridgeMessage(userId: number, raw: string): void {
 
 /**
  * Send an instruction to the user's bridge and await the response.
- * For one-shot operations (file ops, bash) — resolves on bridge:done with
+ * For one-shot operations (file ops, bash) â€” resolves on bridge:done with
  * accumulated stream output included in the payload.
  */
 export function sendToBridge(userId: number, type: string, payload: unknown, timeoutMs = 30000): Promise<unknown> {
@@ -266,7 +266,7 @@ export function sendToBridgeBackground(
     });
 
     const timeout = setTimeout(() => {
-      // Timeout: assume "started but no ready signal yet" — resolve with what we have.
+      // Timeout: assume "started but no ready signal yet" â€” resolve with what we have.
       const pending = pendingRequests.get(id);
       if (pending) {
         pendingRequests.delete(id);
@@ -320,7 +320,7 @@ export function stopBackgroundProcess(userId: number, processId: string): Promis
 
 /**
  * Read the rolling log buffer of a background process. `lines` returns the
- * last N lines (default 100). Does not consume — buffer remains intact.
+ * last N lines (default 100). Does not consume â€” buffer remains intact.
  */
 export function readBackgroundLogs(
   userId: number,
@@ -406,7 +406,7 @@ export function registerPathForUser(userId: number, projectPath: string): Promis
 export function disconnectBridge(userId: number): boolean {
   const conn = activeBridges.get(userId);
   if (!conn || conn.ws.readyState !== WebSocket.OPEN) {
-    // Not connected — remove stale entry if any
+    // Not connected â€” remove stale entry if any
     if (conn) activeBridges.delete(userId);
     return false;
   }

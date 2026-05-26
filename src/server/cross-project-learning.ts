@@ -1,5 +1,5 @@
 /**
- * SUNy Cross-Project Knowledge Transfer — shared learning across projects.
+ * SUNy Cross-Project Knowledge Transfer â€” shared learning across projects.
  *
  * When enabled (via user settings), high-confidence patterns extracted from one
  * project are shared with others. This includes:
@@ -10,7 +10,7 @@
  * The system de-identifies project-specific details (file paths, variable names)
  * before storing shared patterns, keeping only the generalizable learning.
  *
- * Opt-in only — user must toggle from settings. Each user's projects form
+ * Opt-in only â€” user must toggle from settings. Each user's projects form
  * their own learning pool (no cross-user sharing).
  *
  * Feature flag: ff_cross_project_learning
@@ -19,7 +19,7 @@
 
 import { getAdapter } from './db';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface SharedPattern {
   id: number;
@@ -30,13 +30,13 @@ export interface SharedPattern {
   patternKey: string;
   patternSummary: string;
   patternDetail: string;
-  confidence: number;          // 0.0 – 1.0
+  confidence: number;          // 0.0 â€“ 1.0
   applicationCount: number;    // how many times this pattern was reused
   lastAppliedAt: string | null;
   createdAt: string;
 }
 
-// ── DB initialization ─────────────────────────────────────────────────────────
+// â”€â”€ DB initialization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function initializeCrossProjectTable(): Promise<void> {
   const db = await getAdapter();
@@ -64,7 +64,7 @@ export async function initializeCrossProjectTable(): Promise<void> {
   `);
 }
 
-// ── Check if cross-project learning is enabled for a user ─────────────────────
+// â”€â”€ Check if cross-project learning is enabled for a user â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function isCrossProjectLearningEnabled(userId: number): Promise<boolean> {
   const db = await getAdapter();
@@ -75,7 +75,7 @@ export async function isCrossProjectLearningEnabled(userId: number): Promise<boo
   return row?.value === 'true';
 }
 
-// ── Extract and store shared patterns ─────────────────────────────────────────
+// â”€â”€ Extract and store shared patterns â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Extract a generalizable error pattern from a failure memory entry and
@@ -174,11 +174,11 @@ export async function shareDesignDecision(entry: {
   return await db.get('SELECT * FROM shared_patterns WHERE id = ?', [result.lastInsertRowid]) as SharedPattern;
 }
 
-// ── Query shared patterns ─────────────────────────────────────────────────────
+// â”€â”€ Query shared patterns â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Get all shared patterns for a user that are applicable to a given context.
- * Returns patterns ranked by confidence × relevance.
+ * Returns patterns ranked by confidence Ã— relevance.
  */
 export async function getRelevantPatterns(userId: number, context?: {
   patternTypes?: string[];
@@ -215,12 +215,12 @@ export function formatSharedPatterns(patterns: SharedPattern[]): string {
   let result = '[CROSS-PROJECT KNOWLEDGE]\n';
 
   for (const p of patterns) {
-    const typeLabel = p.pattern_type === 'error_fix' ? '⚠️ Error Pattern'
-      : p.pattern_type === 'design_decision' ? '📐 Design Pattern'
-      : p.pattern_type === 'coding_convention' ? '🔧 Convention'
-      : '💡 Preference';
+    const typeLabel = p.pattern_type === 'error_fix' ? 'âš ï¸ Error Pattern'
+      : p.pattern_type === 'design_decision' ? 'ðŸ“ Design Pattern'
+      : p.pattern_type === 'coding_convention' ? 'ðŸ”§ Convention'
+      : 'ðŸ’¡ Preference';
 
-    result += `  • ${typeLabel} (confidence=${p.confidence.toFixed(2)}, used=${p.application_count}x)\n`;
+    result += `  â€¢ ${typeLabel} (confidence=${p.confidence.toFixed(2)}, used=${p.application_count}x)\n`;
     result += `    "${p.pattern_summary}"\n`;
     result += `    (from: ${p.source_project_name})\n`;
   }
@@ -228,7 +228,7 @@ export function formatSharedPatterns(patterns: SharedPattern[]): string {
   return result;
 }
 
-// ── Phase 2.4: Cross-Project Persona Memory ────────────────────────────────────
+// â”€â”€ Phase 2.4: Cross-Project Persona Memory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface PersonaUpdateInput {
   userId: number;
@@ -249,7 +249,7 @@ export async function updateCrossProjectPersona(input: PersonaUpdateInput): Prom
   const responseLen = input.aiResponse.length;
 
   if (userMsgLen < 80 && responseLen > 1500) {
-    // User was brief, AI was verbose — might be a pattern
+    // User was brief, AI was verbose â€” might be a pattern
     const key = 'verbosity_preference:' + (userMsgLen < 40 ? 'concise' : 'moderate');
     const existing = await db.get(
       `SELECT id FROM shared_patterns WHERE user_id = ? AND pattern_key = ?`,
@@ -302,7 +302,7 @@ export async function updateCrossProjectPersona(input: PersonaUpdateInput): Prom
   return { updated: false, reason: 'No persona pattern detected' };
 }
 
-// ── Phase 3: Aggregation + Anonymization + Prompt Builder ──────────────────────
+// â”€â”€ Phase 3: Aggregation + Anonymization + Prompt Builder â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Known project-name patterns for anonymization.
@@ -354,7 +354,7 @@ interface AggregatedPattern {
 
 /**
  * Cluster similar patterns by type and key prefix, then rank by
- * (confidence × applicationCount) and return the top 5 aggregated entries.
+ * (confidence Ã— applicationCount) and return the top 5 aggregated entries.
  *
  * The clustering groups patterns with the same type prefix
  * (e.g. all err: patterns, all design: patterns) and within each type
@@ -429,7 +429,7 @@ export function aggregateSharedPatterns(patterns: SharedPattern[]): AggregatedPa
     }
   }
 
-  // 5. Sort by composite score: confidence × sqrt(applicationCount)
+  // 5. Sort by composite score: confidence Ã— sqrt(applicationCount)
   clusters.sort((a, b) => {
     const scoreA = a.confidence * Math.sqrt(a.applicationCount + 1);
     const scoreB = b.confidence * Math.sqrt(b.applicationCount + 1);
@@ -443,7 +443,7 @@ export function aggregateSharedPatterns(patterns: SharedPattern[]): AggregatedPa
 /**
  * Build a full cross-project knowledge prompt block for injection into
  * the system prompt. Runs the full pipeline:
- *   1. Fetch relevant patterns (confidence ≥ 0.3, all types)
+ *   1. Fetch relevant patterns (confidence â‰¥ 0.3, all types)
  *   2. Aggregate + anonymize
  *   3. Format into a clean prompt block
  *
@@ -469,7 +469,7 @@ export async function buildCrossProjectPrompt(userId: number): Promise<string> {
   ];
 
   for (const a of aggregated) {
-    lines.push(`  • ${a.category}: ${a.summary}`);
+    lines.push(`  â€¢ ${a.category}: ${a.summary}`);
     lines.push(`    (confidence: ${(a.confidence * 100).toFixed(0)}%, reused ${a.applicationCount}x across ${a.sourceCount} pattern(s))`);
   }
 

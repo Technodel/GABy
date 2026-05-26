@@ -1,5 +1,5 @@
 /**
- * Unit tests for code-chunks.ts — semantic chunk search, prompt formatting, stats
+ * Unit tests for code-chunks.ts â€” semantic chunk search, prompt formatting, stats
  *
  * Uses an in-memory SQLite database to isolate tests.
  * Mocks getAdapter() with a SqliteAdapter wrapping an in-memory DB.
@@ -10,7 +10,7 @@ import Database from 'better-sqlite3';
 import { SqliteAdapter } from './db-sqlite';
 import type { DbAdapter } from './db-types';
 
-// ── Mutable holder for the test adapter reference ──────────────────────────────
+// â”€â”€ Mutable holder for the test adapter reference â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const mockAdapterHolder: { adapter: DbAdapter | null } = { adapter: null };
 
 vi.mock('./db', () => ({
@@ -184,7 +184,7 @@ describe('formatChunksForPrompt', () => {
     const result = formatChunksForPrompt(chunks, '/project');
     expect(result).toContain('SEMANTICALLY RELEVANT CODE');
     expect(result).toContain('src/index.ts');
-    expect(result).toContain('function `main` (L1–10)');
+    expect(result).toContain('function `main` (L1â€“10)');
     expect(result).toContain('function main() {}');
     expect(result).toContain('END VECTOR CONTEXT');
   });
@@ -215,7 +215,7 @@ describe('formatChunksForPrompt', () => {
       score: 0.5,
     }];
     const result = formatChunksForPrompt(chunks, '/project');
-    expect(result).toContain('lines 1–50');
+    expect(result).toContain('lines 1â€“50');
     expect(result).not.toContain('block `block_L1`');
   });
 

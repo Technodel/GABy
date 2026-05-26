@@ -1,5 +1,5 @@
 /**
- * hnsw-lite.ts — Minimal HNSW (Hierarchical Navigable Small World) graph.
+ * hnsw-lite.ts â€” Minimal HNSW (Hierarchical Navigable Small World) graph.
  *
  * Pure JS, zero external dependencies. Provides ANN (approximate nearest
  * neighbor) search over Float64Array vectors using a multi-layer graph.
@@ -7,13 +7,13 @@
  * Ruflo-inspired: replaces brute-force keyword overlap with proper
  * vector similarity search for interaction memory retrieval.
  *
- * ── How HNSW works ──
+ * â”€â”€ How HNSW works â”€â”€
  * HNSW builds a multi-layer graph where higher layers have fewer nodes
  * (long-range connections) and lower layers have more nodes (short-range).
  * Search starts at the top layer and descends, greedily following the
  * nearest neighbor at each step. This gives O(log N) search instead of O(N).
  *
- * ── API ──
+ * â”€â”€ API â”€â”€
  *   const index = new HNSWIndex(dims, M, efConstruction);
  *   index.insert(id, vector);          // add a vector
  *   index.search(query, k);            // find k nearest neighbors
@@ -24,9 +24,9 @@
 const DEFAULT_M = 16;           // max connections per node per layer
 const DEFAULT_EF_CONSTRUCTION = 200;  // dynamic candidate list during construction
 const DEFAULT_EF_SEARCH = 50;         // dynamic candidate list during search
-const DEFAULT_LEVEL_MULTIPLIER = 1 / Math.LN2; // mL parameter — ln(2) ≈ 0.693
+const DEFAULT_LEVEL_MULTIPLIER = 1 / Math.LN2; // mL parameter â€” ln(2) â‰ˆ 0.693
 
-// ── Distance function ─────────────────────────────────────────────────────────
+// â”€â”€ Distance function â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function cosineDist(a: Float64Array, b: Float64Array): number {
   return 1 - cosineSimilarity(a, b);
@@ -46,13 +46,13 @@ function cosineSimilarity(a: Float64Array, b: Float64Array): number {
   return denom === 0 ? 0 : dot / denom;
 }
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface HNSWNode {
   id: number;
   vector: Float64Array;
   level: number;
-  connections: Map<number, Set<number>>;  // level → set of node IDs
+  connections: Map<number, Set<number>>;  // level â†’ set of node IDs
 }
 
 export interface SearchResult {
@@ -60,7 +60,7 @@ export interface SearchResult {
   distance: number;
 }
 
-// ── Priority queue for search ─────────────────────────────────────────────────
+// â”€â”€ Priority queue for search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class DistQueue {
   private items: Array<{ id: number; dist: number }> = [];
@@ -112,7 +112,7 @@ class DistQueue {
   }
 }
 
-// ── HNSW Index ────────────────────────────────────────────────────────────────
+// â”€â”€ HNSW Index â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export class HNSWIndex {
   private nodes: Map<number, HNSWNode> = new Map();
@@ -147,7 +147,7 @@ export class HNSWIndex {
     return this.dims;
   }
 
-  // ── Insert ────────────────────────────────────────────────────────────────
+  // â”€â”€ Insert â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   insert(id: number, vector: Float64Array): void {
     if (this.nodes.has(id)) {
@@ -208,10 +208,10 @@ export class HNSWIndex {
         const neighborNode = this.nodes.get(n.id);
         if (!neighborNode) continue;
 
-        // New node → neighbor
+        // New node â†’ neighbor
         node.connections.get(lvl)!.add(n.id);
 
-        // Neighbor → new node
+        // Neighbor â†’ new node
         if (neighborNode.connections.has(lvl)) {
           neighborNode.connections.get(lvl)!.add(id);
 
@@ -231,7 +231,7 @@ export class HNSWIndex {
     }
   }
 
-  // ── Search ────────────────────────────────────────────────────────────────
+  // â”€â”€ Search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   search(query: Float64Array, k: number = 10, ef: number = DEFAULT_EF_SEARCH): SearchResult[] {
     if (this.entryPoint === null || this.nodes.size === 0) return [];
@@ -254,7 +254,7 @@ export class HNSWIndex {
       .slice(0, k);
   }
 
-  // ── Internal search helpers ───────────────────────────────────────────────
+  // â”€â”€ Internal search helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   private searchLayerGreedy(
     query: Float64Array,
@@ -356,7 +356,7 @@ export class HNSWIndex {
     return results.toResultArray(results.length);
   }
 
-  // ── Connection management ─────────────────────────────────────────────────
+  // â”€â”€ Connection management â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   private shrinkConnections(node: HNSWNode, level: number, maxConn: number): void {
     const conns = node.connections.get(level);
@@ -376,7 +376,7 @@ export class HNSWIndex {
     }
   }
 
-  // ── Level generation ──────────────────────────────────────────────────────
+  // â”€â”€ Level generation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   private randomLevel(): number {
     // Exponential distribution: P(level) = exp(-level / mL) / mL
@@ -384,7 +384,7 @@ export class HNSWIndex {
     return Math.floor(-Math.log(r) * this.levelMultiplier);
   }
 
-  // ── Serialization ─────────────────────────────────────────────────────────
+  // â”€â”€ Serialization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   toJSON(): Record<string, unknown> {
     const serializedNodes = Array.from(this.nodes.entries()).map(([id, node]) => ({

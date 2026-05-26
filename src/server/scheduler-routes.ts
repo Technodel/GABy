@@ -1,11 +1,11 @@
 /**
  * SUNy Scheduled Agents API Routes.
  *
- * GET    /api/scheduled               — list all scheduled agents for user
- * POST   /api/scheduled               — create a new scheduled agent
- * PATCH  /api/scheduled/:id           — update an existing scheduled agent
- * DELETE /api/scheduled/:id           — delete a scheduled agent
- * GET    /api/scheduled/:id/logs      — get execution logs for an agent
+ * GET    /api/scheduled               â€” list all scheduled agents for user
+ * POST   /api/scheduled               â€” create a new scheduled agent
+ * PATCH  /api/scheduled/:id           â€” update an existing scheduled agent
+ * DELETE /api/scheduled/:id           â€” delete a scheduled agent
+ * GET    /api/scheduled/:id/logs      â€” get execution logs for an agent
  */
 
 import { Router, Request, Response } from 'express';

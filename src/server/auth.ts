@@ -196,7 +196,7 @@ export async function userRegister(req: Request, res: Response): void {
   const { username, password, display_name } = req.body as { username?: string; password?: string; display_name?: string };
   if (!username || !password) { res.status(400).json({ error: 'Username and password are required.' }); return; }
   if (username.length < 3 || username.length > 50 || !/^[a-zA-Z0-9_]+$/.test(username)) {
-    res.status(400).json({ error: 'Username must be 3–50 characters (letters, numbers, underscores only).' }); return;
+    res.status(400).json({ error: 'Username must be 3â€“50 characters (letters, numbers, underscores only).' }); return;
   }
   if (password.length < 6 || password.length > 100) {
     res.status(400).json({ error: 'Password must be at least 6 characters.' }); return;

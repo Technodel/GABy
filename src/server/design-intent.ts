@@ -1,20 +1,20 @@
 /**
- * SUNy Design Intent Tracker — Phase 3.3
+ * SUNy Design Intent Tracker â€” Phase 3.3
  *
  * Harvests explicit user design preferences from conversation and stores them
- * as persistent behavioral rules. These are NOT learned from task outcomes —
+ * as persistent behavioral rules. These are NOT learned from task outcomes â€”
  * they are distilled from what the user explicitly says they prefer.
  *
  * Examples of signals:
- *   "I prefer functional components"  → rule: "Use functional components over classes"
- *   "Always use tab indentation"      → rule: "Use tab indentation"
- *   "Never use any types"             → rule: "Avoid 'any' types, use explicit types"
- *   "My style is minimal CSS"         → rule: "Prefer minimal CSS, avoid heavy frameworks"
+ *   "I prefer functional components"  â†’ rule: "Use functional components over classes"
+ *   "Always use tab indentation"      â†’ rule: "Use tab indentation"
+ *   "Never use any types"             â†’ rule: "Avoid 'any' types, use explicit types"
+ *   "My style is minimal CSS"         â†’ rule: "Prefer minimal CSS, avoid heavy frameworks"
  */
 
 import { getAdapter } from './db';
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface DesignIntent {
   id: number;
@@ -27,7 +27,7 @@ export interface DesignIntent {
   createdAt: string;
 }
 
-// ── Initialization ────────────────────────────────────────────────────────────
+// â”€â”€ Initialization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function initializeDesignIntentTable(): Promise<void> {
   const db = await getAdapter();
@@ -48,7 +48,7 @@ export async function initializeDesignIntentTable(): Promise<void> {
   `);
 }
 
-// ── Signal Detection ──────────────────────────────────────────────────────────
+// â”€â”€ Signal Detection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface IntentSignal {
   intent: string;
@@ -62,7 +62,7 @@ interface IntentSignal {
  * Each entry has a regex to match user speech and a distilled rule.
  */
 const SIGNAL_PATTERNS: IntentSignal[] = [
-  // ── Code style ──────────────────────────────────────────────────────────
+  // â”€â”€ Code style â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     intent: 'Use functional components (not classes)',
     category: 'style',
@@ -79,7 +79,7 @@ const SIGNAL_PATTERNS: IntentSignal[] = [
     pattern: /\b(prefer|like|use|want|always)\s+(strict|typesafe|type.safe)\b/i,
   },
   {
-    intent: 'Avoid "any" types — use explicit types',
+    intent: 'Avoid "any" types â€” use explicit types',
     category: 'convention',
     pattern: /\b(never|don'?t|avoid|stop)\s+(use|using)?\s*(any\s+types?)\b/i,
   },
@@ -94,7 +94,7 @@ const SIGNAL_PATTERNS: IntentSignal[] = [
     pattern: /\b(prefer|like|use|want|always)\s+(arrow\s+functions?|=>)\b/i,
   },
 
-  // ── Formatting ───────────────────────────────────────────────────────────
+  // â”€â”€ Formatting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     intent: 'Use tab indentation',
     category: 'style',
@@ -126,7 +126,7 @@ const SIGNAL_PATTERNS: IntentSignal[] = [
     pattern: /\b(no|without|never|don'?t|avoid)\s+(semicolons?)\b/i,
   },
 
-  // ── Architecture ─────────────────────────────────────────────────────────
+  // â”€â”€ Architecture â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     intent: 'Prefer server actions over API routes',
     category: 'architecture',
@@ -158,7 +158,7 @@ const SIGNAL_PATTERNS: IntentSignal[] = [
     pattern: /\b(prefer|like|use|want|always)\s+(separate\s+tests?|__tests__)\b/i,
   },
 
-  // ── Tooling ──────────────────────────────────────────────────────────────
+  // â”€â”€ Tooling â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     intent: 'Use ESLint with strict config',
     category: 'tooling',
@@ -175,7 +175,7 @@ const SIGNAL_PATTERNS: IntentSignal[] = [
     pattern: /\b(prefer|like|use|want|always)\s+(biome)\b/i,
   },
 
-  // ── Testing ──────────────────────────────────────────────────────────────
+  // â”€â”€ Testing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     intent: 'Write tests for all new features',
     category: 'testing',
@@ -192,7 +192,7 @@ const SIGNAL_PATTERNS: IntentSignal[] = [
     pattern: /\b(prefer|like|use|want|always)\s+(unit\s+tests?)\b/i,
   },
 
-  // ── UI / CSS ─────────────────────────────────────────────────────────────
+  // â”€â”€ UI / CSS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     intent: 'Use Tailwind CSS for styling',
     category: 'style',
@@ -204,24 +204,24 @@ const SIGNAL_PATTERNS: IntentSignal[] = [
     pattern: /\b(prefer|like|use|want|always)\s+(css\s+modules?|\.module\.css)\b/i,
   },
   {
-    intent: 'Keep UI minimal — avoid heavy CSS frameworks',
+    intent: 'Keep UI minimal â€” avoid heavy CSS frameworks',
     category: 'style',
     pattern: /\b(prefer|like|use|want|always)\s+(minimal|simple|lightweight)\s+(CSS|style|design)\b/i,
   },
 
-  // ── Error Handling ───────────────────────────────────────────────────────
+  // â”€â”€ Error Handling â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     intent: 'Always handle errors explicitly (no silent failures)',
     category: 'convention',
     pattern: /\b(prefer|like|use|want|always)\s+(explicit\s+error|handle\s+errors?|no\s+silent)\b/i,
   },
   {
-    intent: 'Use try/catch sparingly — prefer result types',
+    intent: 'Use try/catch sparingly â€” prefer result types',
     category: 'convention',
     pattern: /\b(prefer|like|use|want|always)\s+(result\s+types?|either\s+monad)\b/i,
   },
 
-  // ── General preferences ──────────────────────────────────────────────────
+  // â”€â”€ General preferences â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     intent: 'Prioritize readability over cleverness',
     category: 'style',
@@ -239,7 +239,7 @@ const SIGNAL_PATTERNS: IntentSignal[] = [
   },
 ];
 
-// ── Core Functions ────────────────────────────────────────────────────────────
+// â”€â”€ Core Functions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Analyze a user message for design preference signals and extract intents.
@@ -273,7 +273,7 @@ export async function storeDesignIntents(
   let stored = 0;
 
   for (const di of intents) {
-    // Try insert — if it already exists, bump confidence
+    // Try insert â€” if it already exists, bump confidence
     const insertResult = await db.run(`
       INSERT OR IGNORE INTO design_intents (user_id, intent, category, source_message, confidence)
       VALUES (?, ?, ?, ?, 1.0)
@@ -281,7 +281,7 @@ export async function storeDesignIntents(
     if (insertResult.changes > 0) {
       stored++;
     } else {
-      // Already exists — bump confidence since user re-stated it
+      // Already exists â€” bump confidence since user re-stated it
       await db.run(`
         UPDATE design_intents
         SET confidence = MIN(1.0, confidence + 0.1),
@@ -335,7 +335,7 @@ export function formatDesignIntentsForPrompt(intents: DesignIntent[]): string {
     const label = category.charAt(0).toUpperCase() + category.slice(1);
     lines.push(`[${label}]`);
     for (const di of catIntents) {
-      lines.push(`  • ${di.intent}`);
+      lines.push(`  â€¢ ${di.intent}`);
     }
     lines.push('');
   });

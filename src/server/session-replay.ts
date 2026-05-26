@@ -1,5 +1,5 @@
 /**
- * SUNy Session Replay — operation log + snapshot undo for every session.
+ * SUNy Session Replay â€” operation log + snapshot undo for every session.
  *
  * Every agent loop session generates:
  *   1. A structured operation log (via operation-audit.ts)
@@ -21,7 +21,7 @@ interface AuthRequest extends Request {
   userId?: number;
 }
 
-// ── GET /api/sessions — List recent sessions for the user ──────────────────
+// â”€â”€ GET /api/sessions â€” List recent sessions for the user â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.get('/', (req: AuthRequest, res: Response) => {
   if (!isSessionReplayEnabled()) {
@@ -39,7 +39,7 @@ router.get('/', (req: AuthRequest, res: Response) => {
   res.json({ sessions });
 });
 
-// ── GET /api/sessions/:sessionId — Get operation log for a session ─────────
+// â”€â”€ GET /api/sessions/:sessionId â€” Get operation log for a session â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 router.get('/:sessionId', (req: AuthRequest, res: Response) => {
   if (!isSessionReplayEnabled()) {
@@ -57,7 +57,7 @@ router.get('/:sessionId', (req: AuthRequest, res: Response) => {
   res.json({ sessionId, entries });
 });
 
-// ── GET /api/sessions/:sessionId/undo — Get files that can be restored ──────
+// â”€â”€ GET /api/sessions/:sessionId/undo â€” Get files that can be restored â”€â”€â”€â”€â”€â”€
 
 router.get('/:sessionId/undo', (req: AuthRequest, res: Response) => {
   if (!isSessionReplayEnabled()) {
@@ -88,7 +88,7 @@ router.get('/:sessionId/undo', (req: AuthRequest, res: Response) => {
   }
 });
 
-// ── POST /api/sessions/:sessionId/undo — Restore files from snapshot ───────
+// â”€â”€ POST /api/sessions/:sessionId/undo â€” Restore files from snapshot â”€â”€â”€â”€â”€â”€â”€
 
 router.post('/:sessionId/undo', async (req: AuthRequest, res: Response) => {
   if (!isSessionReplayEnabled()) {

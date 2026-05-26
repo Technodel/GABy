@@ -2,7 +2,7 @@
  * Per-project rules (.suny-rules)
  *
  * If a project root contains a `.suny-rules` file, its content is injected into
- * every system prompt for that project — just like Windsurf's .windsurfrules.
+ * every system prompt for that project â€” just like Windsurf's .windsurfrules.
  *
  * The file is plain text / markdown. Max 8 KB to prevent abuse.
  */

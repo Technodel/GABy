@@ -3,9 +3,9 @@
  *
  * Uses checkpoint-manager.ts for rich metadata-backed checkpoint records.
  *
- * GET  /api/checkpoints/timeline/:projectId  — rich checkpoint timeline
- * GET  /api/checkpoints/detail/:id            — single checkpoint detail
- * POST /api/checkpoints/rollback/:id          — rollback to a specific checkpoint by internal id
+ * GET  /api/checkpoints/timeline/:projectId  â€” rich checkpoint timeline
+ * GET  /api/checkpoints/detail/:id            â€” single checkpoint detail
+ * POST /api/checkpoints/rollback/:id          â€” rollback to a specific checkpoint by internal id
  */
 
 import { Router, Request, Response } from 'express';

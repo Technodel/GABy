@@ -1,5 +1,5 @@
 /**
- * SUNy Prompt Registry — DB-backed system prompt templates.
+ * SUNy Prompt Registry â€” DB-backed system prompt templates.
  *
  * Allows users and the AI to store, retrieve, and manage prompt templates
  * for different contexts (architect, debug, refactor, explain, etc.).
@@ -12,14 +12,14 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import { getAdapter } from './db';
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Built-in template contexts
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const TEMPLATE_CONTEXTS: Record<string, { label: string; description: string; defaultContent: string }> = {
   architect: {
     label: 'Architect Mode',
-    description: 'Architecture & design discussion — focuses on planning over implementation',
+    description: 'Architecture & design discussion â€” focuses on planning over implementation',
     defaultContent:
       'You are in architecture mode. Focus on high-level design, trade-offs, and system structure. ' +
       'Do not write implementation code unless explicitly asked. Use diagrams (ASCII/graphviz) where helpful. ' +
@@ -27,7 +27,7 @@ export const TEMPLATE_CONTEXTS: Record<string, { label: string; description: str
   },
   debug: {
     label: 'Debug Mode',
-    description: 'Debugging mode — step-by-step root cause analysis',
+    description: 'Debugging mode â€” step-by-step root cause analysis',
     defaultContent:
       'You are in debugging mode. Before suggesting a fix, identify the root cause by examining: ' +
       '1) The error message and stack trace, 2) The relevant code paths, ' +
@@ -36,7 +36,7 @@ export const TEMPLATE_CONTEXTS: Record<string, { label: string; description: str
   },
   refactor: {
     label: 'Refactor Mode',
-    description: 'Refactoring mode — focuses on minimal, safe changes',
+    description: 'Refactoring mode â€” focuses on minimal, safe changes',
     defaultContent:
       'You are in refactoring mode. Make minimal, safe changes. Prefer: ' +
       '1) Extracting functions over rewriting, 2) Adding types over removing them, ' +
@@ -44,7 +44,7 @@ export const TEMPLATE_CONTEXTS: Record<string, { label: string; description: str
   },
   explain: {
     label: 'Explain Mode',
-    description: 'Educational mode — thorough explanations with examples',
+    description: 'Educational mode â€” thorough explanations with examples',
     defaultContent:
       'You are in explain mode. Provide thorough explanations with concrete examples. ' +
       'Assume the user understands programming fundamentals but may not know this specific topic. ' +
@@ -70,9 +70,9 @@ export const TEMPLATE_CONTEXTS: Record<string, { label: string; description: str
   },
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Database operations
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface PromptTemplate {
   id: number;
@@ -189,9 +189,9 @@ export async function deletePromptTemplate(userId: number, key: string): Promise
   return result.changes > 0;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Tool factory
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface PromptRegistryContext {
   userId: number;
@@ -203,7 +203,7 @@ export function createPromptRegistryTool(ctx: PromptRegistryContext) {
       'Retrieve a system prompt template for a specific context. ' +
       'Available contexts: ' +
       Object.entries(TEMPLATE_CONTEXTS)
-        .map(([key, t]) => `"${key}" — ${t.description}`)
+        .map(([key, t]) => `"${key}" â€” ${t.description}`)
         .join(', ') +
       '. ' +
       'Use this to switch between different modes (architect, debug, refactor, explain, security, api). ' +

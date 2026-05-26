@@ -15,6 +15,11 @@ bridge/dist/
 bridge/node_modules/
 
 # Temp and scratch files
+_*.sqlite
+_fix_db.*
+_suny_test.*
+_suny_setup.*
+_.vps_*
 temp_*
 tmp_*
 tmp-*

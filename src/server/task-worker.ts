@@ -1,5 +1,5 @@
 /**
- * task-worker.ts — Background task processor for the Task Queue (Phase 4).
+ * task-worker.ts â€” Background task processor for the Task Queue (Phase 4).
  *
  * Polls the task_queue table for pending tasks every N seconds, dispatches
  * them to registered handlers, and updates their status.
@@ -14,7 +14,7 @@
 import { claimNextPendingTask, markTaskDone, markTaskFailed } from './task-queue';
 import { pruneLowValueMemories } from './learning-prioritizer';
 
-// ── Handler registry ──────────────────────────────────────────────────────────
+// â”€â”€ Handler registry â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface TaskHandlerContext {
   id: number;
@@ -36,7 +36,7 @@ export function registerTaskHandler(taskType: string, handler: TaskHandler): voi
   handlers.set(taskType, handler);
 }
 
-// ── Built-in handlers ─────────────────────────────────────────────────────────
+// â”€â”€ Built-in handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 registerTaskHandler('prune_memories', async (ctx) => {
   const threshold = (ctx.payload?.threshold as number) ?? 5;
@@ -69,7 +69,7 @@ registerTaskHandler('health_report', async (ctx) => {
   return { providers: summary.length, failing: failing.length, report: summary };
 });
 
-// ── Worker lifecycle ──────────────────────────────────────────────────────────
+// â”€â”€ Worker lifecycle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 let pollTimer: ReturnType<typeof setInterval> | null = null;
 const POLL_INTERVAL_MS = 3000;
@@ -113,7 +113,7 @@ export function startTaskWorker(): void {
       console.log(`[task-worker] Done #${task.id} (${task.task_type})`);
     } catch (err) {
       // claimNextPendingTask wraps in its own try/catch and returns null on error.
-      // If we get here, the handler threw — but we lost the task reference.
+      // If we get here, the handler threw â€” but we lost the task reference.
       // This should be rare; handlers wrap their own logic.
       console.error('[task-worker] Unhandled error:', (err as Error).message);
     }

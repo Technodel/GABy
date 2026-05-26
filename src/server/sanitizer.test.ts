@@ -7,7 +7,7 @@ import {
   buildChatEvent,
 } from './sanitizer';
 
-// ─── sanitizeForUser (full sanitization: keys + string patterns) ────────────
+// â”€â”€â”€ sanitizeForUser (full sanitization: keys + string patterns) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe('sanitizeForUser', () => {
   it('should strip blocked keys from objects', () => {
@@ -61,7 +61,7 @@ describe('sanitizeForUser', () => {
   });
 });
 
-// ─── sanitizeForChatContent (key-only sanitization) ─────────────────────────
+// â”€â”€â”€ sanitizeForChatContent (key-only sanitization) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe('sanitizeForChatContent', () => {
   it('should strip blocked keys but keep string values intact', () => {
@@ -87,7 +87,7 @@ describe('sanitizeForChatContent', () => {
   });
 });
 
-// ─── friendlyError ──────────────────────────────────────────────────────────
+// â”€â”€â”€ friendlyError â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe('friendlyError', () => {
   it('should handle API key errors', () => {
@@ -128,7 +128,7 @@ describe('friendlyError', () => {
   });
 });
 
-// ─── buildUserEvent ─────────────────────────────────────────────────────────
+// â”€â”€â”€ buildUserEvent â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe('buildUserEvent', () => {
   it('should produce valid JSON with sanitized payload', () => {
@@ -146,7 +146,7 @@ describe('buildUserEvent', () => {
   });
 });
 
-// ─── buildChatEvent ─────────────────────────────────────────────────────────
+// â”€â”€â”€ buildChatEvent â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe('buildChatEvent', () => {
   it('should produce valid JSON with key-only sanitization', () => {

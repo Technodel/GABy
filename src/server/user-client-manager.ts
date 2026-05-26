@@ -51,7 +51,7 @@ class UserClientManager {
   }
 
   /**
-   * Push a balance update to the user — sends ONLY the new balance total.
+   * Push a balance update to the user â€” sends ONLY the new balance total.
    * No cost breakdown, no token counts.
    */
   pushBalance(userId: number, balance: number): void {

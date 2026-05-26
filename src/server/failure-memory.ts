@@ -1,5 +1,5 @@
 /**
- * SUNy Failure Memory — persistent error pattern storage for smarter retries.
+ * SUNy Failure Memory â€” persistent error pattern storage for smarter retries.
  *
  * When a build, lint, test, or runtime error occurs, the system records:
  *   1. The error pattern (message + type)
@@ -15,9 +15,9 @@
 
 import { getDb } from './db';
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Types
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export type ErrorSource = 'lint' | 'test' | 'build' | 'runtime' | 'shell' | 'typecheck';
 
@@ -43,9 +43,9 @@ export interface FailureMatch {
   previousFixWorked: boolean;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Database setup
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function initializeFailureMemoryTable(): void {
   const db = getDb();
@@ -72,9 +72,9 @@ export function initializeFailureMemoryTable(): void {
   `);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Core operations
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Generate a normalized error pattern from an error message.
@@ -264,9 +264,9 @@ export function formatFailureContext(matches: FailureMatch[]): string {
 
   const blocks = matches.map((m, i) => {
     const r = m.record;
-    const outcome = m.previousFixWorked ? '✅ Fixed successfully' : '❌ Fix did not resolve';
+    const outcome = m.previousFixWorked ? 'âœ… Fixed successfully' : 'âŒ Fix did not resolve';
     return [
-      `[${i + 1}] Previous occurrence (${r.created_at?.slice(0, 10) || 'unknown'}) — recurred ${r.recurrence_count}x`,
+      `[${i + 1}] Previous occurrence (${r.created_at?.slice(0, 10) || 'unknown'}) â€” recurred ${r.recurrence_count}x`,
       `  Error: ${r.error_message?.slice(0, 200)}`,
       r.filePath ? `  File: ${r.filePath}` : '',
       r.functionName ? `  Function: ${r.functionName}` : '',

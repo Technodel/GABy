@@ -85,12 +85,12 @@ export function createPowerTools(ctx: PowerToolContext): ToolSet {
 
   const notify = (name: string, input: unknown) => onToolCall?.(name, input);
 
-  // ── Read-before-edit guard ──────────────────────────────────────────────
+  // â”€â”€ Read-before-edit guard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Tracks files the model has actually read this turn. file_edit and overwrite
   // file_write are blocked for files that exist but were never read, to prevent
   // hallucinated edits from corrupting code. Resets per turn (new context).
   const readFiles = new Set<string>();
-  const knownNewFiles = new Set<string>(); // files the model just created — safe to edit
+  const knownNewFiles = new Set<string>(); // files the model just created â€” safe to edit
 
   // file_read
   const fileReadTool = tool({
@@ -109,7 +109,7 @@ export function createPowerTools(ctx: PowerToolContext): ToolSet {
           path: abs, withLines: input.withLines, lineOffset: input.lineOffset, lineLimit: input.lineLimit,
         }, 30000) as { content?: string } | string;
         readFiles.add(abs);
-        // Bridge returns { content, encoding } — extract raw string so the
+        // Bridge returns { content, encoding } â€” extract raw string so the
         // model sees file contents directly (not JSON-wrapped).
         let content = typeof result === 'string'
           ? result
@@ -124,7 +124,7 @@ export function createPowerTools(ctx: PowerToolContext): ToolSet {
             ? sliced.map((l, i) => `${String(offset + i + 1).padStart(5, ' ')}: ${l}`).join('\n')
             : sliced.join('\n');
           if (allLines.length > offset + limit) {
-            content += `\n\n[... truncated: showing lines ${offset + 1}–${offset + sliced.length} of ${allLines.length}. Use lineOffset=${offset + sliced.length} to read more.]`;
+            content += `\n\n[... truncated: showing lines ${offset + 1}â€“${offset + sliced.length} of ${allLines.length}. Use lineOffset=${offset + sliced.length} to read more.]`;
           }
         }
         return content;
@@ -180,7 +180,7 @@ Include enough context to uniquely identify the location. Do not use escape char
             const hint = input.searchTerm.startsWith('\\\n')
               ? 'Do not start the search term with a backslash character.'
               : input.searchTerm.includes('\\"')
-                ? 'Do not use \\" � use plain " instead.'
+                ? 'Do not use \\" ï¿½ use plain " instead.'
                 : 'Make sure to exactly match the file content, character for character.';
             return `Warning: searchTerm not found in file. No changes made. ${hint}`;
           }
@@ -296,7 +296,7 @@ Modes: 'create_only' (fail if exists), 'overwrite' (replace or create), 'append'
   const bashTool = tool({
     description: `Execute a foreground shell command and return its stdout/stderr.
 USE THIS FOR commands that finish quickly (build, lint, test, install, git, curl, ls, cat).
-DO NOT use this to start long-running servers — bash returns when the process exits,
+DO NOT use this to start long-running servers â€” bash returns when the process exits,
 so a server started here gets killed at the end of the call. To start a dev server,
 HTTP server, watcher, or any process that should keep running, use start_server instead.`,
     inputSchema: z.object({
@@ -326,7 +326,7 @@ HTTP server, watcher, or any process that should keep running, use start_server 
     },
   });
 
-  // start_server — launch a long-running process (dev server, HTTP server, watcher).
+  // start_server â€” launch a long-running process (dev server, HTTP server, watcher).
   const startServerTool = tool({
     description: `Start a long-running process (dev server, HTTP server, watcher, etc.) in the background.
 Returns a processId you can use with stop_server and read_server_logs. The process keeps
@@ -354,14 +354,14 @@ EXAMPLES: 'npm run dev', 'node dist/server.js', 'python app.py', 'vite', 'next d
         const status = result.status;
         const head = `[processId=${result.processId} status=${status}]`;
         const out = (result.output ?? '').trim();
-        return out.length === 0 ? `${head} (no output yet — use read_server_logs to tail)` : `${head}\n${out}`;
+        return out.length === 0 ? `${head} (no output yet â€” use read_server_logs to tail)` : `${head}\n${out}`;
       } catch (e) {
         throw new Error(`Error starting server: ${e instanceof Error ? e.message : String(e)}`);
       }
     },
   });
 
-  // stop_server — stop a background process started by start_server.
+  // stop_server â€” stop a background process started by start_server.
   const stopServerTool = tool({
     description: 'Stop a background process previously started with start_server. Pass the processId returned by start_server.',
     inputSchema: z.object({
@@ -374,7 +374,7 @@ EXAMPLES: 'npm run dev', 'node dist/server.js', 'python app.py', 'vite', 'next d
     },
   });
 
-  // read_server_logs — tail logs of a background process.
+  // read_server_logs â€” tail logs of a background process.
   const readServerLogsTool = tool({
     description: 'Read the most recent log lines (stdout+stderr) from a process started with start_server. Use this to check if a server is actually serving requests or to debug startup errors.',
     inputSchema: z.object({
@@ -390,7 +390,7 @@ EXAMPLES: 'npm run dev', 'node dist/server.js', 'python app.py', 'vite', 'next d
     },
   });
 
-  // list_servers — see what background processes are running.
+  // list_servers â€” see what background processes are running.
   const listServersTool = tool({
     description: 'List background processes (started via start_server) for the current user. Use this to discover existing servers before starting a new one.',
     inputSchema: z.object({}),
@@ -404,7 +404,7 @@ EXAMPLES: 'npm run dev', 'node dist/server.js', 'python app.py', 'vite', 'next d
 
   // file_delete
   const fileDeleteTool = tool({
-    description: 'Delete a file or empty directory. Use with extreme caution — this is irreversible.',
+    description: 'Delete a file or empty directory. Use with extreme caution â€” this is irreversible.',
     inputSchema: z.object({
       filePath: z.string().describe('Path to the file or directory to delete (relative to WorkingDirectory or absolute).'),
     }),

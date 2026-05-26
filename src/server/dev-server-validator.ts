@@ -10,7 +10,7 @@ interface DevCommand {
 
 interface ValidationResult {
   success: boolean;
-  error?: string; // internal only — never sent to users
+  error?: string; // internal only â€” never sent to users
 }
 
 export function detectDevCommand(projectPath: string): DevCommand | null {

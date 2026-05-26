@@ -1,5 +1,5 @@
 /**
- * training-loader.ts — SUNy Training & Injection Auto-Loader
+ * training-loader.ts â€” SUNy Training & Injection Auto-Loader
  *
  * Auto-loads all training/injection/rules/behavior files into SUNy's system
  * prompt so no custom configuration is ever left unused. Closes the gap
@@ -10,7 +10,7 @@
  *      - _SUNY_ENGINE_INJECTION.md (primary)
  *      - Any *training*.md, *instruct*.md, *injection*.md, *behavior*.md
  *   2. Behavioral rules from the DB (extracted by training-scorer, stored
- *      by behavioral-rules, but never injected — until now).
+ *      by behavioral-rules, but never injected â€” until now).
  *
  * Feature flag: ff_training_loader (default enabled)
  */
@@ -31,7 +31,7 @@ import {
   type BehaviorProfile,
 } from './activation-controller';
 
-// ── Config ───────────────────────────────────────────────────────────────────
+// â”€â”€ Config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const INJECTION_FILE_PATTERNS = [
   /^_SUNY_ENGINE_INJECTION\.md$/i,
@@ -44,7 +44,7 @@ const INJECTION_FILE_PATTERNS = [
 
 const MAX_INJECTION_BYTES = 32 * 1024; // 32 KB per file
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface TrainingLoadResult {
   injectionBlocks: string[];
@@ -56,7 +56,7 @@ export interface TrainingLoadResult {
   summary: string;
 }
 
-// ── Scan for injection files in project root ─────────────────────────────────
+// â”€â”€ Scan for injection files in project root â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function findInjectionFiles(projectRoot: string): string[] {
   const found: string[] = [];
@@ -86,7 +86,7 @@ function findInjectionFiles(projectRoot: string): string[] {
   return found;
 }
 
-// ── Load and format injection files ──────────────────────────────────────────
+// â”€â”€ Load and format injection files â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function loadInjectionFiles(filePaths: string[]): { blocks: string[]; loaded: number } {
   const blocks: string[] = [];
@@ -119,7 +119,7 @@ function loadInjectionFiles(filePaths: string[]): { blocks: string[]; loaded: nu
   return { blocks, loaded };
 }
 
-// ── Main loader — call this to get formatted prompt blocks ───────────────────
+// â”€â”€ Main loader â€” call this to get formatted prompt blocks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function loadTrainingAndRules(options: {
   userId: number;
@@ -160,7 +160,7 @@ export async function loadTrainingAndRules(options: {
       console.warn('[training-loader] Failed to load behavioral rules:', (err as Error).message);
     }
   } else {
-    console.log('[training-loader] ff_behavioral_rules disabled — skipping behavioral rules');
+    console.log('[training-loader] ff_behavioral_rules disabled â€” skipping behavioral rules');
   }
 
   // 3. Compose behavior profiles from multiple sources (activation controller)
@@ -171,7 +171,7 @@ export async function loadTrainingAndRules(options: {
       // 3a. Memory profile from similar interactions
       if (options.projectRoot) {
         try {
-          // Get recent interactions for the user (no specific query — grab variety)
+          // Get recent interactions for the user (no specific query â€” grab variety)
           const memories = findSimilarInteractions(options.userId, '', {
             limit: 5,
             minScore: 0.15,

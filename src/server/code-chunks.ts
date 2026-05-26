@@ -1,22 +1,22 @@
 /**
- * code-chunks.ts — Semantic vector context for SUNy.
+ * code-chunks.ts â€” Semantic vector context for SUNy.
  *
  * Bridges the existing code-index (symbol names/lines) with the vectors.ts
  * trigram embedding engine to give SUNy "semantic file awareness":
  *
  *   buildChunkVectors(projectPath, projectId)
- *     → reads every indexed symbol body from disk
- *     → embeds with textToVector (trigrams, zero-dependency)
- *     → stores in code_chunks SQLite table (hash-gated, only re-indexes changed content)
- *     → rebuilds an in-memory HNSW index for fast ANN search
+ *     â†’ reads every indexed symbol body from disk
+ *     â†’ embeds with textToVector (trigrams, zero-dependency)
+ *     â†’ stores in code_chunks SQLite table (hash-gated, only re-indexes changed content)
+ *     â†’ rebuilds an in-memory HNSW index for fast ANN search
  *
  *   searchChunks(query, projectId, topK)
- *     → embeds the query
- *     → HNSW ANN search → brute-force cosine re-rank on top-50
- *     → returns topK most relevant code snippets
+ *     â†’ embeds the query
+ *     â†’ HNSW ANN search â†’ brute-force cosine re-rank on top-50
+ *     â†’ returns topK most relevant code snippets
  *
  *   formatChunksForPrompt(chunks)
- *     → formats results as a compact system-prompt section
+ *     â†’ formats results as a compact system-prompt section
  *
  * Feature flag: ff_vector_context
  */
@@ -28,7 +28,7 @@ import { getAdapter } from './db';
 import { textToVector, cosineSimilarity, serializeVector, deserializeVector } from './vectors';
 import { HNSWIndex } from './hnsw-lite';
 
-// ── Constants ─────────────────────────────────────────────────────────────────
+// â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const VECTOR_DIMS = 2000;
 const MAX_CHUNK_LINES = 80;    // cap per chunk to avoid huge embeddings
@@ -36,7 +36,7 @@ const MAX_CHUNK_CHARS = 3000;  // char cap for prompt injection per chunk
 const SUPPORTED_EXTS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.py']);
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', 'build', '.next', '__pycache__', '.venv', 'venv', 'coverage']);
 
-// ── In-memory HNSW index per project ─────────────────────────────────────────
+// â”€â”€ In-memory HNSW index per project â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface ProjectIndex {
   hnsw: HNSWIndex;
@@ -45,7 +45,7 @@ interface ProjectIndex {
 
 const projectIndexes = new Map<number, ProjectIndex>();
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface ChunkResult {
   filePath: string;
@@ -64,7 +64,7 @@ export interface IndexStats {
   skipped: number;
 }
 
-// ── Core: build chunk vectors ─────────────────────────────────────────────────
+// â”€â”€ Core: build chunk vectors â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Index all symbols in a project into the code_chunks table.
@@ -122,7 +122,7 @@ export async function buildChunkVectors(projectPath: string, projectId: number):
     });
   };
 
-  // ── Process symbol-level chunks ──────────────────────────────────────────
+  // â”€â”€ Process symbol-level chunks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Group by file to avoid repeated reads
   const byFile = new Map<string, typeof symbols>();
   for (const s of symbols) {
@@ -155,7 +155,7 @@ export async function buildChunkVectors(projectPath: string, projectId: number):
     if (batch.length > 0) insertMany(batch);
   }
 
-  // ── Process extra files (e.g. Python) as file-level chunks ───────────────
+  // â”€â”€ Process extra files (e.g. Python) as file-level chunks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   for (const filePath of extraFiles) {
     const lines = readFileLines(filePath);
     if (!lines) { stats.skipped++; continue; }
@@ -184,13 +184,13 @@ export async function buildChunkVectors(projectPath: string, projectId: number):
     if (batch.length > 0) insertMany(batch);
   }
 
-  // ── Rebuild in-memory HNSW for this project ───────────────────────────────
+  // â”€â”€ Rebuild in-memory HNSW for this project â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   await rebuildProjectIndex(projectId);
 
   return stats;
 }
 
-// ── Core: semantic search ─────────────────────────────────────────────────────
+// â”€â”€ Core: semantic search â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Find the topK most semantically relevant code chunks for a query.
@@ -210,7 +210,7 @@ export async function searchChunks(query: string, projectId: number, topK: numbe
   let candidateIds: number[];
 
   if (idx && idx.hnsw.size > 0) {
-    // HNSW approximate search — get top 50 candidates
+    // HNSW approximate search â€” get top 50 candidates
     const results = idx.hnsw.search(queryVec, Math.min(50, idx.hnsw.size));
     candidateIds = results.map(r => r.id);
   } else {
@@ -255,7 +255,7 @@ export async function searchChunks(query: string, projectId: number, topK: numbe
   return scored.slice(0, topK).filter(r => r.score > 0.05);
 }
 
-// ── Prompt formatting ─────────────────────────────────────────────────────────
+// â”€â”€ Prompt formatting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Format retrieved chunks as a compact system prompt section.
@@ -267,7 +267,7 @@ export function formatChunksForPrompt(chunks: ChunkResult[], projectPath: string
   const lines: string[] = [
     '',
     '=== SEMANTICALLY RELEVANT CODE (vector context) ===',
-    `(Top ${chunks.length} chunks most similar to your message — read before responding)`,
+    `(Top ${chunks.length} chunks most similar to your message â€” read before responding)`,
   ];
 
   // Group by file
@@ -284,8 +284,8 @@ export function formatChunksForPrompt(chunks: ChunkResult[], projectPath: string
     lines.push('', `--- ${file} ---`);
     for (const chunk of fileChunks) {
       const label = chunk.symbolType !== 'block'
-        ? `${chunk.symbolType} \`${chunk.symbolName}\` (L${chunk.startLine}–${chunk.endLine})`
-        : `lines ${chunk.startLine}–${chunk.endLine}`;
+        ? `${chunk.symbolType} \`${chunk.symbolName}\` (L${chunk.startLine}â€“${chunk.endLine})`
+        : `lines ${chunk.startLine}â€“${chunk.endLine}`;
       lines.push(`// ${label}`);
       // Trim to first 60 lines for prompt brevity
       const trimmed = chunk.content.split('\n').slice(0, 60).join('\n');
@@ -297,7 +297,7 @@ export function formatChunksForPrompt(chunks: ChunkResult[], projectPath: string
   return lines.join('\n');
 }
 
-// ── Stats helpers ─────────────────────────────────────────────────────────────
+// â”€â”€ Stats helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function getChunkStats(projectId: number): Promise<{ total: number; files: number; indexed_at: string | null }> {
   const db = getAdapter();
@@ -315,7 +315,7 @@ export async function clearChunkIndex(projectId: number): Promise<void> {
   projectIndexes.delete(projectId);
 }
 
-// ── Internal helpers ──────────────────────────────────────────────────────────
+// â”€â”€ Internal helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function rebuildProjectIndex(projectId: number): Promise<void> {
   const db = getAdapter();

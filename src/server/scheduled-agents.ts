@@ -1,5 +1,5 @@
 /**
- * SUNy Scheduled Agents — Cron-based task scheduling.
+ * SUNy Scheduled Agents â€” Cron-based task scheduling.
  *
  * Allows users to schedule agent runs at specific times/intervals.
  * Examples:
@@ -10,7 +10,7 @@
 
 import { getDb } from './db';
 
-// ── Types ───────────────────────────────────────────────────────────────────
+// â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export type ScheduleFrequency = 'once' | 'hourly' | 'daily' | 'weekly' | 'custom_cron';
 
@@ -44,7 +44,7 @@ export interface ScheduledAgentLog {
   error_message: string | null;
 }
 
-// ── Database ────────────────────────────────────────────────────────────────
+// â”€â”€ Database â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function ensureTable(): void {
   const db = getDb();
@@ -86,7 +86,7 @@ function ensureTable(): void {
   `);
 }
 
-// ── CRUD operations ─────────────────────────────────────────────────────────
+// â”€â”€ CRUD operations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function createScheduledAgent(params: {
   userId: number;
@@ -182,7 +182,7 @@ export function deleteScheduledAgent(id: number): boolean {
   return result.changes > 0;
 }
 
-// ── Execution ───────────────────────────────────────────────────────────────
+// â”€â”€ Execution â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function executeScheduledAgent(agent: ScheduledAgent): Promise<ScheduledAgentLog> {
   ensureTable();
@@ -229,7 +229,7 @@ export async function executeScheduledAgent(agent: ScheduledAgent): Promise<Sche
       WHERE id = ?
     `).run(startedAt, nextRun, agent.id);
 
-    // Handle 'once' agents — deactivate after first successful run
+    // Handle 'once' agents â€” deactivate after first successful run
     if (agent.frequency === 'once') {
       db.prepare('UPDATE scheduled_agents SET is_active = 0 WHERE id = ?').run(agent.id);
     }
@@ -263,7 +263,7 @@ export function getAgentLogs(agentId: number, limit = 20): ScheduledAgentLog[] {
   ).all(agentId, limit) as ScheduledAgentLog[];
 }
 
-// ── Scheduler loop ──────────────────────────────────────────────────────────
+// â”€â”€ Scheduler loop â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 let schedulerInterval: ReturnType<typeof setInterval> | null = null;
 
@@ -303,7 +303,7 @@ export function stopScheduler(): void {
   }
 }
 
-// ── Helpers ─────────────────────────────────────────────────────────────────
+// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function calculateNextRun(frequency: ScheduleFrequency, cronExpression?: string | null): string {
   const now = new Date();
@@ -318,7 +318,7 @@ function calculateNextRun(frequency: ScheduleFrequency, cronExpression?: string 
     case 'weekly':
       return new Date(now.getTime() + 604800_000).toISOString();
     case 'custom_cron': {
-      // Simple cron parser approximation — default to 1 hour
+      // Simple cron parser approximation â€” default to 1 hour
       // For a full cron parser, consider `cron-parser` npm package
       if (cronExpression) {
         // Very basic: detect daily patterns like "0 9 * * *" (9am daily)

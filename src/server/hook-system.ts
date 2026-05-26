@@ -1,11 +1,11 @@
 /**
- * hook-system.ts — Ruflo-inspired hook/event system for SUNy's agent loop.
+ * hook-system.ts â€” Ruflo-inspired hook/event system for SUNy's agent loop.
  *
  * Replaces inline code injection (e.g., interaction memory stuffing, training
  * scorer calls, behavioral rule extraction) with clean, registerable hooks
  * that fire at defined points in the agent loop lifecycle.
  *
- * ── Usage ──
+ * â”€â”€ Usage â”€â”€
  *   const hookSystem = new HookSystem();
  *
  *   // Register a hook
@@ -14,12 +14,12 @@
  *   // Fire all hooks for an event
  *   await hookSystem.fire('postResponse', { userId, projectId, ... });
  *
- * ── Events ──
- *   preToolUse     — before each tool call (ctx: { toolName, args, userId })
- *   postToolUse    — after each tool call (ctx: { toolName, args, result, userId })
- *   preResponse    — before sending the response to the user (ctx: { userId, content })
- *   postResponse   — after response is complete (ctx: { userId, projectId, sessionId, content, changedFiles, ... })
- *   onError        — when an error occurs (ctx: { userId, error, phase })
+ * â”€â”€ Events â”€â”€
+ *   preToolUse     â€” before each tool call (ctx: { toolName, args, userId })
+ *   postToolUse    â€” after each tool call (ctx: { toolName, args, result, userId })
+ *   preResponse    â€” before sending the response to the user (ctx: { userId, content })
+ *   postResponse   â€” after response is complete (ctx: { userId, projectId, sessionId, content, changedFiles, ... })
+ *   onError        â€” when an error occurs (ctx: { userId, error, phase })
  */
 
 export type HookEvent =
@@ -57,11 +57,11 @@ export interface HookRegistration {
   once: boolean;
 }
 
-// ── Hook System ───────────────────────────────────────────────────────────────
+// â”€â”€ Hook System â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export class HookSystem {
   private hooks: Map<HookEvent, HookRegistration[]> = new Map();
-  private firedOnce: Set<string> = new Set();  // "event:name" → has fired
+  private firedOnce: Set<string> = new Set();  // "event:name" â†’ has fired
 
   /**
    * Register a hook handler for a specific event.
@@ -112,7 +112,7 @@ export class HookSystem {
 
   /**
    * Fire all hooks for an event. Runs sequentially in priority order.
-   * Never throws — errors are caught and logged.
+   * Never throws â€” errors are caught and logged.
    */
   async fire(event: HookEvent, ctx: Partial<HookContext>): Promise<void> {
     const registrations = this.hooks.get(event);
@@ -173,7 +173,7 @@ export class HookSystem {
   }
 }
 
-// ── Singleton ─────────────────────────────────────────────────────────────────
+// â”€â”€ Singleton â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /** Global hook system instance. */
 export const hookSystem = new HookSystem();

@@ -1,8 +1,8 @@
 /**
- * SUNy Web Search Tool — searches the web using configurable backends.
+ * SUNy Web Search Tool â€” searches the web using configurable backends.
  *
  * Providers (checked in order):
- *   1. Tavily (requires TAVILY_API_KEY env var) — best for AI agents
+ *   1. Tavily (requires TAVILY_API_KEY env var) â€” best for AI agents
  *   2. SerpAPI (requires SERPAPI_KEY env var)
  *   3. Fallback: DuckDuckGo HTML scrape (no key needed, limited)
  *
@@ -37,7 +37,7 @@ function formatResults(results: SearchResult[], query: string): string {
   if (results.length === 0) return `No results found for "${query}".`;
 
   const lines: string[] = [
-    `◈◈◈ Web search results for: ${query} ◈◈◈`,
+    `â—ˆâ—ˆâ—ˆ Web search results for: ${query} â—ˆâ—ˆâ—ˆ`,
     '',
   ];
 
@@ -46,11 +46,11 @@ function formatResults(results: SearchResult[], query: string): string {
     lines.push(`  ${i + 1}. ${r.title}`);
     lines.push(`     ${r.url}`);
     lines.push(`     ${r.snippet}`);
-    if (r.content) lines.push(`     ── ${r.content.slice(0, 300)}`);
+    if (r.content) lines.push(`     â”€â”€ ${r.content.slice(0, 300)}`);
     lines.push('');
   }
 
-  lines.push(`── ${results.length} result(s) ──`);
+  lines.push(`â”€â”€ ${results.length} result(s) â”€â”€`);
   return lines.join('\n');
 }
 
@@ -263,7 +263,7 @@ async function searchDuckDuckGo(
 export function createWebSearchTool() {
   return tool({
     description:
-      'Search the web for current information. Use this when you need up-to-date data, documentation, news, API references, or any information the model was not trained on. Supports Tavily (best), SerpAPI, or DuckDuckGo fallback — no configuration needed for basic usage.',
+      'Search the web for current information. Use this when you need up-to-date data, documentation, news, API references, or any information the model was not trained on. Supports Tavily (best), SerpAPI, or DuckDuckGo fallback â€” no configuration needed for basic usage.',
     inputSchema: z.object({
       query: z
         .string()

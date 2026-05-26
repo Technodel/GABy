@@ -1,5 +1,5 @@
 /**
- * SUNy Test Runner — runs the project's test suite after code edits,
+ * SUNy Test Runner â€” runs the project's test suite after code edits,
  * returning structured results so agent-loop.ts can feed failures back to the AI.
  *
  * Design goals (beyond Aider):
@@ -12,28 +12,28 @@
  *   - Progressive fix prompts that escalate in depth on each retry pass
  *
  * Detection priority:
- *   package.json scripts["test"]   → npm test (unless it's echo/exit)
- *   vitest in deps                 → npx vitest run
- *   jest in deps                   → npx jest
- *   mocha in deps                  → npx mocha
- *   bun.lockb present              → bun test
- *   Cargo.toml                     → cargo test
- *   go.mod                         → go test ./...
- *   pyproject.toml (pytest)        → python -m pytest
- *   requirements.txt + tests/      → python -m pytest
- *   None found                     → skip (return null)
+ *   package.json scripts["test"]   â†’ npm test (unless it's echo/exit)
+ *   vitest in deps                 â†’ npx vitest run
+ *   jest in deps                   â†’ npx jest
+ *   mocha in deps                  â†’ npx mocha
+ *   bun.lockb present              â†’ bun test
+ *   Cargo.toml                     â†’ cargo test
+ *   go.mod                         â†’ go test ./...
+ *   pyproject.toml (pytest)        â†’ python -m pytest
+ *   requirements.txt + tests/      â†’ python -m pytest
+ *   None found                     â†’ skip (return null)
  */
 
 import { sendToBridge, isBridgeConnected } from './bridge-manager';
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Public types
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface FailedTest {
   /** Human-readable test name */
   name: string;
-  /** Trimmed error/assertion snippet (≤ 800 chars) */
+  /** Trimmed error/assertion snippet (â‰¤ 800 chars) */
   errorSnippet: string;
   /** File path of the test if parseable */
   file?: string;
@@ -65,9 +65,9 @@ interface DetectedSuite {
   cwd?: string;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Detection cache (per project, 5 min TTL)
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const suiteCache = new Map<string, { suite: DetectedSuite | null; at: number }>();
 const CACHE_TTL = 5 * 60_000;
@@ -76,9 +76,9 @@ export function clearTestCache(projectPath: string): void {
   suiteCache.delete(projectPath);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Public API
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Run the full test suite for the project.
@@ -146,7 +146,7 @@ export function buildTestFixPrompt(result: TestResult, pass: number): string {
   if (pass === 1) {
     return (
       header +
-      '\n\nFix ALL failing tests above. Do not ask for permission — just fix them.\n' +
+      '\n\nFix ALL failing tests above. Do not ask for permission â€” just fix them.\n' +
       'Read the relevant source files if you need context before editing.'
     );
   }
@@ -167,16 +167,16 @@ export function buildTestFixPrompt(result: TestResult, pass: number): string {
     header +
     '\n\nMultiple fix attempts have failed. Step back completely:\n' +
     '  1. Re-read ALL changed files and the failing test files from scratch.\n' +
-    '  2. Identify the root cause — do NOT assume your previous diagnosis was correct.\n' +
+    '  2. Identify the root cause â€” do NOT assume your previous diagnosis was correct.\n' +
     '  3. If the test expectations are wrong, fix the tests. If the implementation is wrong, fix it.\n' +
     '  4. Fix the root cause, not the symptom.\n' +
-    'This is a critical pass — get it right.'
+    'This is a critical pass â€” get it right.'
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Detection
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function detectSuite(userId: number, projectPath: string): Promise<DetectedSuite | null> {
   const cached = suiteCache.get(projectPath);
@@ -190,7 +190,7 @@ async function detectSuite(userId: number, projectPath: string): Promise<Detecte
 }
 
 async function doDetect(userId: number, projectPath: string): Promise<DetectedSuite | null> {
-  // ── Node/JS/TS ──────────────────────────────────────────────────────────
+  // â”€â”€ Node/JS/TS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const pkgRaw = await readFileSafe(userId, `${projectPath}/package.json`);
   if (pkgRaw) {
     let pkg: { scripts?: Record<string, string>; devDependencies?: Record<string, string>; dependencies?: Record<string, string> } = {};
@@ -224,17 +224,17 @@ async function doDetect(userId: number, projectPath: string): Promise<DetectedSu
     return null;
   }
 
-  // ── Rust ────────────────────────────────────────────────────────────────
+  // â”€â”€ Rust â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (await fileExists(userId, `${projectPath}/Cargo.toml`)) {
     return { cmd: 'cargo test 2>&1', label: 'cargo test', framework: 'cargo' };
   }
 
-  // ── Go ──────────────────────────────────────────────────────────────────
+  // â”€â”€ Go â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (await fileExists(userId, `${projectPath}/go.mod`)) {
     return { cmd: 'go test ./... -v 2>&1', label: 'go test', framework: 'go' };
   }
 
-  // ── Python ──────────────────────────────────────────────────────────────
+  // â”€â”€ Python â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const pyProjectRaw = await readFileSafe(userId, `${projectPath}/pyproject.toml`);
   if (pyProjectRaw && /pytest/.test(pyProjectRaw)) {
     return { cmd: 'python -m pytest -v 2>&1', label: 'pytest', framework: 'pytest' };
@@ -248,9 +248,9 @@ async function doDetect(userId: number, projectPath: string): Promise<DetectedSu
   return null;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Output parsing — structured failure extraction
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Output parsing â€” structured failure extraction
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function parseOutput(raw: string, suite: DetectedSuite): TestResult {
   const output = raw.trim();
@@ -296,8 +296,8 @@ function countGenericFailures(output: string): number {
 function parseJestVitest(output: string): FailedTest[] {
   const tests: FailedTest[] = [];
 
-  // Jest: "● DescribeBlock > test name\n  error..."
-  const jestBlockRe = /●\s+(.+?)\n([\s\S]+?)(?=\n●|\n─+|\nTest Suites:|$)/g;
+  // Jest: "â— DescribeBlock > test name\n  error..."
+  const jestBlockRe = /â—\s+(.+?)\n([\s\S]+?)(?=\nâ—|\nâ”€+|\nTest Suites:|$)/g;
   let m: RegExpExecArray | null;
   // eslint-disable-next-line no-cond-assign
   while ((m = jestBlockRe.exec(output)) !== null) {
@@ -318,8 +318,8 @@ function parseJestVitest(output: string): FailedTest[] {
     return tests;
   }
 
-  // Vitest: "× test name"
-  const vitestRe = /[×✕]\s+(.+)/g;
+  // Vitest: "Ã— test name"
+  const vitestRe = /[Ã—âœ•]\s+(.+)/g;
   // eslint-disable-next-line no-cond-assign
   while ((m = vitestRe.exec(output)) !== null) {
     tests.push({ name: m[1].trim(), errorSnippet: '' });
@@ -387,9 +387,9 @@ function parseGeneric(output: string): FailedTest[] {
   return tests.slice(0, 20);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Scope narrowing
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function buildNarrowCommand(suite: DetectedSuite, failedTests: FailedTest[]): string | null {
   if (failedTests.length === 0) return null;
@@ -423,9 +423,9 @@ function buildNarrowCommand(suite: DetectedSuite, failedTests: FailedTest[]): st
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Bridge helpers
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function execShell(userId: number, cmd: string, cwd: string, timeoutMs = 180_000): Promise<string> {
   try {

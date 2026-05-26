@@ -1,5 +1,5 @@
 /**
- * SUNy Test Generator — auto-scaffold tests for untested files.
+ * SUNy Test Generator â€” auto-scaffold tests for untested files.
  *
  * Analyzes existing test patterns in the project, then generates
  * test files with appropriate imports, describe/it blocks, and mocking.
@@ -12,9 +12,9 @@ import fs from 'fs';
 import path from 'path';
 import { generateText, type LanguageModel } from 'ai';
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Types
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export interface TestGenInput {
   /** Source file to generate tests for */
@@ -42,9 +42,9 @@ export interface TestGenOutput {
   written: boolean;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Test detection
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function detectTestFramework(projectPath: string): 'vitest' | 'jest' | 'mocha' | 'unknown' {
   try {
@@ -159,9 +159,9 @@ export function resolveTestFilePath(sourcePath: string, projectPath: string): st
   return coLocated;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Test generator
-// ─────────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const TEST_GENERATOR_SYSTEM = `You are an expert test writer. Given a source file, generate a comprehensive test file.
 
@@ -173,12 +173,12 @@ const TEST_GENERATOR_SYSTEM = `You are an expert test writer. Given a source fil
 4. Include proper setup and teardown where needed
 5. Use clear test names that describe the scenario
 6. Follow the project's existing test patterns (shown as examples)
-7. Do NOT test third-party libraries — only test the code in the source file
+7. Do NOT test third-party libraries â€” only test the code in the source file
 8. Import only what's needed
 
 ## Output Format
 
-Respond with ONLY the test file content — no explanations, no markdown code fences around it.
+Respond with ONLY the test file content â€” no explanations, no markdown code fences around it.
 
 \`\`\`typescript
 // Generated test file
@@ -301,19 +301,19 @@ export function generateTestToolDefinition(model: LanguageModel, projectPath: st
       });
 
       if (testGen.testCount === 0) {
-        return `❌ Failed to generate tests for "${args.filePath}": ${testGen.testContent}`;
+        return `âŒ Failed to generate tests for "${args.filePath}": ${testGen.testContent}`;
       }
 
       // Check if test file already exists
       if (fs.existsSync(testGen.testFilePath)) {
-        return `⚠️ Test file already exists at "${testGen.testFilePath}". Generated ${testGen.testCount} test case(s) but did not overwrite.\n\nPreview:\n\`\`\`\n${testGen.testContent.slice(0, 1000)}\n\`\`\``;
+        return `âš ï¸ Test file already exists at "${testGen.testFilePath}". Generated ${testGen.testCount} test case(s) but did not overwrite.\n\nPreview:\n\`\`\`\n${testGen.testContent.slice(0, 1000)}\n\`\`\``;
       }
 
       const written = writeTestFile(testGen);
       if (written.written) {
-        return `✅ Generated and wrote ${testGen.testCount} test case(s) to "${testGen.testFilePath}" (${testGen.framework}).`;
+        return `âœ… Generated and wrote ${testGen.testCount} test case(s) to "${testGen.testFilePath}" (${testGen.framework}).`;
       } else {
-        return `❌ Failed to write test file to "${testGen.testFilePath}".`;
+        return `âŒ Failed to write test file to "${testGen.testFilePath}".`;
       }
     },
   };

@@ -1,5 +1,5 @@
 /**
- * SqliteAdapter — wraps better-sqlite3 behind the DbAdapter interface.
+ * SqliteAdapter â€” wraps better-sqlite3 behind the DbAdapter interface.
  *
  * better-sqlite3 is synchronous, so every method returns a resolved Promise.
  * This lets consumers write uniform async code regardless of backend.
@@ -8,7 +8,7 @@
 import Database from 'better-sqlite3';
 import type { DbAdapter, DbRow, DbRunResult } from './db-types';
 
-// ── Savepoint depth counter (supports nested transaction() calls) ────────────
+// â”€â”€ Savepoint depth counter (supports nested transaction() calls) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 let savepointDepth = 0;
 
@@ -33,7 +33,7 @@ export class SqliteAdapter implements DbAdapter {
     return this.db;
   }
 
-  // ── Core query methods ─────────────────────────────────────────────────
+  // â”€â”€ Core query methods â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async get<T extends DbRow>(sql: string, params?: unknown[]): Promise<T | undefined> {
     return (params && params.length > 0
@@ -57,7 +57,7 @@ export class SqliteAdapter implements DbAdapter {
     this.db.exec(sql);
   }
 
-  // ── Transaction support (savepoint-based for nesting) ──────────────────
+  // â”€â”€ Transaction support (savepoint-based for nesting) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async transaction<T>(fn: (trx: DbAdapter) => Promise<T>): Promise<T> {
     const spName = `sp_${savepointDepth}`;
@@ -75,7 +75,7 @@ export class SqliteAdapter implements DbAdapter {
     }
   }
 
-  // ── Migration helpers ──────────────────────────────────────────────────
+  // â”€â”€ Migration helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async getSchemaVersion(): Promise<number> {
     const row = await this.get<{ value: string }>(
@@ -96,7 +96,7 @@ export class SqliteAdapter implements DbAdapter {
     return rows.some(r => r.name === column);
   }
 
-  // ── Lifecycle ──────────────────────────────────────────────────────────
+  // â”€â”€ Lifecycle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async close(): Promise<void> {
     this.db.close();
