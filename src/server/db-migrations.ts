@@ -900,13 +900,14 @@ const SCHEMA_MIGRATIONS: Migration[] = [
           groq_key TEXT DEFAULT NULL,
           openrouter_key TEXT DEFAULT NULL,
           serper_key TEXT DEFAULT NULL,
+          suny_page_url TEXT DEFAULT 'https://suny.technodel.tech',
           updated_at TEXT DEFAULT (datetime('now'))
         );
       `);
       // Seed default row
       await adapter.run(`
-        INSERT OR IGNORE INTO suny_widget_config (id, bot_name, logo_url, enabled, deepseek_key, groq_key, openrouter_key, serper_key)
-        VALUES (1, 'SUNy', '/SLOGO.png', 1, ?, ?, ?, ?)
+        INSERT OR IGNORE INTO suny_widget_config (id, bot_name, logo_url, enabled, deepseek_key, groq_key, openrouter_key, serper_key, suny_page_url)
+        VALUES (1, 'SUNy', '/SLOGO.png', 1, ?, ?, ?, ?, 'https://suny.technodel.tech')
       `, [
         process.env.DEEPSEEK_API_KEY || null,
         process.env.GROQ_API_KEY || null,

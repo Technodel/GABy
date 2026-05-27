@@ -731,5 +731,99 @@ router.patch('/upgrade-requests/:id', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
-export default router;
+// ── SUNy Widget Config (Technodel Chatbot) ──────────────────────────────────
 
+router.get('/suny-widget', async (_req: Request, res: Response) => {
+  const db = await getAdapter();
+  const row = await db.get<{
+    bot_name: string; logo_url: string; enabled: number;
+    system_prompt: string | null; deepseek_key: string | null;
+    groq_key: string | null; openrouter_key: string | null;
+    serper_key: string | null; suny_page_url: string; updated_at: string;
+  }>('SELECT * FROM suny_widget_config WHERE id = 1');
+
+  if (!row) {
+    res.json({
+      bot_name: 'SUNy', logo_url: '/SLOGO.png', enabled: true,
+      system_prompt: null, deepseek_key: '', groq_key: '', openrouter_key: '', serper_key: '', suny_page_url: 'https://suny.technodel.tech',
+    });
+    return;
+  }
+  // Mask keys for display (show last 6 chars only)
+  const mask = (k: string | null) => k ? `${'*'.repeat(Math.max(0, k.length - 6))}${k.slice(-6)}` : '';
+  res.json({
+    bot_name: row.bot_name,
+    logo_url: row.logo_url,
+    enabled: row.enabled === 1,
+    system_prompt: row.system_prompt,
+    deepseek_key: mask(row.deepseek_key),
+    groq_key: mask(row.groq_key),
+    openrouter_key: mask(row.openrouter_key),
+    serper_key: mask(row.serper_key),
+    suny_page_url: row.suny_page_url,
+    updated_at: row.updated_at,
+    has_deepseek: !!row.deepseek_key,
+    has_groq: !!row.groq_key,
+    has_openrouter: !!row.openrouter_key,
+    has_serper: !!row.serper_key,
+  });
+});
+
+const WidgetConfigSchema = z.object({
+  bot_name: z.string().min(1).max(50).optional(),
+  logo_url: z.string().max(500).optional(),
+  enabled: z.boolean().optional(),
+  system_prompt: z.string().max(5000).nullable().optional(),
+  deepseek_key: z.string().max(200).nullable().optional(),
+  groq_key: z.string().max(200).nullable().optional(),
+  openrouter_key: z.string().max(200).nullable().optional(),
+  serper_key: z.string().max(200).nullable().optional(),
+  suny_page_url: z.string().url().max(200).optional(),
+});
+
+router.put('/suny-widget', async (req: Request, res: Response) => {
+  const parsed = WidgetConfigSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: 'Invalid input', details: parsed.error.flatten() });
+    return;
+  }
+  const data = parsed.data;
+  const db = await getAdapter();
+
+  // Ensure the row exists
+  const existing = await db.get('SELECT id FROM suny_widget_config WHERE id = 1');
+  if (!existing) {
+    await db.run(
+      `INSERT INTO suny_widget_config (id, bot_name, logo_url, enabled) VALUES (1, 'SUNy', '/SLOGO.png', 1)`
+    );
+  }
+
+  const fields: string[] = ["updated_at = datetime('now')"];
+  const values: unknown[] = [];
+
+  if (data.bot_name !== undefined) { fields.push('bot_name = ?'); values.push(data.bot_name); }
+  if (data.logo_url !== undefined) { fields.push('logo_url = ?'); values.push(data.logo_url); }
+  if (data.enabled !== undefined) { fields.push('enabled = ?'); values.push(data.enabled ? 1 : 0); }
+  if (data.system_prompt !== undefined) { fields.push('system_prompt = ?'); values.push(data.system_prompt); }
+  if (data.suny_page_url !== undefined) { fields.push('suny_page_url = ?'); values.push(data.suny_page_url); }
+
+  // Only update key if it's not masked (doesn't start with ***)
+  if (data.deepseek_key !== undefined && data.deepseek_key !== null && !data.deepseek_key.startsWith('***')) {
+    fields.push('deepseek_key = ?'); values.push(data.deepseek_key || null);
+  }
+  if (data.groq_key !== undefined && data.groq_key !== null && !data.groq_key.startsWith('***')) {
+    fields.push('groq_key = ?'); values.push(data.groq_key || null);
+  }
+  if (data.openrouter_key !== undefined && data.openrouter_key !== null && !data.openrouter_key.startsWith('***')) {
+    fields.push('openrouter_key = ?'); values.push(data.openrouter_key || null);
+  }
+  if (data.serper_key !== undefined && data.serper_key !== null && !data.serper_key.startsWith('***')) {
+    fields.push('serper_key = ?'); values.push(data.serper_key || null);
+  }
+
+  values.push(1);
+  await db.run(`UPDATE suny_widget_config SET ${fields.join(', ')} WHERE id = ?`, values);
+  res.json({ success: true });
+});
+
+export default router;

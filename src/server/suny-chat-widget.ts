@@ -49,7 +49,11 @@ You help Technodel customers find the right products. Be friendly, concise, and 
 When recommending products, mention that Technodel carries a wide range — direct them to technodel.net.
 Never fabricate specific prices — say "check technodel.net for current pricing in Lebanon".
 Answer in the same language the user writes in (Arabic or English).
-Keep responses under 300 words unless the user asks for details.`;
+Keep responses under 300 words unless the user asks for details.
+
+CRITICAL INSTRUCTION: If the user asks a question or gives a task that is NOT about tech, NOT about PC building, and NOT related to website products, you MUST politely decline.
+You must tell them something like: "I am SUNy, a fully autonomous AI agent. I can do many tasks and answer any question, but here I am focused on tech. To get in touch or learn more about my full capabilities, visit {SUNY_PAGE_URL}"
+(Replace {SUNY_PAGE_URL} with the actual URL provided in the context, or suny.technodel.tech if none is provided.)`;
 
 // ── Fetch widget config from DB ────────────────────────────────────────────
 function getWidgetConfig() {
@@ -64,6 +68,7 @@ function getWidgetConfig() {
       groq_key: string | null;
       openrouter_key: string | null;
       serper_key: string | null;
+      suny_page_url: string;
     } | undefined;
     return row || null;
   } catch {
@@ -164,6 +169,10 @@ router.post('/suny-chat', widgetLimiter, async (req: Request, res: Response) => 
     } else if (context?.category) {
       systemPrompt += `\n\n[Current page context: The user is browsing the "${context.category}" category on Technodel.]`;
     }
+    
+    // Inject SUNy URL
+    const sunyUrl = config?.suny_page_url || 'https://suny.technodel.tech';
+    systemPrompt = systemPrompt.replace(/\{SUNY_PAGE_URL\}/g, sunyUrl);
 
     // Get API keys: prefer DB config, fallback to env
     const deepseekKey = config?.deepseek_key || process.env.DEEPSEEK_API_KEY;
@@ -233,6 +242,7 @@ router.get('/suny-widget-config', (_req: Request, res: Response) => {
         bot_name: 'SUNy',
         logo_url: '/SLOGO.png',
         enabled: true,
+        suny_page_url: 'https://suny.technodel.tech'
       });
       return;
     }
@@ -241,9 +251,10 @@ router.get('/suny-widget-config', (_req: Request, res: Response) => {
       bot_name: config.bot_name || 'SUNy',
       logo_url: config.logo_url || '/SLOGO.png',
       enabled: config.enabled !== 0,
+      suny_page_url: config.suny_page_url || 'https://suny.technodel.tech'
     });
   } catch {
-    res.json({ bot_name: 'SUNy', logo_url: '/SLOGO.png', enabled: true });
+    res.json({ bot_name: 'SUNy', logo_url: '/SLOGO.png', enabled: true, suny_page_url: 'https://suny.technodel.tech' });
   }
 });
 

@@ -150,8 +150,8 @@ export default function Login({ onLogin }: LoginProps) {
 
   return (
     <div className="login-page" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text-primary)', display: 'flex', flexDirection: 'column' }}>
-      {/* ── Theme switcher: top-right ── */}
-      <div style={{ position: 'fixed', top: 12, right: 16, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, zIndex: 1000 }}>
+      {/* ── Theme switcher: top-left ── */}
+      <div style={{ position: 'fixed', top: 12, left: 16, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2, zIndex: 1000 }}>
         <div style={{ display: 'flex', gap: 4 }}>
           {(['pro', 'suny', 'matrix'] as const).map(t => (
             <button key={t} onClick={() => switchTheme(t)}
