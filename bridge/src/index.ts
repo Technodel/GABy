@@ -264,11 +264,17 @@ async function main(): Promise<void> {
     updateConfig({ token, server });
   }
 
+  // No token? Start UI-based auto-setup for non-technical users
+  if (!token && !args.silent) {
+    console.log('[SUNy Bridge] First-time setup starting...');
+    const result = await runUiSetup(server);
+    token = result.token;
+    updateConfig({ token, server: result.server });
+    console.log('[SUNy Bridge] Setup complete! Connecting...');
+  }
+
   if (!token) {
-    if (!args.silent) {
-      console.error('[SUNy Bridge] No token provided. Run with --token <JWT> or --code <SETUP_CODE>');
-      console.error('  Example: suny-bridge start --code SUNY-XXXXX-XXXXX --server wss://suny.technodel.tech');
-    }
+    console.error('[SUNy Bridge] Setup required. Please visit https://suny.technodel.tech to connect your bridge.');
     process.exit(1);
   }
 
