@@ -408,10 +408,13 @@ export default function Login({ onLogin }: LoginProps) {
 
         {/* LEFT: Pricing header + mode cards */}
         <div className="login-col">
-          <h2 style={{ fontSize: 19, fontWeight: 700, marginBottom: 6 }}>{'\ud83d\udcb0'} Pricing</h2>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.6 }}>
+          <h2 style={{ fontSize: 19, fontWeight: 700, marginBottom: 4 }}>{'\ud83d\udcb0'} Pricing</h2>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8, lineHeight: 1.6 }}>
             No subscriptions. Pay only when SUNy does real work.
           </p>
+          <a href="/pro-features#compare" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 500, marginBottom: 12, display: 'inline-block' }}>
+            Compare modes →
+          </a>
           {pricing.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {pricing.map(m => (
@@ -441,9 +444,20 @@ export default function Login({ onLogin }: LoginProps) {
             const proOnly = proFeatures.filter(f => !regularKeys.has(f.key));
             if (proOnly.length === 0) return null;
             return (<>
-              <h2 style={{ fontSize: 19, fontWeight: 700, marginBottom: 6 }}>⚡ PRO Plan</h2>
-              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>Exclusive features for PRO accounts.</p>
+              <h2 style={{ fontSize: 19, fontWeight: 700, marginBottom: 4 }}>⚡ PRO Plan</h2>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8, lineHeight: 1.6 }}>Exclusive features for PRO accounts.</p>
+              <a href="/pro-features" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 500, marginBottom: 12, display: 'inline-block' }}>
+                View all PRO features →
+              </a>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {/* Unlimited Requests Card */}
+                <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(34,197,94,0.25)', background: 'rgba(34,197,94,0.04)' }}>
+                  <span style={{ color: '#22c55e', fontSize: 14, marginTop: 1, flexShrink: 0 }}>∞</span>
+                  <div>
+                    <div style={{ fontSize: 13, fontWeight: 600 }}>Unlimited Requests/day</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5, marginTop: 2 }}>No daily limits on AI requests</div>
+                  </div>
+                </div>
                 {proOnly.map(f => (
                   <div key={f.key} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(108,99,255,0.25)', background: 'rgba(108,99,255,0.04)' }}>
                     <span style={{ color: 'var(--accent)', fontSize: 14, marginTop: 1, flexShrink: 0 }}>⚡</span>
@@ -464,10 +478,13 @@ export default function Login({ onLogin }: LoginProps) {
 
         {/* RIGHT: What is SUNy */}
         <div className="login-col">
-          <h2 style={{ fontSize: 19, fontWeight: 700, marginBottom: 6 }}>{'\ud83d\udc4b'} What is SUNy?</h2>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>
+          <h2 style={{ fontSize: 19, fontWeight: 700, marginBottom: 4 }}>{'\ud83d\udc4b'} What is SUNy?</h2>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8, lineHeight: 1.6 }}>
             The coding buddy you always wished you had {'\u2014'} one that never gets tired, never judges, and doesn&apos;t stop until the job is done.
           </p>
+          <a href="/about" style={{ fontSize: 11, color: 'var(--accent)', textDecoration: 'none', fontWeight: 500, marginBottom: 12, display: 'inline-block' }}>
+            About SUNy →
+          </a>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {features.map(f => (
               <div key={f.title} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
