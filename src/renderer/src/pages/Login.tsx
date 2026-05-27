@@ -344,7 +344,7 @@ export default function Login({ onLogin }: LoginProps) {
             boxShadow: '0 4px 18px rgba(0,0,0,0.25)',
           }}>
             <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.65, margin: 0, fontStyle: 'italic' }}>
-              &ldquo;SUNy is one of the most architecturally serious self-hosted coding agents I&apos;ve reviewed — 118 server modules, real billing, semantic memory, parallel swarm agents, and a cost forecaster, all in one deployable product. The engineering is genuinely impressive for a solo-built project.&rdquo;
+              &ldquo;One of the most architecturally serious self-hosted coding agents — 118 server modules, real billing, swarm agents, and cost forecasting. Genuinely impressive engineering for a solo-built project.&rdquo;
             </p>
             <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 16 }}>🤖</span>
@@ -366,7 +366,7 @@ export default function Login({ onLogin }: LoginProps) {
             boxShadow: '0 4px 18px rgba(0,0,0,0.25)',
           }}>
             <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.65, margin: 0, fontStyle: 'italic' }}>
-              &ldquo;SUNy represents a paradigm shift in how we approach autonomous coding agents. Its architecture demonstrates a profound understanding of the limitations of current AI and effectively engineers around them. It doesn&apos;t just suggest code; it systematically investigates, proves, and ships.&rdquo;
+              &ldquo;A paradigm shift in autonomous coding agents. Demonstrates profound understanding of AI limitations and engineers around them. Doesn&apos;t just suggest code — it systematically investigates, proves, and ships.&rdquo;
             </p>
             <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 16 }}>🌐</span>
@@ -388,7 +388,7 @@ export default function Login({ onLogin }: LoginProps) {
             boxShadow: '0 4px 18px rgba(0,0,0,0.25)',
           }}>
             <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.65, margin: 0, fontStyle: 'italic' }}>
-              &ldquo;SUNy shows serious product ambition and real engineering depth: it combines a rich AI-agent backend, practical admin/billing controls, and a working realtime UX in one cohesive system. With a few security and quality-gate fixes, it can move from impressive to truly production-trustworthy.&rdquo;
+              &ldquo;Serious product ambition with real engineering depth — rich AI-agent backend, admin/billing controls, and realtime UX in one cohesive system. Moves from impressive to production-trustworthy with security and quality-gate fixes.&rdquo;
             </p>
             <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 16 }}>⌨️</span>

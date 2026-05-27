@@ -1289,16 +1289,21 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         return;
       } else if (msg.event === 'suny:pre_run_estimate') {
         setForecastLoading(false);
-        setForecastEstimate({
-          lowCredits: msg.lowCredits as number,
-          highCredits: msg.highCredits as number,
-          historicalSamples: msg.historicalSamples as number,
-          estimatedSteps: msg.estimatedSteps as number,
-          confidence: msg.confidence as string,
-          basedOn: msg.basedOn as string,
-          currentBalance: msg.currentBalance as number,
-          mode: msg.mode as string,
-        });
+        // Handle null/invalid estimate (e.g., when no models available or forecast failed)
+        if (msg.lowCredits == null || msg.highCredits == null) {
+          setForecastEstimate(null);
+        } else {
+          setForecastEstimate({
+            lowCredits: msg.lowCredits as number,
+            highCredits: msg.highCredits as number,
+            historicalSamples: msg.historicalSamples as number,
+            estimatedSteps: msg.estimatedSteps as number,
+            confidence: msg.confidence as string,
+            basedOn: msg.basedOn as string,
+            currentBalance: msg.currentBalance as number,
+            mode: msg.mode as string,
+          });
+        }
         return;
       } else if (msg.event === 'suny:health_score') {
         window.dispatchEvent(new CustomEvent('suny:health_score', {
@@ -1644,6 +1649,8 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       }
     },
     onConnect: () => {
+      // Reload user data on reconnect to prevent stale state during deploy
+      loadUserData().catch(() => {});
       // Reset stale state on reconnect � avoids forever-spinning thinking indicator
       clearThinkingTimeout();
       setThinking(false);
@@ -4090,7 +4097,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                       <div key={m.mode}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
                           <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{m.mode}</span>
-                          <span style={{ color: 'var(--text-muted)' }}>{(total / 1000).toFixed(1)}K � ${m.charged_cost.toFixed(4)}</span>
+                          <span style={{ color: 'var(--text-muted)' }}>{(total / 1000).toFixed(1)}K · � ${m.charged_cost.toFixed(4)}</span>
                         </div>
                         <div style={{ height: 6, background: 'var(--border)', borderRadius: 3, overflow: 'hidden' }}>
                           <div style={{ width: `${pct}%`, height: '100%', background: 'var(--accent)', transition: 'width 0.4s' }} />

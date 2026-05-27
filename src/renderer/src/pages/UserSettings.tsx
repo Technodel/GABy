@@ -620,7 +620,14 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
             Tip: entering an amount here and pressing Save Settings will also execute this transfer once.
           </div>
           <div style={{ fontSize: 12, color: 'var(--success)', marginTop: 4 }}>
-            Approx token equivalent: {approxTokens == null ? 'Unavailable' : approxTokens.toLocaleString()} tokens
+            Approx token equivalent: {' '}
+            {approxTokens == null
+              ? (!walletAmount || parseFloat(walletAmount) <= 0
+                  ? 'Enter an amount to see estimate'
+                  : pricingModes.length === 0
+                    ? 'Loading pricing data...'
+                    : 'Select a mode to see estimate')
+              : `${approxTokens.toLocaleString()} tokens`}
           </div>
           {walletMsg && (
             <div style={{ fontSize: 12, color: walletMsg.toLowerCase().includes('complete') ? 'var(--success)' : 'var(--warning)', marginTop: 8 }}>

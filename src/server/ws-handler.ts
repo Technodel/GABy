@@ -1075,9 +1075,14 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
               stopDidYouKnow();
               return;
             }
+          } else {
+            // No models available - clear forecast loading state and proceed
+            userClientManager.pushToUser(userId, 'suny:pre_run_estimate', null);
           }
         } catch (fe) {
           console.warn('[forecast] Failed, proceeding anyway:', (fe as Error).message);
+          // Clear forecast loading state on error so UI doesn't get stuck
+          userClientManager.pushToUser(userId, 'suny:pre_run_estimate', null);
         }
       }
 
