@@ -103,7 +103,7 @@ export default function ReportBadgeButton({ report, label }: ReportBadgeButtonPr
             left: 'calc(100% + 8px)',
             top: 'calc(100% + 8px)',
             width: 230,
-            zIndex: 40,
+            zIndex: 9999,
             borderRadius: 10,
             border: '1px solid var(--border)',
             background: 'var(--surface)',
