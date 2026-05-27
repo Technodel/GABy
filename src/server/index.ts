@@ -438,6 +438,7 @@ async function startup() {
     () => { try { require('./hypothesis-engine').initializeHypothesisTable(); } catch {} },
     () => { try { require('./user-model').initializeUserModelTable(); } catch {} },
     () => { try { require('./health-scorer').initializeHealthTable(); } catch {} },
+    () => { try { require('./entity-store').initializeEntityStore(); } catch {} },
   ];
   await Promise.allSettled(tableInits.map(fn => fn()));
 
@@ -455,6 +456,10 @@ async function startup() {
 
   server.listen(PORT, () => {
     logger.info({ port: PORT, env: process.env.NODE_ENV || 'development' }, 'SUNy server running');
+    // Signal PM2 that we're ready for zero-downtime reloads
+    if (typeof process.send === 'function') {
+      process.send('ready');
+    }
   });
 }
 
