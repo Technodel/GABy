@@ -26,6 +26,21 @@ interface ChatInputProps {
   onVoiceToggle?: () => void;
 }
 
+const PLACEHOLDERS = [
+  'What are we building today?',
+  'Describe your goal — SUNy will handle the rest.',
+  'Got a bug? Paste the error and let SUNy trace it.',
+  'Tell me what to build and I will write, run, and verify it.',
+  'What feature should we add next?',
+  'Drop a task, a question, or just say hi.',
+  'Need a code review? Paste the file and ask.',
+  'What should SUNy tackle for you today?',
+  'Start with a goal, not a file — I will find what to edit.',
+  'Describe the problem. I will diagnose it.',
+  'Ask anything — architecture, debugging, or a full feature build.',
+  'What would you like to ship today?',
+];
+
 export default function ChatInput(props: ChatInputProps) {
   const {
     input, setInput, balance, walletBalance, thinking, selectedMode,
@@ -38,6 +53,7 @@ export default function ChatInput(props: ChatInputProps) {
   const attachRef = useRef<HTMLInputElement>(null);
   const [showTerminal, setShowTerminal] = useState(false);
   const [terminalCmd, setTerminalCmd] = useState('');
+  const [placeholderIdx] = useState(() => Math.floor(Math.random() * PLACEHOLDERS.length));
   const termInputRef = useRef<HTMLInputElement>(null);
 
   function runTerminalCommand() {
@@ -214,7 +230,7 @@ export default function ChatInput(props: ChatInputProps) {
           ref={inputRef}
           value={input}
           onChange={e => { setInput(e.target.value); inputHistoryIndex.current = -1; }}
-          placeholder={activeProject && !bridgeConnected ? 'Bridge offline — I can still reason, explain, and review code! Type your question...' : 'Type your goal here... e.g. Add a dark mode toggle to my app'}
+          placeholder={activeProject && !bridgeConnected ? 'Bridge offline — I can still reason, explain, and review code! Type your question...' : PLACEHOLDERS[placeholderIdx]}
           rows={2}
           spellCheck={false}
           autoCorrect="off"

@@ -28,6 +28,7 @@ export default function BalanceBadge({ balance, walletBalance, remainingTokens =
   const [balanceFlash, setBalanceFlash] = useState<'down' | 'up' | null>(null);
   const [walletDelta, setWalletDelta] = useState<number | null>(null);
   const [balanceDelta, setBalanceDelta] = useState<number | null>(null);
+  const [showTokens, setShowTokens] = useState(false);
 
   useEffect(() => {
     if (prevWallet.current === null) { prevWallet.current = walletBalance; return; }
@@ -71,26 +72,39 @@ export default function BalanceBadge({ balance, walletBalance, remainingTokens =
     transition: 'background 0.3s, color 0.3s, border-color 0.3s',
   };
 
+  const tokenDisplay = remainingTokens != null
+    ? `${(remainingTokens / 1_000_000).toFixed(2)}M tokens`
+    : '— tokens';
+
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}>
       {/* Wallet (bot fuel tank) */}
-      <div 
-        onClick={onOpenWalletSettings}
-        style={{
-          ...pillStyle,
-          cursor: 'pointer',
-          padding: '4px 10px',
-          outline: walletFlash ? `2px solid ${walletFlash === 'down' ? 'var(--error, #ef4444)' : 'var(--success, #22c55e)'}` : 'none',
-        }} 
-        title="Bot Wallet — click to transfer funds from Main Balance"
-      >
-        <Wallet size={14} />
-        <span>{walletFormatted}</span>
-        {walletDelta !== null && (
-          <span style={{ fontSize: 11, color: walletDelta < 0 ? 'var(--error, #ef4444)' : 'var(--success, #22c55e)', marginLeft: 2 }}>
-            {walletDelta < 0 ? `−${formatCents(-walletDelta)}` : `+${formatCents(walletDelta)}`}
-          </span>
-        )}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+        <div 
+          onClick={onOpenWalletSettings}
+          style={{
+            ...pillStyle,
+            cursor: 'pointer',
+            padding: '4px 10px',
+            outline: walletFlash ? `2px solid ${walletFlash === 'down' ? 'var(--error, #ef4444)' : 'var(--success, #22c55e)'}` : 'none',
+          }} 
+          title="Bot Wallet — click to transfer funds from Main Balance"
+        >
+          <Wallet size={14} />
+          <span>{showTokens ? tokenDisplay : walletFormatted}</span>
+          {!showTokens && walletDelta !== null && (
+            <span style={{ fontSize: 11, color: walletDelta < 0 ? 'var(--error, #ef4444)' : 'var(--success, #22c55e)', marginLeft: 2 }}>
+              {walletDelta < 0 ? `−${formatCents(-walletDelta)}` : `+${formatCents(walletDelta)}`}
+            </span>
+          )}
+        </div>
+        <span
+          onClick={() => setShowTokens(t => !t)}
+          style={{ fontSize: 10, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', letterSpacing: '0.03em' }}
+          title={showTokens ? 'Switch back to USD display' : 'Switch to token balance display'}
+        >
+          {showTokens ? 'USD' : 'Tokens'}
+        </span>
       </div>
 
       {/* Main credits */}

@@ -1844,15 +1844,13 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       }
     }
 
-    if (!effectiveAutoExecute && !noCredits) {
-      effectiveTalkMode = true;
-      if (looksLikeExecutionTask) {
-        addMessage('system', 'Auto-Execute is OFF for this project, so SUNy will explain steps without running file or shell actions. Turn Auto-Execute ON in this project to allow full execution.');
-      }
+    if (!effectiveAutoExecute && !noCredits && !effectiveTalkMode && looksLikeExecutionTask) {
+      addMessage('system', 'Auto-Execute is OFF for this project. SUNy will describe each action and ask for your confirmation before executing.');
     }
 
-    if (effectiveProjectId && !bridgeConnected && looksLikeExecutionTask) {
-      addMessage('system', 'Bridge is offline, so SUNy cannot create files or run commands right now. Reconnect the bridge to execute this task end-to-end.');
+    if (effectiveProjectId && !bridgeConnected) {
+      addMessage('system', '🔌 Bridge is offline — reconnect it from the top bar, then send your message again. SUNy cannot access files or run commands without it.');
+      return;
     }
 
     setInput('');

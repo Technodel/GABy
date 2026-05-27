@@ -713,6 +713,20 @@ const SCHEMA_MIGRATIONS: Migration[] = [
   },
 
 
+  // -- Migration 22: Enable pf_codebase_health for regular plan
+  {
+    version: 22,
+    name: 'Enable Codebase Health Score for regular plan',
+    up: async (adapter) => {
+      await adapter.run(
+        `UPDATE plan_feature_flags SET enabled = 1 WHERE key = 'pf_codebase_health' AND plan = 'regular'`,
+      );
+      await adapter.run(
+        `INSERT OR IGNORE INTO plan_feature_flags (key, plan, enabled, label, description) VALUES ('pf_codebase_health', 'regular', 1, '🏥 Codebase Health Score', 'After every session, SUNy scores the health of files it touched (lint, tests, complexity, coverage) and tracks the trend over time.')`,
+      );
+    },
+  },
+
   // -- Migration 21: Update Advanced Visual Portal description to be client-focused
   {
     version: 21,
@@ -758,9 +772,11 @@ const SCHEMA_MIGRATIONS: Migration[] = [
           `INSERT OR IGNORE INTO plan_feature_flags (key, plan, enabled, label, description) VALUES (?, 'pro', 1, ?, ?)`,
           [f.key, f.label, f.description],
         );
+        // pf_codebase_health is available to all plans
+        const regularEnabled = f.key === 'pf_codebase_health' ? 1 : 0;
         await adapter.run(
-          `INSERT OR IGNORE INTO plan_feature_flags (key, plan, enabled, label, description) VALUES (?, 'regular', 0, ?, ?)`,
-          [f.key, f.label, f.description],
+          `INSERT OR IGNORE INTO plan_feature_flags (key, plan, enabled, label, description) VALUES (?, 'regular', ?, ?, ?)`,
+          [f.key, regularEnabled, f.label, f.description],
         );
       }
     },

@@ -85,7 +85,6 @@ function EnglishContent() {
     pf_push_notifications:     'Push Notification',
     pf_cost_forecast:          'Cost Estimate',
     pf_budget_gate:            'Budget Gate',
-    pf_codebase_health:        'Codebase Health',
   };
 
   function isProCard(title: string): boolean {
@@ -285,10 +284,10 @@ function EnglishContent() {
           <span style={{ fontSize: 10, fontWeight: 700, background: 'rgba(108,99,255,0.2)', color: 'var(--accent)', border: '1px solid rgba(108,99,255,0.4)', borderRadius: 4, padding: '2px 8px' }}>PREMIUM</span>
         </div>
         <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.7, marginBottom: 14 }}>
-          PRO unlocks financial control features built for serious developers and agencies — budget gates, pre-run cost estimates, push notification receipts, codebase health tracking, and more. Features are managed by your admin.
+          PRO unlocks financial control features built for serious developers and agencies — budget gates, pre-run cost estimates, push notification receipts, and more. Features are managed by your admin.
         </p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-          {['🔒 Per-Run Budget Gate', '📋 Pre-Run Cost Estimate', '🔔 Push Notifications & Receipts', '🏥 Codebase Health Score', '⚡ Parallel Agent Swarm', '🔬 Hypothesis Testing', '🚧 Scheduled Agents', '🎫 Client Ticket Portal'].map(f => (
+          {['🔒 Per-Run Budget Gate', '📋 Pre-Run Cost Estimate', '🔔 Push Notifications & Receipts', '⚡ Parallel Agent Swarm', '🔬 Hypothesis Testing', '🚧 Scheduled Agents', '🎫 Client Ticket Portal'].map(f => (
             <span key={f} style={{ fontSize: 12, padding: '4px 10px', background: 'rgba(108,99,255,0.1)', color: 'var(--text-primary)', borderRadius: 20, border: '1px solid rgba(108,99,255,0.2)' }}>{f}</span>
           ))}
         </div>

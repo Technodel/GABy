@@ -371,6 +371,22 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       }
 
       const bridgeOnline = isBridgeConnected(userId);
+      const requestedProjectId = msg.projectId as number | undefined;
+
+      // ── Bridge offline guard ────────────────────────────────────────────────
+      // If the user has an active project and the bridge is not connected, stop
+      // immediately — don't burn time in the agent loop only to fail at the first
+      // file/shell tool call. Respond right away and bail out.
+      if (requestedProjectId && !bridgeOnline) {
+        const offlineMsg = '🔌 The bridge is offline — I can\'t access your files or run commands right now.\n\nClick the **bridge pill** in the top bar to reconnect, then send your message again and I\'ll jump straight in!';
+        userClientManager.pushChatContent(userId, 'suny:stream_end', {
+          content: offlineMsg,
+          sess_used: 0,
+          sess_limit: null,
+          iterations: 0,
+        });
+        return;
+      }
 
       // Load plan info once — used in system prompt
       interface PricingMode { mode: string; display_name: string; description: string; }
@@ -400,9 +416,8 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       const effectiveAutoExecute = projectAutoExecuteOverride === null
         ? userAutoApprove
         : projectAutoExecuteOverride === 1;
-      if (!effectiveAutoExecute && !freeTalkOnly) {
-        talkMode = true;
-      }
+      // Only force talk mode for credit/limit issues — never override the user's explicit Write Mode toggle
+      const autoExecuteOff = !effectiveAutoExecute && !freeTalkOnly && !requestedTalkMode;
 
       // Fetch training/behavioral data async
       const trainingLoadResult = await loadTrainingAndRules({ userId, projectRoot: projectPath });
@@ -1583,8 +1598,17 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           '',
           '=== TALK MODE BEHAVIOR ===',
           'Talk mode is ON: do not execute file/shell actions.',
-          'If the user asks for execution (create/edit/run/build), DO NOT go silent.',
-          'Always respond with a clear, friendly step-by-step explanation of what would be done and explicitly mention switching to Write Mode to execute it.',
+          'CRITICAL: Do NOT open any response by announcing that you are in Talk Mode, that you cannot edit files, or that the user should switch modes. Never use a greeting that mentions mode restrictions.',
+          'Silently respect the mode. Only mention it if the user explicitly asks you to create/edit/run/build something — in that case explain what you would do and mention Write Mode briefly at the end.',
+        );
+      }
+      if (autoExecuteOff) {
+        systemLines.push(
+          '',
+          '=== AUTO-EXECUTE IS OFF ===',
+          'The user has Auto-Execute disabled. You ARE in Write Mode and CAN use file/shell tools.',
+          'Before each destructive action (write_file, run_command, delete_file), briefly state what you are about to do and ask the user to confirm.',
+          'Do NOT say you are in Talk Mode. Do NOT refuse to act. Just confirm before each action.',
         );
       }
       if (displayName) {

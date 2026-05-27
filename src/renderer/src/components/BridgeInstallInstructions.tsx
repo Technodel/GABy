@@ -11,6 +11,7 @@ export default function BridgeInstallInstructions({ autoCopy = false, previously
   const [winInstallerCmd, setWinInstallerCmd] = useState('');
   const [copied, setCopied] = useState(false);
   const [installerDownloaded, setInstallerDownloaded] = useState(false);
+  const [tokenFetchFailed, setTokenFetchFailed] = useState(false);
   const isWindows = navigator.userAgent.includes('Windows');
 
   // Reconnect command (works when the saved bridge token is still valid)
@@ -36,12 +37,17 @@ export default function BridgeInstallInstructions({ autoCopy = false, previously
   useEffect(() => {
     // For reconnect mode, also fetch a fresh setup command in case the saved token expired.
     // For first-time install, this is the main install command.
-    fetch('/api/bridge-token', { credentials: 'include' })
+    const controller = new AbortController();
+    const timeout = setTimeout(() => { controller.abort(); setTokenFetchFailed(true); }, 5000);
+    fetch('/api/bridge-token', { credentials: 'include', signal: controller.signal })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (!data?.token) return;
+        clearTimeout(timeout);
+        if (!data?.token) { setTokenFetchFailed(true); return; }
         buildSetupCommands(data.token);
-      });
+      })
+      .catch(() => { clearTimeout(timeout); setTokenFetchFailed(true); });
+    return () => { clearTimeout(timeout); controller.abort(); };
   }, [isReconnect]);
 
   useEffect(() => {
@@ -86,22 +92,41 @@ export default function BridgeInstallInstructions({ autoCopy = false, previously
 
         {isWindows ? (
           <>
-            {/* PRIMARY: one-click .cmd installer with fresh token */}
-            <button
-              className="btn btn-primary"
-              onClick={downloadWindowsInstaller}
-              disabled={!winInstallerCmd}
-              style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px', fontSize: 14, fontWeight: 600 }}
-              title="Download one-click reconnect file"
-            >
-              <Download size={16} />
-              {installerDownloaded ? 'Downloaded — now double-click it!' : !winInstallerCmd ? 'Loading…' : 'Download reconnect file'}
-            </button>
-            <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 8, lineHeight: 1.5, textAlign: 'center' }}>
-              Click the button → open your <strong>Downloads</strong> folder → <strong>double-click</strong> the file.
-              <br />
-              That's it. No terminal, no copy-paste.
-            </p>
+            {/* PRIMARY: one-click .cmd installer with fresh token — show terminal fallback if token not ready */}
+            {winInstallerCmd ? (
+              <>
+                <button
+                  className="btn btn-primary"
+                  onClick={downloadWindowsInstaller}
+                  style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '12px', fontSize: 14, fontWeight: 600 }}
+                  title="Download one-click reconnect file"
+                >
+                  <Download size={16} />
+                  {installerDownloaded ? 'Downloaded — now double-click it!' : 'Download reconnect file'}
+                </button>
+                <p style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 8, lineHeight: 1.5, textAlign: 'center' }}>
+                  Click the button → open your <strong>Downloads</strong> folder → <strong>double-click</strong> the file.
+                  <br />
+                  That's it. No terminal, no copy-paste.
+                </p>
+              </>
+            ) : (
+              <>
+                <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8, lineHeight: 1.5 }}>
+                  {tokenFetchFailed ? '⚠️ Could not load reconnect file. Use the terminal command below:' : '⏳ Preparing reconnect file… use the terminal command below in the meantime:'}
+                </p>
+                <div style={{ position: 'relative', background: 'var(--bg)', border: `1px solid ${copied ? 'var(--success)' : 'var(--border)'}`, borderRadius: 'var(--radius)', padding: '10px 44px 10px 12px', fontFamily: 'monospace', fontSize: 12, color: 'var(--accent)', wordBreak: 'break-all', lineHeight: 1.6 }}>
+                  {restartCmd}
+                  <button
+                    onClick={copy}
+                    style={{ position: 'absolute', top: 8, right: 8, background: copied ? 'var(--success)' : 'var(--surface)', border: '1px solid var(--border)', borderRadius: 4, cursor: 'pointer', color: copied ? '#fff' : 'var(--text-muted)', padding: '3px 6px', fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}
+                    title="Copy command"
+                  >
+                    {copied ? <><Check size={12} /> Copied!</> : <><Copy size={12} /> Copy</>}
+                  </button>
+                </div>
+              </>
+            )}
           </>
         ) : (
           <>

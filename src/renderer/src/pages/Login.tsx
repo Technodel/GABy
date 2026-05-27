@@ -213,13 +213,20 @@ export default function Login({ onLogin }: LoginProps) {
         <p className="login-hero-copy" style={{ fontSize: 16, color: 'var(--text-secondary)', maxWidth: 620, margin: '0 auto', lineHeight: 1.75 }}>
           Your unstoppable AI companion. Give SUNy a target {'\u2014'} it maps out the path, handles the complex work, and polishes everything until it&apos;s perfect. No complicated instructions, just results. We added the &quot;y&quot; because it&apos;s your friendly digital builder!
         </p>
+        {/* Privacy promise — shown right under the hero copy, near the logo */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, maxWidth: 540, margin: '18px auto 0', padding: '10px 16px', borderRadius: 10, border: '1px solid rgba(34,197,94,0.25)', background: 'rgba(34,197,94,0.05)', textAlign: 'left' }}>
+          <span style={{ fontSize: 16, flexShrink: 0, marginTop: 2 }}>🔒</span>
+          <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
+            <strong style={{ color: 'var(--text-secondary)' }}>Your files never reach us.</strong> SUNy runs entirely on your machine — your data, memories, and projects stay local. When SUNy processes a task, relevant code is sent to the AI models under their privacy policy, but your files are totally safe. We never see your data.
+          </p>
+        </div>
       </div>
 
       {/* 3-column: Pricing | Sign In | What is SUNy */}
       <div className="login-columns" style={{ flex: 1, display: 'flex', gap: 28, padding: '40px 48px 64px', maxWidth: 1400, margin: '0 auto', width: '100%', boxSizing: 'border-box', alignItems: 'flex-start' }}>
 
         {/* LEFT: Pricing */}
-        <div className="login-col-pricing" style={{ flex: 1, minWidth: 0 }}>
+        <div className="login-col-pricing" style={{ flex: 1, minWidth: 220 }}>
           <h2 style={{ fontSize: 19, fontWeight: 700, marginBottom: 6 }}>{'\ud83d\udcb0'} Pricing</h2>
           <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>
             No subscriptions. Pay only when SUNy does real work.
@@ -273,16 +280,9 @@ export default function Login({ onLogin }: LoginProps) {
               ))}
             </div>
           ) : (
-            <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading pricing\u2026</div>
+            <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading pricing…</div>
           )}
 
-          {/* Privacy notice */}
-          <div style={{ marginTop: 18, padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'rgba(34,197,94,0.04)', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-            <span style={{ fontSize: 16, flexShrink: 0 }}>🔒</span>
-            <p style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
-              <strong style={{ color: 'var(--text-secondary)' }}>Your files never reach us.</strong> SUNy runs entirely on your machine — your data, memories, and projects stay local. When SUNy processes a task, relevant code is sent to the AI models under their privacy policy, but your files are totally safe. We never see your data.
-            </p>
-          </div>
         </div>
 
         {/* CENTER: Sign In */}
