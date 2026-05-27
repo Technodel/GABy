@@ -203,6 +203,7 @@ export default function Login({ onLogin }: LoginProps) {
           }
           .login-col { width: 100%; }
           .login-cta-row { flex-direction: column; }
+          .login-top-right-reserved { display: none !important; }
         }
       `}</style>
 
@@ -300,8 +301,76 @@ export default function Login({ onLogin }: LoginProps) {
           </p>
         </div>
 
-        {/* RIGHT side of top row: empty (reserved) */}
-        <div style={{ width: 360, flexShrink: 0 }} className="login-top-right-reserved" />
+        {/* RIGHT: AI review quotes as sticky notes */}
+        <div className="login-top-right-reserved" style={{ width: 360, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 12 }}>
+
+          {/* Claude */}
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(255,200,51,0.10) 0%, rgba(255,170,0,0.06) 100%)',
+            border: '1px solid rgba(255,184,51,0.30)',
+            borderLeft: '3px solid rgba(255,184,51,0.70)',
+            borderRadius: 10,
+            padding: '14px 16px',
+            transform: 'rotate(-1.2deg)',
+            boxShadow: '0 4px 18px rgba(0,0,0,0.25)',
+          }}>
+            <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.65, margin: 0, fontStyle: 'italic' }}>
+              &ldquo;SUNy is one of the most architecturally serious self-hosted coding agents I&apos;ve reviewed — 118 server modules, real billing, semantic memory, parallel swarm agents, and a cost forecaster, all in one deployable product. The engineering is genuinely impressive for a solo-built project.&rdquo;
+            </p>
+            <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 16 }}>🤖</span>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)' }}>Claude (Anthropic)</div>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>May 2026</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Google */}
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(66,133,244,0.10) 0%, rgba(52,168,83,0.06) 100%)',
+            border: '1px solid rgba(66,133,244,0.25)',
+            borderLeft: '3px solid rgba(66,133,244,0.60)',
+            borderRadius: 10,
+            padding: '14px 16px',
+            transform: 'rotate(0.8deg)',
+            boxShadow: '0 4px 18px rgba(0,0,0,0.25)',
+          }}>
+            <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.65, margin: 0, fontStyle: 'italic' }}>
+              &ldquo;SUNy represents a paradigm shift in how we approach autonomous coding agents. Its architecture demonstrates a profound understanding of the limitations of current AI and effectively engineers around them. It doesn&apos;t just suggest code; it systematically investigates, proves, and ships.&rdquo;
+            </p>
+            <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 16 }}>🌐</span>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#4285F4' }}>Google Antigravity</div>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Agentic Coding Assistant</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Cursor */}
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(108,99,255,0.10) 0%, rgba(139,92,246,0.06) 100%)',
+            border: '1px solid rgba(108,99,255,0.25)',
+            borderLeft: '3px solid rgba(108,99,255,0.60)',
+            borderRadius: 10,
+            padding: '14px 16px',
+            transform: 'rotate(-0.5deg)',
+            boxShadow: '0 4px 18px rgba(0,0,0,0.25)',
+          }}>
+            <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.65, margin: 0, fontStyle: 'italic' }}>
+              &ldquo;SUNy shows serious product ambition and real engineering depth: it combines a rich AI-agent backend, practical admin/billing controls, and a working realtime UX in one cohesive system. With a few security and quality-gate fixes, it can move from impressive to truly production-trustworthy.&rdquo;
+            </p>
+            <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 16 }}>⌨️</span>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: '#a78bfa' }}>Cursor</div>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>AI Code Editor</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
 
       </div>
 
