@@ -2257,8 +2257,17 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
               background: 'var(--surface)', border: '1px solid var(--border)',
               borderRadius: 999, padding: '2px 8px', whiteSpace: 'nowrap',
               overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 120,
+              display: 'flex', alignItems: 'center', gap: 6,
             }} title={userData.username}>
               {userData.username}
+              {userData?.plan === 'pro' && (
+                <span style={{
+                  fontSize: 9, fontWeight: 700, color: '#fff',
+                  background: 'linear-gradient(135deg, #a78bfa 0%, #6c63ff 100%)',
+                  padding: '1px 5px', borderRadius: 4, letterSpacing: '0.3px',
+                  textTransform: 'uppercase',
+                }}>PRO</span>
+              )}
             </span>
           )}
           {activeProject && (
@@ -2384,6 +2393,9 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                   {t === 'matrix' ? '??' : t === 'pro' ? '?' : '??'}
                 </button>
               ))}
+              <span style={{ fontSize: 9, color: 'var(--text-muted)', opacity: 0.5, whiteSpace: 'nowrap', marginLeft: 2 }}>
+                Try other themes &amp; moods
+              </span>
             </div>
           )}
           <UpgradePROButton plan={userData?.plan} upgradePending={userData?.upgrade_pending} />
