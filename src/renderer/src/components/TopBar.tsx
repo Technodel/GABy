@@ -230,6 +230,9 @@ export default function TopBar(props: TopBarProps) {
                 {t === 'matrix' ? '🌐' : t === 'pro' ? '⚪' : '🌙'}
               </button>
             ))}
+            <span style={{ fontSize: 9, color: 'var(--text-muted)', opacity: 0.5, whiteSpace: 'nowrap', marginLeft: 2 }}>
+              Try other themes &amp; moods
+            </span>
           </div>
         )}
         {isRegular && (

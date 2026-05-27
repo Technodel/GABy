@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "build": "node scripts/build.js && npm run build:renderer",
+    "typecheck": "node --max-old-space-size=3072 ./node_modules/typescript/bin/tsc --build --incremental",
     "build:renderer": "cd src/renderer && npm run build",
     "start": "node --max-old-space-size=2048 dist/server/index.js",
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:renderer\"",

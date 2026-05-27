@@ -39,11 +39,20 @@ export type EntityType =
   | 'project'        // project name or reference
   | 'generic';
 
-export interface EntityLink {
-  entityId: number;
-  linkedTable: string;
-  linkedRowId: number;
-  relationship: string;
+/**
+ * Entity edge: a co-occurrence relationship between two entities.
+ * When two entities appear in the same source record, an edge is created
+ * recording their relationship type and interaction strength.
+ */
+export interface EntityEdge {
+  id: number;
+  userId: number;
+  fromEntityId: number;
+  toEntityId: number;
+  relationship: string;      // 'co_occurs', 'uses', 'implements', 'extends', etc.
+  strength: number;          // 0..1 — how strongly they're related (count / max_occurrences)
+  occurrenceCount: number;   // how many times this pair has co-occurred
+  lastSeen: string;          // ISO timestamp of most recent co-occurrence
 }
 
 export interface ExtractedEntity {
@@ -168,6 +177,28 @@ export function initializeEntityStore(): void {
   } catch {
     // May already exist
   }
+
+  // Entity relationship edges table for graph-based retrieval
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS entity_edges (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      from_entity_id INTEGER NOT NULL,
+      to_entity_id INTEGER NOT NULL,
+      relationship TEXT NOT NULL DEFAULT 'co_occurs',
+      strength REAL NOT NULL DEFAULT 0.5,
+      occurrence_count INTEGER NOT NULL DEFAULT 1,
+      last_seen TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY(user_id) REFERENCES users(id),
+      FOREIGN KEY(from_entity_id) REFERENCES memory_entities(id),
+      FOREIGN KEY(to_entity_id) REFERENCES memory_entities(id)
+    );
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_entity_edges_pair ON entity_edges(from_entity_id, to_entity_id, relationship);
+    CREATE INDEX IF NOT EXISTS idx_entity_edges_from ON entity_edges(from_entity_id);
+    CREATE INDEX IF NOT EXISTS idx_entity_edges_to ON entity_edges(to_entity_id);
+    CREATE INDEX IF NOT EXISTS idx_entity_edges_user ON entity_edges(user_id);
+  `);
 }
 
 /**
@@ -213,6 +244,169 @@ export function storeEntities(
       // FTS may not be available or row already indexed
     }
   }
+}
+
+// ── Entity relationship edges (co-occurrence graph) ──────────────────────────
+
+/**
+ * Create or strengthen an edge between two entities.
+ * If the edge already exists, increment occurrence_count and update strength.
+ */
+export function ensureEntityEdge(
+  userId: number,
+  fromEntityId: number,
+  toEntityId: number,
+  relationship: string = 'co_occurs',
+): void {
+  // Normalize direction: always store lower ID first to avoid duplicates
+  const [aId, bId] = fromEntityId < toEntityId ? [fromEntityId, toEntityId] : [toEntityId, fromEntityId];
+
+  const db = getDb();
+  const existing = db.prepare(
+    `SELECT id, occurrence_count FROM entity_edges
+     WHERE from_entity_id = ? AND to_entity_id = ? AND relationship = ?`
+  ).get(aId, bId, relationship) as { id: number; occurrence_count: number } | undefined;
+
+  if (existing) {
+    const newCount = existing.occurrence_count + 1;
+    // Strength decays logarithmically: 1 - 1/(count+1) → approaches 1.0
+    const newStrength = 1 - (1 / (newCount + 1));
+    db.prepare(`
+      UPDATE entity_edges
+      SET occurrence_count = ?, strength = ?, last_seen = datetime('now')
+      WHERE id = ?
+    `).run(newCount, newStrength, existing.id);
+  } else {
+    db.prepare(`
+      INSERT INTO entity_edges (user_id, from_entity_id, to_entity_id, relationship, strength, occurrence_count)
+      VALUES (?, ?, ?, ?, ?, 1)
+    `).run(userId, aId, bId, relationship, 0.5);
+  }
+}
+
+/**
+ * Build edges between all co-occurring entities in a set.
+ * Creates a complete sub-graph: every pair of entities gets an edge.
+ */
+export function buildCoOccurrenceEdges(
+  userId: number,
+  entityIds: number[],
+  relationship: string = 'co_occurs',
+): void {
+  // Need at least 2 entities to form an edge
+  if (entityIds.length < 2) return;
+
+  // Deduplicate
+  const uniqueIds = [...new Set(entityIds)];
+
+  // Create edges between every pair
+  for (let i = 0; i < uniqueIds.length; i++) {
+    for (let j = i + 1; j < uniqueIds.length; j++) {
+      ensureEntityEdge(userId, uniqueIds[i], uniqueIds[j], relationship);
+    }
+  }
+}
+
+/**
+ * Find entities directly connected to a given entity (1-hop neighbors).
+ * Returns edges sorted by strength × recency.
+ */
+export function findRelatedEntities(
+  userId: number,
+  entityId: number,
+  options: { minStrength?: number; relationship?: string; limit?: number } = {},
+): Array<EntityEdge & { entityName: string; entityType: string }> {
+  const db = getDb();
+  const { minStrength = 0.1, relationship, limit = 20 } = options;
+  const conditions = ['user_id = ?', '(from_entity_id = ? OR to_entity_id = ?)'];
+  const params: unknown[] = [userId, entityId, entityId];
+
+  if (relationship) {
+    conditions.push('relationship = ?');
+    params.push(relationship);
+  }
+
+  // Temporal decay applied to strength: older edges get discounted
+  const edges = db.prepare(`
+    SELECT e.*,
+           CASE WHEN e.from_entity_id = ? THEN e2.entity_name ELSE e1.entity_name END AS entity_name,
+           CASE WHEN e.from_entity_id = ? THEN e2.entity_type ELSE e1.entity_type END AS entity_type
+    FROM entity_edges e
+    JOIN memory_entities e1 ON e.from_entity_id = e1.id
+    JOIN memory_entities e2 ON e.to_entity_id = e2.id
+    WHERE ${conditions.join(' AND ')}
+      AND e.strength >= ?
+    ORDER BY e.strength * (1.0 / (1.0 + 0.05 * julianday('now') - julianday(e.last_seen))) DESC
+    LIMIT ?
+  `).all(entityId, entityId, ...params, minStrength, limit) as Array<EntityEdge & { entityName: string; entityType: string }>;
+
+  return edges;
+}
+
+/**
+ * Get the entity ID for a normalized name, or null if not found.
+ */
+function getEntityIdByNormalizedName(userId: number, normalizedName: string): number | null {
+  const db = getDb();
+  const row = db.prepare(
+    'SELECT id FROM memory_entities WHERE user_id = ? AND normalized_name = ? LIMIT 1'
+  ).get(userId, normalizedName) as { id: number } | undefined;
+  return row ? row.id : null;
+}
+
+// ── Graph-based entity context ──────────────────────────────────────────────
+
+/**
+ * Get entity graph context: finds entities matching the query, then fetches
+ * their directly connected neighbors (1-hop) for richer prompt injection.
+ * Returns a formatted string with both direct matches and their neighbors.
+ */
+export function getEntityGraphContext(
+  userId: number,
+  queryText: string,
+  maxEntities: number = 6,
+  maxNeighbors: number = 4,
+): string {
+  if (!queryText) return '';
+
+  // 1. Find matching entities
+  const matched = findSimilarEntities(userId, queryText, maxEntities);
+  const fallback = matched.length === 0
+    ? findEntities({ userId, query: queryText, limit: maxEntities }) as Array<EntityRecord & { similarity?: number }>
+    : matched;
+
+  if (fallback.length === 0) return '';
+
+  // 2. For each matched entity, find its neighbors (1-hop)
+  const lines: string[] = [];
+  const seenEntityIds = new Set<number>();
+
+  for (const entity of fallback) {
+    if (seenEntityIds.has(entity.id)) continue;
+    seenEntityIds.add(entity.id);
+
+    const sim = 'similarity' in entity && entity.similarity !== undefined
+      ? ` (score: ${(entity.similarity * 100).toFixed(0)}%)`
+      : '';
+    lines.push(`  • ${entity.entityName} [${entity.entityType}]${sim}`);
+
+    // Find neighbors
+    const neighbors = findRelatedEntities(userId, entity.id, { limit: maxNeighbors });
+    for (const neighbor of neighbors) {
+      const neighborId = neighbor.from_entity_id === entity.id
+        ? neighbor.to_entity_id
+        : neighbor.from_entity_id;
+      if (seenEntityIds.has(neighborId)) continue;
+      seenEntityIds.add(neighborId);
+
+      const edgeStrength = (neighbor.strength * 100).toFixed(0);
+      lines.push(`      └─→ ${neighbor.entityName} [${neighbor.entityType}] (edge: ${edgeStrength}%)`);
+    }
+  }
+
+  if (lines.length === 0) return '';
+
+  return `<entity_graph>\n${lines.join('\n')}\n</entity_graph>`;
 }
 
 /**
@@ -397,5 +591,25 @@ export function extractAndStoreEntities(
   const entities = extractEntities(text);
   if (entities.length === 0) return 0;
   storeEntities(userId, sourceTable, sourceRowId, entities);
+
+  // ── Build co-occurrence edges between all entities in this batch ──
+  const entityIds: number[] = [];
+  const db = getDb();
+  for (const entity of entities) {
+    const normalized = normalizeEntityName(entity.name);
+    const row = db.prepare(
+      'SELECT id FROM memory_entities WHERE user_id = ? AND normalized_name = ? AND source_table = ? AND source_row_id = ?'
+    ).get(userId, normalized, sourceTable, sourceRowId) as { id: number } | undefined;
+    if (row) entityIds.push(row.id);
+  }
+  if (entityIds.length >= 2) {
+    // Infer relationship type from source table
+    const relationship = sourceTable === 'user_memories' ? 'user_remembered'
+      : sourceTable === 'blueprint_entries' ? 'design_related'
+      : sourceTable === 'failure_memory' ? 'failure_related'
+      : 'co_occurs';
+    buildCoOccurrenceEdges(userId, entityIds, relationship);
+  }
+
   return entities.length;
 }

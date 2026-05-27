@@ -8,13 +8,10 @@
 import Database from 'better-sqlite3';
 import type { DbAdapter, DbRow, DbRunResult } from './db-types';
 
-// â”€â”€ Savepoint depth counter (supports nested transaction() calls) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-let savepointDepth = 0;
-
 export class SqliteAdapter implements DbAdapter {
   private db: Database.Database;
   private dbPath: string;
+  private savepointDepth = 0; // instance-scoped — safe under concurrent requests
 
   constructor(dbPath: string, existingDb?: Database.Database) {
     this.dbPath = dbPath;
@@ -23,7 +20,7 @@ export class SqliteAdapter implements DbAdapter {
       this.db.pragma('journal_mode = WAL');
       this.db.pragma('synchronous = NORMAL');
       this.db.pragma('cache_size = -64000');   // 64 MB
-      this.db.pragma('busy_timeout = 5000');
+      this.db.pragma('busy_timeout = 10000');  // 10 s — resilient under high write load
       this.db.pragma('foreign_keys = ON');
     }
   }
@@ -60,8 +57,8 @@ export class SqliteAdapter implements DbAdapter {
   // â”€â”€ Transaction support (savepoint-based for nesting) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   async transaction<T>(fn: (trx: DbAdapter) => Promise<T>): Promise<T> {
-    const spName = `sp_${savepointDepth}`;
-    savepointDepth++;
+    const spName = `sp_${this.savepointDepth}`;
+    this.savepointDepth++;
     try {
       this.db.exec(`SAVEPOINT ${spName}`);
       const result = await fn(this);
@@ -71,7 +68,7 @@ export class SqliteAdapter implements DbAdapter {
       this.db.exec(`ROLLBACK TO ${spName}`);
       throw e;
     } finally {
-      savepointDepth--;
+      this.savepointDepth--;
     }
   }
 

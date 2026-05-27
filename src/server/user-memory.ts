@@ -22,7 +22,7 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import { getAdapter } from './db';
 import { textToVector, serializeVector, deserializeVector, cosineSimilarity, applyTemporalRank } from './vectors';
-import { extractEntities, storeEntities, getEntityContext } from './entity-store';
+import { extractEntities, storeEntities, getEntityContext, getEntityGraphContext } from './entity-store';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -311,7 +311,11 @@ export async function createMemoryTools(ctx: MemoryToolContext) {
         return `${i + 1}. ${content} (relevance: ${pct}%)`;
       });
 
-      return `📋 Relevant memories (${top.length} of ${candidates.length} total):\n${lines.join('\n')}`;
+      // ── Append entity graph context ──────────────────────────────────
+      const entityGraphCtx = getEntityGraphContext(userId, query, 4, 3);
+      const graphSuffix = entityGraphCtx ? `\n\n${entityGraphCtx}` : '';
+
+      return `📋 Relevant memories (${top.length} of ${candidates.length} total):\n${lines.join('\n')}${graphSuffix}`;
     },
   });
 

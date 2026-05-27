@@ -12,6 +12,7 @@
     "resolveJsonModule": true,
     "sourceMap": true,
     "incremental": true,
+    "isolatedModules": true,
     "tsBuildInfoFile": "./dist/.tsbuildinfo"
   },
   "include": ["src/server/**/*"],
