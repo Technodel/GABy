@@ -412,9 +412,6 @@ export default function Login({ onLogin }: LoginProps) {
           <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.6 }}>
             No subscriptions. Pay only when SUNy does real work.
           </p>
-          <a href="/pro-features" style={{ display: 'inline-block', fontSize: 12, color: 'var(--accent)', textDecoration: 'none', fontWeight: 500, marginBottom: 20 }}>
-            View all PRO features →
-          </a>
           {pricing.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {pricing.map(m => (
@@ -458,6 +455,9 @@ export default function Login({ onLogin }: LoginProps) {
                 ))}
               </div>
               <div style={{ marginTop: 14, fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>Ask your administrator to upgrade your account to PRO to unlock these features.</div>
+              <a href="/pro-features" style={{ display: 'inline-block', fontSize: 12, color: 'var(--accent)', textDecoration: 'none', fontWeight: 500, marginTop: 16 }}>
+                View all PRO features →
+              </a>
             </>);
           })()}
         </div>

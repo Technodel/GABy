@@ -154,10 +154,11 @@ export class SunyBridge {
   }
 
   private connect(): void {
-    const url = `${this.server}/bridge?token=${encodeURIComponent(this.token)}`;
+    const url = `${this.server}/bridge`;
 
     try {
-      this.ws = new WebSocket(url);
+      // Send token via Sec-WebSocket-Protocol header (avoids leaking JWT in URL/query strings)
+      this.ws = new WebSocket(url, [this.token]);
     } catch (err) {
       this.log('[SUNy Bridge] Failed to create connection:', err);
       this.scheduleReconnect();
