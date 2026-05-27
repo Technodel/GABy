@@ -457,7 +457,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         addMessage('system', `? Rolled back to checkpoint \`${sha.slice(0, 7)}\`. Your project files have been restored to that state.`);
       } else {
         const data = await res.json().catch(() => ({}));
-        addMessage('system', ``⚠️ Rollback failed: ${(data as { error?: string }).error ?? 'Unknown error'}`);
+        addMessage('system', `⚠️ Rollback failed: ${(data as { error?: string }).error ?? 'Unknown error'}`);
       }
     } finally {
       setRollingBack(null);
@@ -1055,7 +1055,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     // Insert memory context as a system message, then start fresh
     setMessages([{
       type: 'system',
-      content: ``🧠 Recalled memory: "${mem.title}"\n${mem.summary}`,
+      content: `🧠 Recalled memory: "${mem.title}"\n${mem.summary}`,
       id: nextId(),
       timestamp: Date.now(),
     }]);
@@ -1628,7 +1628,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         pushCheckToProof('Tests still failing after retries');
         finishActiveProof('failed');
         setThinkingStatus('');
-        addMessage('system', ``❌ Tests still failing after multiple attempts. SUNy couldn't automatically fix all test failures.\n\n💡 **Tip:** Try asking SUNy to explain the failing tests, or check if your test setup requires any environment variables or mocked dependencies.`);
+        addMessage('system', `❌ Tests still failing after multiple attempts. SUNy couldn't automatically fix all test failures.\n\n💡 **Tip:** Try asking SUNy to explain the failing tests, or check if your test setup requires any environment variables or mocked dependencies.`);
       } else if (msg.event === 'suny:lint_gave_up') {
         pushCheckToProof(`Lint still failing after retries (${msg.errorCount as number} error(s))`);
         finishActiveProof('failed');
@@ -2105,7 +2105,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       });
       if (!res.ok) return;
       await loadSnapshots();
-      addMessage('system', ``✅ Snapshot saved as **"${label}"** (conversation + memory). Restore it any time from the Snapshots menu.`);
+      addMessage('system', `✅ Snapshot saved as **"${label}"** (conversation + memory). Restore it any time from the Snapshots menu.`);
       setShowSnapshots(true);
     } catch {}
   }
