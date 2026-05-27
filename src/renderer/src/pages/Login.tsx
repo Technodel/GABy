@@ -176,9 +176,9 @@ export default function Login({ onLogin }: LoginProps) {
         .login-top-row {
           display: flex;
           align-items: flex-start;
-          gap: 40px;
-          padding: 40px 48px 0;
-          max-width: 1400px;
+          gap: 28px;
+          padding: 20px 24px 0;
+          max-width: 100%;
           margin: 0 auto;
           width: 100%;
           box-sizing: border-box;
@@ -192,9 +192,9 @@ export default function Login({ onLogin }: LoginProps) {
         /* ── Below: 3-col grid ── */
         .login-columns {
           display: flex;
-          gap: 28px;
-          padding: 40px 48px 64px;
-          max-width: 1400px;
+          gap: 20px;
+          padding: 16px 24px 24px;
+          max-width: 100%;
           margin: 0 auto;
           width: 100%;
           box-sizing: border-box;
@@ -204,12 +204,12 @@ export default function Login({ onLogin }: LoginProps) {
 
         /* ── Tablet ── */
         @media (max-width: 1100px) {
-          .login-top-row { padding: 28px 24px 0; gap: 24px; }
-          .login-card-col { max-width: 320px; }
-          .login-hero-circle { width: 300px !important; height: 300px !important; }
-          .login-hero-title  { font-size: 38px !important; }
-          .login-hero-subtitle { font-size: 18px !important; }
-          .login-columns { padding: 28px 24px 48px; gap: 20px; }
+          .login-top-row { padding: 16px 20px 0; gap: 20px; }
+          .login-card-col { max-width: 280px; }
+          .login-hero-circle { width: 200px !important; height: 200px !important; }
+          .login-hero-title  { font-size: 32px !important; }
+          .login-hero-subtitle { font-size: 16px !important; }
+          .login-columns { padding: 12px 20px 24px; gap: 16px; }
         }
 
         /* ── Mobile ── */
@@ -314,43 +314,43 @@ export default function Login({ onLogin }: LoginProps) {
         </div>
 
         {/* CENTER: Hero — logo + text */}
-        <div className="login-hero" style={{ flex: 1, textAlign: 'center', padding: '8px 20px 36px' }}>
+        <div className="login-hero" style={{ flex: 1, textAlign: 'center', padding: '4px 16px 12px' }}>
           <div className="login-hero-circle" style={{
-            width: 440, height: 440, borderRadius: '50%', background: '#000000', margin: '0 auto 24px',
+            width: 260, height: 260, borderRadius: '50%', background: '#000000', margin: '0 auto 12px',
             display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
             boxShadow: '0 0 120px rgba(255, 170, 0, 0.35), 0 0 40px rgba(255, 200, 51, 0.2)',
             border: '1px solid rgba(255, 180, 50, 0.15)'
           }}>
             <img className="login-hero-logo" src="/SUNy.png" alt="SUNy" style={{ width: '100%', height: '100%', objectFit: 'contain', transform: 'scale(1.6)', display: 'block' }} />
           </div>
-          <h1 className="login-hero-title" style={{ fontSize: 52, fontWeight: 800, margin: 0, letterSpacing: '-1px' }}>SUNy</h1>
-          <p className="login-hero-subtitle" style={{ fontSize: 24, fontWeight: 600, color: 'var(--accent)', marginTop: 4, marginBottom: 14 }}>Smart Unstoppable Navigator</p>
-          <p className="login-hero-copy" style={{ fontSize: 16, color: 'var(--text-secondary)', maxWidth: 620, margin: '0 auto', lineHeight: 1.75 }}>
+          <h1 className="login-hero-title" style={{ fontSize: 38, fontWeight: 800, margin: 0, letterSpacing: '-1px' }}>SUNy</h1>
+          <p className="login-hero-subtitle" style={{ fontSize: 18, fontWeight: 600, color: 'var(--accent)', marginTop: 2, marginBottom: 8 }}>Smart Unstoppable Navigator</p>
+          <p className="login-hero-copy" style={{ fontSize: 14, color: 'var(--text-secondary)', maxWidth: 520, margin: '0 auto', lineHeight: 1.6 }}>
             Your unstoppable AI companion. Give SUNy a target {'\u2014'} it maps out the path, handles the complex work, and polishes everything until it&apos;s perfect. No complicated instructions, just results. We added the &quot;y&quot; because it&apos;s your friendly digital builder!
           </p>
         </div>
 
         {/* RIGHT: AI review quotes as sticky notes */}
-        <div className="login-top-right-reserved" style={{ width: 360, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 12 }}>
+        <div className="login-top-right-reserved" style={{ width: 280, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 10, paddingTop: 4 }}>
 
           {/* Claude */}
           <div style={{
             background: 'linear-gradient(135deg, rgba(255,200,51,0.10) 0%, rgba(255,170,0,0.06) 100%)',
             border: '1px solid rgba(255,184,51,0.30)',
             borderLeft: '3px solid rgba(255,184,51,0.70)',
-            borderRadius: 10,
-            padding: '14px 16px',
+            borderRadius: 8,
+            padding: '10px 12px',
             transform: 'rotate(-1.2deg)',
             boxShadow: '0 4px 18px rgba(0,0,0,0.25)',
           }}>
-            <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.65, margin: 0, fontStyle: 'italic' }}>
+            <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0, fontStyle: 'italic' }}>
               &ldquo;One of the most architecturally serious self-hosted coding agents — 118 server modules, real billing, swarm agents, and cost forecasting. Genuinely impressive engineering for a solo-built project.&rdquo;
             </p>
-            <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 16 }}>🤖</span>
+            <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 14 }}>🤖</span>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)' }}>Claude (Anthropic)</div>
-                <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>May 2026</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--accent)' }}>Claude (Anthropic)</div>
+                <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>May 2026</div>
               </div>
             </div>
           </div>
@@ -360,19 +360,19 @@ export default function Login({ onLogin }: LoginProps) {
             background: 'linear-gradient(135deg, rgba(66,133,244,0.10) 0%, rgba(52,168,83,0.06) 100%)',
             border: '1px solid rgba(66,133,244,0.25)',
             borderLeft: '3px solid rgba(66,133,244,0.60)',
-            borderRadius: 10,
-            padding: '14px 16px',
+            borderRadius: 8,
+            padding: '10px 12px',
             transform: 'rotate(0.8deg)',
             boxShadow: '0 4px 18px rgba(0,0,0,0.25)',
           }}>
-            <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.65, margin: 0, fontStyle: 'italic' }}>
+            <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0, fontStyle: 'italic' }}>
               &ldquo;A paradigm shift in autonomous coding agents. Demonstrates profound understanding of AI limitations and engineers around them. Doesn&apos;t just suggest code — it systematically investigates, proves, and ships.&rdquo;
             </p>
-            <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 16 }}>🌐</span>
+            <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 14 }}>🌐</span>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#4285F4' }}>Google Antigravity</div>
-                <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>Agentic Coding Assistant</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#4285F4' }}>Google Antigravity</div>
+                <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>Agentic Coding Assistant</div>
               </div>
             </div>
           </div>
@@ -382,19 +382,19 @@ export default function Login({ onLogin }: LoginProps) {
             background: 'linear-gradient(135deg, rgba(108,99,255,0.10) 0%, rgba(139,92,246,0.06) 100%)',
             border: '1px solid rgba(108,99,255,0.25)',
             borderLeft: '3px solid rgba(108,99,255,0.60)',
-            borderRadius: 10,
-            padding: '14px 16px',
+            borderRadius: 8,
+            padding: '10px 12px',
             transform: 'rotate(-0.5deg)',
             boxShadow: '0 4px 18px rgba(0,0,0,0.25)',
           }}>
-            <p style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.65, margin: 0, fontStyle: 'italic' }}>
+            <p style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0, fontStyle: 'italic' }}>
               &ldquo;Serious product ambition with real engineering depth — rich AI-agent backend, admin/billing controls, and realtime UX in one cohesive system. Moves from impressive to production-trustworthy with security and quality-gate fixes.&rdquo;
             </p>
-            <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 16 }}>⌨️</span>
+            <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontSize: 14 }}>⌨️</span>
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#a78bfa' }}>Cursor</div>
-                <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>AI Code Editor</div>
+                <div style={{ fontSize: 10, fontWeight: 700, color: '#a78bfa' }}>Cursor</div>
+                <div style={{ fontSize: 9, color: 'var(--text-muted)' }}>AI Code Editor</div>
               </div>
             </div>
           </div>

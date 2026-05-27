@@ -1,4 +1,4 @@
-﻿/**
+/**
  * db-migrations Ã¢â‚¬â€ all schema migrations + data seeding extracted from db.ts.
  *
  * These run against the DbAdapter interface so they work on any backend.
@@ -881,6 +881,39 @@ const SCHEMA_MIGRATIONS: Migration[] = [
       }
 
       console.log('[db] Migration v23: vector_b64, FTS5 indexes, entities table created');
+    },
+  },
+
+  // ── Migration 24: SUNy Widget Config (Technodel chatbot) ─────────────────
+  {
+    version: 24,
+    name: 'Create suny_widget_config table for Technodel chatbot',
+    up: async (adapter) => {
+      await adapter.exec(`
+        CREATE TABLE IF NOT EXISTS suny_widget_config (
+          id INTEGER PRIMARY KEY DEFAULT 1,
+          bot_name TEXT NOT NULL DEFAULT 'SUNy',
+          logo_url TEXT NOT NULL DEFAULT '/SLOGO.png',
+          enabled INTEGER NOT NULL DEFAULT 1,
+          system_prompt TEXT DEFAULT NULL,
+          deepseek_key TEXT DEFAULT NULL,
+          groq_key TEXT DEFAULT NULL,
+          openrouter_key TEXT DEFAULT NULL,
+          serper_key TEXT DEFAULT NULL,
+          updated_at TEXT DEFAULT (datetime('now'))
+        );
+      `);
+      // Seed default row
+      await adapter.run(`
+        INSERT OR IGNORE INTO suny_widget_config (id, bot_name, logo_url, enabled, deepseek_key, groq_key, openrouter_key, serper_key)
+        VALUES (1, 'SUNy', '/SLOGO.png', 1, ?, ?, ?, ?)
+      `, [
+        process.env.DEEPSEEK_API_KEY || null,
+        process.env.GROQ_API_KEY || null,
+        process.env.OPENROUTER_API_KEY || null,
+        process.env.SERPER_API_KEY || null,
+      ]);
+      console.log('[db] Migration v24: Created suny_widget_config table with default row');
     },
   },
 ];
