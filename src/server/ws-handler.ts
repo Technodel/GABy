@@ -1069,22 +1069,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
               currentBalance: await (await import('./billing')).getUserBalance(userId),
               mode: effectiveMode,
             });
-            // Wait for user to approve/dismiss (uses same checkpoint mechanism, 10min timeout)
-            const approved = await userClientManager.waitForCheckpoint(
-              userId,
-              'Review cost estimate before running',
-              `Estimated cost: $${forecast.lowCredits.toFixed(4)}–$${forecast.highCredits.toFixed(4)} credits (${forecast.confidence} confidence, based on ${forecast.basedOn === 'history' ? `${forecast.historicalSamples} past runs` : 'AI estimate'}). Proceed?`,
-            );
-            if (!approved) {
-              userClientManager.pushChatContent(userId, 'suny:stream_end', {
-                content: 'Run cancelled at cost estimate.',
-                sess_used: null, sess_limit: null, iterations: 0,
-              });
-              isProcessing = false;
-              clearTimeout(turnTimeout);
-              stopDidYouKnow();
-              return;
-            }
+            // UI card handles approval - no server-side checkpoint needed
           } else {
             // No models available - clear forecast loading state and proceed
             userClientManager.pushToUser(userId, 'suny:pre_run_estimate', null);
