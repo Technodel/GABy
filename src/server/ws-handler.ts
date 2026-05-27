@@ -1042,7 +1042,12 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           userClientManager.pushToUser(userId, 'suny:forecast_loading', {});
           // We need a model reference — use the primary model from the mode
           const { getModelsForMode } = await import('./agent');
-          const modelEntries = await getModelsForMode(effectiveMode).catch(() => []);
+          // Wrap getModelsForMode in 5s timeout to prevent hanging
+          const modelsPromise = getModelsForMode(effectiveMode);
+          const modelsTimeout = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('getModels timeout')), 5000)
+          );
+          const modelEntries = await Promise.race([modelsPromise, modelsTimeout]).catch(() => []);
           if (modelEntries.length > 0) {
             const firstEntry = modelEntries[0];
             // Add 10s timeout to prevent forecast from hanging forever
