@@ -90,13 +90,12 @@ function checkWsRateLimit(uid: number): boolean {
 }
 
 function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void {
-  const url = new URL(req.url || '', 'http://localhost');
-  // Prefer cookie or Authorization header — URL query params expose the JWT in
-  // server logs and browser history. Query param kept as last-resort fallback only.
+  // Accept only HttpOnly cookie or Authorization Bearer header.
+  // Query-string tokens are rejected: they leak JWTs into proxy logs, nginx
+  // access logs, browser history, and crash reports.
   const cookieToken = req.headers.cookie?.split(';').find(c => c.trim().startsWith('suny_token='))?.split('=')[1];
   const headerToken = req.headers.authorization?.startsWith('Bearer ') ? req.headers.authorization.slice(7) : undefined;
-  const queryToken = url.searchParams.get('token') ?? undefined;
-  const token = cookieToken || headerToken || queryToken;
+  const token = cookieToken || headerToken;
 
   if (!token) {
     ws.close(4001, 'Missing token');
