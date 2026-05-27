@@ -143,70 +143,74 @@ export default function Login({ onLogin }: LoginProps) {
   return (
     <div className="login-page" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text-primary)', display: 'flex', flexDirection: 'column' }}>
       <style>{`
-        @media (max-width: 1120px) {
-          .login-columns {
-            flex-wrap: wrap;
-            padding: 30px 22px 40px !important;
-            gap: 20px !important;
-          }
-
-          .login-card-col {
-            order: -1;
-            width: 100%;
-            max-width: 520px;
-            margin: 0 auto;
-          }
+        /* ── Top row: login + hero ── */
+        .login-top-row {
+          display: flex;
+          align-items: flex-start;
+          gap: 40px;
+          padding: 40px 48px 0;
+          max-width: 1400px;
+          margin: 0 auto;
+          width: 100%;
+          box-sizing: border-box;
+        }
+        .login-card-col {
+          width: 100%;
+          max-width: 360px;
+          flex-shrink: 0;
         }
 
+        /* ── Below: 3-col grid ── */
+        .login-columns {
+          display: flex;
+          gap: 28px;
+          padding: 40px 48px 64px;
+          max-width: 1400px;
+          margin: 0 auto;
+          width: 100%;
+          box-sizing: border-box;
+          align-items: flex-start;
+        }
+        .login-col { flex: 1; min-width: 0; }
+
+        /* ── Tablet ── */
+        @media (max-width: 1100px) {
+          .login-top-row { padding: 28px 24px 0; gap: 24px; }
+          .login-card-col { max-width: 320px; }
+          .login-hero-circle { width: 300px !important; height: 300px !important; }
+          .login-hero-title  { font-size: 38px !important; }
+          .login-hero-subtitle { font-size: 18px !important; }
+          .login-columns { padding: 28px 24px 48px; gap: 20px; }
+        }
+
+        /* ── Mobile ── */
         @media (max-width: 760px) {
-          .login-hero {
-            padding: 24px 14px 18px !important;
+          .login-top-row {
+            flex-direction: column !important;
+            padding: 20px 16px 0 !important;
+            gap: 20px !important;
           }
-
-          .login-hero-title {
-            font-size: 34px !important;
-            margin-bottom: 6px !important;
-          }
-
-          .login-hero-subtitle {
-            font-size: 16px !important;
-            margin-bottom: 8px !important;
-          }
-
-          .login-hero-copy {
-            font-size: 13px !important;
-            line-height: 1.65 !important;
-          }
-
-          .login-hero-circle {
-            width: 240px !important;
-            height: 240px !important;
-          }
-
+          .login-card-col { max-width: 100% !important; }
+          .login-hero { text-align: center; padding: 0 0 16px !important; }
+          .login-hero-circle { width: 200px !important; height: 200px !important; }
+          .login-hero-title  { font-size: 32px !important; }
+          .login-hero-subtitle { font-size: 16px !important; }
+          .login-hero-copy { font-size: 13px !important; }
           .login-columns {
-            padding: 18px 12px 24px !important;
-            gap: 14px !important;
+            flex-direction: column !important;
+            padding: 20px 16px 40px !important;
+            gap: 32px !important;
           }
-
-          .login-card-col {
-            max-width: none;
-          }
-
-          .login-cta-row {
-            flex-direction: column;
-          }
+          .login-col { width: 100%; }
+          .login-cta-row { flex-direction: column; }
         }
       `}</style>
 
-      {/* ── Top section: login LEFT, hero centered RIGHT ── */}
-      <div className="login-top-row" style={{
-        display: 'flex', alignItems: 'flex-start', gap: 40,
-        padding: '40px 48px 0', maxWidth: 1400, margin: '0 auto', width: '100%', boxSizing: 'border-box',
-        background: `linear-gradient(180deg, rgba(${glowRgb},0.08) 0%, transparent 100%)`,
-      }}>
+      {/* ── Top: login LEFT · hero CENTER ── */}
+      <div className="login-top-row" style={{ background: `linear-gradient(180deg, rgba(${glowRgb},0.08) 0%, transparent 100%)` }}>
 
         {/* LEFT: Login + privacy */}
-        <div className="login-card-col" style={{ width: '100%', maxWidth: 380, flexShrink: 0 }}>
+        <div className="login-card-col">
           <div className="card">
             <div style={{ display: 'flex', marginBottom: 20, borderBottom: '1px solid var(--border)' }}>
               {(['user', 'signup'] as const).map(t => (
@@ -224,42 +228,35 @@ export default function Login({ onLogin }: LoginProps) {
               {tab === 'signup' && (<>
                 <div style={{ marginBottom: 12 }}>
                   <label style={{ display: 'block', marginBottom: 6, fontSize: 13, color: 'var(--text-secondary)' }}>Your Name <span style={{ color: 'var(--text-muted)', fontSize: 11 }}>(optional)</span></label>
-                  <input type="text" value={signupName} onChange={e => setSignupName(e.target.value)}
-                    placeholder="e.g. Alex" autoComplete="name" />
+                  <input type="text" value={signupName} onChange={e => setSignupName(e.target.value)} placeholder="e.g. Alex" autoComplete="name" />
                 </div>
                 <div style={{ marginBottom: 12 }}>
                   <label style={{ display: 'block', marginBottom: 6, fontSize: 13, color: 'var(--text-secondary)' }}>Username</label>
-                  <input type="text" value={signupUsername} onChange={e => setSignupUsername(e.target.value)}
-                    placeholder="letters, numbers, underscores" autoComplete="username" required />
+                  <input type="text" value={signupUsername} onChange={e => setSignupUsername(e.target.value)} placeholder="letters, numbers, underscores" autoComplete="username" required />
                 </div>
                 <div style={{ marginBottom: 12 }}>
                   <label style={{ display: 'block', marginBottom: 6, fontSize: 13, color: 'var(--text-secondary)' }}>Password</label>
-                  <input type="password" value={signupPassword} onChange={e => setSignupPassword(e.target.value)}
-                    placeholder="Minimum 6 characters" autoComplete="new-password" required />
+                  <input type="password" value={signupPassword} onChange={e => setSignupPassword(e.target.value)} placeholder="Minimum 6 characters" autoComplete="new-password" required />
                 </div>
                 <div style={{ marginBottom: 20 }}>
                   <label style={{ display: 'block', marginBottom: 6, fontSize: 13, color: 'var(--text-secondary)' }}>Confirm Password</label>
-                  <input type="password" value={signupConfirm} onChange={e => setSignupConfirm(e.target.value)}
-                    placeholder="Repeat password" autoComplete="new-password" required />
+                  <input type="password" value={signupConfirm} onChange={e => setSignupConfirm(e.target.value)} placeholder="Repeat password" autoComplete="new-password" required />
                 </div>
               </>)}
               {tab === 'user' && (
                 <div style={{ marginBottom: 12 }}>
                   <label style={{ display: 'block', marginBottom: 6, fontSize: 13, color: 'var(--text-secondary)' }}>Username</label>
-                  <input type="text" value={username} onChange={e => setUsername(e.target.value)}
-                    placeholder="Your username" autoComplete="username" required />
+                  <input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="Your username" autoComplete="username" required />
                 </div>
               )}
               {tab === 'user' && (
                 <div style={{ marginBottom: 20 }}>
                   <label style={{ display: 'block', marginBottom: 6, fontSize: 13, color: 'var(--text-secondary)' }}>Password</label>
-                  <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-                    placeholder="Your password" autoComplete="current-password" required />
+                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Your password" autoComplete="current-password" required />
                 </div>
               )}
               {error && (
-                <div style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'rgba(248,113,113,0.1)',
-                  border: '1px solid var(--error)', color: 'var(--error)', fontSize: 13, marginBottom: 16 }}>
+                <div style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'rgba(248,113,113,0.1)', border: '1px solid var(--error)', color: 'var(--error)', fontSize: 13, marginBottom: 16 }}>
                   {error}
                 </div>
               )}
@@ -299,58 +296,27 @@ export default function Login({ onLogin }: LoginProps) {
           <h1 className="login-hero-title" style={{ fontSize: 52, fontWeight: 800, margin: 0, letterSpacing: '-1px' }}>SUNy</h1>
           <p className="login-hero-subtitle" style={{ fontSize: 24, fontWeight: 600, color: 'var(--accent)', marginTop: 4, marginBottom: 14 }}>Smart Unstoppable Navigator</p>
           <p className="login-hero-copy" style={{ fontSize: 16, color: 'var(--text-secondary)', maxWidth: 620, margin: '0 auto', lineHeight: 1.75 }}>
-            Your unstoppable AI companion. Give SUNy a target {'—'} it maps out the path, handles the complex work, and polishes everything until it&apos;s perfect. No complicated instructions, just results. We added the &quot;y&quot; because it&apos;s your friendly digital builder!
+            Your unstoppable AI companion. Give SUNy a target {'\u2014'} it maps out the path, handles the complex work, and polishes everything until it&apos;s perfect. No complicated instructions, just results. We added the &quot;y&quot; because it&apos;s your friendly digital builder!
           </p>
         </div>
 
-        {/* RIGHT: reserved for future content */}
-        <div className="login-col-right" style={{ width: 340, flexShrink: 0 }} />
+        {/* RIGHT side of top row: empty (reserved) */}
+        <div style={{ width: 360, flexShrink: 0 }} className="login-top-right-reserved" />
 
       </div>
 
-      {/* ── Below: Pricing | Features ── */}
-      <div className="login-columns" style={{ flex: 1, display: 'flex', gap: 28, padding: '40px 48px 64px', maxWidth: 1400, margin: '0 auto', width: '100%', boxSizing: 'border-box', alignItems: 'flex-start' }}>
+      {/* ── Below hero: 3 equal columns ── */}
+      <div className="login-columns">
 
-        {/* Spacer to align with login card width above */}
-        <div style={{ width: 380, flexShrink: 0 }} />
-
-        {/* CENTER: Pricing */}
-        <div className="login-col-pricing" style={{ flex: 1, minWidth: 220 }}>
+        {/* LEFT: Pricing header + mode cards */}
+        <div className="login-col">
           <h2 style={{ fontSize: 19, fontWeight: 700, marginBottom: 6 }}>{'\ud83d\udcb0'} Pricing</h2>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 16, lineHeight: 1.6 }}>
             No subscriptions. Pay only when SUNy does real work.
           </p>
-          <div style={{ marginBottom: 14 }}>
-            <a href="/pro-features" style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'none', fontWeight: 500 }}>
-              View all PRO features →
-            </a>
-          </div>
-          {planFlags.length > 0 && (() => {
-            const proFeatures = planFlags.filter(f => f.plan === 'pro' && f.enabled);
-            const regularKeys = new Set(planFlags.filter(f => f.plan === 'regular' && f.enabled).map(f => f.key));
-            const proOnly = proFeatures.filter(f => !regularKeys.has(f.key));
-            if (proOnly.length === 0) return null;
-            return (
-              <div style={{ marginBottom: 20, padding: '14px 16px', borderRadius: 'var(--radius)', border: '1px solid rgba(108,99,255,0.35)', background: 'rgba(108,99,255,0.06)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <span style={{ fontSize: 15 }}>⚡</span>
-                  <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--accent)' }}>PRO Plan — Exclusive Features</span>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {proOnly.map(f => (
-                    <div key={f.key} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                      <span style={{ color: 'var(--accent)', fontSize: 13, marginTop: 1, flexShrink: 0 }}>⚡</span>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 600 }}>{f.label}</div>
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>{f.description}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-muted)' }}>Ask your administrator to upgrade your account to PRO to unlock these features.</div>
-              </div>
-            );
-          })()}
+          <a href="/pro-features" style={{ display: 'inline-block', fontSize: 12, color: 'var(--accent)', textDecoration: 'none', fontWeight: 500, marginBottom: 20 }}>
+            View all PRO features →
+          </a>
           {pricing.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {pricing.map(m => (
@@ -372,11 +338,37 @@ export default function Login({ onLogin }: LoginProps) {
           )}
         </div>
 
-        {/* RIGHT: What is SUNy — features list */}
-        <div className="login-col-about" style={{ flex: 1, minWidth: 0 }}>
-          <h2 style={{ fontSize: 19, fontWeight: 700, marginBottom: 6 }}>{'👋'} What is SUNy?</h2>
+        {/* CENTER: PRO features */}
+        <div className="login-col">
+          {planFlags.length > 0 && (() => {
+            const proFeatures = planFlags.filter(f => f.plan === 'pro' && f.enabled);
+            const regularKeys = new Set(planFlags.filter(f => f.plan === 'regular' && f.enabled).map(f => f.key));
+            const proOnly = proFeatures.filter(f => !regularKeys.has(f.key));
+            if (proOnly.length === 0) return null;
+            return (<>
+              <h2 style={{ fontSize: 19, fontWeight: 700, marginBottom: 6 }}>⚡ PRO Plan</h2>
+              <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>Exclusive features for PRO accounts.</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {proOnly.map(f => (
+                  <div key={f.key} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '10px 12px', borderRadius: 8, border: '1px solid rgba(108,99,255,0.25)', background: 'rgba(108,99,255,0.04)' }}>
+                    <span style={{ color: 'var(--accent)', fontSize: 14, marginTop: 1, flexShrink: 0 }}>⚡</span>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 600 }}>{f.label}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5, marginTop: 2 }}>{f.description}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop: 14, fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>Ask your administrator to upgrade your account to PRO to unlock these features.</div>
+            </>);
+          })()}
+        </div>
+
+        {/* RIGHT: What is SUNy */}
+        <div className="login-col">
+          <h2 style={{ fontSize: 19, fontWeight: 700, marginBottom: 6 }}>{'\ud83d\udc4b'} What is SUNy?</h2>
           <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>
-            The coding buddy you always wished you had {'—'} one that never gets tired, never judges, and doesn&apos;t stop until the job is done.
+            The coding buddy you always wished you had {'\u2014'} one that never gets tired, never judges, and doesn&apos;t stop until the job is done.
           </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {features.map(f => (
