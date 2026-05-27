@@ -33,4 +33,3 @@ module.exports = {
     max_memory_restart: '500M'
   }]
 };
-</invoke>
