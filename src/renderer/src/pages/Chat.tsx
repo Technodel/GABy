@@ -161,7 +161,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     const SpeechRec = (window as Record<string, unknown>).SpeechRecognition as (typeof SpeechRecognition | undefined)
       ?? (window as Record<string, unknown>).webkitSpeechRecognition as (typeof SpeechRecognition | undefined);
     if (!SpeechRec) {
-      addMessage('system', '?? Voice input is not supported in this browser. Try Chrome or Edge.');
+      addMessage('system', '🎤 Voice input is not supported in this browser. Try Chrome or Edge.');
       return;
     }
     if (isListening && recognitionRef.current) {
@@ -457,7 +457,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         addMessage('system', `? Rolled back to checkpoint \`${sha.slice(0, 7)}\`. Your project files have been restored to that state.`);
       } else {
         const data = await res.json().catch(() => ({}));
-        addMessage('system', `?? Rollback failed: ${(data as { error?: string }).error ?? 'Unknown error'}`);
+        addMessage('system', ``⚠️ Rollback failed: ${(data as { error?: string }).error ?? 'Unknown error'}`);
       }
     } finally {
       setRollingBack(null);
@@ -856,7 +856,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         addMessage('system', '? Proof report copied to clipboard!');
       },
       () => {
-        addMessage('system', '?? Could not copy to clipboard');
+        addMessage('system', '⚠️ Could not copy to clipboard');
       }
     );
   }
@@ -1055,7 +1055,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     // Insert memory context as a system message, then start fresh
     setMessages([{
       type: 'system',
-      content: `?? Recalled memory: "${mem.title}"\n${mem.summary}`,
+      content: ``🧠 Recalled memory: "${mem.title}"\n${mem.summary}`,
       id: nextId(),
       timestamp: Date.now(),
     }]);
@@ -1392,7 +1392,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         ]);
         addMessage(
           'suny',
-          `?? **${reasonText}**\n\n${cur === 'auto' && routed !== 'auto'
+          `💡 **${reasonText}**\n\n${cur === 'auto' && routed !== 'auto'
             ? `You're using **auto** mode, and this run was routed to **${routed}**. `
             : `You're on **${cur}** mode. `}` +
           `Switching to **${sug}** mode gives me a stronger model that handles multi-step coding, ` +
@@ -1404,7 +1404,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         const message = typeof msg.message === 'string' && msg.message
           ? msg.message
           : 'Your bot wallet balance is empty. I can still chat in free mode, but coding actions need credits.';
-        const title = reason === 'daily_limit' ? '? Daily limit reached' : '?? Out of credits';
+        const title = reason === 'daily_limit' ? '⏰ Daily limit reached' : '💸 Out of credits';
         addMessage('suny', `${title}\n\n${message}\n\n${pickNotice(`credits:${reason}`, [
           'Use the Top up button below the chat input, or keep chatting in free mode.',
           'You can top up from the button under the chat box, or continue in free mode.',
@@ -1628,11 +1628,11 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         pushCheckToProof('Tests still failing after retries');
         finishActiveProof('failed');
         setThinkingStatus('');
-        addMessage('system', `?? Tests still failing after multiple attempts. SUNy couldn't automatically fix all test failures.\n\n?? **Tip:** Try asking SUNy to explain the failing tests, or check if your test setup requires any environment variables or mocked dependencies.`);
+        addMessage('system', ``❌ Tests still failing after multiple attempts. SUNy couldn't automatically fix all test failures.\n\n💡 **Tip:** Try asking SUNy to explain the failing tests, or check if your test setup requires any environment variables or mocked dependencies.`);
       } else if (msg.event === 'suny:lint_gave_up') {
         pushCheckToProof(`Lint still failing after retries (${msg.errorCount as number} error(s))`);
         finishActiveProof('failed');
-        addMessage('system', `?? ${msg.errorCount} lint error(s) remain after ${3} fix attempts using \`${msg.command}\`.\n\n?? **Tip:** You can ask SUNy: *"Fix the remaining lint errors"* or run \`${msg.command}\` in your terminal to see the full output.`);
+        addMessage('system', `?? ${msg.errorCount} lint error(s) remain after ${3} fix attempts using \`${msg.command}\`.\n\n💡 **Tip:** You can ask SUNy: *"Fix the remaining lint errors"* or run \`${msg.command}\` in your terminal to see the full output.`);
       } else if (msg.event === 'suny:balance') {
         setBalance(msg.balance as number);
         if (msg.wallet_balance !== undefined) setWalletBalance(msg.wallet_balance as number);
@@ -2105,7 +2105,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       });
       if (!res.ok) return;
       await loadSnapshots();
-      addMessage('system', `?? Snapshot saved as **"${label}"** (conversation + memory). Restore it any time from the Snapshots menu.`);
+      addMessage('system', ``✅ Snapshot saved as **"${label}"** (conversation + memory). Restore it any time from the Snapshots menu.`);
       setShowSnapshots(true);
     } catch {}
   }
@@ -2346,7 +2346,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
               connected={bridgeConnected}
               onClick={async () => {
                 if (bridgeConnected) {
-                  if (!confirm('?? Disconnect the SUNy Bridge?\n\nSUNy will no longer be able to read/write files or run commands on your machine. You can reconnect by clicking the bridge button again.')) return;
+                  if (!confirm('⚠️ Disconnect the SUNy Bridge?\n\nSUNy will no longer be able to read/write files or run commands on your machine. You can reconnect by clicking the bridge button again.')) return;
                   try {
                     await fetch('/api/bridge/disconnect', { method: 'POST', credentials: 'include' });
                     setBridgeConnected(false);

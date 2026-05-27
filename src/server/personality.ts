@@ -1,4 +1,4 @@
-/**
+﻿/**
  * SUNy Personality Module
  *
  * Loads suny_status_messages.txt (project root) once at startup and serves

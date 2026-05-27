@@ -83,6 +83,28 @@ export function cosineSimilarity(a: Float64Array, b: Float64Array): number {
 }
 
 /**
+ * Apply temporal ranking to a similarity score based on the age of the entry.
+ *
+ * Uses exponential decay: score *= exp(-lambda * daysElapsed)
+ * where lambda controls how quickly older entries lose relevance.
+ *
+ * - lambda = 0.05: half-life of ~14 days (balanced, default)
+ * - lambda = 0.1:  half-life of ~7 days (aggressive recency)
+ * - lambda = 0.02: half-life of ~35 days (gentle decay)
+ */
+export function applyTemporalRank(
+  similarity: number,
+  createdAt: string | Date,
+  lambda: number = 0.05,
+): number {
+  const then = typeof createdAt === 'string' ? new Date(createdAt).getTime() : createdAt.getTime();
+  const now = Date.now();
+  const daysElapsed = (now - then) / (1000 * 60 * 60 * 24);
+  const decay = Math.exp(-lambda * Math.max(0, daysElapsed));
+  return similarity * decay;
+}
+
+/**
  * Serialize a Float64Array to a compact base64 string for DB storage.
  */
 export function serializeVector(vec: Float64Array): string {

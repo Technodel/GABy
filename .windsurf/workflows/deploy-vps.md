@@ -29,9 +29,9 @@ ssh -p 2222 root@72.62.235.63 "cd /var/www/suny/current-new-2/src/renderer && np
 ```
 
 // turbo
-5. Restart PM2
+5. Reload PM2 (graceful zero-downtime — old process stays alive until new one is ready)
 ```
-ssh -p 2222 root@72.62.235.63 "pm2 restart suny"
+ssh -p 2222 root@72.62.235.63 "pm2 reload suny"
 ```
 
 // turbo

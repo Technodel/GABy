@@ -73,8 +73,8 @@ export default function BalanceBadge({ balance, walletBalance, remainingTokens =
   };
 
   const tokenDisplay = remainingTokens != null
-    ? `${(remainingTokens / 1_000_000).toFixed(2)}M tokens`
-    : '— tokens';
+    ? `${(remainingTokens / 1_000_000).toFixed(2)}M`
+    : null;
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'nowrap' }}>
@@ -91,20 +91,22 @@ export default function BalanceBadge({ balance, walletBalance, remainingTokens =
           title="Bot Wallet — click to transfer funds from Main Balance"
         >
           <Wallet size={14} />
-          <span>{showTokens ? tokenDisplay : walletFormatted}</span>
+          <span>{showTokens && tokenDisplay != null ? tokenDisplay : walletFormatted}</span>
           {!showTokens && walletDelta !== null && (
             <span style={{ fontSize: 11, color: walletDelta < 0 ? 'var(--error, #ef4444)' : 'var(--success, #22c55e)', marginLeft: 2 }}>
               {walletDelta < 0 ? `−${formatCents(-walletDelta)}` : `+${formatCents(walletDelta)}`}
             </span>
           )}
         </div>
-        <span
-          onClick={() => setShowTokens(t => !t)}
-          style={{ fontSize: 10, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', letterSpacing: '0.03em' }}
-          title={showTokens ? 'Switch back to USD display' : 'Switch to token balance display'}
-        >
-          {showTokens ? 'USD' : 'Tokens'}
-        </span>
+        {remainingTokens != null && (
+          <span
+            onClick={() => setShowTokens(t => !t)}
+            style={{ fontSize: 10, color: 'var(--text-muted)', cursor: 'pointer', userSelect: 'none', letterSpacing: '0.03em' }}
+            title={showTokens ? 'Switch back to USD display' : 'Switch to token balance display'}
+          >
+            {showTokens ? 'USD' : 'Tokens'}
+          </span>
+        )}
       </div>
 
       {/* Main credits */}

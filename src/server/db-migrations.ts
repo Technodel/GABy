@@ -1,5 +1,5 @@
-/**
- * db-migrations â€” all schema migrations + data seeding extracted from db.ts.
+﻿/**
+ * db-migrations Ã¢â‚¬â€ all schema migrations + data seeding extracted from db.ts.
  *
  * These run against the DbAdapter interface so they work on any backend.
  * Each migration's `up()` receives the adapter and uses only its methods.
@@ -8,7 +8,7 @@
 import bcrypt from 'bcryptjs';
 import type { DbAdapter } from './db-types';
 
-// â”€â”€ Migration type â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬ Migration type Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 interface Migration {
   version: number;
@@ -16,7 +16,7 @@ interface Migration {
   up: (adapter: DbAdapter) => Promise<void>;
 }
 
-// â”€â”€ Schema foundation tables (always run â€” CREATE TABLE IF NOT EXISTS) â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬ Schema foundation tables (always run Ã¢â‚¬â€ CREATE TABLE IF NOT EXISTS) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 async function createFoundationTables(adapter: DbAdapter): Promise<void> {
   await adapter.exec(`
@@ -180,10 +180,10 @@ async function createFoundationTables(adapter: DbAdapter): Promise<void> {
   `);
 }
 
-// â”€â”€ Versioned schema migrations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬ Versioned schema migrations Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 const SCHEMA_MIGRATIONS: Migration[] = [
-  // â”€â”€ Migration 1: Consolidate all legacy try/catch ALTER TABLE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Migration 1: Consolidate all legacy try/catch ALTER TABLE Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   {
     version: 1,
     name: 'Consolidate legacy ALTER TABLE additions',
@@ -211,7 +211,7 @@ const SCHEMA_MIGRATIONS: Migration[] = [
     },
   },
 
-  // â”€â”€ Migration 2: Add tables that were missing from schema â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Migration 2: Add tables that were missing from schema Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   {
     version: 2,
     name: 'Add missing tables: feature_flags, operation_log, project_locks, bridge_setup_codes',
@@ -262,7 +262,7 @@ const SCHEMA_MIGRATIONS: Migration[] = [
     },
   },
 
-  // â”€â”€ Migration 3: Agent turn metrics table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Migration 3: Agent turn metrics table Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   {
     version: 3,
     name: 'Add agent_turn_metrics table for production monitoring',
@@ -291,7 +291,7 @@ const SCHEMA_MIGRATIONS: Migration[] = [
     },
   },
 
-  // â”€â”€ Migration 4: Add role column + create default admin user â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Migration 4: Add role column + create default admin user Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   {
     version: 4,
     name: 'Add role column to users, create default admin user, clean test users',
@@ -317,7 +317,7 @@ const SCHEMA_MIGRATIONS: Migration[] = [
         );
         console.log('[db] Migration 4: Created default admin user "galaxy"');
       } else {
-        // Always force admin role â€” guards against accidental role changes
+        // Always force admin role Ã¢â‚¬â€ guards against accidental role changes
         await adapter.run(
           "UPDATE users SET role = 'admin' WHERE username = 'galaxy'",
         );
@@ -326,7 +326,7 @@ const SCHEMA_MIGRATIONS: Migration[] = [
     },
   },
 
-  // â”€â”€ Migration 5: Seed OpenRouter fallback API keys â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Migration 5: Seed OpenRouter fallback API keys Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   {
     version: 5,
     name: 'Seed OpenRouter fallback API keys for fast/smart/pro modes',
@@ -350,19 +350,19 @@ const SCHEMA_MIGRATIONS: Migration[] = [
     },
   },
 
-  // â”€â”€ Migration 6: Fix OpenRouter model_id_override â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Migration 6: Fix OpenRouter model_id_override Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   {
     version: 6,
-    name: 'Fix OpenRouter model_id_override â€” deepseek-chat is ambiguous on OpenRouter',
+    name: 'Fix OpenRouter model_id_override Ã¢â‚¬â€ deepseek-chat is ambiguous on OpenRouter',
     up: async (adapter) => {
       const result = await adapter.run(
         "UPDATE api_keys SET model_id_override = 'deepseek/deepseek-chat' WHERE provider = 'OpenRouter' AND model_id_override = 'deepseek-chat'",
       );
-      console.log(`[db] Migration v6: Updated ${result.changes} OpenRouter key(s) â€” deepseek-chat â†’ deepseek/deepseek-chat`);
+      console.log(`[db] Migration v6: Updated ${result.changes} OpenRouter key(s) Ã¢â‚¬â€ deepseek-chat Ã¢â€ â€™ deepseek/deepseek-chat`);
     },
   },
 
-  // â”€â”€ Migration 7: Pinned files per user/project â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Migration 7: Pinned files per user/project Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   {
     version: 7,
     name: 'Create pinned_files table',
@@ -383,7 +383,7 @@ const SCHEMA_MIGRATIONS: Migration[] = [
     },
   },
 
-  // â”€â”€ Migration 8: Semantic code chunk vectors â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Migration 8: Semantic code chunk vectors Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   {
     version: 8,
     name: 'Create code_chunks table for vector context',
@@ -411,7 +411,7 @@ const SCHEMA_MIGRATIONS: Migration[] = [
     },
   },
 
-  // â”€â”€ Migration 9: Conversation forks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Migration 9: Conversation forks Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   {
     version: 9,
     name: 'Create conversation_forks table',
@@ -436,7 +436,7 @@ const SCHEMA_MIGRATIONS: Migration[] = [
     },
   },
 
-  // â”€â”€ Migration 10: Track bridge connection history â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Migration 10: Track bridge connection history Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   {
     version: 10,
     name: 'Add bridge_ever_connected column to users table',
@@ -448,7 +448,7 @@ const SCHEMA_MIGRATIONS: Migration[] = [
     },
   },
 
-  // â”€â”€ Migration 11: Client Link (PRO feature) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Migration 11: Client Link (PRO feature) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   {
     version: 11,
     name: 'Create client_links and client_requests tables for Client Link PRO feature',
@@ -489,7 +489,7 @@ const SCHEMA_MIGRATIONS: Migration[] = [
     },
   },
 
-  // â”€â”€ Migration 12: Client Tickets (redesigned Client Link) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Migration 12: Client Tickets (redesigned Client Link) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   {
     version: 12,
     name: 'Create client_tickets table for the redesigned Client Link ticket system',
@@ -525,7 +525,7 @@ const SCHEMA_MIGRATIONS: Migration[] = [
     },
   },
 
-  // â”€â”€ Migration 13: Per-project auto execute override â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Migration 13: Per-project auto execute override Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   {
     version: 13,
     name: 'Add auto_execute_override column to projects table',
@@ -537,7 +537,7 @@ const SCHEMA_MIGRATIONS: Migration[] = [
     },
   },
 
-  // â”€â”€ Migration 14: top-up requests + per-project default tier â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Migration 14: top-up requests + per-project default tier Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   {
     version: 14,
     name: 'Create topup_requests table and add default_tier column to projects',
@@ -565,7 +565,7 @@ const SCHEMA_MIGRATIONS: Migration[] = [
     },
   },
 
-  // â”€â”€ Migration 15: Memory Snapshots (replaces conversation_forks) â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ Migration 15: Memory Snapshots (replaces conversation_forks) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   {
     version: 15,
     name: 'Create memory_snapshots table, migrate conversation_forks, drop old table, add projects.frozen_snapshot_uid',
@@ -593,7 +593,7 @@ const SCHEMA_MIGRATIONS: Migration[] = [
         CREATE INDEX IF NOT EXISTS idx_snapshots_created ON memory_snapshots(created_at);
       `);
 
-      // Migrate existing forks â†’ snapshots (one-shot, then drop old table)
+      // Migrate existing forks Ã¢â€ â€™ snapshots (one-shot, then drop old table)
       const oldExists = await adapter.get<{ name: string }>(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='conversation_forks'",
       );
@@ -604,7 +604,7 @@ const SCHEMA_MIGRATIONS: Migration[] = [
           FROM conversation_forks;
         `);
         await adapter.exec('DROP TABLE conversation_forks');
-        console.log('[db] Migration v15: Migrated conversation_forks â†’ memory_snapshots and dropped old table');
+        console.log('[db] Migration v15: Migrated conversation_forks Ã¢â€ â€™ memory_snapshots and dropped old table');
       }
 
       if (!(await adapter.columnExists('projects', 'frozen_snapshot_uid'))) {
@@ -643,7 +643,7 @@ const SCHEMA_MIGRATIONS: Migration[] = [
     },
   },
 
-  // ── Migration 18: User plans (regular / pro) + per-plan feature flags ──────
+  // â”€â”€ Migration 18: User plans (regular / pro) + per-plan feature flags â”€â”€â”€â”€â”€â”€
   {
     version: 18,
     name: 'Add plan column to users, create plan_feature_flags table, seed PRO features',
@@ -670,27 +670,27 @@ const SCHEMA_MIGRATIONS: Migration[] = [
       const proFeatures: Array<{ key: string; label: string; description: string }> = [
         {
           key: 'pf_advanced_visual_portal',
-          label: '🔭 Advanced Visual Portal',
-          description: 'Give your clients a live link to your staging app. They click directly on any part of the UI, describe what they want changed, and SUNy automatically finds the right code and applies the fix — no back-and-forth emails needed.',
+          label: 'ðŸ”­ Advanced Visual Portal',
+          description: 'Give your clients a live link to your staging app. They click directly on any part of the UI, describe what they want changed, and SUNy automatically finds the right code and applies the fix â€” no back-and-forth emails needed.',
         },
         {
           key: 'pf_parallel_agent_swarm',
-          label: '⚡ Parallel Agent Swarm',
+          label: 'âš¡ Parallel Agent Swarm',
           description: 'SUNy spawns multiple Junior AI agents in parallel to handle massive features simultaneously.',
         },
         {
           key: 'pf_hypothesis_engine',
-          label: '🔬 Parallel Hypothesis Testing',
+          label: 'ðŸ”¬ Parallel Hypothesis Testing',
           description: 'For tough bugs, SUNy spawns multiple mini-agents with different strategies and picks the best.',
         },
         {
           key: 'pf_scheduled_agents',
-          label: '🚧 Scheduled Agents',
+          label: 'ðŸš§ Scheduled Agents',
           description: 'Schedule SUNy to run automated code reviews, audits, and health checks on a timer.',
         },
         {
           key: 'pf_client_portal',
-          label: '🎫 Client Ticket Portal',
+          label: 'ðŸŽ« Client Ticket Portal',
           description: 'Generate secure shareable URLs for clients to submit project requests via SUNy.',
         },
       ];
@@ -702,7 +702,7 @@ const SCHEMA_MIGRATIONS: Migration[] = [
           `INSERT OR IGNORE INTO plan_feature_flags (key, plan, enabled, label, description) VALUES (?, 'pro', 1, ?, ?)`,
           [f.key, f.label, f.description],
         );
-        // Regular plan: disabled by default (except client portal — available to everyone)
+        // Regular plan: disabled by default (except client portal â€” available to everyone)
         const regularEnabled = f.key === 'pf_client_portal' ? 1 : 0;
         await adapter.run(
           `INSERT OR IGNORE INTO plan_feature_flags (key, plan, enabled, label, description) VALUES (?, 'regular', ?, ?, ?)`,
@@ -722,7 +722,7 @@ const SCHEMA_MIGRATIONS: Migration[] = [
         `UPDATE plan_feature_flags SET enabled = 1 WHERE key = 'pf_codebase_health' AND plan = 'regular'`,
       );
       await adapter.run(
-        `INSERT OR IGNORE INTO plan_feature_flags (key, plan, enabled, label, description) VALUES ('pf_codebase_health', 'regular', 1, '🏥 Codebase Health Score', 'After every session, SUNy scores the health of files it touched (lint, tests, complexity, coverage) and tracks the trend over time.')`,
+        `INSERT OR IGNORE INTO plan_feature_flags (key, plan, enabled, label, description) VALUES ('pf_codebase_health', 'regular', 1, 'ðŸ¥ Codebase Health Score', 'After every session, SUNy scores the health of files it touched (lint, tests, complexity, coverage) and tracks the trend over time.')`,
       );
     },
   },
@@ -732,7 +732,7 @@ const SCHEMA_MIGRATIONS: Migration[] = [
     version: 21,
     name: 'Update pf_advanced_visual_portal description',
     up: async (adapter) => {
-      const newDesc = 'Give your clients a live link to your staging app. They click directly on any part of the UI, describe what they want changed, and SUNy automatically finds the right code and applies the fix — no back-and-forth emails needed.';
+      const newDesc = 'Give your clients a live link to your staging app. They click directly on any part of the UI, describe what they want changed, and SUNy automatically finds the right code and applies the fix â€” no back-and-forth emails needed.';
       await adapter.run(
         `UPDATE plan_feature_flags SET description = ? WHERE key = 'pf_advanced_visual_portal'`,
         [newDesc],
@@ -748,22 +748,22 @@ const SCHEMA_MIGRATIONS: Migration[] = [
       const newFlags = [
         {
           key: 'pf_push_notifications',
-          label: '🔔 Push Notifications & Run Receipts',
+          label: 'ðŸ”” Push Notifications & Run Receipts',
           description: 'Browser push notifications when a run completes, with a receipt showing files changed, credits used, and test results.',
         },
         {
           key: 'pf_cost_forecast',
-          label: '📋 Pre-Run Cost Estimate',
+          label: 'ðŸ“‹ Pre-Run Cost Estimate',
           description: 'Before each run, SUNy estimates the credit cost using your history or a lightweight AI analysis. Token cost billed to user.',
         },
         {
           key: 'pf_budget_gate',
-          label: '🔒 Per-Run Budget Gate',
+          label: 'ðŸ”’ Per-Run Budget Gate',
           description: 'Set a credit cap per run. SUNy warns at 80%, pauses at 90% offering Budget Mode, Extend, or Stop options.',
         },
         {
           key: 'pf_codebase_health',
-          label: '🏥 Codebase Health Score',
+          label: 'ðŸ¥ Codebase Health Score',
           description: 'After every session, SUNy scores the health of files it touched (lint, tests, complexity, coverage) and tracks the trend over time.',
         },
       ];
@@ -803,9 +803,89 @@ const SCHEMA_MIGRATIONS: Migration[] = [
       `);
     },
   },
+  {
+    version: 23,
+    name: 'Add vector_b64 to user_memories, FTS5 indexes, entities table',
+    up: async (adapter) => {
+      // Add vector_b64 column to user_memories
+      if (!(await adapter.columnExists('user_memories', 'vector_b64'))) {
+        await adapter.exec('ALTER TABLE user_memories ADD COLUMN vector_b64 TEXT DEFAULT NULL');
+      }
+
+      // Add FTS5 virtual tables
+      await adapter.exec(`
+        CREATE VIRTUAL TABLE IF NOT EXISTS user_memories_fts USING fts5(
+          content,
+          category,
+          content='user_memories',
+          content_rowid='id',
+          tokenize='porter unicode61'
+        );
+      `);
+
+      await adapter.exec(`
+        CREATE VIRTUAL TABLE IF NOT EXISTS blueprint_entries_fts USING fts5(
+          summary,
+          details,
+          intent,
+          content='blueprint_entries',
+          content_rowid='id',
+          tokenize='porter unicode61'
+        );
+      `);
+
+      await adapter.exec(`
+        CREATE VIRTUAL TABLE IF NOT EXISTS failure_memory_fts USING fts5(
+          error_pattern,
+          error_message,
+          attempted_fix,
+          content='failure_memory',
+          content_rowid='id',
+          tokenize='porter unicode61'
+        );
+      `);
+
+      // Create entities table and its FTS index
+      await adapter.exec(`
+        CREATE TABLE IF NOT EXISTS memory_entities (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          entity_type TEXT NOT NULL,
+          entity_name TEXT NOT NULL,
+          normalized_name TEXT NOT NULL,
+          context_text TEXT DEFAULT '',
+          source_table TEXT NOT NULL,
+          source_row_id INTEGER NOT NULL,
+          embedding_b64 TEXT DEFAULT NULL,
+          created_at TEXT DEFAULT (datetime('now')),
+          FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_mem_entities_user ON memory_entities(user_id);
+        CREATE INDEX IF NOT EXISTS idx_mem_entities_type ON memory_entities(entity_type);
+        CREATE INDEX IF NOT EXISTS idx_mem_entities_normalized ON memory_entities(normalized_name);
+        CREATE INDEX IF NOT EXISTS idx_mem_entities_source ON memory_entities(source_table, source_row_id);
+
+        CREATE VIRTUAL TABLE IF NOT EXISTS memory_entities_fts USING fts5(
+          entity_name,
+          context_text,
+          content='memory_entities',
+          content_rowid='id',
+          tokenize='porter unicode61'
+        );
+      `);
+
+      // Add source_entity column to user_memories for entity linking
+      if (!(await adapter.columnExists('user_memories', 'source_entity'))) {
+        await adapter.exec('ALTER TABLE user_memories ADD COLUMN source_entity TEXT DEFAULT NULL');
+      }
+
+      console.log('[db] Migration v23: vector_b64, FTS5 indexes, entities table created');
+    },
+  },
 ];
 
-// â”€â”€ Data seeding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬ Data seeding Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 async function seedData(adapter: DbAdapter): Promise<void> {
   // Seed pricing modes if table is empty
@@ -813,19 +893,19 @@ async function seedData(adapter: DbAdapter): Promise<void> {
   if (modeCount === 0) {
     await adapter.run(
       'INSERT INTO pricing_modes (mode, display_name, description, markup_formula, input_token_base_cost, output_token_base_cost, model_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      ['free', 'âš¡ Free', 'Great for quick tasks and light use', 'cost * 2.0', 0.00000059, 0.00000079, 'llama-3.3-70b-versatile'],
+      ['free', 'Ã¢Å¡Â¡ Free', 'Great for quick tasks and light use', 'cost * 2.0', 0.00000059, 0.00000079, 'llama-3.3-70b-versatile'],
     );
     await adapter.run(
       'INSERT INTO pricing_modes (mode, display_name, description, markup_formula, input_token_base_cost, output_token_base_cost, model_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      ['fast', 'ðŸš€ Fast', 'Fast and efficient for everyday coding', 'cost * 2.5', 0.00000027, 0.0000011, 'deepseek-v4-flash'],
+      ['fast', 'Ã°Å¸Å¡â‚¬ Fast', 'Fast and efficient for everyday coding', 'cost * 2.5', 0.00000027, 0.0000011, 'deepseek-v4-flash'],
     );
     await adapter.run(
       'INSERT INTO pricing_modes (mode, display_name, description, markup_formula, input_token_base_cost, output_token_base_cost, model_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      ['smart', 'ðŸ§  Smart', 'Advanced reasoning for complex tasks', 'cost * 2.8', 0.00000040, 0.0000015, 'deepseek-v4-pro'],
+      ['smart', 'Ã°Å¸Â§Â  Smart', 'Advanced reasoning for complex tasks', 'cost * 2.8', 0.00000040, 0.0000015, 'deepseek-v4-pro'],
     );
     await adapter.run(
       'INSERT INTO pricing_modes (mode, display_name, description, markup_formula, input_token_base_cost, output_token_base_cost, model_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      ['pro', 'ðŸ’Ž Pro', 'Maximum quality for your hardest challenges', 'cost * 3.0', 0.00000055, 0.00000219, 'deepseek-v4-pro'],
+      ['pro', 'Ã°Å¸â€™Å½ Pro', 'Maximum quality for your hardest challenges', 'cost * 3.0', 0.00000055, 0.00000219, 'deepseek-v4-pro'],
     );
   }
 
@@ -836,22 +916,22 @@ async function seedData(adapter: DbAdapter): Promise<void> {
   if (!modesV2Seeded) {
     await adapter.run(
       "UPDATE pricing_modes SET display_name=?, description=?, model_id=?, input_token_base_cost=?, output_token_base_cost=? WHERE mode='free'",
-      ['âš¡ AFree', 'Almost free - great for quick tasks', 'llama-3.3-70b-versatile', 0.00000059, 0.00000079],
+      ['Ã¢Å¡Â¡ AFree', 'Almost free - great for quick tasks', 'llama-3.3-70b-versatile', 0.00000059, 0.00000079],
     );
     await adapter.run(
       "UPDATE pricing_modes SET display_name=?, description=?, model_id=?, input_token_base_cost=?, output_token_base_cost=? WHERE mode='fast'",
-      ['ðŸš€ Fast Smart', 'Smart and affordable, excellent for coding and image analysis', 'meta-llama/llama-3.2-11b-vision-instruct:free', 0.00000027, 0.0000011],
+      ['Ã°Å¸Å¡â‚¬ Fast Smart', 'Smart and affordable, excellent for coding and image analysis', 'meta-llama/llama-3.2-11b-vision-instruct:free', 0.00000027, 0.0000011],
     );
     await adapter.run(
       "UPDATE pricing_modes SET display_name=?, description=?, model_id=?, input_token_base_cost=?, output_token_base_cost=? WHERE mode='pro'",
-      ['ðŸ§  Smart Pro', 'Maximum intelligence for complex analysis and image understanding', 'meta-llama/Llama-3.2-11B-Vision-Instruct', 0.00000055, 0.00000219],
+      ['Ã°Å¸Â§Â  Smart Pro', 'Maximum intelligence for complex analysis and image understanding', 'meta-llama/Llama-3.2-11B-Vision-Instruct', 0.00000055, 0.00000219],
     );
     await adapter.run(
       "INSERT OR REPLACE INTO app_settings (key, value) VALUES ('modes_v2_seeded', 'true')",
     );
   }
 
-  // â”€â”€ v4: Configure modes per user preference â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ v4: Configure modes per user preference Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   const modesV4 = await adapter.get<{ value: string }>(
     "SELECT value FROM app_settings WHERE key='modes_v4_models'",
   );
@@ -862,7 +942,7 @@ async function seedData(adapter: DbAdapter): Promise<void> {
     if (smartExists === 0) {
       await adapter.run(
         'INSERT INTO pricing_modes (mode, display_name, description, markup_formula, input_token_base_cost, output_token_base_cost, model_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        ['smart', 'ðŸ§  Smart', 'Advanced reasoning for complex tasks', 'cost * 2.8', 0.00000040, 0.0000015, 'deepseek-v4-pro'],
+        ['smart', 'Ã°Å¸Â§Â  Smart', 'Advanced reasoning for complex tasks', 'cost * 2.8', 0.00000040, 0.0000015, 'deepseek-v4-pro'],
       );
     }
     await adapter.run("UPDATE pricing_modes SET model_id = ? WHERE mode = 'free'", ['llama-3.3-70b-versatile']);
@@ -878,32 +958,32 @@ async function seedData(adapter: DbAdapter): Promise<void> {
     if (deepseekKey) {
       await adapter.run(
         'INSERT OR REPLACE INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)',
-        ['DeepSeek', deepseekKey, 'fast', 'ðŸš€ Fast â€“ DeepSeek V4 Flash', 1, 'deepseek-v4-flash'],
+        ['DeepSeek', deepseekKey, 'fast', 'Ã°Å¸Å¡â‚¬ Fast Ã¢â‚¬â€œ DeepSeek V4 Flash', 1, 'deepseek-v4-flash'],
       );
       await adapter.run(
         'INSERT OR REPLACE INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)',
-        ['DeepSeek', deepseekKey, 'smart', 'ðŸ§  Smart â€“ DeepSeek V4 Pro', 1, 'deepseek-v4-pro'],
+        ['DeepSeek', deepseekKey, 'smart', 'Ã°Å¸Â§Â  Smart Ã¢â‚¬â€œ DeepSeek V4 Pro', 1, 'deepseek-v4-pro'],
       );
       await adapter.run(
         'INSERT OR REPLACE INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)',
-        ['DeepSeek', deepseekKey, 'pro', 'ðŸ’Ž Pro â€“ DeepSeek V4 Pro', 1, 'deepseek-v4-pro'],
+        ['DeepSeek', deepseekKey, 'pro', 'Ã°Å¸â€™Å½ Pro Ã¢â‚¬â€œ DeepSeek V4 Pro', 1, 'deepseek-v4-pro'],
       );
       await adapter.run(
         'INSERT OR REPLACE INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)',
-        ['DeepSeek', deepseekKey, 'free', 'âš¡ Free â€“ DeepSeek V4 Flash (fallback)', 2, 'deepseek-v4-flash'],
+        ['DeepSeek', deepseekKey, 'free', 'Ã¢Å¡Â¡ Free Ã¢â‚¬â€œ DeepSeek V4 Flash (fallback)', 2, 'deepseek-v4-flash'],
       );
     }
     const groqKey = process.env.GROQ_API_KEY || process.env.SUNY_GROQ_KEY;
     if (groqKey) {
       await adapter.run(
         'INSERT OR REPLACE INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)',
-        ['Groq', groqKey, 'free', 'âš¡ Free â€“ Groq', 1, 'llama-3.3-70b-versatile'],
+        ['Groq', groqKey, 'free', 'Ã¢Å¡Â¡ Free Ã¢â‚¬â€œ Groq', 1, 'llama-3.3-70b-versatile'],
       );
     }
-    await adapter.run("UPDATE pricing_modes SET display_name = ?, description = ? WHERE mode = 'free'", ['âš¡ Free', 'Groq Llama 3.3 70B â€” lightning fast for quick tasks']);
-    await adapter.run("UPDATE pricing_modes SET display_name = ?, description = ? WHERE mode = 'fast'", ['ðŸš€ Fast', 'DeepSeek V4 Flash â€” ultra-fast, absurdly cheap with auto-cache']);
-    await adapter.run("UPDATE pricing_modes SET display_name = ?, description = ? WHERE mode = 'smart'", ['ðŸ§  Smart', 'DeepSeek V4 Pro â€” advanced reasoning for complex tasks']);
-    await adapter.run("UPDATE pricing_modes SET display_name = ?, description = ? WHERE mode = 'pro'", ['ðŸ’Ž Pro', 'DeepSeek V4 Pro â€” maximum quality for your hardest challenges']);
+    await adapter.run("UPDATE pricing_modes SET display_name = ?, description = ? WHERE mode = 'free'", ['Ã¢Å¡Â¡ Free', 'Groq Llama 3.3 70B Ã¢â‚¬â€ lightning fast for quick tasks']);
+    await adapter.run("UPDATE pricing_modes SET display_name = ?, description = ? WHERE mode = 'fast'", ['Ã°Å¸Å¡â‚¬ Fast', 'DeepSeek V4 Flash Ã¢â‚¬â€ ultra-fast, absurdly cheap with auto-cache']);
+    await adapter.run("UPDATE pricing_modes SET display_name = ?, description = ? WHERE mode = 'smart'", ['Ã°Å¸Â§Â  Smart', 'DeepSeek V4 Pro Ã¢â‚¬â€ advanced reasoning for complex tasks']);
+    await adapter.run("UPDATE pricing_modes SET display_name = ?, description = ? WHERE mode = 'pro'", ['Ã°Å¸â€™Å½ Pro', 'DeepSeek V4 Pro Ã¢â‚¬â€ maximum quality for your hardest challenges']);
     await adapter.run("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('modes_v4_models', 'true')");
     console.log('[db] Configured modes: Free=Groq, Fast=DeepSeek V4 Flash, Smart/Pro=DeepSeek V4 Pro');
   }
@@ -913,9 +993,9 @@ async function seedData(adapter: DbAdapter): Promise<void> {
     "SELECT value FROM app_settings WHERE key='modes_v3_descriptions'",
   );
   if (!modesV3) {
-    await adapter.run("UPDATE pricing_modes SET description=? WHERE mode='free'", ['Almost free â€” lightning fast for quick tasks and simple questions']);
-    await adapter.run("UPDATE pricing_modes SET description=? WHERE mode='fast'", ['Smart & affordable â€” excellent for coding, debugging, and everyday tasks']);
-    await adapter.run("UPDATE pricing_modes SET description=? WHERE mode='pro'", ['Maximum intelligence â€” advanced reasoning for your most complex challenges']);
+    await adapter.run("UPDATE pricing_modes SET description=? WHERE mode='free'", ['Almost free Ã¢â‚¬â€ lightning fast for quick tasks and simple questions']);
+    await adapter.run("UPDATE pricing_modes SET description=? WHERE mode='fast'", ['Smart & affordable Ã¢â‚¬â€ excellent for coding, debugging, and everyday tasks']);
+    await adapter.run("UPDATE pricing_modes SET description=? WHERE mode='pro'", ['Maximum intelligence Ã¢â‚¬â€ advanced reasoning for your most complex challenges']);
     await adapter.run("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('modes_v3_descriptions', 'true')");
   }
 
@@ -931,40 +1011,40 @@ async function seedData(adapter: DbAdapter): Promise<void> {
     if (groqKey) {
       await adapter.run(
         'INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)',
-        ['Groq', groqKey, 'free', 'âš¡ Free â€“ Groq (default)', 1, 'llama-3.3-70b-versatile'],
+        ['Groq', groqKey, 'free', 'Ã¢Å¡Â¡ Free Ã¢â‚¬â€œ Groq (default)', 1, 'llama-3.3-70b-versatile'],
       );
     }
     if (deepseekKey) {
       await adapter.run(
         'INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)',
-        ['DeepSeek', deepseekKey, 'fast', 'ðŸš€ Fast â€“ DeepSeek V4 Flash', 1, 'deepseek-v4-flash'],
+        ['DeepSeek', deepseekKey, 'fast', 'Ã°Å¸Å¡â‚¬ Fast Ã¢â‚¬â€œ DeepSeek V4 Flash', 1, 'deepseek-v4-flash'],
       );
       await adapter.run(
         'INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)',
-        ['DeepSeek', deepseekKey, 'smart', 'ðŸ§  Smart â€“ DeepSeek V4 Pro', 1, 'deepseek-v4-pro'],
+        ['DeepSeek', deepseekKey, 'smart', 'Ã°Å¸Â§Â  Smart Ã¢â‚¬â€œ DeepSeek V4 Pro', 1, 'deepseek-v4-pro'],
       );
       await adapter.run(
         'INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)',
-        ['DeepSeek', deepseekKey, 'pro', 'ðŸ’Ž Pro â€“ DeepSeek V4 Pro', 1, 'deepseek-v4-pro'],
+        ['DeepSeek', deepseekKey, 'pro', 'Ã°Å¸â€™Å½ Pro Ã¢â‚¬â€œ DeepSeek V4 Pro', 1, 'deepseek-v4-pro'],
       );
       await adapter.run(
         'INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)',
-        ['DeepSeek', deepseekKey, 'free', 'âš¡ Free â€“ DeepSeek V4 Flash (fallback)', 2, 'deepseek-v4-flash'],
+        ['DeepSeek', deepseekKey, 'free', 'Ã¢Å¡Â¡ Free Ã¢â‚¬â€œ DeepSeek V4 Flash (fallback)', 2, 'deepseek-v4-flash'],
       );
     }
     const openrouterKey = process.env.OPENROUTER_API_KEY || process.env.SUNY_OPENROUTER_KEY;
     if (openrouterKey) {
       await adapter.run(
         'INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)',
-        ['OpenRouter', openrouterKey, 'fast', 'ðŸš€ Fast â€“ OpenRouter (fallback)', 2, 'deepseek/deepseek-v4-flash'],
+        ['OpenRouter', openrouterKey, 'fast', 'Ã°Å¸Å¡â‚¬ Fast Ã¢â‚¬â€œ OpenRouter (fallback)', 2, 'deepseek/deepseek-v4-flash'],
       );
       await adapter.run(
         'INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)',
-        ['OpenRouter', openrouterKey, 'smart', 'ðŸ§  Smart â€“ OpenRouter (fallback)', 2, 'deepseek/deepseek-v4-pro'],
+        ['OpenRouter', openrouterKey, 'smart', 'Ã°Å¸Â§Â  Smart Ã¢â‚¬â€œ OpenRouter (fallback)', 2, 'deepseek/deepseek-v4-pro'],
       );
       await adapter.run(
         'INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)',
-        ['OpenRouter', openrouterKey, 'pro', 'ðŸ’Ž Pro â€“ OpenRouter (fallback)', 2, 'deepseek/deepseek-v4-pro'],
+        ['OpenRouter', openrouterKey, 'pro', 'Ã°Å¸â€™Å½ Pro Ã¢â‚¬â€œ OpenRouter (fallback)', 2, 'deepseek/deepseek-v4-pro'],
       );
     }
     // Gemini removed - no API key available
@@ -1018,7 +1098,7 @@ async function seedData(adapter: DbAdapter): Promise<void> {
     );
   }
 
-  // â”€â”€ v5: Real API keys + correct model IDs + search keys â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ v5: Real API keys + correct model IDs + search keys Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   const modesV5 = await adapter.get<{ value: string }>(
     "SELECT value FROM app_settings WHERE key='modes_v5_realkeys'",
   );
@@ -1033,15 +1113,15 @@ async function seedData(adapter: DbAdapter): Promise<void> {
 
     await adapter.run(
       'INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?,?,?,1,?,?,?)',
-      ['Groq', GROQ, 'free', 'âš¡ Groq (primary)', 1, LLAMA],
+      ['Groq', GROQ, 'free', 'Ã¢Å¡Â¡ Groq (primary)', 1, LLAMA],
     );
     await adapter.run(
       'INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?,?,?,1,?,?,?)',
-      ['DeepSeek', DS_NEW, 'free', 'âš¡ DeepSeek (standby)', 2, CHAT],
+      ['DeepSeek', DS_NEW, 'free', 'Ã¢Å¡Â¡ DeepSeek (standby)', 2, CHAT],
     );
 
     for (const mode of ['fast', 'smart', 'pro'] as const) {
-      const emoji = mode === 'fast' ? 'ðŸš€' : mode === 'smart' ? 'ðŸ§ ' : 'ðŸ’Ž';
+      const emoji = mode === 'fast' ? 'Ã°Å¸Å¡â‚¬' : mode === 'smart' ? 'Ã°Å¸Â§Â ' : 'Ã°Å¸â€™Å½';
       await adapter.run(
         'INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?,?,?,1,?,?,?)',
         ['DeepSeek', DS_NEW, mode, `${emoji} DeepSeek (primary)`, 1, CHAT],
@@ -1067,14 +1147,14 @@ async function seedData(adapter: DbAdapter): Promise<void> {
     if (smartRow === 0) {
       await adapter.run(
         'INSERT INTO pricing_modes (mode, display_name, description, markup_formula, input_token_base_cost, output_token_base_cost, model_id) VALUES (?,?,?,?,?,?,?)',
-        ['smart', 'ðŸ§  Smart', 'Higher reasoning depth for complex tasks', 'cost * 2.8', 0.00000027, 0.0000011, CHAT],
+        ['smart', 'Ã°Å¸Â§Â  Smart', 'Higher reasoning depth for complex tasks', 'cost * 2.8', 0.00000027, 0.0000011, CHAT],
       );
     }
 
-    await adapter.run("UPDATE pricing_modes SET display_name=?, description=? WHERE mode='free'", ['âš¡ Starter', 'Fast & free â€” instant answers for quick questions and light tasks']);
-    await adapter.run("UPDATE pricing_modes SET display_name=?, description=? WHERE mode='fast'", ['ðŸš€ Fast', 'Responsive and capable â€” everyday coding, debugging, and content tasks']);
-    await adapter.run("UPDATE pricing_modes SET display_name=?, description=? WHERE mode='smart'", ['ðŸ§  Smart', 'Deeper reasoning â€” complex logic, refactors, and architecture decisions']);
-    await adapter.run("UPDATE pricing_modes SET display_name=?, description=? WHERE mode='pro'", ['ðŸ’Ž Pro', 'Full SUNy Engine â€” maximum intelligence with all advanced features unlocked']);
+    await adapter.run("UPDATE pricing_modes SET display_name=?, description=? WHERE mode='free'", ['Ã¢Å¡Â¡ Starter', 'Fast & free Ã¢â‚¬â€ instant answers for quick questions and light tasks']);
+    await adapter.run("UPDATE pricing_modes SET display_name=?, description=? WHERE mode='fast'", ['Ã°Å¸Å¡â‚¬ Fast', 'Responsive and capable Ã¢â‚¬â€ everyday coding, debugging, and content tasks']);
+    await adapter.run("UPDATE pricing_modes SET display_name=?, description=? WHERE mode='smart'", ['Ã°Å¸Â§Â  Smart', 'Deeper reasoning Ã¢â‚¬â€ complex logic, refactors, and architecture decisions']);
+    await adapter.run("UPDATE pricing_modes SET display_name=?, description=? WHERE mode='pro'", ['Ã°Å¸â€™Å½ Pro', 'Full SUNy Engine Ã¢â‚¬â€ maximum intelligence with all advanced features unlocked']);
 
     await adapter.run("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('serpapi_key', ?)", ['7864f4a11d9df90949ba3c785647' + '2b90b5b3878704612720f1ae13fb96d380f6']);
     await adapter.run("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('serper_api_key', ?)", ['d9c303ea26d29f78183c8809864e' + '795c4c89757c']);
@@ -1083,7 +1163,7 @@ async function seedData(adapter: DbAdapter): Promise<void> {
     console.log('[db] v5: Real API keys seeded, model IDs fixed (deepseek-chat), search keys stored');
   }
 
-  // â”€â”€ v6: Stable-baseline feature flags â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // Ã¢â€â‚¬Ã¢â€â‚¬ v6: Stable-baseline feature flags Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   const flagsV6 = await adapter.get<{ value: string }>(
     "SELECT value FROM app_settings WHERE key='flags_v6_stable'",
   );
@@ -1105,7 +1185,7 @@ async function seedData(adapter: DbAdapter): Promise<void> {
   }
 }
 
-// â”€â”€ Main migration orchestrator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Ã¢â€â‚¬Ã¢â€â‚¬ Main migration orchestrator Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
 export async function runMigrations(adapter: DbAdapter): Promise<void> {
   // 1. Foundation tables

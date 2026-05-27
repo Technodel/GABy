@@ -330,53 +330,52 @@ export default function ChatInput(props: ChatInputProps) {
             {talkMode ? <MessageSquare size={15} /> : <Pencil size={15} />}
           </button>
         )}
-        {/* Terminal button — execute shell commands via the bridge */}
-        {bridgeConnected && (
+        {/* Terminal button — always visible, disabled when bridge offline */}
+        <button
+          className="btn btn-icon btn-secondary"
+          onClick={() => { if (!bridgeConnected) return; setShowTerminal(v => !v); if (!showTerminal) setTimeout(() => termInputRef.current?.focus(), 100); }}
+          title={bridgeConnected ? 'Run a shell command' : 'Bridge offline — connect bridge to use terminal'}
+          disabled={!bridgeConnected}
+          style={{
+            alignSelf: 'flex-end',
+            padding: '10px 12px',
+            background: showTerminal ? 'rgba(108,99,255,0.12)' : 'transparent',
+            border: showTerminal ? '1px solid var(--accent)' : '1px solid var(--border)',
+            color: bridgeConnected ? (showTerminal ? 'var(--accent)' : 'var(--text-muted)') : 'var(--text-muted)',
+            opacity: bridgeConnected ? 1 : 0.4,
+            transition: 'all 0.15s',
+          }}
+        >
+          <Terminal size={15} />
+        </button>
+        {onVoiceToggle && (
           <button
             className="btn btn-icon btn-secondary"
-            onClick={() => { setShowTerminal(v => !v); if (!showTerminal) setTimeout(() => termInputRef.current?.focus(), 100); }}
-            title="Run a shell command (Bridge required)"
+            onClick={onVoiceToggle}
+            title={isListening ? 'Stop listening' : 'Dictate with voice'}
             style={{
               alignSelf: 'flex-end',
               padding: '10px 12px',
-              background: showTerminal ? 'rgba(108,99,255,0.12)' : 'transparent',
-              border: showTerminal ? '1px solid var(--accent)' : '1px solid var(--border)',
-              color: showTerminal ? 'var(--accent)' : 'var(--text-muted)',
+              background: isListening ? 'rgba(255,60,60,0.12)' : 'transparent',
+              border: isListening ? '1px solid rgba(255,60,60,0.5)' : '1px solid var(--border)',
+              color: isListening ? 'rgba(255,80,80,0.9)' : 'var(--text-muted)',
               transition: 'all 0.15s',
+              animation: isListening ? 'pulse 1.2s infinite' : 'none',
             }}
           >
-            <Terminal size={15} />
+            {isListening ? <MicOff size={15} /> : <Mic size={15} />}
           </button>
         )}
-        {thinking && (
+        {thinking ? (
           <button
             className="btn btn-danger"
             onClick={() => wsSend({ type: 'chat:cancel', requestId: '' })}
-            style={{ padding: '10px 16px', alignSelf: 'flex-end' }}
-            title="Stop responding"
+            style={{ padding: '10px 16px', alignSelf: 'flex-end', minWidth: 48 }}
+            title="Stop responding (Esc)"
           >
             <Square size={15} />
           </button>
-        )}
-        <>
-          {onVoiceToggle && (
-            <button
-              className="btn btn-icon btn-secondary"
-              onClick={onVoiceToggle}
-              title={isListening ? 'Stop listening' : 'Dictate with voice'}
-              style={{
-                alignSelf: 'flex-end',
-                padding: '10px 12px',
-                background: isListening ? 'rgba(255,60,60,0.12)' : 'transparent',
-                border: isListening ? '1px solid rgba(255,60,60,0.5)' : '1px solid var(--border)',
-                color: isListening ? 'rgba(255,80,80,0.9)' : 'var(--text-muted)',
-                transition: 'all 0.15s',
-                animation: isListening ? 'pulse 1.2s infinite' : 'none',
-              }}
-            >
-              {isListening ? <MicOff size={15} /> : <Mic size={15} />}
-            </button>
-          )}
+        ) : (
           <button
             className="btn btn-primary"
             onClick={sendMessage}
@@ -385,7 +384,7 @@ export default function ChatInput(props: ChatInputProps) {
           >
             <Send size={15} />
           </button>
-        </>
+        )}
       </>
     </div>
   );

@@ -213,80 +213,13 @@ export default function Login({ onLogin }: LoginProps) {
         <p className="login-hero-copy" style={{ fontSize: 16, color: 'var(--text-secondary)', maxWidth: 620, margin: '0 auto', lineHeight: 1.75 }}>
           Your unstoppable AI companion. Give SUNy a target {'\u2014'} it maps out the path, handles the complex work, and polishes everything until it&apos;s perfect. No complicated instructions, just results. We added the &quot;y&quot; because it&apos;s your friendly digital builder!
         </p>
-        {/* Privacy promise — shown right under the hero copy, near the logo */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, maxWidth: 540, margin: '18px auto 0', padding: '10px 16px', borderRadius: 10, border: '1px solid rgba(34,197,94,0.25)', background: 'rgba(34,197,94,0.05)', textAlign: 'left' }}>
-          <span style={{ fontSize: 16, flexShrink: 0, marginTop: 2 }}>🔒</span>
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
-            <strong style={{ color: 'var(--text-secondary)' }}>Your files never reach us.</strong> SUNy runs entirely on your machine — your data, memories, and projects stay local. When SUNy processes a task, relevant code is sent to the AI models under their privacy policy, but your files are totally safe. We never see your data.
-          </p>
-        </div>
       </div>
 
-      {/* 3-column: Pricing | Sign In | What is SUNy */}
+      {/* 3-column: Login | Pricing | What is SUNy */}
       <div className="login-columns" style={{ flex: 1, display: 'flex', gap: 28, padding: '40px 48px 64px', maxWidth: 1400, margin: '0 auto', width: '100%', boxSizing: 'border-box', alignItems: 'flex-start' }}>
 
-        {/* LEFT: Pricing */}
-        <div className="login-col-pricing" style={{ flex: 1, minWidth: 220 }}>
-          <h2 style={{ fontSize: 19, fontWeight: 700, marginBottom: 6 }}>{'\ud83d\udcb0'} Pricing</h2>
-          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>
-            No subscriptions. Pay only when SUNy does real work.
-          </p>
-          <div style={{ marginBottom: 14 }}>
-            <a href="/pro-features" style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'none', fontWeight: 500 }}>
-              View all PRO features →
-            </a>
-          </div>
-          {/* Dynamic PRO features section */}
-          {planFlags.length > 0 && (() => {
-            const proFeatures = planFlags.filter(f => f.plan === 'pro' && f.enabled);
-            const regularKeys = new Set(planFlags.filter(f => f.plan === 'regular' && f.enabled).map(f => f.key));
-            const proOnly = proFeatures.filter(f => !regularKeys.has(f.key));
-            if (proOnly.length === 0) return null;
-            return (
-              <div style={{ marginBottom: 20, padding: '14px 16px', borderRadius: 'var(--radius)', border: '1px solid rgba(108,99,255,0.35)', background: 'rgba(108,99,255,0.06)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <span style={{ fontSize: 15 }}>⚡</span>
-                  <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--accent)' }}>PRO Plan — Exclusive Features</span>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {proOnly.map(f => (
-                    <div key={f.key} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                      <span style={{ color: 'var(--accent)', fontSize: 13, marginTop: 1, flexShrink: 0 }}>⚡</span>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 600 }}>{f.label}</div>
-                        <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>{f.description}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-muted)' }}>Ask your administrator to upgrade your account to PRO to unlock these features.</div>
-              </div>
-            );
-          })()}
-          {pricing.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {pricing.map(m => (
-                <div key={m.mode} className="card" style={{ border: m.mode === 'pro' ? '1px solid var(--accent)' : '1px solid var(--border)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-                    <span style={{ fontSize: 22 }}>{modeIcons[m.mode] ?? '\ud83d\udca1'}</span>
-                    <span style={{ fontWeight: 700, fontSize: 16 }}>{m.display_name}</span>
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 10, lineHeight: 1.5 }}>{m.description}</div>
-                  <div style={{ display: 'flex', gap: 20, fontSize: 12 }}>
-                    <div><span style={{ color: 'var(--text-muted)' }}>Input: </span><span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{m.mode === 'free' ? '$0' : `${fmtCost(m.input_price_per_1m / 1_000_000)}/1M`}</span></div>
-                    <div><span style={{ color: 'var(--text-muted)' }}>Output: </span><span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{m.mode === 'free' ? '$0' : `${fmtCost(m.output_price_per_1m / 1_000_000)}/1M`}</span></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading pricing…</div>
-          )}
-
-        </div>
-
-        {/* CENTER: Sign In */}
-        <div className="login-card-col" style={{ width: '100%', maxWidth: 360, flexShrink: 0 }}>
+        {/* LEFT: Login + privacy */}
+        <div className="login-card-col" style={{ width: '100%', maxWidth: 380, flexShrink: 0 }}>
           <div className="card">
             <div style={{ display: 'flex', marginBottom: 20, borderBottom: '1px solid var(--border)' }}>
               {(['user', 'signup'] as const).map(t => (
@@ -337,7 +270,6 @@ export default function Login({ onLogin }: LoginProps) {
                     placeholder="Your password" autoComplete="current-password" required />
                 </div>
               )}
-
               {error && (
                 <div style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', background: 'rgba(248,113,113,0.1)',
                   border: '1px solid var(--error)', color: 'var(--error)', fontSize: 13, marginBottom: 16 }}>
@@ -359,7 +291,70 @@ export default function Login({ onLogin }: LoginProps) {
               </div>
             </div>
           )}
+          <div style={{ marginTop: 16, display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 14px', borderRadius: 10, border: '1px solid rgba(34,197,94,0.25)', background: 'rgba(34,197,94,0.05)' }}>
+            <span style={{ fontSize: 15, flexShrink: 0, marginTop: 2 }}>🔒</span>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
+              <strong style={{ color: 'var(--text-secondary)' }}>Your files never reach us.</strong> SUNy runs entirely on your machine — your data, memories, and projects stay local. When SUNy processes a task, relevant code is sent to the AI models under their privacy policy, but your files are totally safe. We never see your data.
+            </p>
+          </div>
+        </div>
 
+        {/* CENTER: Pricing */}
+        <div className="login-col-pricing" style={{ flex: 1, minWidth: 220 }}>
+          <h2 style={{ fontSize: 19, fontWeight: 700, marginBottom: 6 }}>{'\ud83d\udcb0'} Pricing</h2>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>
+            No subscriptions. Pay only when SUNy does real work.
+          </p>
+          <div style={{ marginBottom: 14 }}>
+            <a href="/pro-features" style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'none', fontWeight: 500 }}>
+              View all PRO features →
+            </a>
+          </div>
+          {planFlags.length > 0 && (() => {
+            const proFeatures = planFlags.filter(f => f.plan === 'pro' && f.enabled);
+            const regularKeys = new Set(planFlags.filter(f => f.plan === 'regular' && f.enabled).map(f => f.key));
+            const proOnly = proFeatures.filter(f => !regularKeys.has(f.key));
+            if (proOnly.length === 0) return null;
+            return (
+              <div style={{ marginBottom: 20, padding: '14px 16px', borderRadius: 'var(--radius)', border: '1px solid rgba(108,99,255,0.35)', background: 'rgba(108,99,255,0.06)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <span style={{ fontSize: 15 }}>⚡</span>
+                  <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--accent)' }}>PRO Plan — Exclusive Features</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {proOnly.map(f => (
+                    <div key={f.key} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                      <span style={{ color: 'var(--accent)', fontSize: 13, marginTop: 1, flexShrink: 0 }}>⚡</span>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600 }}>{f.label}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>{f.description}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-muted)' }}>Ask your administrator to upgrade your account to PRO to unlock these features.</div>
+              </div>
+            );
+          })()}
+          {pricing.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {pricing.map(m => (
+                <div key={m.mode} className="card" style={{ border: m.mode === 'pro' ? '1px solid var(--accent)' : '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                    <span style={{ fontSize: 22 }}>{modeIcons[m.mode] ?? '\ud83d\udca1'}</span>
+                    <span style={{ fontWeight: 700, fontSize: 16 }}>{m.display_name}</span>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginBottom: 10, lineHeight: 1.5 }}>{m.description}</div>
+                  <div style={{ display: 'flex', gap: 20, fontSize: 12 }}>
+                    <div><span style={{ color: 'var(--text-muted)' }}>Input: </span><span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{m.mode === 'free' ? '$0' : `${fmtCost(m.input_price_per_1m / 1_000_000)}/1M`}</span></div>
+                    <div><span style={{ color: 'var(--text-muted)' }}>Output: </span><span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{m.mode === 'free' ? '$0' : `${fmtCost(m.output_price_per_1m / 1_000_000)}/1M`}</span></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading pricing…</div>
+          )}
         </div>
 
         {/* RIGHT: What is SUNy */}

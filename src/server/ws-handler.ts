@@ -1,4 +1,4 @@
-import http from 'http';
+﻿import http from 'http';
 import path from 'path';
 import { WebSocket, WebSocketServer } from 'ws';
 import crypto from 'crypto';
@@ -145,7 +145,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
     // Rate limit check
     if (!checkWsRateLimit(userId)) {
       userClientManager.pushChatContent(userId, 'suny:stream_end', {
-        content: "Too many messages — please slow down a bit! ðŸ˜Š",
+        content: "Too many messages — please slow down a bit! 😊",
         sess_used: null,
         sess_limit: null,
         iterations: 0,
@@ -158,7 +158,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
     // Handle cancel request
     if (msg.type === 'chat:cancel') {
       if (currentAbortController) {
-        const cancelMessage = pickRandom('cancel', "Got it — I've stopped! What's next? ðŸ˜Š");
+        const cancelMessage = pickRandom('cancel', "Got it — I've stopped! What's next? 😊");
         currentAbortController.abort(new Error('Request cancelled by user'));
         currentAbortController = null;
         isProcessing = false;
@@ -356,7 +356,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         ) as { total_used: number };
         const remaining = userRow.max_tokens_per_session - sessStats.total_used;
         if (remaining <= 0) {
-          const limitMessage = pickRandom('session_limit', "You've reached the session token limit. Start a new session to continue! ðŸ˜Š");
+          const limitMessage = pickRandom('session_limit', "You've reached the session token limit. Start a new session to continue! 😊");
           userClientManager.pushToUser(userId, 'suny:narration', {
             message: limitMessage,
           });
@@ -452,7 +452,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           if (Array.isArray(rules) && rules.length > 0) {
             const wins = rules.filter(r => r.category === 'win');
             const mistakes = rules.filter(r => r.category === 'mistake');
-            const lines = ['', '=== ðŸ§Š FROZEN BEHAVIORAL RULES (snapshot: ' + frozenSnapshot.label + ') ==='];
+            const lines = ['', '=== 🧊 FROZEN BEHAVIORAL RULES (snapshot: ' + frozenSnapshot.label + ') ==='];
             if (wins.length > 0) {
               lines.push('[Always:]');
               for (const r of wins) lines.push(`  âœ“ ${r.rule_text}`);
@@ -911,7 +911,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         'ALWAYS:',
         '  - Speak in plain, warm, friendly English',
         '  - Narrate your progress with short messages as you work',
-        '  - Use emoji sparingly but warmly: ✅ 🔧 ✏️ 🔧 💪 ðŸš€ ⚠️ ðŸ§ª 🔧„',
+        '  - Use emoji sparingly but warmly: ✅ 🔧 ✏️ 🔧 💪 🚀 ⚠️ ðŸ§ª 🔧„',
         '  - Summarize what you did when finished in plain English',
         '  - EXPLAIN CODE BEFORE SHOWING IT — always describe what the code does first',
         '  - INCLUDE RUN INSTRUCTIONS — tell the user how to save and run any code you provide',
@@ -969,7 +969,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         'Friendly error translations:',
         '  - Connection issue â†’ "SUNy is having a bit of trouble connecting — we\'re on it! 🔧"',
         '  - Rate limit â†’ "SUNy needs a quick breather — try again in a moment ðŸ˜„"',
-        '  - Out of credits â†’ "Looks like you\'re out of credits! Reach out and we\'ll top you right up ðŸ˜Š"',
+        '  - Out of credits â†’ "Looks like you\'re out of credits! Reach out and we\'ll top you right up 😊"',
         '  - Unknown error â†’ "Hmm, something unexpected happened — SUNy is already trying a different approach!"',
         '</information_firewall>',
         '',
@@ -1434,12 +1434,12 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         '',
         'WARM (user is conversational, friendly, using emoji):',
         '  Return the warmth. Use their emoji style. Slightly longer, more personable.',
-        '  "Great idea! Let me map that out for you ðŸ˜Š"',
+        '  "Great idea! Let me map that out for you 😊"',
         '  "Oh that\'s going to look so clean — let me set it up!"',
         '',
         'EXCITED (user is enthusiastic, celebrating, using caps/exclamation):',
         '  Celebrate WITH them. Match their energy. This is contagious.',
-        '  "YES! That refactor came out beautifully ðŸš€"',
+        '  "YES! That refactor came out beautifully 🚀"',
         '  "Look at that — clean build, all green! We crushed it!"',
         '',
         'FRUSTRATED (user is annoyed, impatient, using short messages):',
@@ -1731,7 +1731,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       if (projectPath) {
         userClientManager.pushToUser(userId, 'suny:preparation_step', { step: 'Loading project memory...' });
         if (frozenSnapshot?.blueprint_json) {
-          // ðŸ§Š Freeze Brain — use blueprint captured in the snapshot instead of live
+          // 🧊 Freeze Brain — use blueprint captured in the snapshot instead of live
           try {
             const entries = JSON.parse(frozenSnapshot.blueprint_json) as Array<{ category: string; intent: string; summary: string; affected_files?: string | null }>;
             if (Array.isArray(entries) && entries.length > 0) {
@@ -1743,7 +1743,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
                 return `[${i + 1}] ${tag}\n    Intent: ${e.intent}\n    Summary: ${e.summary}\n` + (files ? `    Files: ${files}\n` : '');
               }).join('\n');
               systemLines.push(
-                `\n\n=== ðŸ§Š SUNy CODE CONSCIENCE — FROZEN MEMORY (snapshot: ${frozenSnapshot.label}) ===\n` +
+                `\n\n=== 🧊 SUNy CODE CONSCIENCE — FROZEN MEMORY (snapshot: ${frozenSnapshot.label}) ===\n` +
                 'The following design decisions are pinned from a saved snapshot. Live blueprint is ignored.\n\n' +
                 sections +
                 '\n=== END FROZEN MEMORY ===',
@@ -2086,7 +2086,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
             '1. Click the bridge pill in the top bar.\n' +
             '2. Download and run the bridge if you haven\'t already.\n' +
             '3. Wait for the pill to turn green.\n\n' +
-            'Once connected, just say "scan my project" and I\'ll dive right in! ðŸš€',
+            'Once connected, just say "scan my project" and I\'ll dive right in! 🚀',
           sess_used: null,
           sess_limit: null,
           iterations: 0,
@@ -2105,10 +2105,10 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
             '1. Click the **project icon** in the left sidebar to open the project panel.\n' +
             (isBridgeConnected(userId)
               ? '2. Select an existing project or click "New Project" to register your folder.\n\n' +
-                'Once a project is selected (it will appear in the sidebar), just say "scan this project" and I\'ll dive right in! ðŸš€'
+                'Once a project is selected (it will appear in the sidebar), just say "scan this project" and I\'ll dive right in! 🚀'
               : '2. Click "New Project" to register your project folder with its local path.\n' +
                 '3. Make sure the **bridge** is connected (green pill indicator in the top bar).\n\n' +
-                'Once both are ready, just say "scan my project" and I\'ll dive right in! ðŸš€'),
+                'Once both are ready, just say "scan my project" and I\'ll dive right in! 🚀'),
           sess_used: null,
           sess_limit: null,
           iterations: 0,
@@ -2648,7 +2648,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         friendly = 'I hit a temporary execution issue while scanning. I can still do a direct scan for you now — say: scan root, scan src, or scan bridge.';
         errorCategory = 'runtime';
       }
-      if (errMsg.toLowerCase().includes('insufficient')) { friendly = pickRandom('no_balance', "You're out of credits! Reach out and we'll top you right up ðŸ˜Š"); errorCategory = 'credits'; }
+      if (errMsg.toLowerCase().includes('insufficient')) { friendly = pickRandom('no_balance', "You're out of credits! Reach out and we'll top you right up 😊"); errorCategory = 'credits'; }
       if (errMsg.toLowerCase().includes('rate') && errMsg.toLowerCase().includes('limit')) { errorCategory = 'rate_limit'; }
       if (errMsg.includes('ALL PROVIDERS EXHAUSTED')) {
         friendly = pickNonRepeatingFallback(userId, EXHAUSTED_REPLY_FALLBACKS);
