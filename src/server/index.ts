@@ -8,7 +8,7 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import WebSocket, { WebSocketServer } from 'ws';
-import { adminLogin, userLogin, userRegister, logout, requireAuth, requireAdmin, refreshTokenEndpoint } from './auth';
+import { adminLogin, userLogin, userRegister, logout, requireAuth, requireAdmin, refreshTokenEndpoint, refreshBridgeToken } from './auth';
 import adminRouter from './admin-routes';
 import userRouter from './user-routes';
 import mcpRouter from './mcp-routes';
@@ -21,6 +21,8 @@ import clientLinkRouter from './client-link-routes';
 import clientTicketRouter from './client-ticket-routes';
 import portalRouter from './portal';
 import { createMarketplaceRouter } from './mcp-marketplace';
+import multer from 'multer';
+import { parseDocument, truncateExtracted } from './file-parser';
 import { handleBridgeUpgrade } from './bridge-routes';
 import { userClientManager } from './user-client-manager';
 import { isBridgeConnected, registerPathForUser, killBridgeRequest, sendToBridge } from './bridge-manager';
@@ -171,6 +173,7 @@ app.post('/api/register', registerLimiter, userRegister);
 app.post('/api/logout', logout);
 app.post('/admin/logout', logout);
 app.post('/api/token/refresh', refreshTokenEndpoint);
+app.post('/api/bridge/refresh-token', refreshBridgeToken);
 
 // Lightweight admin session check
 app.get('/admin/me', requireAdmin, (_req, res) => {
@@ -277,6 +280,22 @@ app.post('/api/client-link/:uid/submit', (req: Request, res: Response) => {
 
 const marketplaceRouter = createMarketplaceRouter();
 app.use('/api', marketplaceRouter);
+
+// ── File parsing endpoint ────────────────────────────────────────────────────
+// Converts PDF / DOCX → plain text for chat context injection.
+const parseUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
+app.post('/api/parse-file', requireAuth, parseUpload.single('file'), async (req: Request, res: Response) => {
+  try {
+    if (!req.file) { res.status(400).json({ error: 'No file uploaded' }); return; }
+    const result = await parseDocument(req.file.buffer, req.file.originalname, req.file.mimetype);
+    if (!result) { res.status(415).json({ error: 'Unsupported file type. Supported: PDF, DOCX, DOC' }); return; }
+    const { text, truncated } = truncateExtracted(result.text);
+    res.json({ text, wordCount: result.wordCount, pageCount: result.pageCount ?? null, truncated, filename: req.file.originalname });
+  } catch (err) {
+    logger.error({ err }, '[parse-file] error');
+    res.status(500).json({ error: 'Failed to parse file' });
+  }
+});
 
 // Ã¢â€â‚¬Ã¢â€â‚¬ Session Replay API Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 
@@ -417,10 +436,20 @@ async function startup() {
     async () => { try { await require('./confidence-scorer').initializeConfidenceTable(); } catch {} },
     () => { try { require('./task-graph').initializeTaskGraphTable(); } catch {} },
     () => { try { require('./hypothesis-engine').initializeHypothesisTable(); } catch {} },
+    () => { try { require('./user-model').initializeUserModelTable(); } catch {} },
+    () => { try { require('./health-scorer').initializeHealthTable(); } catch {} },
   ];
   await Promise.allSettled(tableInits.map(fn => fn()));
 
   initSkillSystem().catch(e => console.warn('[skill-system] init failed:', (e as Error).message));
+
+  // Prune failure memory at startup then every 24h (Hermes-style curator cycle)
+  try {
+    const { pruneFailureMemory } = await import('./failure-memory');
+    pruneFailureMemory();
+    setInterval(() => { try { pruneFailureMemory(); } catch {} }, 24 * 60 * 60 * 1000);
+  } catch (e) { console.warn('[failure-memory] prune setup failed:', (e as Error).message); }
+
   startTaskWorker();
   try { startScheduler(); } catch (e) { console.warn('[scheduler] Failed to start:', (e as Error).message); }
 

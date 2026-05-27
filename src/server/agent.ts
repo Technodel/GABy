@@ -7,7 +7,7 @@
  *   Groq           -> @ai-sdk/groq
  *   OpenRouter     -> @ai-sdk/openai-compatible
  *   OpenAI         -> @ai-sdk/openai
- *   Gemini         -> @ai-sdk/openai-compatible (OpenAI-compat endpoint)
+ *   Gemini (removed - no API key)
  *   Ollama         -> @ai-sdk/openai-compatible (local models via Ollama)
  *   HuggingFace    -> @ai-sdk/openai-compatible (free Inference API, no paid server needed)
  *
@@ -68,22 +68,16 @@ export async function getModelForMode(mode: string): Promise<string> {
 // -- Provider factory ------------------------------------------------------------
 
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
-const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai';
 
 /**
  * Known vision-capable model IDs per provider, in preference order (cheapest/fastest first).
  * Used when imageData is present in a request â€” we search ALL active keys across all modes.
  */
 const VISION_MODEL_MAP: Record<string, string[]> = {
-  'OpenRouter': [
-        'google/gemini-2.0-flash-001',
-        'openai/gpt-4o-mini',
-        'anthropic/claude-3.5-haiku',
-        'google/gemini-1.5-flash',
-      ],
-      OpenAI: ['gpt-4o-mini', 'gpt-4o'],
-      Anthropic: ['claude-3-5-sonnet-20241022', 'claude-3-haiku-20240307'],
-  };
+  OpenRouter: ['openai/gpt-4o-mini', 'anthropic/claude-3.5-haiku'],
+  OpenAI: ['gpt-4o-mini', 'gpt-4o'],
+  Anthropic: ['claude-3-5-sonnet-20241022', 'claude-3-haiku-20240307'],
+};
 
 /**
  * Search ALL active API keys across all modes for vision-capable models.
@@ -136,12 +130,6 @@ export function buildLanguageModel(key: KeyEntry, modelId: string): LanguageMode
         baseURL: OPENROUTER_BASE_URL,
         apiKey: key_value,
         headers: { 'HTTP-Referer': 'https://suny.app', 'X-Title': 'SUNy' },
-      })(modelId);
-    case 'Gemini':
-      return createOpenAICompatible({
-        name: 'gemini',
-        baseURL: GEMINI_BASE_URL,
-        apiKey: key_value,
       })(modelId);
     case 'Ollama':
       return createOpenAICompatible({
@@ -233,3 +221,4 @@ export async function getModelsForMode(mode: string): Promise<Array<{ model: Lan
     apiKeyId: key.id,
   }));
 }
+

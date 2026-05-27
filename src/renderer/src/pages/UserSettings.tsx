@@ -13,6 +13,9 @@ interface UserData {
   cross_device_memory_enabled?: boolean;
   chat_show_technical_details?: boolean;
   task_interruption_behavior?: string;
+  plan?: string;
+  plan_features?: Record<string, boolean>;
+  upgrade_pending?: boolean;
 }
 
 interface PricingMode {
@@ -61,6 +64,20 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
   const [balance, setBalance] = useState(0);
   const [walletBalance, setWalletBalance] = useState(0);
   const [notice, setNotice] = useState<string | null>(initialNotice);
+  const [notifyOnComplete, setNotifyOnComplete] = useState(() => {
+    try { return localStorage.getItem('suny_notify_on_complete') === 'true'; } catch { return false; }
+  });
+  const [notifyPermission, setNotifyPermission] = useState<NotificationPermission | 'unsupported'>(() => {
+    if (typeof window === 'undefined' || !('Notification' in window)) return 'unsupported';
+    return Notification.permission;
+  });
+  const [budgetGateEnabled, setBudgetGateEnabled] = useState(false);
+  const [budgetPerRun, setBudgetPerRun] = useState('');
+  const [forecastEnabled, setForecastEnabled] = useState(false);
+  const [forecastMarkupMode, setForecastMarkupMode] = useState('');
+  const [userPlan, setUserPlan] = useState<string>('regular');
+  const [planFeatures, setPlanFeatures] = useState<Record<string, boolean>>({});
+  const [upgradePending, setUpgradePending] = useState(false);
   const [soundsEnabled, setSoundsEnabled] = useState(() => {
     try { return localStorage.getItem('suny_sounds_enabled') !== 'false'; } catch { return true; }
   });
@@ -93,6 +110,13 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
           setMaxTokens(String(data.max_tokens_per_session));
         }
         setDisplayName(data.display_name ?? '');
+        setBudgetGateEnabled(Boolean((data as any).budget_gate_enabled));
+        setBudgetPerRun(String((data as any).budget_per_run ?? ''));
+        setForecastEnabled(Boolean((data as any).forecast_enabled));
+        setForecastMarkupMode(String((data as any).forecast_markup_mode ?? ''));
+        setUserPlan(data.plan ?? 'regular');
+        setPlanFeatures(data.plan_features ?? {});
+        setUpgradePending(Boolean(data.upgrade_pending));
       });
     fetch('/api/pricing-public', { credentials: 'include' })
       .then(r => r.ok ? r.json() : [])
@@ -145,6 +169,10 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
         chat_show_technical_details: showTechnicalDetails,
         max_tokens_per_session: !isNaN(parsed) && parsed > 0 ? parsed : null,
         task_interruption_behavior: taskInterruptionBehavior,
+        budget_gate_enabled: budgetGateEnabled,
+        budget_per_run: parseFloat(budgetPerRun) > 0 ? parseFloat(budgetPerRun) : 0,
+        forecast_enabled: forecastEnabled,
+        forecast_markup_mode: forecastMarkupMode.trim() || undefined,
       }),
     });
     if (!settingsRes.ok) return;
@@ -605,6 +633,118 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
                 ? `Main balance is $0.00. Bot Wallet has $${walletBalance.toFixed(2)}. Transfers only move Main Balance → Bot Wallet.`
                 : 'Main balance is $0.00 and Bot Wallet is $0.00. Top up main credits first.'}
             </div>
+          )}
+        </div>
+
+        {/* ── Cost Control (PRO) ───────────────────────────────────── */}
+        <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            💰 Cost Control
+            {userPlan !== 'pro' && (
+              <span style={{ fontSize: 10, fontWeight: 700, background: 'rgba(108,99,255,0.15)', color: 'var(--accent)', border: '1px solid rgba(108,99,255,0.3)', borderRadius: 4, padding: '1px 6px', marginLeft: 4 }}>⚡ PRO</span>
+            )}
+          </div>
+
+          {userPlan !== 'pro' ? (
+            <div style={{ padding: '14px 16px', background: 'color-mix(in srgb, var(--accent) 6%, var(--surface))', border: '1px dashed rgba(108,99,255,0.4)', borderRadius: 8 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 6 }}>⚡ PRO Feature</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 10 }}>
+                Budget gate, pre-run cost estimates, and push notifications are available on the <strong>PRO plan</strong>.
+                These features give you full financial control over every run.
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <a href="/pro-features" target="_blank" rel="noreferrer" style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
+                  → See all PRO features
+                </a>
+                {!upgradePending && (
+                  <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>·</span>
+                )}
+                {!upgradePending ? (
+                  <button
+                    onClick={async () => {
+                      await fetch('/api/upgrade-request', { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ note: '' }) });
+                      setUpgradePending(true);
+                    }}
+                    style={{ fontSize: 12, color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontWeight: 600 }}
+                  >
+                    Request upgrade →
+                  </button>
+                ) : (
+                  <span style={{ fontSize: 12, color: 'var(--success)' }}>✓ Upgrade request sent</span>
+                )}
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Budget gate — gated by pf_budget_gate */}
+              {planFeatures['pf_budget_gate'] !== false && (
+                <>
+                  <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', cursor: 'pointer', marginBottom: 12 }}>
+                    <input type="checkbox" className="toggle" checked={budgetGateEnabled} onChange={e => setBudgetGateEnabled(e.target.checked)} style={{ flexShrink: 0, marginTop: 2 }} />
+                    <span>
+                      <div style={{ fontWeight: 500, fontSize: 13 }}>🔒 Per-run budget gate</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.4 }}>Pause and ask before spending more than your set credit limit per run. SUNy will show a checkpoint card when it approaches the cap.</div>
+                    </span>
+                  </label>
+                  {budgetGateEnabled && (
+                    <div style={{ marginBottom: 12, marginLeft: 28 }}>
+                      <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Budget per run ($)</label>
+                      <input type="number" min="0.001" step="0.01" className="input" value={budgetPerRun} onChange={e => setBudgetPerRun(e.target.value)} placeholder="e.g. 0.05" style={{ maxWidth: 140, fontSize: 13 }} />
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>SUNy stops and asks for confirmation when this amount is reached within a single run.</div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Forecast — gated by pf_cost_forecast */}
+              {planFeatures['pf_cost_forecast'] !== false && (
+                <>
+                  <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', cursor: 'pointer', marginBottom: 12 }}>
+                    <input type="checkbox" className="toggle" checked={forecastEnabled} onChange={e => setForecastEnabled(e.target.checked)} style={{ flexShrink: 0, marginTop: 2 }} />
+                    <span>
+                      <div style={{ fontWeight: 500, fontSize: 13 }}>📋 Pre-run cost estimate</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.4 }}>Before each run, SUNy estimates what it will cost based on your history or a brief AI analysis. <strong>Note:</strong> this estimate itself uses a small number of tokens (billed to you).</div>
+                    </span>
+                  </label>
+                  {forecastEnabled && (
+                    <div style={{ marginBottom: 12, marginLeft: 28 }}>
+                      <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Billing mode for forecast tokens (leave blank to use current mode)</label>
+                      <input type="text" className="input" value={forecastMarkupMode} onChange={e => setForecastMarkupMode(e.target.value)} placeholder="e.g. fast, pro" style={{ maxWidth: 220, fontSize: 13 }} />
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Push notifications — gated by pf_push_notifications */}
+              {planFeatures['pf_push_notifications'] !== false && (
+                <label style={{ display: 'flex', gap: 10, alignItems: 'flex-start', cursor: notifyPermission === 'unsupported' ? 'not-allowed' : 'pointer', marginBottom: 12, opacity: notifyPermission === 'unsupported' ? 0.5 : 1 }}>
+                  <input
+                    type="checkbox"
+                    className="toggle"
+                    checked={notifyOnComplete}
+                    disabled={notifyPermission === 'unsupported'}
+                    onChange={async (e) => {
+                      if (e.target.checked && notifyPermission !== 'granted') {
+                        const perm = await Notification.requestPermission();
+                        setNotifyPermission(perm);
+                        if (perm !== 'granted') return;
+                      }
+                      setNotifyOnComplete(e.target.checked);
+                      try { localStorage.setItem('suny_notify_on_complete', String(e.target.checked)); } catch {}
+                    }}
+                    style={{ flexShrink: 0, marginTop: 2 }}
+                  />
+                  <span>
+                    <div style={{ fontWeight: 500, fontSize: 13 }}>🔔 Notify when run completes</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2, lineHeight: 1.4 }}>
+                      Get a browser notification with a receipt (files changed, credits used, test results) when SUNy finishes a run — even if the tab is in the background.
+                      {notifyPermission === 'denied' && <span style={{ color: 'var(--error)', display: 'block', marginTop: 4 }}>⚠️ Notifications blocked by browser — allow them in browser settings first.</span>}
+                      {notifyPermission === 'unsupported' && <span style={{ display: 'block', marginTop: 4 }}>Not supported in this browser.</span>}
+                    </div>
+                  </span>
+                </label>
+              )}
+            </>
           )}
         </div>
 

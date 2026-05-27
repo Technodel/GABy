@@ -17,7 +17,9 @@ import AdminContactInfo from './pages/AdminContactInfo';
 import AdminFeatureFlags from './pages/AdminFeatureFlags';
 import AdminTopUps from './pages/AdminTopUps';
 import AdminMcpMarketplace from './pages/AdminMcpMarketplace';
+import AdminPlanFeatures from './pages/AdminPlanFeatures';
 import PricingPlans from './pages/PricingPlans';
+import ProFeatures from './pages/ProFeatures';
 import ClientRequest from './pages/ClientRequest';
 import ClientTickets from './pages/ClientTickets';
 
@@ -96,6 +98,7 @@ function AppRoutes() {
       <Route path="/contact" element={<ContactUs />} />
       <Route path="/pricing" element={<PricingPlans />} />
       <Route path="/plans" element={<PricingPlans />} />
+      <Route path="/pro-features" element={<ProFeatures />} />
       <Route path="/client-link/:uid" element={<ClientRequest />} />
 
       {/* User Client Tickets */}
@@ -140,6 +143,7 @@ function AppRoutes() {
         <Route path="settings" element={<AdminSettings />} />
         <Route path="contact" element={<AdminContactInfo />} />
         <Route path="feature-flags" element={<AdminFeatureFlags />} />
+        <Route path="plan-features" element={<AdminPlanFeatures />} />
         <Route path="top-ups" element={<AdminTopUps />} />
       </Route>
 

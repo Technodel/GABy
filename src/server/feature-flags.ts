@@ -107,3 +107,50 @@ export function isSessionReplayEnabled(): boolean {
 export function isActivationControllerEnabled(): boolean {
   return isFeatureEnabled('ff_activation_controller');
 }
+
+// ── Plan-level feature flags ────────────────────────────────────────────────
+
+export interface PlanFeatureFlag {
+  key: string;
+  plan: string;
+  enabled: boolean;
+  label: string;
+  description: string;
+  updatedAt: string;
+}
+
+/**
+ * Check if a plan-gated feature is enabled for a given user plan.
+ * Unknown features default to false (deny by default).
+ */
+export function isPlanFeatureEnabled(key: string, plan: string): boolean {
+  const db = getDb();
+  const row = db.prepare(
+    'SELECT enabled FROM plan_feature_flags WHERE key = ? AND plan = ?',
+  ).get(key, plan) as { enabled: number } | undefined;
+  if (!row) return false;
+  return row.enabled === 1;
+}
+
+/**
+ * Get all plan feature flags (for admin panel).
+ */
+export function getPlanFeatureFlags(): PlanFeatureFlag[] {
+  const db = getDb();
+  return db.prepare(
+    `SELECT key, plan, enabled, label, description, updated_at as updatedAt
+     FROM plan_feature_flags ORDER BY key, plan`,
+  ).all() as PlanFeatureFlag[];
+}
+
+/**
+ * Set a plan feature flag on or off.
+ */
+export function setPlanFeatureFlag(key: string, plan: string, enabled: boolean): void {
+  const db = getDb();
+  db.prepare(
+    `INSERT INTO plan_feature_flags (key, plan, enabled, label, description)
+     VALUES (?, ?, ?, '', '')
+     ON CONFLICT(key, plan) DO UPDATE SET enabled = excluded.enabled, updated_at = datetime('now')`,
+  ).run(key, plan, enabled ? 1 : 0);
+}

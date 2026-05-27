@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Home, Eraser, BarChart2, HelpCircle, Settings, Phone, LogOut, Ticket } from 'lucide-react';
 import BalanceBadge from './BalanceBadge';
 import BridgeStatusBadge from './BridgeStatusBadge';
@@ -34,6 +34,7 @@ interface TopBarProps {
   isMobile?: boolean;
   uiTheme: string;
   setUiTheme: (t: string) => void;
+  userPlan?: string;
 }
 
 function routingIcon(mode: string): string {
@@ -56,8 +57,32 @@ export default function TopBar(props: TopBarProps) {
     bridgeConnected, sessLimit, sessUsed, messagesLength,
     toggleSidebar, changeMode, clearChat, onOpenSettings, navigate,
     handleLogout, setShowBridgeTip, setShowUsage, loadUsageStats, usageDays, setShowHelp,
-    isMobile, uiTheme, setUiTheme,
+    isMobile, uiTheme, setUiTheme, userPlan,
   } = props;
+
+  const isRegular = !userPlan || userPlan === 'regular';
+  const [upgradeState, setUpgradeState] = useState<'idle' | 'loading' | 'sent' | 'error'>('idle');
+
+  const requestUpgrade = useCallback(async () => {
+    setUpgradeState('loading');
+    try {
+      const res = await fetch('/api/upgrade-request', {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note: '' }),
+      });
+      const data = await res.json() as { success?: boolean; alreadyPending?: boolean };
+      if (res.ok && data.success) {
+        setUpgradeState('sent');
+      } else {
+        setUpgradeState('error');
+        setTimeout(() => setUpgradeState('idle'), 3000);
+      }
+    } catch {
+      setUpgradeState('error');
+      setTimeout(() => setUpgradeState('idle'), 3000);
+    }
+  }, []);
 
   const normalizedRouting = (routingReason || '').trim().toLowerCase();
   const showRoutingBadge = Boolean(
@@ -206,6 +231,23 @@ export default function TopBar(props: TopBarProps) {
               </button>
             ))}
           </div>
+        )}
+        {isRegular && (
+          <button
+            onClick={upgradeState === 'idle' ? requestUpgrade : undefined}
+            disabled={upgradeState === 'loading' || upgradeState === 'sent'}
+            title={upgradeState === 'sent' ? 'Upgrade request sent! Admin will review it.' : 'Upgrade your account to PRO'}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 5,
+              padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(108,99,255,0.5)',
+              background: upgradeState === 'sent' ? 'rgba(34,197,94,0.12)' : 'rgba(108,99,255,0.12)',
+              color: upgradeState === 'sent' ? 'var(--success,#22c55e)' : 'var(--accent)',
+              cursor: upgradeState === 'loading' || upgradeState === 'sent' ? 'default' : 'pointer',
+              fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap', transition: 'all 0.2s',
+            }}
+          >
+            {upgradeState === 'loading' ? '...' : upgradeState === 'sent' ? '✓ Request Sent' : '⚡ Upgrade to PRO'}
+          </button>
         )}
         <BalanceBadge
           balance={balance} walletBalance={walletBalance}

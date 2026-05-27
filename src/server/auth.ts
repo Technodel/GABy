@@ -21,6 +21,31 @@ export function signToken(payload: AuthPayload, expiresIn?: string): string {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: expiresIn || '8h' });
 }
 
+export function signBridgeToken(payload: AuthPayload): { token: string; refreshToken: string } {
+  const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '30d' });
+  const refreshToken = jwt.sign(
+    { ...payload, type: 'refresh' },
+    JWT_SECRET,
+    { expiresIn: '90d' },
+  );
+  return { token, refreshToken };
+}
+
+export function refreshBridgeToken(req: Request, res: Response): void {
+  const { refreshToken } = req.body as { refreshToken?: string };
+  if (!refreshToken) { res.status(400).json({ error: 'Missing refresh token' }); return; }
+
+  try {
+    const decoded = jwt.verify(refreshToken, JWT_SECRET) as AuthPayload & { type?: string };
+    if (decoded.type !== 'refresh') { res.status(401).json({ error: 'Invalid token type' }); return; }
+
+    const newPair = signBridgeToken({ id: decoded.id, username: decoded.username, role: decoded.role });
+    res.json({ token: newPair.token, refreshToken: newPair.refreshToken });
+  } catch {
+    res.status(401).json({ error: 'Refresh token expired or invalid' });
+  }
+}
+
 export function refreshToken(token: string): string | null {
   try {
     const decoded = jwt.verify(token, JWT_SECRET, { ignoreExpiration: true }) as AuthPayload;

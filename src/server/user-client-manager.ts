@@ -8,8 +8,13 @@ import { buildUserEvent, buildChatEvent } from './sanitizer';
  * One active connection per user (latest-wins). This prevents duplicate
  * message delivery caused by React StrictMode double-mounting effects.
  */
+type CheckpointResolver = (approved: boolean) => void;
+type BudgetGateResolver = (decision: 'continue' | 'budget_mode' | 'extend' | 'stop') => void;
+
 class UserClientManager {
   private clients = new Map<number, WebSocket>();
+  private checkpoints = new Map<number, CheckpointResolver>();
+  private budgetGates = new Map<number, BudgetGateResolver>();
 
   register(userId: number, ws: WebSocket): void {
     // Close the previous connection if any (handles StrictMode double-connect)
@@ -63,6 +68,68 @@ class UserClientManager {
    */
   pushNarration(userId: number, message: string): void {
     this.pushToUser(userId, 'suny:narration', { message });
+  }
+
+  /**
+   * Pause the agent loop and ask the user to approve or abort.
+   * Resolves true (proceed) or false (abort). Times out after 5 minutes.
+   */
+  waitForCheckpoint(userId: number, label: string, details: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      this.checkpoints.set(userId, resolve);
+      this.pushToUser(userId, 'suny:checkpoint', { label, details });
+      // Auto-approve after 5 min if user doesn't respond
+      setTimeout(() => {
+        if (this.checkpoints.has(userId)) {
+          this.checkpoints.delete(userId);
+          resolve(true);
+        }
+      }, 5 * 60_000);
+    });
+  }
+
+  /**
+   * Called when the user sends checkpoint:approve or checkpoint:abort.
+   */
+  resolveCheckpoint(userId: number, approved: boolean): void {
+    const resolver = this.checkpoints.get(userId);
+    if (resolver) {
+      this.checkpoints.delete(userId);
+      resolver(approved);
+    }
+  }
+
+  hasPendingCheckpoint(userId: number): boolean {
+    return this.checkpoints.has(userId);
+  }
+
+  /**
+   * Pause the agent loop at 90% budget and ask user to choose:
+   * continue | budget_mode | extend | stop
+   * Times out after 5 minutes defaulting to 'budget_mode'.
+   */
+  waitForBudgetGate(userId: number, spent: number, cap: number): Promise<'continue' | 'budget_mode' | 'extend' | 'stop'> {
+    return new Promise((resolve) => {
+      this.budgetGates.set(userId, resolve);
+      this.pushToUser(userId, 'suny:budget_gate', { spent, cap, pct: spent / cap });
+      setTimeout(() => {
+        if (this.budgetGates.has(userId)) {
+          this.budgetGates.delete(userId);
+          resolve('budget_mode');
+        }
+      }, 5 * 60_000);
+    });
+  }
+
+  /**
+   * Called when the user sends budget_gate:* messages.
+   */
+  resolveBudgetGate(userId: number, decision: 'continue' | 'budget_mode' | 'extend' | 'stop'): void {
+    const resolver = this.budgetGates.get(userId);
+    if (resolver) {
+      this.budgetGates.delete(userId);
+      resolver(decision);
+    }
   }
 }
 

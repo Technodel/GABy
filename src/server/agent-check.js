@@ -7,7 +7,7 @@
  *   Groq           -> @ai-sdk/groq
  *   OpenRouter     -> @ai-sdk/openai-compatible
  *   OpenAI         -> @ai-sdk/openai
- *   Gemini         -> @ai-sdk/openai-compatible (OpenAI-compat endpoint)
+ *   Gemini (removed - no API key)
  *   Ollama         -> @ai-sdk/openai-compatible (local models via Ollama)
  *
  * Per-mode fallback: keys sorted by priority (1=primary, 2=fallback ...).
@@ -70,7 +70,7 @@ export function getModelForMode(mode: string): string {
 // -- Provider factory ------------------------------------------------------------
 
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
-const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/openai';
+// Gemini removed - no API key available
 
 /**
  * Build a Vercel AI SDK LanguageModel from a DB key entry + model id.
@@ -92,12 +92,6 @@ export function buildLanguageModel(key: KeyEntry, modelId: string): LanguageMode
         baseURL: OPENROUTER_BASE_URL,
         apiKey: key_value,
         headers: { 'HTTP-Referer': 'https://suny.app', 'X-Title': 'SUNy' },
-      })(modelId);
-    case 'Gemini':
-      return createOpenAICompatible({
-        name: 'gemini',
-        baseURL: GEMINI_BASE_URL,
-        apiKey: key_value,
       })(modelId);
     case 'Ollama':
       return createOpenAICompatible({
@@ -122,3 +116,4 @@ export function getModelsForMode(mode: string): Array<{ model: LanguageModel; pr
     provider: key.provider,
   }));
 }
+

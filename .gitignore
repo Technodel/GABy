@@ -38,6 +38,7 @@ server_err.txt
 __pycache__/
 *.tgz
 *.bat
+*.rar
 
 # ── Root-level VPS / utility / debug scripts (keep root clean) ────────────
 /vps_*

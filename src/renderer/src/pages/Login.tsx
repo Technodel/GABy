@@ -14,6 +14,14 @@ interface PricingMode {
   output_price_per_1m: number;
 }
 
+interface PlanFeatureFlag {
+  key: string;
+  plan: string;
+  enabled: boolean;
+  label: string;
+  description: string;
+}
+
 interface ContactInfo {
   phone: string;
   email: string;
@@ -55,11 +63,12 @@ export default function Login({ onLogin }: LoginProps) {
   const [loading, setLoading] = useState(false);
   const [pricing, setPricing] = useState<PricingMode[]>([]);
   const [contact, setContact] = useState<ContactInfo | null>(null);
-
+  const [planFlags, setPlanFlags] = useState<PlanFeatureFlag[]>([]);
 
   useEffect(() => {
     fetch('/api/pricing-public').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setPricing(d); }).catch(() => {});
     fetch('/api/contact').then(r => r.ok ? r.json() : null).then(d => { if (d) setContact(d); }).catch(() => {});
+    fetch('/api/plan-features-public').then(r => r.ok ? r.json() : {}).then((d: { flags?: PlanFeatureFlag[] } | PlanFeatureFlag[]) => { if (!Array.isArray(d) && d?.flags) setPlanFlags(d.flags); else if (Array.isArray(d)) setPlanFlags(d); }).catch(() => {});
   }, []);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -104,7 +113,8 @@ export default function Login({ onLogin }: LoginProps) {
 
   const modeIcons: Record<string, string> = { free: '\u26a1', fast: '\ud83d\ude80', pro: '\ud83e\udde0' };
 
-  const features = [
+  // Base features always visible regardless of plan
+  const BASE_FEATURES = [
     { icon: '\ud83c\udfaf', title: 'You give the goal.', desc: 'Just tell SUNy what you want \u2014 "build me a login page", "fix the bug in my checkout" \u2014 and SUNy takes it from there.' },
     { icon: '\ud83d\udd0d', title: 'It reads your project', desc: 'SUNy explores your project to understand how everything fits together before touching a single file.' },
     { icon: '\u270f\ufe0f', title: 'It writes & edits files', desc: 'SUNy creates new files, modifies existing ones, and organizes your project \u2014 all without you lifting a finger.' },
@@ -113,12 +123,22 @@ export default function Login({ onLogin }: LoginProps) {
     { icon: '\ud83d\udcc8', title: 'Checkpoint timeline', desc: 'Every turn creates a restore point, so you can roll back to any earlier working version without losing momentum.' },
     { icon: '\ud83c\udfdb\ufe0f', title: 'Freeze Brain', desc: 'Pin a project to a saved memory snapshot so SUNy keeps using the same blueprint and behavioral rules until you unfreeze it.' },
     { icon: '\ud83d\udd17', title: 'Local Bridge', desc: 'A tiny background agent on your machine lets SUNy edit real local files \u2014 nothing is uploaded to any cloud.' },
-    { icon: '\u26a1', title: 'Parallel Agent Swarm (Pro)', desc: 'SUNy acts as a Project Manager, spawning an entire team of independent AI agents to work on your frontend, backend, and tests simultaneously in real-time. Tasks that took minutes now take seconds.' },
-    { icon: '\ud83e\udde0', title: 'Composable Behavior Profiles', desc: 'SUNy composes past interactions, learned rules, project context, and active skills into weighted behavior profiles — inspired by activation-space controllers. Smarter, more focused guidance without verbose memory dumps.' },
+    { icon: '\ud83e\udde0', title: 'Composable Behavior Profiles', desc: 'SUNy composes past interactions, learned rules, project context, and active skills into weighted behavior profiles. Smarter, more focused guidance without verbose memory dumps.' },
     { icon: '\ud83d\udd17', title: 'Client Tickets', desc: 'Generate a secure URL for clients. Fast/Smart plans include text-based AI intake forms to gather requirements.' },
-    { icon: '\ud83d\udcf1', title: 'Advanced Visual Portal (Pro)', desc: 'Clients get a Visual Stakeholder Portal. They click visually on the live UI, and SUNy automatically maps it to your code and writes the fix.' },
     { icon: '\ud83d\udcb0', title: 'Pay as you go', desc: 'Add credits and spend them on AI tasks. No subscriptions. No waste. You only pay for what SUNy actually does.' },
+    { icon: '\ud83e\udde0', title: 'AI Learns Your Style', desc: 'SUNy silently builds a structured profile of your preferences, constraints, and working style. Every session it\'s a little more tuned to you.' },
+    { icon: '\ud83d\udcbe', title: 'AI Memories Panel', desc: 'Full transparency \u2014 see exactly what the AI has saved about you, and delete anything you don\'t want it to remember.' },
+    { icon: '\ud83c\udf3f', title: 'Git Worktree Isolation', desc: 'For risky changes, SUNy works in an isolated branch, verifies everything passes, then merges \u2014 your main branch is never touched until the work is proven.' },
+    { icon: '\u26a0\ufe0f', title: 'Human Checkpoint Gates', desc: 'SUNy pauses before irreversible steps and waits for your approval \u2014 you stay in control of every consequential decision.' },
   ];
+
+  // Dynamically append PRO-only features from the API (only those enabled for PRO but not regular)
+  const _regularKeys = new Set(planFlags.filter(f => f.plan === 'regular' && f.enabled).map(f => f.key));
+  const _proOnlyFeatures = planFlags
+    .filter(f => f.plan === 'pro' && f.enabled && !_regularKeys.has(f.key))
+    .map(f => ({ icon: '\u26a1', title: `${f.label} \u26a1PRO`, desc: f.description }));
+
+  const features = [...BASE_FEATURES, ..._proOnlyFeatures];
 
   return (
     <div className="login-page" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text-primary)', display: 'flex', flexDirection: 'column' }}>
@@ -205,10 +225,37 @@ export default function Login({ onLogin }: LoginProps) {
             No subscriptions. Pay only when SUNy does real work.
           </p>
           <div style={{ marginBottom: 14 }}>
-            <a href="/plans" style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'none', fontWeight: 500 }}>
-              View detailed plans &amp; features →
+            <a href="/pro-features" style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'none', fontWeight: 500 }}>
+              View all PRO features →
             </a>
           </div>
+          {/* Dynamic PRO features section */}
+          {planFlags.length > 0 && (() => {
+            const proFeatures = planFlags.filter(f => f.plan === 'pro' && f.enabled);
+            const regularKeys = new Set(planFlags.filter(f => f.plan === 'regular' && f.enabled).map(f => f.key));
+            const proOnly = proFeatures.filter(f => !regularKeys.has(f.key));
+            if (proOnly.length === 0) return null;
+            return (
+              <div style={{ marginBottom: 20, padding: '14px 16px', borderRadius: 'var(--radius)', border: '1px solid rgba(108,99,255,0.35)', background: 'rgba(108,99,255,0.06)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <span style={{ fontSize: 15 }}>⚡</span>
+                  <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--accent)' }}>PRO Plan — Exclusive Features</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {proOnly.map(f => (
+                    <div key={f.key} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                      <span style={{ color: 'var(--accent)', fontSize: 13, marginTop: 1, flexShrink: 0 }}>⚡</span>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 600 }}>{f.label}</div>
+                        <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>{f.description}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-muted)' }}>Ask your administrator to upgrade your account to PRO to unlock these features.</div>
+              </div>
+            );
+          })()}
           {pricing.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {pricing.map(m => (
@@ -228,6 +275,14 @@ export default function Login({ onLogin }: LoginProps) {
           ) : (
             <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading pricing\u2026</div>
           )}
+
+          {/* Privacy notice */}
+          <div style={{ marginTop: 18, padding: '10px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'rgba(34,197,94,0.04)', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            <span style={{ fontSize: 16, flexShrink: 0 }}>🔒</span>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6, margin: 0 }}>
+              <strong style={{ color: 'var(--text-secondary)' }}>Your files never reach us.</strong> SUNy runs entirely on your machine — your data, memories, and projects stay local. When SUNy processes a task, relevant code is sent to the AI models under their privacy policy, but your files are totally safe. We never see your data.
+            </p>
+          </div>
         </div>
 
         {/* CENTER: Sign In */}

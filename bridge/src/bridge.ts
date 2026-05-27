@@ -35,12 +35,35 @@ export class SunyBridge {
   private tokenRefreshTimer: NodeJS.Timeout | null = null;
   private silent: boolean;
   private log: (...args: unknown[]) => void;
+  private refreshToken: string | null = null;
+  private tokenRefreshScheduled = false;
 
   constructor(token: string, server: string, options: BridgeOptions = {}) {
     this.token = token;
     this.server = server;
     this.silent = options.silent ?? false;
     this.log = this.silent ? () => {} : console.log;
+    this.refreshToken = this.loadRefreshToken();
+  }
+
+  setRefreshToken(rt: string): void {
+    this.refreshToken = rt;
+    const rtFile = path.join(os.homedir(), '.suny', 'refresh_token.json');
+    try {
+      fs.mkdirSync(path.dirname(rtFile), { recursive: true });
+      fs.writeFileSync(rtFile, JSON.stringify({ refreshToken: rt }), 'utf8');
+    } catch { /* best-effort */ }
+  }
+
+  loadRefreshToken(): string | null {
+    try {
+      const rtFile = path.join(os.homedir(), '.suny', 'refresh_token.json');
+      if (fs.existsSync(rtFile)) {
+        const data = JSON.parse(fs.readFileSync(rtFile, 'utf8'));
+        return data.refreshToken || null;
+      }
+    } catch { /* ignore */ }
+    return null;
   }
 
   start(): void {
@@ -74,6 +97,47 @@ export class SunyBridge {
     this.startupRegistered = true;
   }
 
+  private scheduleProactiveTokenRefresh(): void {
+    if (this.tokenRefreshScheduled) return;
+    try {
+      const parts = this.token.split('.');
+      const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+      const expiresAt = payload.exp * 1000;
+      const refreshAt = expiresAt - (2 * 24 * 60 * 60 * 1000);
+      const delay = Math.max(0, refreshAt - Date.now());
+      this.tokenRefreshScheduled = true;
+      setTimeout(() => this.proactiveTokenRefresh(), delay);
+      this.log(`[SUNy Bridge] Token refresh scheduled in ${Math.round(delay / 3600000)}h`);
+    } catch { /* ignore parse errors */ }
+  }
+
+  private async proactiveTokenRefresh(): Promise<void> {
+    const rt = this.refreshToken || this.loadRefreshToken();
+    if (!rt) { this.startTokenRefreshFlow(); return; }
+    try {
+      const serverUrl = this.server
+        .replace(/^wss:\/\//, 'https://')
+        .replace(/^ws:\/\//, 'http://')
+        .replace('/bridge', '');
+      const resp = await fetch(`${serverUrl}/api/bridge/refresh-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: rt }),
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const data = await resp.json() as { token: string; refreshToken: string };
+      this.token = data.token;
+      this.setRefreshToken(data.refreshToken);
+      this.tokenRefreshScheduled = false;
+      this.scheduleProactiveTokenRefresh();
+      this.log('[SUNy Bridge] Token refreshed automatically ✓');
+      this.ws?.close();
+    } catch (err) {
+      this.log('[SUNy Bridge] Auto-refresh failed, retrying in 1h:', err);
+      setTimeout(() => this.proactiveTokenRefresh(), 3_600_000);
+    }
+  }
+
   updateToken(newToken: string): void {
     this.token = newToken;
     this.awaitingTokenRefresh = false;
@@ -105,12 +169,12 @@ export class SunyBridge {
       this.reconnectDelay = RECONNECT_DELAY;
       this.startHeartbeat();
 
-      // Auto-register startup on first successful connection
-      // so the bridge comes back after reboot without user intervention.
-      // This is silent — user doesn't need to know about --install-startup.
       if (!this.startupRegistered) {
         this.registerStartup();
       }
+
+      // Schedule proactive token refresh before expiry
+      this.scheduleProactiveTokenRefresh();
     });
 
     this.ws.on('message', (raw) => {
@@ -171,7 +235,7 @@ export class SunyBridge {
     }
 
     if (type === 'bridge:ping') {
-      this.send({ type: 'bridge:pong' });
+      this.send({ type: 'bridge:pong', ts: payload?.ts });
       return;
     }
 

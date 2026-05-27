@@ -1,4 +1,5 @@
-﻿import { ChevronRight, ChevronDown, Plus, FolderOpen, Folder, Trash2, Edit3, User, Play, Check, X } from 'lucide-react';
+﻿import React, { useState, useEffect, useCallback } from 'react';
+import { ChevronRight, ChevronDown, Plus, FolderOpen, Folder, Trash2, Edit3, User, Play, Check, X, Brain } from 'lucide-react';
 import FileTreeNode from './FileTreeNode';
 import ReportBadgeButton from './ReportBadgeButton';
 import type { Project, ProjectSpend, Memory, FileNode, CheckpointEntry, BlueprintEntry } from '../types';
@@ -514,6 +515,18 @@ export default function SidebarContent(props: SidebarContentProps) {
             </div>
           </div>
         )}
+
+        {/* SUNy AI Memories — what the AI has saved about the user */}
+        <AiMemoriesPanel collapsedSections={collapsedSections} setCollapsedSections={setCollapsedSections} />
+
+        {/* Codebase Health Score */}
+        {activeProject && (
+          <HealthPanel
+            projectId={activeProject.id}
+            collapsedSections={collapsedSections}
+            setCollapsedSections={setCollapsedSections}
+          />
+        )}
       </div>
     </>
   );
@@ -523,4 +536,236 @@ function formatSpend(cost: number): string {
   if (cost >= 1) return `$${cost.toFixed(2)}`;
   if (cost >= 0.01) return `$${cost.toFixed(4)}`;
   return `$${cost.toFixed(6)}`;
+}
+
+interface AiMemory { id: number; content: string; project_id: number | null; created_at: string; }
+
+interface HealthLogRow {
+  id: number;
+  score: number;
+  delta: number;
+  files_changed: number;
+  test_coverage_flag: number;
+  lint_passed: number;
+  test_passed: number;
+  created_at: string;
+}
+
+function HealthPanel({ projectId, collapsedSections, setCollapsedSections }: {
+  projectId: number;
+  collapsedSections: Record<string, boolean>;
+  setCollapsedSections: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+}) {
+  const [history, setHistory] = useState<HealthLogRow[]>([]);
+  const [latest, setLatest] = useState<HealthLogRow | null>(null);
+  const [loading, setLoading] = useState(false);
+  const key = 'health';
+  const collapsed = collapsedSections[key] ?? true;
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/health`, { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        setHistory(data.history ?? []);
+        setLatest(data.latest ?? null);
+      }
+    } catch { /* non-fatal */ }
+    setLoading(false);
+  }, [projectId]);
+
+  useEffect(() => {
+    if (!collapsed) load();
+  }, [collapsed, load]);
+
+  // Re-fetch when a new health score arrives via WS
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.projectId === projectId) load();
+    };
+    window.addEventListener('suny:health_score', handler);
+    return () => window.removeEventListener('suny:health_score', handler);
+  }, [projectId, load]);
+
+  function scoreColor(score: number): string {
+    if (score >= 75) return 'var(--success, #22c55e)';
+    if (score >= 50) return 'var(--warning, #f59e0b)';
+    return 'var(--error, #ef4444)';
+  }
+
+  function deltaLabel(delta: number): string {
+    if (delta > 0) return `▲ +${delta}`;
+    if (delta < 0) return `▼ ${delta}`;
+    return '─ 0';
+  }
+
+  function deltaColor(delta: number): string {
+    if (delta > 0) return 'var(--success, #22c55e)';
+    if (delta < 0) return 'var(--error, #ef4444)';
+    return 'var(--text-muted)';
+  }
+
+  const maxScore = 100;
+
+  return (
+    <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+      <div
+        style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', padding: '0 4px 8px', userSelect: 'none' }}
+        onClick={() => setCollapsedSections(s => ({ ...s, [key]: !collapsed }))}
+      >
+        <span style={{ fontSize: 12 }}>{collapsed ? '▶' : '▼'}</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', flex: 1 }}>🏥 Codebase Health</span>
+        {latest && (
+          <span style={{ fontSize: 12, fontWeight: 700, color: scoreColor(latest.score) }}>{latest.score}/100</span>
+        )}
+      </div>
+      {!collapsed && (
+        <div style={{ padding: '0 4px' }}>
+          {loading && <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Loading…</div>}
+          {!loading && history.length === 0 && (
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+              No health data yet. Scores are recorded automatically after each agent run on this project.
+            </div>
+          )}
+          {!loading && latest && (
+            <div style={{ marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <div style={{ flex: 1, height: 8, background: 'var(--border)', borderRadius: 4, overflow: 'hidden' }}>
+                  <div style={{ width: `${latest.score}%`, height: '100%', background: scoreColor(latest.score), borderRadius: 4, transition: 'width 0.4s ease' }} />
+                </div>
+                <span style={{ fontSize: 13, fontWeight: 700, color: scoreColor(latest.score), minWidth: 36, textAlign: 'right' }}>{latest.score}</span>
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 11, color: deltaColor(latest.delta), fontWeight: 600 }}>{deltaLabel(latest.delta)} last run</span>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>·</span>
+                <span style={{ fontSize: 11, color: latest.lint_passed ? 'var(--success, #22c55e)' : 'var(--error, #ef4444)' }}>
+                  {latest.lint_passed ? '✓ lint' : '✗ lint'}
+                </span>
+                {latest.test_passed !== undefined && (
+                  <>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>·</span>
+                    <span style={{ fontSize: 11, color: latest.test_passed ? 'var(--success, #22c55e)' : 'var(--error, #ef4444)' }}>
+                      {latest.test_passed ? '✓ tests' : '✗ tests'}
+                    </span>
+                  </>
+                )}
+                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>·</span>
+                <span style={{ fontSize: 11, color: latest.test_coverage_flag === 1 ? 'var(--success, #22c55e)' : latest.test_coverage_flag === -1 ? 'var(--warning, #f59e0b)' : 'var(--text-muted)' }}>
+                  {latest.test_coverage_flag === 1 ? '✓ tests touched' : latest.test_coverage_flag === -1 ? '⚠ no tests' : '─ no code'}
+                </span>
+              </div>
+            </div>
+          )}
+          {!loading && history.length > 1 && (
+            <div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>Score trend (last {Math.min(history.length, 20)} runs)</div>
+              <svg width="100%" height="48" viewBox={`0 0 ${Math.min(history.length, 20) * 12} 48`} preserveAspectRatio="none" style={{ display: 'block' }}>
+                {(() => {
+                  const pts = [...history].reverse().slice(0, 20);
+                  const w = pts.length * 12;
+                  const points = pts.map((r, i) => `${(i / (pts.length - 1)) * w},${48 - (r.score / maxScore) * 44}`);
+                  return (
+                    <>
+                      <polyline
+                        points={points.join(' ')}
+                        fill="none"
+                        stroke="var(--accent)"
+                        strokeWidth="2"
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                      />
+                      {pts.map((r, i) => (
+                        <circle
+                          key={r.id}
+                          cx={(i / (pts.length - 1)) * w}
+                          cy={48 - (r.score / maxScore) * 44}
+                          r={3}
+                          fill={scoreColor(r.score)}
+                        />
+                      ))}
+                    </>
+                  );
+                })()}
+              </svg>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AiMemoriesPanel({ collapsedSections, setCollapsedSections }: {
+  collapsedSections: Record<string, boolean>;
+  setCollapsedSections: React.Dispatch<React.SetStateAction<Record<string, boolean>>>;
+}) {
+  const [memories, setMemories] = useState<AiMemory[]>([]);
+  const [loading, setLoading] = useState(false);
+  const collapsed = collapsedSections.aiMemories !== false;
+
+  const load = useCallback(async () => {
+    if (collapsed) return;
+    setLoading(true);
+    try {
+      const res = await fetch('/api/memories', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json() as { memories: AiMemory[] };
+        setMemories(data.memories || []);
+      }
+    } finally { setLoading(false); }
+  }, [collapsed]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const deleteOne = async (id: number) => {
+    await fetch(`/api/memories/${id}`, { method: 'DELETE', credentials: 'include' });
+    setMemories(prev => prev.filter(m => m.id !== id));
+  };
+
+  const deleteAll = async () => {
+    await fetch('/api/memories', { method: 'DELETE', credentials: 'include' });
+    setMemories([]);
+  };
+
+  return (
+    <div style={{ borderTop: '1px solid var(--border)', marginTop: 8, paddingTop: 8 }}>
+      <div style={{ padding: '0 12px 4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span
+          style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+          onClick={() => setCollapsedSections(s => ({ ...s, aiMemories: !collapsed }))}
+        >
+          {collapsed ? <ChevronRight size={11} /> : <ChevronDown size={11} />}
+          <Brain size={11} />
+          AI Memories
+        </span>
+        {!collapsed && memories.length > 0 && (
+          <button title="Clear all AI memories" onClick={deleteAll}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--error)', padding: '2px 4px', fontSize: 10 }}>
+            Clear all
+          </button>
+        )}
+      </div>
+      {!collapsed && (
+        <div style={{ padding: '0 12px', maxHeight: 180, overflowY: 'auto' }}>
+          {loading && <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>Loading...</div>}
+          {!loading && memories.length === 0 && (
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', fontStyle: 'italic' }}>No memories saved yet.</div>
+          )}
+          {memories.map(m => (
+            <div key={m.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 4, padding: '3px 0', borderBottom: '1px solid var(--border)' }}>
+              <span style={{ fontSize: 11, color: 'var(--text-secondary)', flex: 1, lineHeight: 1.4 }}>
+                {m.content.replace(/^\[.*?\]\s*/, '')}
+              </span>
+              <button title="Delete this memory" onClick={() => deleteOne(m.id)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '1px 2px', flexShrink: 0, marginTop: 1 }}>
+                <X size={10} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }

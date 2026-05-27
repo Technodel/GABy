@@ -37,7 +37,7 @@ function formatMoney(amount: number): string {
 }
 
 function formatTokens(tokens: number): string {
-  if (!isFinite(tokens) || tokens <= 0) return '0';
+  if (!isFinite(tokens) || tokens < 0) return '0';
   if (tokens >= 1_000_000) return `${(tokens / 1_000_000).toFixed(1)}M`;
   if (tokens >= 1_000) return `${(tokens / 1_000).toFixed(1)}k`;
   return `${Math.round(tokens)}`;
@@ -127,11 +127,13 @@ export default function ReportBadgeButton({ report, label }: ReportBadgeButtonPr
           <div style={rowStyle}>
             <span style={labelStyle}>$ spent</span>
             <span style={valueStyle}>
-              {report.chargedCost === 0 && report.rawCost && report.rawCost > 0 ? (
-                <>
-                  <span style={{ textDecoration: 'line-through', opacity: 0.5, marginRight: 6 }}>{formatMoney(report.rawCost)}</span>
-                  <span>Free</span>
-                </>
+              {report.chargedCost === 0 ? (
+                <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                  {(report.rawCost ?? 0) > 0 && (
+                    <span style={{ textDecoration: 'line-through', opacity: 0.45, fontSize: 10 }}>{formatMoney(report.rawCost!)}</span>
+                  )}
+                  <span style={{ color: 'var(--success,#22c55e)' }}>Free</span>
+                </span>
               ) : (
                 formatMoney(report.chargedCost)
               )}

@@ -77,29 +77,89 @@ function cmdInstall() {
     console.log(`✅ Bridge startup installed: ${scriptPath}`);
     console.log('   The bridge will auto-connect when you log in to Windows.');
     console.log('   Make sure ~/.suny/config.json has your token saved.');
-  } else {
-    // Linux/Mac: Add crontab entry
-    const startupSh = getStartupScriptPath();
-    const shContent = getShContent();
-    fs.mkdirSync(path.dirname(startupSh), { recursive: true });
-    fs.writeFileSync(startupSh, shContent, 'utf8');
-    fs.chmodSync(startupSh, 0o755);
-
-    // Add to crontab
-    const cronLine = `@reboot ${startupSh}`;
+  } else if (PLATFORM === 'darwin') {
+    // macOS: launchd plist with KeepAlive
+    const plistDir = path.join(os.homedir(), 'Library', 'LaunchAgents');
+    const plistPath = path.join(plistDir, 'tech.technodel.suny-bridge.plist');
+    const plistContent = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>tech.technodel.suny-bridge</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>node</string>
+    <string>${BRIDGE_SRC}</string>
+    <string>--silent</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardErrorPath</key>
+  <string>${os.homedir()}/.suny/bridge-error.log</string>
+  <key>StandardOutPath</key>
+  <string>${os.homedir()}/.suny/bridge.log</string>
+</dict>
+</plist>`;
+    fs.mkdirSync(plistDir, { recursive: true });
+    fs.writeFileSync(plistPath, plistContent, 'utf8');
     try {
-      const existingCron = execSync('crontab -l 2>/dev/null || echo ""', { encoding: 'utf8' });
-      if (existingCron.includes(cronLine)) {
-        console.log('✅ Bridge cron entry already exists. Skipping.');
-      } else {
-        const newCron = existingCron.trim() + '\n' + cronLine + '\n';
-        execSync(`echo "${newCron}" | crontab -`);
-        console.log('✅ Bridge crontab entry added. It will auto-start on boot.');
+      execSync(`launchctl load "${plistPath}" 2>/dev/null || true`);
+    } catch { /* best-effort */ }
+    console.log(`✅ Bridge startup installed: ${plistPath}`);
+    console.log('   Bridge will auto-start on login and restart if it crashes.');
+  } else {
+    // Linux: systemd --user service with Restart=on-failure
+    const systemdDir = path.join(os.homedir(), '.config', 'systemd', 'user');
+    const servicePath = path.join(systemdDir, 'suny-bridge.service');
+    const serviceContent = `[Unit]
+Description=SUNy Bridge
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=node ${BRIDGE_SRC} --silent
+Restart=on-failure
+RestartSec=10
+StartLimitInterval=60
+StartLimitBurst=5
+
+[Install]
+WantedBy=default.target
+`;
+    fs.mkdirSync(systemdDir, { recursive: true });
+    fs.writeFileSync(servicePath, serviceContent, 'utf8');
+    try {
+      execSync('systemctl --user daemon-reload 2>/dev/null');
+      execSync('systemctl --user enable suny-bridge.service 2>/dev/null');
+      execSync('systemctl --user start suny-bridge.service 2>/dev/null');
+      console.log(`✅ Bridge startup installed: ${servicePath}`);
+      console.log('   Bridge will auto-start on login and restart if it crashes.');
+    } catch {
+      // Fallback: crontab @reboot if systemd unavailable
+      const startupSh = getStartupScriptPath();
+      const shContent = getShContent();
+      fs.mkdirSync(path.dirname(startupSh), { recursive: true });
+      fs.writeFileSync(startupSh, shContent, 'utf8');
+      fs.chmodSync(startupSh, 0o755);
+      const cronLine = `@reboot ${startupSh}`;
+      try {
+        const existingCron = execSync('crontab -l 2>/dev/null || echo ""', { encoding: 'utf8' });
+        if (existingCron.includes(cronLine)) {
+          console.log('✅ Bridge cron entry already exists. Skipping.');
+        } else {
+          const newCron = existingCron.trim() + '\n' + cronLine + '\n';
+          execSync(`echo "${newCron}" | crontab -`);
+          console.log('✅ Bridge crontab entry added (systemd unavailable — using fallback).');
+        }
+      } catch (err) {
+        console.error('❌ Failed to update crontab:', err.message);
+        console.log('   To manually install, add this line to your crontab:');
+        console.log(`   ${cronLine}`);
       }
-    } catch (err) {
-      console.error('❌ Failed to update crontab:', err.message);
-      console.log('   To manually install, add this line to your crontab:');
-      console.log(`   ${cronLine}`);
     }
   }
 }
@@ -113,22 +173,37 @@ function cmdRemove() {
     } else {
       console.log('ℹ️  Bridge startup is not installed.');
     }
+  } else if (PLATFORM === 'darwin') {
+    const plistPath = path.join(os.homedir(), 'Library', 'LaunchAgents', 'tech.technodel.suny-bridge.plist');
+    try {
+      execSync(`launchctl unload "${plistPath}" 2>/dev/null || true`);
+    } catch { /* ignore */ }
+    if (fs.existsSync(plistPath)) {
+      fs.unlinkSync(plistPath);
+    }
+    console.log('✅ Removed bridge launchd plist.');
   } else {
-    // Remove from crontab
+    // Linux: remove systemd service
+    const servicePath = path.join(os.homedir(), '.config', 'systemd', 'user', 'suny-bridge.service');
+    try {
+      execSync('systemctl --user stop suny-bridge.service 2>/dev/null');
+      execSync('systemctl --user disable suny-bridge.service 2>/dev/null');
+    } catch { /* ignore */ }
+    if (fs.existsSync(servicePath)) {
+      fs.unlinkSync(servicePath);
+    }
+    // Clean crontab fallback if present
     const startupSh = getStartupScriptPath();
     const cronLine = `@reboot ${startupSh}`;
     try {
       const existingCron = execSync('crontab -l 2>/dev/null || echo ""', { encoding: 'utf8' });
       const filteredCron = existingCron.split('\n').filter(line => !line.includes(cronLine)).join('\n') + '\n';
       execSync(`echo "${filteredCron}" | crontab -`);
-      console.log('✅ Removed bridge crontab entry.');
-    } catch (err) {
-      console.error('❌ Failed to update crontab:', err.message);
-    }
-    // Remove the script
+    } catch { /* ignore */ }
     if (fs.existsSync(startupSh)) {
       fs.unlinkSync(startupSh);
     }
+    console.log('✅ Removed bridge auto-start.');
   }
 }
 
@@ -146,7 +221,21 @@ function cmdStatus() {
       console.log('ℹ️  Bridge startup is NOT installed.');
       console.log('   Run: node install-startup.js install');
     }
+  } else if (PLATFORM === 'darwin') {
+    const plistPath = path.join(os.homedir(), 'Library', 'LaunchAgents', 'tech.technodel.suny-bridge.plist');
+    if (fs.existsSync(plistPath)) {
+      console.log(`✅ Bridge launchd plist exists: ${plistPath}`);
+    } else {
+      console.log('ℹ️  Bridge startup is NOT installed.');
+      console.log('   Run: node install-startup.js install');
+    }
   } else {
+    // Linux: check systemd first, then fallback crontab
+    const servicePath = path.join(os.homedir(), '.config', 'systemd', 'user', 'suny-bridge.service');
+    if (fs.existsSync(servicePath)) {
+      console.log(`✅ Bridge systemd service exists: ${servicePath}`);
+      return;
+    }
     const cronLine = `@reboot ${getStartupScriptPath()}`;
     try {
       const existingCron = execSync('crontab -l 2>/dev/null || echo ""', { encoding: 'utf8' });
@@ -157,7 +246,7 @@ function cmdStatus() {
         console.log('   Run: node install-startup.js install');
       }
     } catch (err) {
-      console.log('ℹ️  Cannot check crontab:', err.message);
+      console.log('ℹ️  Cannot check startup status:', err.message);
     }
   }
 }

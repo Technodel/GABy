@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Plus, Trash2, Settings, LogOut, Edit3, RotateCcw, X, BarChart2, User, HelpCircle, Sparkles, Home, Eraser, Phone, ChevronRight, ChevronDown, FolderOpen, Folder, Play, FileText, GitBranch, Archive, ArchiveRestore, Link, Check, Rocket, ShieldCheck, Undo, Brain, MessageSquare, BookOpen, CheckCircle, Lock, Eye, Globe, Wrench, Users } from 'lucide-react';
 
 import ReportBadgeButton, { ReportMetrics } from '../components/ReportBadgeButton';
+import { registerServiceWorker, requestNotificationPermission, sendRunReceipt, notificationsSupported, notificationsGranted } from '../lib/push-notifications';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useNavigate } from 'react-router-dom';
 import BalanceBadge from '../components/BalanceBadge';
@@ -14,6 +15,56 @@ import ChatMessages from '../components/ChatMessages';
 import ChatInput from '../components/ChatInput';
 import FileTreeNode from '../components/FileTreeNode';
 import type { Project, ProjectSpend, Mode, UserData, Message, Memory, ProofRun, ChatProps } from '../types';
+
+// ── Upgrade to PRO button ────────────────────────────────────────────────────
+function UpgradePROButton({ plan, upgradePending }: { plan?: string; upgradePending?: boolean }) {
+  const [state, setState] = React.useState<'idle'|'loading'|'sent'|'error'>(() => upgradePending ? 'sent' : 'idle');
+  React.useEffect(() => { if (upgradePending && state === 'idle') setState('sent'); }, [upgradePending]);
+  if (plan && plan !== 'regular') return null;
+  return (
+  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, flexShrink: 0 }}>
+    <button
+      onClick={async () => {
+        if (state !== 'idle') return;
+        setState('loading');
+        try {
+          const res = await fetch('/api/upgrade-request', {
+            method: 'POST', credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ note: '' }),
+          });
+          const data = await res.json() as { success?: boolean };
+          if (res.ok && data.success) { setState('sent'); }
+          else { setState('error'); setTimeout(() => setState('idle'), 3000); }
+        } catch { setState('error'); setTimeout(() => setState('idle'), 3000); }
+      }}
+      disabled={state === 'loading' || state === 'sent'}
+      title={state === 'sent' ? 'Upgrade request sent! Admin will review it.' : 'Upgrade your account to PRO'}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 5,
+        padding: '4px 10px', borderRadius: 6, border: '1px solid rgba(108,99,255,0.5)',
+        background: state === 'sent' ? 'rgba(34,197,94,0.12)' : 'rgba(108,99,255,0.12)',
+        color: state === 'sent' ? 'var(--success,#22c55e)' : 'var(--accent)',
+        cursor: state === 'loading' || state === 'sent' ? 'default' : 'pointer',
+        fontSize: 11, fontWeight: 700, whiteSpace: 'nowrap', transition: 'all 0.2s',
+        flexShrink: 0,
+      }}
+    >
+      {state === 'loading' ? '...' : state === 'sent' ? '✓ Request Sent' : '⚡ Upgrade to PRO'}
+    </button>
+    <a
+      href="/pro-features"
+      target="_blank"
+      rel="noreferrer"
+      style={{ fontSize: 9, color: 'var(--text-muted)', textAlign: 'center', textDecoration: 'none', marginTop: 1, lineHeight: 1 }}
+      onMouseEnter={e => (e.currentTarget.style.color = 'var(--accent)')}
+      onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
+    >
+      Why PRO?
+    </a>
+  </div>
+  );
+}
 
 // -- File browser tree node --------------------------------------------------
 export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: ChatProps) {
@@ -42,6 +93,20 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
   const [projectStateReady, setProjectStateReady] = useState(false);
   const [globalIntroLine, setGlobalIntroLine] = useState('');
 
+  const [checkpoint, setCheckpoint] = useState<{ label: string; details: string } | null>(null);
+  const [forecastEstimate, setForecastEstimate] = useState<{
+    lowCredits: number; highCredits: number; historicalSamples: number;
+    estimatedSteps: number; confidence: string; basedOn: string;
+    currentBalance: number; mode: string;
+  } | null>(null);
+  const [forecastLoading, setForecastLoading] = useState(false);
+  const [budgetWarning, setBudgetWarning] = useState<{ spent: number; cap: number; pct: number } | null>(null);
+  const [budgetGateOpen, setBudgetGateOpen] = useState<{ spent: number; cap: number } | null>(null);
+  const [budgetExtendInput, setBudgetExtendInput] = useState('');
+  const [notifyOnComplete, setNotifyOnComplete] = useState(() => {
+    try { return localStorage.getItem('suny_notify_on_complete') === 'true'; } catch { return false; }
+  });
+  const lastUserMessageRef = useRef<string>('');
   const [queuedPrompt, setQueuedPrompt] = useState<{ text: string; payload: any; status: 'queued' | 'interrupting'; timeLeft: number } | null>(null);
   const queueTimerRef = useRef<number | null>(null);
 
@@ -689,7 +754,6 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>(buildDefaultCollapsedSections);
   const [confirmClearMemories, setConfirmClearMemories] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   function stopCurrentResponse() {
     if (!thinking) return;
@@ -1214,9 +1278,48 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     }
   }, [messages, memories, activeProject?.id, projectStateReady, crossDeviceMemoryEnabled]);
 
+  // Register service worker once on mount
+  useEffect(() => { registerServiceWorker(); }, []);
+
   const { send: wsSend, isConnected, pendingCount, clearPending } = useWebSocket({
     onMessage: (msg) => {
-      if (msg.event === 'suny:narration') {
+      if (msg.event === 'suny:forecast_loading') {
+        setForecastLoading(true);
+        setForecastEstimate(null);
+        return;
+      } else if (msg.event === 'suny:pre_run_estimate') {
+        setForecastLoading(false);
+        setForecastEstimate({
+          lowCredits: msg.lowCredits as number,
+          highCredits: msg.highCredits as number,
+          historicalSamples: msg.historicalSamples as number,
+          estimatedSteps: msg.estimatedSteps as number,
+          confidence: msg.confidence as string,
+          basedOn: msg.basedOn as string,
+          currentBalance: msg.currentBalance as number,
+          mode: msg.mode as string,
+        });
+        return;
+      } else if (msg.event === 'suny:health_score') {
+        window.dispatchEvent(new CustomEvent('suny:health_score', {
+          detail: { score: msg.score, delta: msg.delta, projectId: msg.projectId },
+        }));
+        return;
+      } else if (msg.event === 'suny:budget_warning') {
+        setBudgetWarning({ spent: msg.spent as number, cap: msg.cap as number, pct: msg.pct as number });
+        // Auto-dismiss warning after 8s
+        setTimeout(() => setBudgetWarning(null), 8000);
+        return;
+      } else if (msg.event === 'suny:budget_gate') {
+        setBudgetGateOpen({ spent: msg.spent as number, cap: msg.cap as number });
+        return;
+      } else if (msg.event === 'suny:budget_exceeded') {
+        addMessage('system', `⚠️ **Budget cap reached** — ${msg.message as string}`);
+        return;
+      } else if (msg.event === 'suny:checkpoint') {
+        setCheckpoint({ label: msg.label as string, details: msg.details as string });
+        return;
+      } else if (msg.event === 'suny:narration') {
         lastNarrationRef.current = msg.message as string;
         if (thinking) {
           // Tool narrations are signs of life � keep the watchdog alive.
@@ -1429,6 +1532,24 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
           loadBlueprintEntries(activeProject.id);
         }
         loadProjectSpend();
+
+        // Browser push receipt — only when notify enabled AND document is hidden
+        if (notifyOnComplete && document.hidden) {
+          const tr = msg.turn_report as Record<string, unknown> | undefined;
+          const filesChanged = (tr && typeof (msg.proof_summary as any)?.filesChanged === 'number')
+            ? (msg.proof_summary as any).filesChanged as number
+            : 0;
+          const ps = msg.proof_summary as Record<string, unknown> | undefined;
+          sendRunReceipt({
+            taskLabel: lastUserMessageRef.current || 'Task',
+            filesChanged,
+            testsPassed: ps && typeof ps.testPassed === 'boolean' && ps.testRuns ? (ps.testPassed ? (ps.testRuns as number) : 0) : undefined,
+            testsFailed: ps && typeof ps.testFailuresFound === 'number' ? (ps.testFailuresFound as number) : undefined,
+            creditsUsed: tr && typeof tr.chargedCost === 'number' ? (tr.chargedCost as number) : 0,
+            durationMs: tr && typeof tr.durationMs === 'number' ? (tr.durationMs as number) : 0,
+            success: true,
+          });
+        }
       } else if (msg.event === 'suny:lint_running') {
         pushCheckToProof('Lint check started');
         setThinkingStatus(pickStatusVariant('lint_running', [
@@ -1739,6 +1860,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     addMessage('user', cleaned);
     setThinking(true);
     requestStartedAtRef.current = Date.now();
+    lastUserMessageRef.current = cleaned.slice(0, 60) + (cleaned.length > 60 ? '…' : '');
     playSound('send');
 
     const payload: Record<string, unknown> = {
@@ -2266,6 +2388,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
               ))}
             </div>
           )}
+          <UpgradePROButton plan={userData?.plan} upgradePending={userData?.upgrade_pending} />
           <BalanceBadge
             balance={balance}
             walletBalance={walletBalance}
@@ -3135,6 +3258,187 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
               )}
             </div>
           )}
+          {/* 80% budget warning banner */}
+          {budgetWarning && (
+            <div style={{
+              margin: '0 12px 6px', padding: '8px 12px',
+              background: 'color-mix(in srgb, var(--warning, #f59e0b) 12%, var(--surface))',
+              border: '1px solid color-mix(in srgb, var(--warning, #f59e0b) 40%, transparent)',
+              borderRadius: 7, display: 'flex', alignItems: 'center', gap: 8,
+            }}>
+              <span style={{ fontSize: 15 }}>⚠️</span>
+              <span style={{ fontSize: 12, color: 'var(--text-primary)', flex: 1 }}>
+                <strong>{Math.round(budgetWarning.pct * 100)}% of run budget used</strong>
+                {' '}— ${budgetWarning.spent.toFixed(4)} of ${budgetWarning.cap.toFixed(4)}
+              </span>
+              <button onClick={() => setBudgetWarning(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 14, padding: '0 2px' }}>✕</button>
+            </div>
+          )}
+
+          {/* 90% budget gate card */}
+          {budgetGateOpen && (
+            <div style={{
+              margin: '0 12px 8px', padding: '14px',
+              background: 'color-mix(in srgb, #f59e0b 10%, var(--surface))',
+              border: '2px solid color-mix(in srgb, #f59e0b 60%, transparent)',
+              borderRadius: 10,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                <span style={{ fontSize: 18 }}>🔒</span>
+                <strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>90% Budget Reached</strong>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>
+                  ${budgetGateOpen.spent.toFixed(4)} / ${budgetGateOpen.cap.toFixed(4)}
+                </span>
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: '0 0 10px', lineHeight: 1.5 }}>
+                SUNy has used 90% of your run budget. Choose how to proceed:
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+                <button
+                  className="btn btn-sm"
+                  style={{ background: 'var(--accent)', color: '#fff', border: 'none', textAlign: 'left', padding: '8px 12px', borderRadius: 6, cursor: 'pointer' }}
+                  onClick={() => { wsSend({ type: 'budget_gate:budget_mode' }); setBudgetGateOpen(null); }}
+                >
+                  <strong>⚡ Budget Mode</strong> — SUNy re-plans and finishes the task with minimum tokens
+                </button>
+                <button
+                  className="btn btn-sm btn-secondary"
+                  style={{ textAlign: 'left', padding: '8px 12px', borderRadius: 6 }}
+                  onClick={() => { wsSend({ type: 'budget_gate:continue' }); setBudgetGateOpen(null); }}
+                >
+                  <strong>▶ Continue anyway</strong> — keep going beyond the cap
+                </button>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  <input
+                    type="number" min="0.001" step="0.01"
+                    className="input"
+                    placeholder={`Extend to $... (current: $${budgetGateOpen.cap.toFixed(4)})`}
+                    value={budgetExtendInput}
+                    onChange={e => setBudgetExtendInput(e.target.value)}
+                    style={{ flex: 1, fontSize: 12 }}
+                  />
+                  <button
+                    className="btn btn-sm btn-secondary"
+                    disabled={!budgetExtendInput || parseFloat(budgetExtendInput) <= budgetGateOpen.cap}
+                    onClick={() => {
+                      const newCap = parseFloat(budgetExtendInput);
+                      if (isFinite(newCap) && newCap > budgetGateOpen.cap) {
+                        wsSend({ type: 'budget_gate:extend', newCap });
+                        setBudgetGateOpen(null);
+                        setBudgetExtendInput('');
+                      }
+                    }}
+                  >
+                    💰 Extend Budget
+                  </button>
+                </div>
+                <button
+                  className="btn btn-sm"
+                  style={{ background: 'var(--error)', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: 6, cursor: 'pointer' }}
+                  onClick={() => { wsSend({ type: 'budget_gate:stop' }); setBudgetGateOpen(null); }}
+                >
+                  🛑 Stop here — save what's done
+                </button>
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', borderTop: '1px solid var(--border)', paddingTop: 8 }}>
+                Budget Mode uses minimum steps to complete the task. If you stop, all work up to this point is saved.
+              </div>
+            </div>
+          )}
+
+          {/* Pre-run cost estimate card */}
+          {forecastLoading && (
+            <div style={{ margin: '0 12px 8px', padding: '10px 14px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 14 }}>📋</span>
+              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Estimating run cost…</span>
+            </div>
+          )}
+          {forecastEstimate && (
+            <div style={{
+              margin: '0 12px 8px', padding: '12px 14px',
+              background: 'color-mix(in srgb, var(--accent) 8%, var(--surface))',
+              border: '1px solid color-mix(in srgb, var(--accent) 40%, transparent)',
+              borderRadius: 8,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <span style={{ fontSize: 16 }}>📋</span>
+                <strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>Cost Estimate</strong>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>
+                  {forecastEstimate.confidence} confidence · {forecastEstimate.basedOn === 'history' ? `${forecastEstimate.historicalSamples} past runs` : forecastEstimate.basedOn === 'llm_estimate' ? 'AI estimate' : 'default estimate'}
+                </span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 8 }}>
+                <div style={{ background: 'var(--surface)', borderRadius: 6, padding: '6px 10px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>ESTIMATED COST</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'monospace' }}>
+                    ${forecastEstimate.lowCredits.toFixed(4)}–${forecastEstimate.highCredits.toFixed(4)}
+                  </div>
+                </div>
+                <div style={{ background: 'var(--surface)', borderRadius: 6, padding: '6px 10px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>YOUR BALANCE</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: forecastEstimate.currentBalance < forecastEstimate.highCredits ? 'var(--error)' : 'var(--success)', fontFamily: 'monospace' }}>
+                    ${forecastEstimate.currentBalance.toFixed(4)}
+                  </div>
+                </div>
+                {forecastEstimate.estimatedSteps > 0 && (
+                  <div style={{ background: 'var(--surface)', borderRadius: 6, padding: '6px 10px', textAlign: 'center' }}>
+                    <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>EST. STEPS</div>
+                    <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'monospace' }}>
+                      ~{forecastEstimate.estimatedSteps}
+                    </div>
+                  </div>
+                )}
+              </div>
+              {forecastEstimate.currentBalance < forecastEstimate.lowCredits && (
+                <div style={{ fontSize: 11, color: 'var(--error)', marginBottom: 8 }}>⚠️ Balance may be insufficient for this run.</div>
+              )}
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={() => { wsSend({ type: 'checkpoint:approve' }); setForecastEstimate(null); }}
+                  style={{ flex: 1 }}
+                >
+                  ▶ Run
+                </button>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => { wsSend({ type: 'checkpoint:abort' }); setForecastEstimate(null); }}
+                  style={{ flex: 1 }}
+                >
+                  ✕ Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {checkpoint && (
+            <div style={{
+              margin: '0 12px 8px',
+              padding: '12px 14px',
+              borderRadius: 10,
+              border: '1px solid rgba(251,191,36,0.5)',
+              background: 'rgba(251,191,36,0.07)',
+              display: 'flex', flexDirection: 'column', gap: 8,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 16 }}>⚠️</span>
+                <strong style={{ fontSize: 13, color: 'var(--text-primary)' }}>{checkpoint.label}</strong>
+              </div>
+              <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>{checkpoint.details}</p>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  className="btn btn-primary btn-sm"
+                  onClick={() => { wsSend({ type: 'checkpoint:approve' }); setCheckpoint(null); }}
+                  style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.4)', color: '#22c55e' }}
+                >✓ Proceed</button>
+                <button
+                  className="btn btn-secondary btn-sm"
+                  onClick={() => { wsSend({ type: 'checkpoint:abort' }); setCheckpoint(null); }}
+                  style={{ color: 'var(--error)' }}
+                >✕ Abort</button>
+              </div>
+            </div>
+          )}
           <ChatInput
             input={input}
             setInput={setInput}
@@ -3148,7 +3452,6 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
             noBalance={noBalance}
             imagePreview={imagePreview}
             setImagePreview={setImagePreview}
-            fileInputRef={fileInputRef}
             inputRef={inputRef}
             inputHistoryIndex={inputHistoryIndex}
             messages={messages}
@@ -3181,7 +3484,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
               </>
             ) : (
               <>
-                <h3 style={{ margin: '0 0 4px', fontSize: 17 }}>?? Connect the Bridge</h3>
+                <h3 style={{ margin: '0 0 4px', fontSize: 17 }}>🔌 Connect the Bridge</h3>
                 <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, margin: '0 0 6px' }}>
                   The Bridge is a small background process that runs on <strong>your computer</strong>.
                   SUNy needs it to <strong>create files, edit code, and run commands</strong>.
@@ -3191,13 +3494,13 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                 <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
                   <div style={{ flex: 1, background: 'var(--bg-secondary)', borderRadius: 8, padding: '10px 12px' }}>
                     <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Without Bridge</div>
-                    {['?? Chat & answer questions', '?? Code review & analysis', '?? Architecture advice'].map(t => (
+                    {['💬 Chat & answer questions', '🔍 Code review & analysis', '🏛️ Architecture advice'].map(t => (
                       <div key={t} style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 3 }}>{t}</div>
                     ))}
                   </div>
                   <div style={{ flex: 1, background: 'rgba(108,99,255,0.07)', border: '1px solid rgba(108,99,255,0.2)', borderRadius: 8, padding: '10px 12px' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.4px' }}>With Bridge ?</div>
-                    {['?? Create & edit files', '? Run shell commands', '?? Auto-fix lint errors', '?? Git auto-commit'].map(t => (
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.4px' }}>With Bridge ⚡</div>
+                    {['✏️ Create & edit files', '⚙️ Run shell commands', '🔧 Auto-fix lint errors', '📝 Git auto-commit'].map(t => (
                       <div key={t} style={{ fontSize: 12, color: 'var(--text-primary)', marginBottom: 3 }}>{t}</div>
                     ))}
                   </div>
@@ -3840,9 +4143,9 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
               {[
-                { icon: '??', title: 'Create or open a project', desc: 'Click "+ New" in the sidebar to link a folder on your computer or let SUNy create one from scratch.' },
-                { icon: '??', title: 'Just talk to SUNy', desc: 'Ask questions, get explanations, request changes. SUNy understands what you want and gets it done.' },
-                { icon: '??', title: 'Connect the Bridge for full power', desc: 'The Bridge lets SUNy actually write files and run commands on your machine � one terminal command to set up.' },
+                { icon: '📁', title: 'Create or open a project', desc: 'Click "+ New" in the sidebar to link a folder on your computer or let SUNy create one from scratch.' },
+                { icon: '💬', title: 'Just talk to SUNy', desc: 'Ask questions, get explanations, request changes. SUNy understands what you want and gets it done.' },
+                { icon: '⚡', title: 'Connect the Bridge for full power', desc: 'The Bridge lets SUNy actually write files and run commands on your machine � one terminal command to set up.' },
               ].map((step, i) => (
                 <div key={i} style={{ display: 'flex', gap: 12, padding: '10px 14px', background: 'var(--bg-secondary)', borderRadius: 8 }}>
                   <span style={{ fontSize: 20, flexShrink: 0 }}>{step.icon}</span>

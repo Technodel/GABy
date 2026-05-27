@@ -39,7 +39,6 @@ const BLOCKED_KEYS = new Set([
 const BLOCKED_PATTERNS = [
   /\bclaude\b/gi,
   /\bgpt[-\s]?\d/gi,
-  /\bgemini\b/gi,
   /\bhaiku\b/gi,
   /\bsonnet\b/gi,
   /\bopus\b/gi,

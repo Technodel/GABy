@@ -48,6 +48,7 @@ export function createSwarmDelegatorTool(ctx: DelegatorContext) {
       console.log(`[swarm] Spawning ${input.tasks.length} agents for goal: "${input.overall_goal.slice(0, 50)}..."`);
 
       // Spawn all tasks in parallel using Promise.all
+      // Each task goes through two-stage review: spec compliance -> code quality
       const promises = input.tasks.map(async (taskDef) => {
         const subInput: SubtaskInput = {
           task: `[ROLE: ${taskDef.role.toUpperCase()}] ${taskDef.task}`,
@@ -56,8 +57,54 @@ export function createSwarmDelegatorTool(ctx: DelegatorContext) {
           success_criteria: taskDef.success_criteria,
           max_steps: 6,
         };
-        
-        const result = await runSubtask(subtaskCtx, subInput);
+
+        // Stage 1: Implementation
+        let result = await runSubtask(subtaskCtx, subInput);
+
+        if (result.success) {
+          // Stage 2a: Spec compliance review
+          const specReview = await runSubtask(subtaskCtx, {
+            task: `[SPEC COMPLIANCE REVIEW] Review the following work against the spec. Spec: "${taskDef.task}". Success criteria: "${taskDef.success_criteria}". Files changed: ${result.changed_files.join(', ') || 'none'}. Implementation summary: ${result.summary}. ONLY check: does the code match the spec exactly? Nothing extra, nothing missing? Reply with PASS or FAIL and brief reason.`,
+            files: taskDef.files,
+            goal: input.overall_goal,
+            success_criteria: 'PASS or FAIL verdict with reason',
+            max_steps: 2,
+          });
+
+          // If spec review fails, fix then re-review once
+          if (specReview.success && specReview.summary.toLowerCase().includes('fail')) {
+            result = await runSubtask(subtaskCtx, {
+              task: `[SPEC FIX] Fix spec compliance issues: ${specReview.summary}. Original task: ${taskDef.task}`,
+              files: taskDef.files,
+              goal: input.overall_goal,
+              success_criteria: taskDef.success_criteria,
+              max_steps: 4,
+            });
+          }
+
+          // Stage 2b: Code quality review (only if spec passed)
+          if (result.success) {
+            const qualityReview = await runSubtask(subtaskCtx, {
+              task: `[CODE QUALITY REVIEW] Review code quality for files: ${result.changed_files.join(', ') || taskDef.files.join(', ')}. Check: naming, duplication, error handling, edge cases. Reply with APPROVED or ISSUES and brief reason.`,
+              files: taskDef.files,
+              goal: input.overall_goal,
+              success_criteria: 'APPROVED or ISSUES verdict',
+              max_steps: 2,
+            });
+
+            // One fix pass for quality issues
+            if (qualityReview.success && qualityReview.summary.toLowerCase().includes('issues')) {
+              result = await runSubtask(subtaskCtx, {
+                task: `[QUALITY FIX] Fix code quality issues: ${qualityReview.summary}. Files: ${taskDef.files.join(', ')}`,
+                files: taskDef.files,
+                goal: input.overall_goal,
+                success_criteria: 'Code quality issues resolved',
+                max_steps: 3,
+              });
+            }
+          }
+        }
+
         return { role: taskDef.role, result };
       });
 

@@ -1,7 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 
 type Lang = 'en' | 'ar';
+
+interface PlanFeatureFlag {
+  key: string;
+  plan: string;
+  enabled: boolean;
+  label: string;
+  description: string;
+}
 
 export default function About() {
   const [lang, setLang] = useState<Lang>(() => {
@@ -51,6 +59,40 @@ export default function About() {
 }
 
 function EnglishContent() {
+  const [planFlags, setPlanFlags] = useState<PlanFeatureFlag[]>([]);
+
+  useEffect(() => {
+    fetch('/api/plan-features-public')
+      .then(r => r.ok ? r.json() : {})
+      .then(d => { if (d?.flags && Array.isArray(d.flags)) setPlanFlags(d.flags); else if (Array.isArray(d)) setPlanFlags(d); })
+      .catch(() => {});
+  }, []);
+
+  const proOnlyKeys = new Set(
+    planFlags
+      .filter(f => f.plan === 'pro' && f.enabled)
+      .filter(f => !planFlags.some(r => r.plan === 'regular' && r.key === f.key && r.enabled))
+      .map(f => f.key)
+  );
+  const proOnlyFlags = planFlags.filter(f => f.plan === 'pro' && f.enabled && proOnlyKeys.has(f.key));
+
+  const PRO_KEY_MAP: Record<string, string> = {
+    pf_advanced_visual_portal: 'Visual Portal',
+    pf_parallel_agent_swarm:   'Agent Swarm',
+    pf_hypothesis_engine:      'Hypothesis',
+    pf_scheduled_agents:       'Scheduled Agent',
+    pf_client_portal:          'Client Ticket',
+    pf_push_notifications:     'Push Notification',
+    pf_cost_forecast:          'Cost Estimate',
+    pf_budget_gate:            'Budget Gate',
+    pf_codebase_health:        'Codebase Health',
+  };
+
+  function isProCard(title: string): boolean {
+    return Object.entries(PRO_KEY_MAP).some(([key, kw]) => proOnlyKeys.has(key) && title.includes(kw));
+  }
+
+
   return (
     <div className="page-enter">
       <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 8 }}>Meet SUNy -- Your Personal Coding Sidekick</h1>
@@ -75,20 +117,45 @@ function EnglishContent() {
             { title: '🧬 Design Memory', desc: 'Persistent blueprint memory keeps intent, architecture choices, and outcomes available across sessions — across restarts, projects, and teams.' },
             { title: '🛡️ Change Guardian', desc: 'Before changes reach your code, SUNy checks whether they drift from your stated intent. Unintended contract changes are flagged instantly.' },
             { title: '⏳ Compound Knowledge', desc: 'Every session makes SUNy smarter about your project. Design memory compounds like a knowledge flywheel — the more you use it, the better it gets.' },
-          ].map(f => (
-            <div key={f.title} style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--bg)' }}>
-              <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{f.title}</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.6, margin: 0 }}>{f.desc}</p>
-            </div>
-          ))}
+          ].map(f => {
+            const cleanTitle = f.title.replace(/ ?⚡PRO/g, '').trim();
+            const isPro = isProCard(cleanTitle);
+            return (
+              <div key={f.title} style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: `1px solid ${isPro ? 'rgba(108,99,255,0.3)' : 'var(--border)'}`, background: 'var(--bg)', position: 'relative' }}>
+                {isPro && (
+                  <span style={{ position: 'absolute', top: 8, right: 8, fontSize: 10, fontWeight: 700, padding: '2px 6px', borderRadius: 4, background: 'rgba(108,99,255,0.15)', color: 'var(--accent)', border: '1px solid rgba(108,99,255,0.3)' }}>⚡ PRO</span>
+                )}
+                <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 6, paddingRight: isPro ? 44 : 0 }}>{cleanTitle}</h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.6, margin: 0 }}>{f.desc}</p>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      <div className="card" style={{ marginBottom: 24, borderColor: 'var(--accent)', borderWidth: 2, background: 'rgba(108,99,255,0.06)' }}>
+      <div id="pro" className="card" style={{ marginBottom: 24, borderColor: 'var(--accent)', borderWidth: 2, background: 'rgba(108,99,255,0.06)' }}>
         <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 10 }}>🧪 What&apos;s New in This Version</h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.7, marginBottom: 16 }}>
-          Six major new capabilities that take SUNy to the next level.
+          A growing set of capabilities that take SUNy to the next level.
         </p>
+        {/* Dynamic PRO Features */}
+        {proOnlyFlags.length > 0 && (
+          <div style={{ marginBottom: 16, padding: '14px 16px', borderRadius: 'var(--radius)', border: '1px solid rgba(108,99,255,0.4)', background: 'rgba(108,99,255,0.07)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <span style={{ fontSize: 15 }}>⚡</span>
+              <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--accent)' }}>PRO Plan — Exclusive Features</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8 }}>
+              {proOnlyFlags.map(f => (
+                <div key={f.key} style={{ padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(108,99,255,0.25)', background: 'var(--bg)' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 4 }}>{f.label}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>{f.description}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text-muted)' }}>Contact your administrator to upgrade your account to PRO.</div>
+          </div>
+        )}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
           {[
             { title: '🧊 Freeze Brain', desc: 'Lock a project to a saved memory snapshot so SUNy keeps using the same blueprint and behavioral rules until you unfreeze it.' },
@@ -101,8 +168,14 @@ function EnglishContent() {
             { title: '🚧 MCP Marketplace', desc: 'Discover and install community-contributed MCP servers. Databases, search engines, Docker, Slack, GitHub — all pluggable in one command.' },
             { title: '🧠 Composable Behavior Profiles', desc: 'SUNy now composes multiple behavior sources — past interactions, learned rules, project context, and active skills — into a single weighted behavior profile. Inspired by activation-space controllers, stronger signals dominate while weaker ones still contribute. No more verbose memory dumps.' },
             { title: '🎫 Client Tickets (Fast/Smart)', desc: 'Generate a secure, shareable URL for non-technical clients. SUNy acts as your front-line assistant, chatting warmly with the client to gather detailed project requirements.' },
-            { title: '🔭 Advanced Visual Portal (PRO)', desc: 'The ultimate Client Ticket upgrade. Clients get a visual overlay on your live staging app. They click a button on their screen, type a change, and SUNy automatically maps it to your code and writes the fix.' },
-            { title: '⚡ Parallel Agent Swarm (PRO)', desc: 'SUNy acts as a Project Manager, spawning a swarm of Junior Developer AIs to handle massive features. Watch it write the frontend, backend, and tests simultaneously in real-time, cutting execution time by 70%.' },
+            { title: '🔭 Advanced Visual Portal ⚡PRO', desc: 'The ultimate Client Ticket upgrade. Clients get a visual overlay on your live staging app. They click a button on their screen, type a change, and SUNy automatically maps it to your code and writes the fix.' },
+            { title: '⚡ Parallel Agent Swarm ⚡PRO', desc: 'SUNy acts as a Project Manager, spawning a swarm of Junior Developer AIs to handle massive features. Watch it write the frontend, backend, and tests simultaneously in real-time, cutting execution time by 70%.' },
+            { title: '📋 Pre-Run Cost Estimate', desc: 'Before every run, SUNy shows a cost forecast with a low/high credit range based on your history or a lightweight AI analysis. You decide whether to proceed — no surprise bills.' },
+            { title: '🔒 Per-Run Budget Gate', desc: 'Set a credit cap per run. SUNy tracks cumulative spend and alerts you when it hits the limit, giving you full visibility and control over costs.' },
+            { title: '🧠 AI Learns Your Style', desc: 'SUNy now builds a structured model of your preferences, working style, tech choices, and hard constraints — updated silently as it observes patterns. Every session it knows you a little better.' },
+            { title: '💾 AI Memories Panel', desc: 'See exactly what SUNy has saved about you. A new sidebar panel lists every AI memory with one-click delete — full transparency into what the AI knows.' },
+            { title: '🌿 Git Worktree Isolation', desc: 'For risky or large changes, SUNy creates an isolated git worktree branch, makes all changes there, verifies them, then merges back — your main branch is never touched until it\'s proven to work.' },
+            { title: '⚠️ Human Checkpoint Gates', desc: 'SUNy can pause mid-task and ask for your approval before continuing past a risky or irreversible step — keeping you in control of consequential decisions.' },
           ].map(f => (
             <div key={f.title} style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border)', background: 'var(--bg)' }}>
               <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{f.title}</h3>
@@ -120,7 +193,6 @@ function EnglishContent() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
           {[
             { title: '🔍 Semantic Code Search', desc: 'SUNy queries the persistent code index by symbol name or concept — returns exact file paths and line numbers. No more scanning the whole project.' },
-            { title: '📋 On-Demand Repo Map', desc: 'The project map is now a tool SUNy calls only when needed, saving 1,500–2,500 tokens per request compared to auto-injecting it every time.' },
             { title: '📁 Auto .suny-rules', desc: 'After indexing, SUNy auto-generates a .suny-rules file with the top 50 exports organized by file — a human-readable project map loaded into every session.' },
             { title: '🔗 Who Imports This?', desc: 'Before editing a symbol, SUNy checks its blast radius — finds every file that imports it so no downstream breakage is missed.' },
             { title: '📐 Scope Declaration Law', desc: 'SUNy must declare its edit target and confidence level before every change. Low confidence triggers a code_search call first — preventing wrong-file edits.' },
@@ -195,6 +267,34 @@ function EnglishContent() {
           Yes -- SUNy does not give up after one attempt. It tests, evaluates, retries, and keeps going until the goal is done.
           <strong> It works the same way a skilled human developer would</strong> -- not by handing you a script, but by actually doing the work, running it, checking it, and fixing it until it works.
         </p>
+      </div>
+
+      {/* Privacy notice */}
+      <div style={{ marginTop: 16, padding: '12px 16px', borderRadius: 'var(--radius)', border: '1px solid var(--border)', background: 'rgba(34,197,94,0.04)', display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+        <span style={{ fontSize: 18, flexShrink: 0 }}>🔒</span>
+        <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.7, margin: 0 }}>
+          <strong style={{ color: 'var(--text-secondary)' }}>Your files never reach us.</strong> SUNy runs entirely on your machine — your data, memories, and projects stay local. When SUNy processes a task, relevant code is sent to the AI models under their privacy policy, but your files are totally safe. We never see your data.
+        </p>
+      </div>
+
+      {/* PRO Features callout */}
+      <div id="pro" style={{ marginTop: 24, padding: '24px 28px', borderRadius: 'var(--radius)', border: '2px solid rgba(108,99,255,0.4)', background: 'linear-gradient(135deg, rgba(108,99,255,0.08) 0%, rgba(108,99,255,0.03) 100%)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          <span style={{ fontSize: 22 }}>⚡</span>
+          <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>SUNy PRO</h2>
+          <span style={{ fontSize: 10, fontWeight: 700, background: 'rgba(108,99,255,0.2)', color: 'var(--accent)', border: '1px solid rgba(108,99,255,0.4)', borderRadius: 4, padding: '2px 8px' }}>PREMIUM</span>
+        </div>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.7, marginBottom: 14 }}>
+          PRO unlocks financial control features built for serious developers and agencies — budget gates, pre-run cost estimates, push notification receipts, codebase health tracking, and more. Features are managed by your admin.
+        </p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+          {['🔒 Per-Run Budget Gate', '📋 Pre-Run Cost Estimate', '🔔 Push Notifications & Receipts', '🏥 Codebase Health Score', '⚡ Parallel Agent Swarm', '🔬 Hypothesis Testing', '🚧 Scheduled Agents', '🎫 Client Ticket Portal'].map(f => (
+            <span key={f} style={{ fontSize: 12, padding: '4px 10px', background: 'rgba(108,99,255,0.1)', color: 'var(--text-primary)', borderRadius: 20, border: '1px solid rgba(108,99,255,0.2)' }}>{f}</span>
+          ))}
+        </div>
+        <Link to="/pro-features" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--accent)', textDecoration: 'none', padding: '8px 18px', border: '1px solid rgba(108,99,255,0.4)', borderRadius: 7, background: 'rgba(108,99,255,0.08)' }}>
+          See all PRO features →
+        </Link>
       </div>
     </div>
   );
@@ -342,6 +442,21 @@ function ArabicContent() {
           نعم -- SUNy لا يستسلم بعد محاولة واحدة. يختبر، يقيم، يعيد المحاولة، ويستمر حتى ينجز الهدف.
           <strong> يعمل تماما كما يعمل مطور بشري محترف</strong> -- لا يعطيك سكريبتا لتشغله بنفسك، بل يقوم هو بالعمل، يشغله، يتحقق منه، ويصلحه حتى يعمل بشكل صحيح.
         </p>
+      </div>
+
+      {/* PRO callout — Arabic */}
+      <div style={{ marginTop: 24, padding: '24px 28px', borderRadius: 'var(--radius)', border: '2px solid rgba(108,99,255,0.4)', background: 'linear-gradient(135deg, rgba(108,99,255,0.08) 0%, rgba(108,99,255,0.03) 100%)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+          <span style={{ fontSize: 22 }}>⚡</span>
+          <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0 }}>SUNy PRO</h2>
+          <span style={{ fontSize: 10, fontWeight: 700, background: 'rgba(108,99,255,0.2)', color: 'var(--accent)', border: '1px solid rgba(108,99,255,0.4)', borderRadius: 4, padding: '2px 8px' }}>مميز</span>
+        </div>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.8, marginBottom: 14 }}>
+          الخطة الاحترافية تفتح مجموعة من المميزات المتقدمة للتحكم في التكاليف وإدارة المشاريع — سقف الميزانية لكل تشغيل، تقدير التكلفة قبل البدء، إشعارات الانتهاء، تتبع صحة الكود، والمزيد.
+        </p>
+        <Link to="/pro-features" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--accent)', textDecoration: 'none', padding: '8px 18px', border: '1px solid rgba(108,99,255,0.4)', borderRadius: 7, background: 'rgba(108,99,255,0.08)' }}>
+          ← جميع مميزات PRO
+        </Link>
       </div>
     </div>
   );

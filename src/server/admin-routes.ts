@@ -2,8 +2,8 @@ import { Router, Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { requireAdmin } from './auth';
-import { getAdapter } from './db';
-import { getAllFeatureFlags, setFeatureFlag } from './feature-flags';
+import { getAdapter, getDb } from './db';
+import { getAllFeatureFlags, setFeatureFlag, getPlanFeatureFlags, setPlanFeatureFlag } from './feature-flags';
 import { getAgentMetricsSummary, getRecentTurns } from './metrics';
 import { userClientManager } from './user-client-manager';
 import { validateMarkupFormula } from './billing';
@@ -18,7 +18,7 @@ router.use(requireAdmin);
 router.get('/users', async (_req: Request, res: Response) => {
   const db = await getAdapter();
   const users = await db.all(`
-    SELECT id, username, balance, wallet_balance, wallet_auto_spend, is_active, selected_mode, created_at, max_tokens_per_session, last_visit
+    SELECT id, username, balance, wallet_balance, wallet_auto_spend, is_active, selected_mode, created_at, max_tokens_per_session, last_visit, plan
     FROM users ORDER BY created_at DESC
   `);
   res.json(users);
@@ -63,6 +63,7 @@ const UpdateUserSchema = z.object({
   password: z.string().min(4).max(100).optional(),
   is_active: z.boolean().optional(),
   max_tokens_per_session: z.number().int().nullable().optional(),
+  plan: z.enum(['regular', 'pro']).optional(),
 });
 
 router.patch('/users/:id', async (req: Request, res: Response) => {
@@ -96,7 +97,50 @@ router.patch('/users/:id', async (req: Request, res: Response) => {
   if (data.max_tokens_per_session !== undefined) {
     await db.run('UPDATE users SET max_tokens_per_session = ? WHERE id = ?', [data.max_tokens_per_session, userId]);
   }
+  if (data.plan) {
+    await db.run('UPDATE users SET plan = ? WHERE id = ?', [data.plan, userId]);
+  }
 
+  res.json({ success: true });
+});
+
+// ── Plan Feature Flags ──────────────────────────────────────────────────────
+
+router.get('/plan-features', (_req: Request, res: Response) => {
+  res.json(getPlanFeatureFlags());
+});
+
+router.patch('/plan-features/:key/:plan', (req: Request, res: Response) => {
+  const { key, plan } = req.params;
+  if (!['regular', 'pro'].includes(plan)) { res.status(400).json({ error: 'Invalid plan' }); return; }
+  const { enabled } = req.body as { enabled: boolean };
+  if (typeof enabled !== 'boolean') { res.status(400).json({ error: 'enabled must be boolean' }); return; }
+  setPlanFeatureFlag(key, plan, enabled);
+  res.json({ success: true });
+});
+
+router.post('/plan-features', (req: Request, res: Response) => {
+  const { key, label, description, proEnabled, regularEnabled } = req.body as {
+    key: string; label: string; description: string; proEnabled: boolean; regularEnabled: boolean;
+  };
+  if (!key || !label) { res.status(400).json({ error: 'key and label are required' }); return; }
+  const safeKey = key.replace(/[^a-z0-9_]/gi, '_').toLowerCase();
+  const db = getDb();
+  for (const plan of ['pro', 'regular'] as const) {
+    const enabled = plan === 'pro' ? (proEnabled ?? true) : (regularEnabled ?? false);
+    db.prepare(
+      `INSERT INTO plan_feature_flags (key, plan, enabled, label, description)
+       VALUES (?, ?, ?, ?, ?)
+       ON CONFLICT(key, plan) DO UPDATE SET label = excluded.label, description = excluded.description, enabled = excluded.enabled, updated_at = datetime('now')`
+    ).run(safeKey, plan, enabled ? 1 : 0, label, description ?? '');
+  }
+  res.json({ success: true, key: safeKey });
+});
+
+router.delete('/plan-features/:key', (req: Request, res: Response) => {
+  const { key } = req.params;
+  const db = getDb();
+  db.prepare('DELETE FROM plan_feature_flags WHERE key = ?').run(key);
   res.json({ success: true });
 });
 
@@ -421,7 +465,7 @@ router.post('/settings/change-password', async (req: Request, res: Response) => 
     res.status(400).json({ error: 'Invalid input' });
     return;
   }
-  // Admin password lives only in env â€” this updates the env var at runtime (VPS restart required for full persistence)
+  // Admin password lives only in env — this updates the env var at runtime (VPS restart required for full persistence)
   // For a more persistent solution, store hashed admin password in app_settings
   const db = await getAdapter();
   const hash = bcrypt.hashSync(parsed.data.new_password, 12);
@@ -649,4 +693,43 @@ router.patch('/topup-requests/:id', async (req: Request, res: Response) => {
   res.json({ success: true });
 });
 
+// ── Plan Upgrade Requests ────────────────────────────────────────────────────
+
+router.get('/upgrade-requests', async (req: Request, res: Response) => {
+  const status = (req.query.status as string) || 'pending';
+  const allowed = ['pending', 'approved', 'rejected', 'all'];
+  const where = allowed.includes(status) && status !== 'all' ? 'WHERE status = ?' : '';
+  const params = status !== 'all' && allowed.includes(status) ? [status] : [];
+  const db = await getAdapter();
+  const rows = await db.all(
+    `SELECT id, user_id, username, current_plan, requested_plan, status, note, requested_at, reviewed_at
+     FROM plan_upgrade_requests ${where} ORDER BY requested_at DESC LIMIT 200`,
+    params,
+  );
+  res.json(rows);
+});
+
+router.patch('/upgrade-requests/:id', async (req: Request, res: Response) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: 'Invalid id' }); return; }
+  const parsed = z.object({ action: z.enum(['approve', 'reject']) }).safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: 'Invalid action' }); return; }
+  const db = await getAdapter();
+  const row = await db.get<{ id: number; user_id: number; requested_plan: string; status: string }>(
+    'SELECT id, user_id, requested_plan, status FROM plan_upgrade_requests WHERE id = ?', [id],
+  );
+  if (!row) { res.status(404).json({ error: 'Request not found' }); return; }
+  if (row.status !== 'pending') { res.status(400).json({ error: `Already ${row.status}` }); return; }
+  const newStatus = parsed.data.action === 'approve' ? 'approved' : 'rejected';
+  await db.run(
+    `UPDATE plan_upgrade_requests SET status = ?, reviewed_at = datetime('now') WHERE id = ?`,
+    [newStatus, id],
+  );
+  if (parsed.data.action === 'approve') {
+    await db.run('UPDATE users SET plan = ? WHERE id = ?', [row.requested_plan, row.user_id]);
+  }
+  res.json({ success: true });
+});
+
 export default router;
+

@@ -341,6 +341,49 @@ export default function PricingPlans() {
         </div>
       </div>
 
+      {/* ── PRO Account Upgrade Pitch ── */}
+      <div style={{ maxWidth: 700, margin: '0 auto', padding: '0 24px 40px' }}>
+        <div style={{
+          borderRadius: 14, border: '1px solid rgba(108,99,255,0.45)',
+          background: 'linear-gradient(135deg, rgba(108,99,255,0.08) 0%, rgba(167,139,250,0.05) 100%)',
+          padding: '28px 28px 24px', position: 'relative', overflow: 'hidden',
+        }}>
+          <div style={{ position: 'absolute', top: 0, right: 0, width: 180, height: 180, borderRadius: '50%', background: 'rgba(108,99,255,0.06)', transform: 'translate(40%,-40%)' }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+            <span style={{ fontSize: 22 }}>⚡</span>
+            <h3 style={{ fontSize: 20, fontWeight: 800, margin: 0, color: 'var(--accent)' }}>Upgrade to PRO</h3>
+            <span style={{ fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: 'rgba(108,99,255,0.2)', color: 'var(--accent)', border: '1px solid rgba(108,99,255,0.4)' }}>ACCOUNT TIER</span>
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <span style={{ fontSize: 32, fontWeight: 800, color: 'var(--text-primary)' }}>$15</span>
+            <span style={{ fontSize: 16, color: 'var(--text-secondary)', marginLeft: 4 }}>/month</span>
+            <span style={{ display: 'inline-block', marginLeft: 10, fontSize: 12, color: 'var(--text-muted)', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, padding: '2px 8px' }}>
+              * $29 first month, $15 thereafter
+            </span>
+          </div>
+          <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: 16, marginTop: 0 }}>
+            Unlock exclusive PRO-only features on top of your existing pay-as-you-go token plan.
+            The PRO account tier gives you access to advanced AI capabilities not available to regular users.
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 18 }}>
+            {[
+              { icon: '🔭', label: 'Advanced Visual Portal' },
+              { icon: '⚡', label: 'Parallel Agent Swarm' },
+              { icon: '🔬', label: 'Parallel Hypothesis Testing' },
+              { icon: '🚧', label: 'Scheduled Agents' },
+            ].map(f => (
+              <div key={f.label} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 20, background: 'rgba(108,99,255,0.1)', border: '1px solid rgba(108,99,255,0.2)', fontSize: 12, fontWeight: 500 }}>
+                <span>{f.icon}</span><span>{f.label}</span>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+            To upgrade, contact your administrator or click <strong>⚡ Upgrade to PRO</strong> in the chat interface.<br />
+            Token usage is still billed separately on a pay-as-you-go basis.
+          </div>
+        </div>
+      </div>
+
       {/* ── How pricing works ── */}
       <div className="pricing-info-shell" style={{
         maxWidth: 700, margin: '0 auto', padding: '0 24px 48px', textAlign: 'center',

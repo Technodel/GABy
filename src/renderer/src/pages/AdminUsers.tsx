@@ -10,6 +10,18 @@ interface User {
   max_tokens_per_session: number | null;
   created_at: string;
   last_visit: string | null;
+  plan: string | null;
+}
+
+interface UpgradeRequest {
+  id: number;
+  user_id: number;
+  username: string;
+  current_plan: string;
+  requested_plan: string;
+  status: string;
+  note: string;
+  requested_at: string;
 }
 
 export default function AdminUsers() {
@@ -28,6 +40,9 @@ export default function AdminUsers() {
   const [editWalletSet, setEditWalletSet] = useState('');
   const [editPassword, setEditPassword] = useState('');
   const [editMaxTokens, setEditMaxTokens] = useState('');
+  const [editPlan, setEditPlan] = useState<'regular' | 'pro'>('regular');
+  const [upgradeRequests, setUpgradeRequests] = useState<UpgradeRequest[]>([]);
+  const [upgradeFilter, setUpgradeFilter] = useState<'pending'|'all'>('pending');
 
   const [error, setError] = useState('');
 
@@ -36,6 +51,8 @@ export default function AdminUsers() {
   async function loadUsers() {
     const res = await fetch('/admin/api/users', { credentials: 'include' });
     if (res.ok) setUsers(await res.json());
+    const uRes = await fetch(`/admin/api/upgrade-requests?status=${upgradeFilter}`, { credentials: 'include' });
+    if (uRes.ok) setUpgradeRequests(await uRes.json());
   }
 
   async function createUser() {
@@ -73,7 +90,8 @@ export default function AdminUsers() {
     if (editBalanceDelta) body.balance_delta = parseFloat(editBalanceDelta);
     if (editWalletSet !== '') body.wallet_balance_set = parseFloat(editWalletSet);
     if (editPassword) body.password = editPassword;
-    if (editMaxTokens !== '') body.max_tokens_per_session = editMaxTokens ? parseInt(editMaxTokens, 10) : null;
+    body.max_tokens_per_session = editMaxTokens ? parseInt(editMaxTokens, 10) : null;
+    body.plan = editPlan;
     const res = await fetch(`/admin/api/users/${editUser.id}`, {
       method: 'PATCH',
       credentials: 'include',
@@ -105,6 +123,15 @@ export default function AdminUsers() {
     loadUsers();
   }
 
+  async function reviewUpgradeRequest(id: number, action: 'approve' | 'reject') {
+    await fetch(`/admin/api/upgrade-requests/${id}`, {
+      method: 'PATCH', credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action }),
+    });
+    await loadUsers();
+  }
+
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
@@ -115,6 +142,38 @@ export default function AdminUsers() {
       </div>
 
       <div className="card table-responsive" style={{ padding: 0, overflow: 'auto' }}>
+        {/* Upgrade Requests Panel */}
+        {upgradeRequests.length > 0 && (
+          <div className="card" style={{ marginBottom: 24, borderColor: 'rgba(108,99,255,0.4)', background: 'rgba(108,99,255,0.04)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+              <span style={{ fontSize: 16 }}>⚡</span>
+              <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700 }}>PRO Upgrade Requests</h3>
+              <button onClick={() => { setUpgradeFilter((f: 'pending'|'all') => f === 'pending' ? 'all' : 'pending'); loadUsers(); }} className="btn btn-secondary" style={{ fontSize: 11, padding: '2px 8px', marginLeft: 'auto' }}>
+                {upgradeFilter === 'pending' ? 'Show All' : 'Show Pending'}
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {upgradeRequests.map((r: UpgradeRequest) => (
+                <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 8, background: 'var(--bg)', border: '1px solid var(--border)', flexWrap: 'wrap' }}>
+                  <div style={{ fontWeight: 600, fontSize: 13, minWidth: 100 }}>{r.username}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{r.current_plan} → <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{r.requested_plan}</span></div>
+                  {r.note && <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontStyle: 'italic', flex: 1 }}>"{r.note}"</div>}
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>{new Date(r.requested_at).toLocaleDateString()}</div>
+                  {r.status === 'pending' ? (
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button className="btn btn-primary" style={{ fontSize: 11, padding: '3px 10px' }} onClick={() => reviewUpgradeRequest(r.id, 'approve')}>✓ Approve</button>
+                      <button className="btn btn-secondary" style={{ fontSize: 11, padding: '3px 10px', color: 'var(--error)' }} onClick={() => reviewUpgradeRequest(r.id, 'reject')}>× Reject</button>
+                    </div>
+                  ) : (
+                    <span style={{ fontSize: 11, fontWeight: 600, color: r.status === 'approved' ? 'var(--success,#22c55e)' : 'var(--error)', padding: '2px 8px', borderRadius: 4 }}>
+                      {r.status.charAt(0).toUpperCase() + r.status.slice(1)}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <table>
           <thead>
             <tr>
@@ -123,6 +182,7 @@ export default function AdminUsers() {
               <th>Wallet</th>
               <th>Status</th>
               <th>Max Tokens</th>
+              <th>Plan</th>
               <th>Last Visit</th>
               <th>Actions</th>
             </tr>
@@ -143,6 +203,14 @@ export default function AdminUsers() {
                 <td style={{ color: 'var(--text-muted)' }}>
                   {u.max_tokens_per_session ? u.max_tokens_per_session.toLocaleString() : 'Unlimited'}
                 </td>
+                <td>
+                  <span style={{
+                    display: 'inline-block', padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600,
+                    background: u.plan === 'pro' ? 'rgba(108,99,255,0.15)' : 'rgba(100,100,100,0.10)',
+                    color: u.plan === 'pro' ? 'var(--accent)' : 'var(--text-muted)',
+                    border: u.plan === 'pro' ? '1px solid rgba(108,99,255,0.3)' : '1px solid var(--border)',
+                  }}>{u.plan === 'pro' ? '⚡ PRO' : 'Regular'}</span>
+                </td>
                 <td style={{ color: 'var(--text-muted)', fontSize: '0.9em' }}>
                   {u.last_visit ? new Date(u.last_visit).toLocaleDateString() + ' ' + new Date(u.last_visit).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Never'}
                 </td>
@@ -154,6 +222,7 @@ export default function AdminUsers() {
                       setEditWalletSet(u.wallet_balance != null ? String(u.wallet_balance.toFixed(2)) : '0');
                       setEditPassword('');
                       setEditMaxTokens(u.max_tokens_per_session ? String(u.max_tokens_per_session) : '');
+                      setEditPlan((u.plan === 'pro' ? 'pro' : 'regular') as 'regular' | 'pro');
                     }}>
                       <Edit2 size={12} />
                     </button>
@@ -236,8 +305,28 @@ export default function AdminUsers() {
                 <input type="password" value={editPassword} onChange={e => setEditPassword(e.target.value)} placeholder="leave blank to keep current" />
               </div>
               <div>
-                <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Max Tokens per Session (blank = unlimited)</label>
-                <input type="number" value={editMaxTokens} onChange={e => setEditMaxTokens(e.target.value)} placeholder="Unlimited" min="0" />
+                <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Max Tokens per Session (blank = unlimited — wallet budget only)</label>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input type="number" value={editMaxTokens} onChange={e => setEditMaxTokens(e.target.value)} placeholder="Unlimited" min="0" style={{ flex: 1 }} />
+                  {editMaxTokens !== '' && (
+                    <button type="button" className="btn btn-secondary" style={{ fontSize: 11, padding: '4px 10px', color: 'var(--error)', whiteSpace: 'nowrap' }} onClick={() => setEditMaxTokens('')}>✕ Remove Limit</button>
+                  )}
+                </div>
+                {editMaxTokens === '' && <div style={{ fontSize: 11, color: 'var(--success,#22c55e)', marginTop: 4 }}>✓ No session token limit — only wallet budget applies</div>}
+              </div>
+              <div>
+                <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>Account Plan</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {(['regular', 'pro'] as const).map(p => (
+                    <button key={p} onClick={() => setEditPlan(p)} style={{
+                      padding: '6px 16px', borderRadius: 6, border: '1px solid',
+                      cursor: 'pointer', fontSize: 13, fontWeight: 500,
+                      borderColor: editPlan === p ? 'var(--accent)' : 'var(--border)',
+                      background: editPlan === p ? 'rgba(108,99,255,0.12)' : 'var(--surface)',
+                      color: editPlan === p ? 'var(--accent)' : 'var(--text-secondary)',
+                    }}>{p === 'pro' ? '⚡ PRO' : 'Regular'}</button>
+                  ))}
+                </div>
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 20, justifyContent: 'flex-end' }}>

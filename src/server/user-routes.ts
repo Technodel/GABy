@@ -22,6 +22,20 @@ router.get('/contact', (_req: Request, res: Response) => {
   res.json(info || {});
 });
 
+router.get('/plan-features-public', (_req: Request, res: Response) => {
+  try {
+    const db = getDb();
+    const flags = db.prepare(
+      `SELECT key, plan, enabled, label, description FROM plan_feature_flags ORDER BY key, plan`
+    ).all() as Array<{ key: string; plan: string; enabled: number; label: string; description: string }>;
+    const limitRow = db.prepare(`SELECT value FROM app_settings WHERE key = 'regular_daily_message_limit'`).get() as { value: string } | undefined;
+    const regularDailyLimit = limitRow ? parseInt(limitRow.value, 10) || null : null;
+    res.json({ flags: flags.map(f => ({ ...f, enabled: f.enabled === 1 })), regular_daily_limit: regularDailyLimit });
+  } catch {
+    res.json({ flags: [], regular_daily_limit: null });
+  }
+});
+
 router.get('/pricing-public', (_req: Request, res: Response) => {
   // Only expose user-facing fields — never expose base token costs, markup formulas, or model IDs.
   const modes = getDb().prepare(
@@ -148,7 +162,7 @@ router.get('/me', (req: Request, res: Response) => {
   const user = (req as AuthRequest).user;
   const db = getDb();
   const row = db.prepare(`
-    SELECT id, username, display_name, balance, wallet_balance, wallet_auto_spend, selected_mode, max_tokens_per_session, is_active, role, bridge_ever_connected
+    SELECT id, username, display_name, balance, wallet_balance, wallet_auto_spend, selected_mode, max_tokens_per_session, is_active, role, bridge_ever_connected, plan
     FROM users WHERE id = ?
   `).get(user.id) as UserRow | undefined;
 
@@ -185,6 +199,10 @@ router.get('/me', (req: Request, res: Response) => {
     cross_device_memory_enabled: getUserSetting('cross_device_memory_enabled', 'false') === 'true',
     chat_show_technical_details: getUserSetting('chat_show_technical_details', 'false') === 'true',
     task_interruption_behavior: getUserSetting('task_interruption_behavior', 'interrupt'),
+    budget_gate_enabled: getUserSetting('budget_gate_enabled', 'false') === 'true',
+    budget_per_run: parseFloat(getUserSetting('budget_per_run', '0')) || 0,
+    forecast_enabled: getUserSetting('forecast_enabled', 'false') === 'true',
+    forecast_markup_mode: getUserSetting('forecast_markup_mode', ''),
     modes: (() => {
       const list = (pricing as PricingRow[]).map(p => {
         const keyCount = (db.prepare('SELECT COUNT(*) as cnt FROM api_keys WHERE mode = ? AND is_active = 1').get(p.mode) as { cnt: number }).cnt;
@@ -197,19 +215,104 @@ router.get('/me', (req: Request, res: Response) => {
           has_active_key: keyCount > 0,
         };
       });
-      // AUTO mode: virtual entry â€” routes to the best real mode per message
+      // AUTO mode: virtual entry — routes to the best real mode per message
       list.push({
         mode: 'auto',
-        display_name: 'ðŸ¤– Auto',
-        description: 'Smartly picks the right model for each message â€” fast for code, powerful for analysis',
+        display_name: '🤖 Auto',
+        description: 'Smartly picks the right model for each message — fast for code, powerful for analysis',
         session_limit_label: 'Adaptive',
         has_active_key: list.some(m => m.has_active_key),
       });
       return list;
     })(),
+    plan: (row as any).plan ?? 'regular',
+    plan_features: (() => {
+      const userPlan = (row as any).plan ?? 'regular';
+      const features = db.prepare(
+        `SELECT key, enabled FROM plan_feature_flags WHERE plan = ?`
+      ).all(userPlan) as Array<{ key: string; enabled: number }>;
+      const map: Record<string, boolean> = {};
+      for (const f of features) map[f.key] = f.enabled === 1;
+      return map;
+    })(),
+    upgrade_pending: !!(db.prepare(`SELECT id FROM plan_upgrade_requests WHERE user_id = ? AND status = 'pending'`).get(user.id)),
     bridge_connected: isBridgeConnected(user.id as number),
     bridge_previously_connected: row.bridge_ever_connected === 1,
   });
+});
+
+// ── Usage stats ──────────────────────────────────────────────────────────────
+
+router.get('/me/usage', requireAuth, (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const db = getDb();
+  const days = Math.min(parseInt((req.query.days as string) ?? '14', 10) || 14, 365);
+
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+  const byDay = db.prepare(`
+    SELECT date(timestamp) as day,
+           SUM(input_tokens) as input_tokens,
+           SUM(output_tokens) as output_tokens,
+           SUM(cache_read_tokens) as cache_read_tokens,
+           SUM(charged_cost) as charged_cost
+    FROM usage_log
+    WHERE user_id = ? AND date(timestamp) >= ?
+    GROUP BY day ORDER BY day ASC
+  `).all(user.id, since) as Array<{ day: string; input_tokens: number; output_tokens: number; cache_read_tokens: number; charged_cost: number }>;
+
+  const byMode = db.prepare(`
+    SELECT mode,
+           SUM(input_tokens) as input_tokens,
+           SUM(output_tokens) as output_tokens,
+           SUM(charged_cost) as charged_cost
+    FROM usage_log
+    WHERE user_id = ? AND date(timestamp) >= ?
+    GROUP BY mode ORDER BY charged_cost DESC
+  `).all(user.id, since) as Array<{ mode: string; input_tokens: number; output_tokens: number; charged_cost: number }>;
+
+  const byProject = db.prepare(`
+    SELECT ul.project_id,
+           COALESCE(p.name, CASE WHEN ul.project_id IS NULL THEN 'No Project' ELSE 'Project #' || ul.project_id END) as project_name,
+           SUM(ul.input_tokens) as input_tokens,
+           SUM(ul.output_tokens) as output_tokens,
+           SUM(ul.charged_cost) as charged_cost
+    FROM usage_log ul
+    LEFT JOIN projects p ON p.id = ul.project_id
+    WHERE ul.user_id = ? AND date(ul.timestamp) >= ?
+    GROUP BY ul.project_id ORDER BY charged_cost DESC
+    LIMIT 20
+  `).all(user.id, since) as Array<{ project_id: number | null; project_name: string; input_tokens: number; output_tokens: number; charged_cost: number }>;
+
+  const totals = db.prepare(`
+    SELECT SUM(input_tokens) as input_tokens,
+           SUM(output_tokens) as output_tokens,
+           SUM(cache_read_tokens) as cache_read_tokens,
+           SUM(charged_cost) as charged_cost
+    FROM usage_log
+    WHERE user_id = ? AND date(timestamp) >= ?
+  `).get(user.id, since) as { input_tokens: number; output_tokens: number; cache_read_tokens: number; charged_cost: number } | undefined;
+
+  res.json({
+    by_day: byDay,
+    by_mode: byMode,
+    by_project: byProject,
+    totals: totals ?? { input_tokens: 0, output_tokens: 0, cache_read_tokens: 0, charged_cost: 0 },
+  });
+});
+
+router.post('/upgrade-request', (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const db = getDb();
+  const row = db.prepare('SELECT username, plan FROM users WHERE id = ?').get(user.id) as { username: string; plan: string | null } | undefined;
+  if (!row) { res.status(404).json({ error: 'User not found' }); return; }
+  const currentPlan = row.plan ?? 'regular';
+  if (currentPlan === 'pro') { res.status(400).json({ error: 'You are already on the PRO plan.' }); return; }
+  const existing = db.prepare(`SELECT id FROM plan_upgrade_requests WHERE user_id = ? AND status = 'pending'`).get(user.id);
+  if (existing) { res.json({ success: true, alreadyPending: true }); return; }
+  const note = typeof (req.body as any).note === 'string' ? (req.body as any).note.trim().slice(0, 300) : '';
+  db.prepare(`INSERT INTO plan_upgrade_requests (user_id, username, current_plan, requested_plan, note) VALUES (?, ?, ?, 'pro', ?)`).run(user.id, row.username, currentPlan, note);
+  res.json({ success: true, alreadyPending: false });
 });
 
 // â”€â”€ Update display name â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -247,7 +350,7 @@ router.get('/projects', (req: Request, res: Response) => {
   try {
     projects = getDb().prepare('SELECT id, name, local_path, persona, auto_execute_override, default_tier, created_at FROM projects WHERE user_id = ?').all(user.id) as typeof projects;
   } catch {
-    // Column may not exist on older DBs â€” fall back to query without it
+    // Column may not exist on older DBs — fall back to query without it
     const rows = getDb().prepare('SELECT id, name, local_path, persona, created_at FROM projects WHERE user_id = ?').all(user.id) as Array<{
       id: number; name: string; local_path: string; persona: string | null; created_at: string;
     }>;
@@ -444,6 +547,10 @@ const UserSettingsSchema = z.object({
   auto_backup_interval: z.number().int().min(1).optional(),
   max_tokens_per_session: z.number().int().positive().nullable().optional(),
   task_interruption_behavior: z.enum(['interrupt', 'queue']).optional(),
+  budget_gate_enabled: z.boolean().optional(),
+  budget_per_run: z.number().min(0).optional(),
+  forecast_enabled: z.boolean().optional(),
+  forecast_markup_mode: z.string().max(32).optional(),
 });
 
 router.patch('/settings', (req: Request, res: Response) => {
@@ -517,7 +624,7 @@ interface PricingRow {
 // â”€â”€ Bridge token (for BridgeSetup page) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Issues a long-lived (1 year) JWT scoped for bridge use. The frontend can't
 // read the httpOnly cookie directly, and the user's session token would expire
-// in hours â€” neither is good UX for a background bridge process. Instead we
+// in hours — neither is good UX for a background bridge process. Instead we
 // mint a fresh long-lived token tied to the authenticated user.
 router.get('/bridge-token', (req: Request, res: Response) => {
   const sessionToken = req.cookies?.suny_token;
@@ -651,7 +758,7 @@ router.patch('/wallet/auto-spend', (req: Request, res: Response) => {
 // â”€â”€ Top-up Requests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Users file a request; an admin reviews it in the admin dashboard and either
 // approves (which calls the existing wallet_balance_set / transferToWallet path)
-// or rejects with a note. No live payment processor yet â€” keeps things honest.
+// or rejects with a note. No live payment processor yet — keeps things honest.
 
 const TopupRequestSchema = z.object({
   amount: z.number().positive().max(10000),
@@ -978,7 +1085,7 @@ router.post('/projects/:id/dev-server/start', async (req: Request, res: Response
     if (pkg.scripts?.dev) startCmd = 'npm run dev';
     else if (pkg.scripts?.start) startCmd = 'npm start';
     else if (pkg.scripts?.serve) startCmd = 'npm run serve';
-  } catch { /* no package.json â€” use python fallback */ }
+  } catch { /* no package.json — use python fallback */ }
 
   try {
     // Fire-and-forget: bridge runs the process detached
@@ -1099,7 +1206,7 @@ router.post('/projects/:id/reindex', async (req: Request, res: Response) => {
 //
 // A snapshot captures the *full mind-state* of a moment: conversation +
 // (optionally) blueprint memory, behavioral rules, tier, and active skills.
-// Restoring is selective â€” user picks Conversation / Memory / Code via flags.
+// Restoring is selective — user picks Conversation / Memory / Code via flags.
 
 interface SnapshotRow {
   uid: string;
@@ -1243,7 +1350,7 @@ router.post('/snapshots/:uid/restore', (req: Request, res: Response) => {
   }
 
   if (parsed.data.restore_memory && snap.blueprint_json) {
-    // Memory restore is informational here â€” the agent-loop will read from the
+    // Memory restore is informational here — the agent-loop will read from the
     // frozen snapshot when projects.frozen_snapshot_uid is set. We don't
     // overwrite blueprint_entries / behavioral_rules tables on restore (would
     // destroy ongoing learning). Use the Freeze Brain toggle to apply the
@@ -1252,7 +1359,7 @@ router.post('/snapshots/:uid/restore', (req: Request, res: Response) => {
   }
 
   if (parsed.data.restore_code) {
-    // Code rollback is intentionally NOT auto-executed here â€” git operations
+    // Code rollback is intentionally NOT auto-executed here — git operations
     // run through the bridge, which the client invokes via the existing
     // checkpoint-rollback endpoint. Surface the checkpoint_id so the UI can
     // chain the call.
@@ -1339,6 +1446,57 @@ router.get('/projects/:id/blueprint', (req: Request, res: Response) => {
   if (!proj) { res.status(404).json({ error: 'Project not found' }); return; }
   const entries = getBlueprintEntries({ userId: user.id as number, projectId, limit: 50 });
   res.json({ entries });
+});
+
+// ── User Memories CRUD ────────────────────────────────────────────────────────
+
+/** List all saved memories for the current user */
+router.get('/memories', requireAuth, (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const db = getDb();
+  const rows = db.prepare(
+    `SELECT id, content, project_id, created_at FROM user_memories WHERE user_id = ? ORDER BY created_at DESC`
+  ).all(user.id) as Array<{ id: number; content: string; project_id: number | null; created_at: string }>;
+  res.json({ memories: rows });
+});
+
+/** Delete a specific memory by id */
+router.delete('/memories/:id', requireAuth, (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const memId = parseInt(req.params.id, 10);
+  if (isNaN(memId)) { res.status(400).json({ error: 'Invalid id' }); return; }
+  const db = getDb();
+  const r = db.prepare('DELETE FROM user_memories WHERE id = ? AND user_id = ?').run(memId, user.id);
+  if (r.changes === 0) { res.status(404).json({ error: 'Memory not found' }); return; }
+  res.json({ success: true });
+});
+
+// ── Codebase Health ──────────────────────────────────────────────────────────
+
+/** GET /api/projects/:id/health — last N health log entries for a project */
+router.get('/projects/:id/health', requireAuth, (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const projectId = parseInt(req.params.id, 10);
+  if (isNaN(projectId)) { res.status(400).json({ error: 'Invalid project id' }); return; }
+  const proj = getDb().prepare('SELECT id FROM projects WHERE id = ? AND user_id = ?').get(projectId, user.id);
+  if (!proj) { res.status(404).json({ error: 'Project not found' }); return; }
+  const { getHealthHistory, getLatestHealthScore } = require('./health-scorer');
+  const history = getHealthHistory(projectId, 30);
+  const latest = getLatestHealthScore(projectId);
+  res.json({ history, latest });
+});
+
+/** Delete all memories for the current user (optional project filter) */
+router.delete('/memories', requireAuth, (req: Request, res: Response) => {
+  const user = (req as AuthRequest).user;
+  const projectId = req.query.project_id ? parseInt(req.query.project_id as string, 10) : null;
+  const db = getDb();
+  if (projectId) {
+    db.prepare('DELETE FROM user_memories WHERE user_id = ? AND project_id = ?').run(user.id, projectId);
+  } else {
+    db.prepare('DELETE FROM user_memories WHERE user_id = ?').run(user.id);
+  }
+  res.json({ success: true });
 });
 
 export default router;

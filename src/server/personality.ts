@@ -38,7 +38,7 @@ function loadBank(): MessageBank {
   }
 
   if (!raw) {
-    console.warn('[personality] suny_status_messages.txt not found â€” using fallbacks');
+    console.warn('[personality] suny_status_messages.txt not found — using fallbacks');
     bank = {};
     return bank;
   }
@@ -91,7 +91,7 @@ export function pickRandom(category: string, fallback = ''): string {
  * Start a "Did you know?" timer that pushes a random fact to the user every
  * 60 seconds while a long task is running.
  *
- * Returns a cleanup function â€” call it when the task finishes so the interval
+ * Returns a cleanup function — call it when the task finishes so the interval
  * is cleared and no fact leaks after the response is done.
  *
  *   const stopFacts = startDidYouKnowTimer(userId, signal);

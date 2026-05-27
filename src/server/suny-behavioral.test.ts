@@ -21,7 +21,7 @@ process.env.SUNY_DB_PATH = TEST_DB_PATH;
 process.env.GROQ_API_KEY = 'gsk_test_groq_key_12345678901234567890123456789012';
 process.env.DEEPSEEK_API_KEY = 'sk-test-deepseek-key-12345678901234567890';
 process.env.OPENROUTER_API_KEY = 'sk-or-test_openrouter_key_12345678901234567890123456';
-process.env.GEMINI_API_KEY = 'AIzaSyTestGeminiKey1234567890abcdefghijklm';
+
 process.env.SERPAPI_API_KEY = 'test_serpapi_key_12345678901234567890123456789012';
 process.env.SERPER_API_KEY = 'test_serper_key_1234567890abcdef';
 process.env.SUNY_SECRET_JWT = 'test-jwt-secret-key-for-testing-only-12345678';
@@ -738,11 +738,7 @@ describe('8. System Integrity (tests 91-105)', () => {
     expect(process.env.OPENROUTER_API_KEY!.startsWith('sk-or')).toBe(true);
   });
 
-  // 95
-  it('should have Gemini API key', () => {
-    expect(process.env.GEMINI_API_KEY).toBeTruthy();
-    expect(process.env.GEMINI_API_KEY!.startsWith('AIza')).toBe(true);
-  });
+
 
   // 96
   it('should have web search API keys', () => {

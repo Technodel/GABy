@@ -23,18 +23,31 @@ export type ErrorSource = 'lint' | 'test' | 'build' | 'runtime' | 'shell' | 'typ
 
 export interface FailureRecord {
   id?: number;
-  userId: number;
-  projectId: number | null;
-  errorSource: ErrorSource;
-  errorPattern: string;
-  errorMessage: string;
-  filePath: string;
-  functionName: string;
-  contextSnippet: string;
-  attemptedFix: string;
-  fixSucceeded: boolean;
-  recurrenceCount: number;
-  createdAt: string;
+  user_id: number;
+  project_id: number | null;
+  error_source: ErrorSource;
+  error_pattern: string;
+  error_message: string;
+  file_path: string;
+  function_name: string;
+  context_snippet: string;
+  attempted_fix: string;
+  fix_succeeded: number;
+  recurrence_count: number;
+  created_at: string;
+  // camelCase aliases for backward compat
+  userId?: number;
+  projectId?: number | null;
+  errorSource?: ErrorSource;
+  errorPattern?: string;
+  errorMessage?: string;
+  filePath?: string;
+  functionName?: string;
+  contextSnippet?: string;
+  attemptedFix?: string;
+  fixSucceeded?: boolean;
+  recurrenceCount?: number;
+  createdAt?: string;
 }
 
 export interface FailureMatch {
@@ -268,15 +281,60 @@ export function formatFailureContext(matches: FailureMatch[]): string {
     return [
       `[${i + 1}] Previous occurrence (${r.created_at?.slice(0, 10) || 'unknown'}) â€” recurred ${r.recurrence_count}x`,
       `  Error: ${r.error_message?.slice(0, 200)}`,
-      r.filePath ? `  File: ${r.filePath}` : '',
-      r.functionName ? `  Function: ${r.functionName}` : '',
-      r.contextSnippet ? `  Context: ${r.contextSnippet?.slice(0, 200)}` : '',
+      r.file_path ? `  File: ${r.file_path}` : '',
+      r.function_name ? `  Function: ${r.function_name}` : '',
+      r.context_snippet ? `  Context: ${r.context_snippet?.slice(0, 200)}` : '',
       r.attempted_fix ? `  Previous fix: ${r.attempted_fix?.slice(0, 300)}` : '',
       `  Outcome: ${outcome}`,
     ].filter(Boolean).join('\n');
   });
 
   return `<failure_memory>\n${blocks.join('\n\n')}\n</failure_memory>`;
+}
+
+/**
+ * Prune stale or low-value failure records.
+ * Rules (mirrors Hermes curator logic, simplified for SQLite):
+ *   1. Delete failures older than 30 days that never recurred (recurrence_count = 1) and fix_succeeded = 0
+ *   2. Delete failures older than 90 days regardless of recurrence (patterns that old are stale)
+ *   3. Cap each user at 200 records, keeping the highest recurrence_count ones
+ */
+export function pruneFailureMemory(): void {
+  const db = getDb();
+
+  // Rule 1: single-occurrence failures older than 30 days that were never fixed
+  db.prepare(`
+    DELETE FROM failure_memory
+    WHERE recurrence_count = 1
+      AND fix_succeeded = 0
+      AND created_at < datetime('now', '-30 days')
+  `).run();
+
+  // Rule 2: any record older than 90 days
+  db.prepare(`
+    DELETE FROM failure_memory
+    WHERE created_at < datetime('now', '-90 days')
+  `).run();
+
+  // Rule 3: per-user cap at 200 — keep the 200 with highest recurrence
+  const users = db.prepare(
+    `SELECT DISTINCT user_id FROM failure_memory GROUP BY user_id HAVING COUNT(*) > 200`
+  ).all() as Array<{ user_id: number }>;
+
+  for (const { user_id } of users) {
+    db.prepare(`
+      DELETE FROM failure_memory
+      WHERE user_id = ?
+        AND id NOT IN (
+          SELECT id FROM failure_memory
+          WHERE user_id = ?
+          ORDER BY recurrence_count DESC, created_at DESC
+          LIMIT 200
+        )
+    `).run(user_id, user_id);
+  }
+
+  console.log('[failure-memory] pruning complete');
 }
 
 /**

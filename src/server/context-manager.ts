@@ -26,7 +26,7 @@ const PROVIDER_CONTEXT: Record<string, number> = {
   Groq: 131_072,
   DeepSeek: 64_000,
   OpenRouter: 128_000,
-  Gemini: 1_000_000,
+
   default: 128_000,
 };
 

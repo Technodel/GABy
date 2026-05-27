@@ -52,6 +52,7 @@ import {
   extractMistakeRule,
 } from './behavioral-rules';
 import { getAdapter } from './db';
+import { createUserModelTool, formatUserModelForPrompt } from './user-model';
 import {
   buildCrossProjectPrompt,
   shareErrorPattern, shareDesignDecision,
@@ -179,6 +180,11 @@ export interface AgentLoopRequest {
   talkMode?: boolean;
   signal?: AbortSignal;
   onChunk?: (chunk: string) => void;
+  /** Budget gate — called at 80% (warn) and 90% (gate) of budgetCapCredits */
+  budgetCapCredits?: number;
+  onBudgetWarning?: (spent: number, cap: number, pct: number) => void;
+  onBudgetGate?: (spent: number, cap: number) => Promise<'continue' | 'budget_mode' | 'extend' | 'stop'>;
+  onBudgetExtend?: () => Promise<number>;
 }
 
 export interface AgentLoopResult {
@@ -222,9 +228,27 @@ export interface AgentLoopResult {
  *   - Message length (longer = more complex)
  *   - System introspection (questions about SUNy's own behavior/instructions)
  */
-export function classifyAutoMode(message: string, hasImage?: boolean): 'free' | 'fast' | 'smart' | 'pro' {
+/**
+ * Return the maximum number of tool-use steps allowed for a given mode.
+ * Task complexity (derived from classifyAutoMode) further adjusts the limit
+ * so that simple fast requests don't over-iterate while pro tasks get headroom.
+ */
+export function getStepLimit(resolvedMode: string, userMessage: string): number {
+  if (resolvedMode === 'free') return 4;
+  const complexity = classifyAutoMode(userMessage);
+  if (resolvedMode === 'fast') return complexity === 'smart' || complexity === 'pro' ? 14 : 10;
+  if (resolvedMode === 'smart') return 18;
+  if (resolvedMode === 'pro') return 24;
+  return 12; // auto / unknown
+}
+
+export function classifyAutoMode(
+  message: string,
+  hasImage?: boolean,
+  history?: Array<{ role: string; content: string | unknown }>,
+): 'free' | 'fast' | 'smart' | 'pro' {
   if (hasImage) {
-    const base = classifyAutoMode(message);
+    const base = classifyAutoMode(message, false, history);
     return base === 'free' ? 'fast' : base;
   }
   const t = message.toLowerCase();
@@ -241,13 +265,24 @@ export function classifyAutoMode(message: string, hasImage?: boolean): 'free' | 
   // Smart signals: creation/build intent (regardless of length)
   if (/\b(make a|create a|build a|create an|make an|build an|write a|generate a|scaffold a|design a|add a new|implement a new|new function|new endpoint|new route|new component|new module|new feature)\b/.test(t)) return 'smart';
 
-
   // Smart signals: depth/analysis/architecture keywords (length-independent)
   if (/\b(analyze|architect|optimize|migrate|restructure|integrate|configur|deploy|schema|query|pipeline|workflow|module|service|middleware|hook|layout|responsive|accessibility|state|reducer|selector|thunk|saga|observable|subscription|security|performance)\b/.test(t)) return 'smart';
 
   // Smart signals: domain keywords when message has enough context (>40 chars)
   if (t.length > 40 && /\b(component|refactor)\b/.test(t) && /\b(error|handle|proper|complex|multi|with|and|including)\b/.test(t)) return 'smart';
 
+  // History-escalation signal: if the last assistant turn contained errors/failures,
+  // escalate one level above what the message text alone would suggest.
+  if (history && history.length > 0) {
+    const lastAssistant = [...history].reverse().find(h => h.role === 'assistant');
+    const lastContent = typeof lastAssistant?.content === 'string' ? lastAssistant.content : '';
+    if (lastContent && /error|failed|issue|problem|doesn't work|couldn't|couldn't complete/i.test(lastContent)) {
+      // Base without history to avoid recursion, then escalate one tier
+      const base = classifyAutoMode(message);
+      const tier: Record<string, 'fast' | 'smart' | 'pro'> = { free: 'fast', fast: 'smart', smart: 'pro', pro: 'pro' };
+      return tier[base] ?? 'smart';
+    }
+  }
 
   // Free signals: very short casual messages with no coding keywords
   if (
@@ -255,7 +290,7 @@ export function classifyAutoMode(message: string, hasImage?: boolean): 'free' | 
     !/\b(fix|error|bug|implement|create|refactor|add|write|function|class|api|test|deploy|code|file|build|run|install|import|export|async|await|type|interface)\b/.test(t)
   ) return 'free';
 
-  // Default: fast Ã¢â‚¬â€ handles most coding tasks well
+  // Default: fast — handles most coding tasks well
   return 'fast';
 }
 
@@ -301,7 +336,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
   const startedAt = Date.now();
 
   // Resolve AUTO Ã¢â€ â€™ real mode via keyword classification
-  let resolvedMode = mode === 'auto' ? classifyAutoMode(userMessage, !!imageData) : mode;
+  let resolvedMode = mode === 'auto' ? classifyAutoMode(userMessage, !!imageData, history) : mode;
 
   // Ã¢â€â‚¬Ã¢â€â‚¬ Anti-hallucination guard Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   // Free-mode models are too weak to reliably drive the bridge tool calls.
@@ -454,6 +489,19 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
     }
   }
 
+  // ── Structured user model: inject what we know about this user
+  try {
+    const userModelBlock = formatUserModelForPrompt(userId);
+    if (userModelBlock) {
+      const ins = fullSystem.lastIndexOf('\n<WorkingDirectory>');
+      fullSystem = ins >= 0
+        ? fullSystem.slice(0, ins) + '\n' + userModelBlock + fullSystem.slice(ins)
+        : fullSystem + '\n' + userModelBlock;
+    }
+  } catch (e) {
+    console.warn('[agent-loop] User model injection failed:', (e as Error).message);
+  }
+
   // Build tools (only if bridge is connected, project is set, and NOT in talk mode)
   // MCP tools from connected servers are merged automatically
   // Ã¢â€â‚¬Ã¢â€â‚¬ Model references (set inside model loop, used by lazy-getter tools) Ã¢â€â‚¬Ã¢â€â‚¬
@@ -577,6 +625,61 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
         },
       });
 
+      const checkpointTool = tool({
+        description: 'Pause execution and ask the user to confirm before proceeding. Use this BEFORE making irreversible or risky changes (e.g. deleting files, dropping database tables, replacing large sections of code, merging branches). Describe what you are about to do and why. If the user approves, proceed. If they abort, stop and report what was skipped.',
+        inputSchema: z.object({
+          label: z.string().describe('Short headline: what are you about to do? (e.g. "Delete 3 files and rewrite auth module")'),
+          details: z.string().describe('One paragraph explaining: what will change, what will be irreversible, and what the safe alternative is if they say no.'),
+        }),
+        execute: async (input: { label: string; details: string }) => {
+          const approved = await userClientManager.waitForCheckpoint(userId, input.label, input.details);
+          return approved
+            ? 'APPROVED — proceed with the planned changes.'
+            : 'ABORTED — the user chose not to proceed. Stop this task and report what was skipped.';
+        },
+      });
+
+      const worktreeTool = tool({
+        description: 'Create an isolated git worktree for the current task so changes are safe to make without touching the main branch. Use this before making large-scale or risky edits. After the task is done, merge it back with merge_worktree.',
+        inputSchema: z.object({
+          branch_name: z.string().describe('Name for the new branch/worktree (e.g. "suny/fix-auth-flow")'),
+        }),
+        execute: async (input: { branch_name: string }) => {
+          const { sendToBridge } = await import('./bridge-manager');
+          const worktreePath = `.worktrees/${input.branch_name.replace(/\//g, '-')}`;
+          const result = await sendToBridge(userId, {
+            type: 'shell',
+            command: `git worktree add -b "${input.branch_name}" "${worktreePath}" HEAD 2>&1 || git worktree add "${worktreePath}" "${input.branch_name}" 2>&1`,
+            cwd: projectPath,
+          });
+          const out = typeof result === 'object' && result !== null && 'stdout' in result ? String((result as {stdout: string}).stdout) : String(result);
+          if (out.includes('already exists') || out.includes('Preparing worktree')) {
+            return `Worktree created at ${worktreePath} on branch ${input.branch_name}. All changes will be isolated here.`;
+          }
+          return out || `Worktree created at ${worktreePath}.`;
+        },
+      });
+
+      const mergeWorktreeTool = tool({
+        description: 'Merge a completed worktree branch back into the main branch and clean up. Call this after all changes in the worktree are verified and ready.',
+        inputSchema: z.object({
+          branch_name: z.string().describe('The branch name that was created by create_worktree'),
+          delete_after_merge: z.boolean().default(true).describe('Whether to delete the worktree and branch after merging'),
+        }),
+        execute: async (input: { branch_name: string; delete_after_merge: boolean }) => {
+          const { sendToBridge } = await import('./bridge-manager');
+          const worktreePath = `.worktrees/${input.branch_name.replace(/\//g, '-')}`;
+          let out = '';
+          const merge = await sendToBridge(userId, { type: 'shell', command: `git merge --no-ff "${input.branch_name}" -m "Merge ${input.branch_name} via SUNy worktree" 2>&1`, cwd: projectPath });
+          out += typeof merge === 'object' && merge !== null && 'stdout' in merge ? String((merge as {stdout:string}).stdout) : String(merge);
+          if (input.delete_after_merge) {
+            const cleanup = await sendToBridge(userId, { type: 'shell', command: `git worktree remove "${worktreePath}" --force 2>&1 && git branch -d "${input.branch_name}" 2>&1`, cwd: projectPath });
+            out += '\n' + (typeof cleanup === 'object' && cleanup !== null && 'stdout' in cleanup ? String((cleanup as {stdout:string}).stdout) : String(cleanup));
+          }
+          return out.trim() || 'Worktree merged and cleaned up successfully.';
+        },
+      });
+
       const extraTools = {
         ...memoryTools,     // save_memory, recall_memories, delete_memory
         read_symbols: symbolReaderTool,
@@ -588,6 +691,10 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
         code_search: codeSearchTool,
         who_imports: whoImportsTool,
         get_repo_map: repoMapTool,
+        request_checkpoint: checkpointTool,
+        create_worktree: worktreeTool,
+        merge_worktree: mergeWorktreeTool,
+        update_user_model: createUserModelTool(userId),
       };
 
       let merged = { ...alwaysTools, ...powerTools, ...extraTools };
@@ -693,6 +800,25 @@ If your tools are not working, say:
   let totalCacheRead = 0;
   let steps = 0;
 
+  // ── Budget gate state ────────────────────────────────────────────────────
+  const { budgetCapCredits, onBudgetWarning, onBudgetGate, onBudgetExtend } = req;
+  let estimatedSpend = 0;         // running credit estimate based on token totals
+  let budgetCap = budgetCapCredits ?? null;
+  let budget80Fired = false;
+  let budget90Fired = false;
+  let budgetMode = false;         // when true, inject lean-finish instruction
+  // Fetch pricing rates once for cost estimation
+  let inputRate = 0;
+  let outputRate = 0;
+  if (budgetCap) {
+    try {
+      const { getDb } = await import('./db');
+      const dbInst = getDb();
+      const pm = dbInst.prepare('SELECT input_token_base_cost, output_token_base_cost FROM pricing_modes WHERE mode = ?').get(resolvedMode) as { input_token_base_cost: number; output_token_base_cost: number } | undefined;
+      if (pm) { inputRate = pm.input_token_base_cost; outputRate = pm.output_token_base_cost; }
+    } catch { /* best-effort */ }
+  }
+
   // If image data is present but no vision-capable models were found, throw
   if (isVisionRequest && modelEntries.length === 0) {
     throw new Error('NO_VISION_MODEL_AVAILABLE');
@@ -705,9 +831,26 @@ If your tools are not working, say:
     currentProvider = provider;
 
     try {
+      // Auto-summarize long sessions before trimming (preserves goal/decision context)
+      let rawMessagesForProvider = rawMessages;
+      if (rawMessages.length > 12) {
+        try {
+          const { autoSummarizeIfNeeded } = await import('./context-summarizer');
+          const { getContextLimit: ctxLimit } = await import('./context-manager');
+          const sumResult = await autoSummarizeIfNeeded(
+            { model: model as LanguageModel, provider, signal },
+            { rawMessages: rawMessages as Array<{ role: string; content: string }>, systemPrompt: fullSystem ?? '', contextLimit: ctxLimit(provider) },
+          );
+          if (sumResult.summarized) {
+            rawMessagesForProvider = sumResult.messages as typeof rawMessages;
+            console.log(`[agent-loop] Auto-summarized ${rawMessages.length} messages → ${rawMessagesForProvider.length}`);
+          }
+        } catch { /* best-effort — fall through to plain trim */ }
+      }
+
       // Trim history to fit this provider's context window
-      const messages = trimHistory(rawMessages, fullSystem, provider);
-      if (messages.length < rawMessages.length) {
+      const messages = trimHistory(rawMessagesForProvider, fullSystem, provider);
+      if (messages.length < rawMessagesForProvider.length) {
         console.log(`[agent-loop] trimmed history ${rawMessages.length} Ã¢â€ â€™ ${messages.length} msgs for ${provider}`);
       }
 
@@ -752,15 +895,16 @@ If your tools are not working, say:
         // model has tools available we need to let it iterate, otherwise it
         // stops after the first tool call without ever producing the final
         // text answer or follow-up tool calls.
-        stopWhen: toolCount > 0 ? stepCountIs(8) : undefined,
+        stopWhen: toolCount > 0 ? stepCountIs(getStepLimit(resolvedMode, userMessage)) : undefined,
         abortSignal: signal,
-        prepareStep: forceToolStep0
-          ? ({ stepNumber }) => (stepNumber === 0 ? { toolChoice: 'required' as const } : undefined)
-          : undefined,
         onStepFinish: ({ usage, text, toolCalls, toolResults }) => {
           steps++;
           totalInput += usage?.inputTokens ?? 0;
           totalOutput += usage?.outputTokens ?? 0;
+          // Update running cost estimate
+          if (budgetCap && (inputRate > 0 || outputRate > 0)) {
+            estimatedSpend = totalInput * inputRate + totalOutput * outputRate;
+          }
           console.log(`[agent-loop] onStepFinish: step=${steps}, inputTokens=${usage?.inputTokens ?? 0}, outputTokens=${usage?.outputTokens ?? 0}`);
           userClientManager.pushToUser(userId, 'suny:step_complete', {
             step: steps,
@@ -774,6 +918,49 @@ If your tools are not working, say:
               message: narrateMessage('Working through the steps...', 'thinking'),
             });
           }
+        },
+        prepareStep: async ({ stepNumber }) => {
+          // Budget gate checks between steps
+          if (budgetCap && budgetCap > 0 && estimatedSpend > 0) {
+            const pct = estimatedSpend / budgetCap;
+            // 80% warning (fire once, non-blocking)
+            if (pct >= 0.8 && !budget80Fired) {
+              budget80Fired = true;
+              if (onBudgetWarning) onBudgetWarning(estimatedSpend, budgetCap, pct);
+            }
+            // 90% gate (fire once, blocking — wait for user decision)
+            if (pct >= 0.9 && !budget90Fired && onBudgetGate) {
+              budget90Fired = true;
+              const decision = await onBudgetGate(estimatedSpend, budgetCap);
+              if (decision === 'stop') {
+                // Abort the loop
+                if (signal && !signal.aborted) {
+                  (signal as any)._budgetStop = true;
+                }
+                throw new Error('BUDGET_STOP');
+              } else if (decision === 'extend' && onBudgetExtend) {
+                const newCap = await onBudgetExtend();
+                if (newCap > budgetCap) {
+                  budgetCap = newCap;
+                  budget80Fired = false;
+                  budget90Fired = false;
+                }
+              } else if (decision === 'budget_mode') {
+                budgetMode = true;
+              }
+              // 'continue' falls through
+            }
+          }
+          // Budget Mode: inject lean-finish system injection for remaining steps
+          if (budgetMode) {
+            const leanInstruction = '[BUDGET MODE: You are running on minimal remaining budget. Do NOT do any further reading, exploring, or verification steps. Wrap up what you have already done into the best possible final answer right now. Skip all optional steps. Deliver results immediately.]';
+            return {
+              system: (useSystemParam ? (fullSystem ?? '') : '') + '\n\n' + leanInstruction,
+            };
+          }
+          // Force first tool call logic (preserve existing)
+          if (stepNumber === 0 && forceToolStep0) return { toolChoice: 'required' as const };
+          return undefined;
         },
         experimental_telemetry: { isEnabled: false },
       });
@@ -904,7 +1091,7 @@ If your tools are not working, say:
               system: fullSystem,
               messages: trimRetry,
               tools: effectiveTools,
-              stopWhen: stepCountIs(4),
+              stopWhen: stepCountIs(6),
               maxTokens: 8000,
               abortSignal: signal,
             });
@@ -991,7 +1178,7 @@ If your tools are not working, say:
             system: fullSystem,
             messages: trimFu,
             tools: effectiveTools,
-            stopWhen: stepCountIs(4),
+            stopWhen: stepCountIs(6),
             prepareStep: ({ stepNumber }) =>
               stepNumber === 0 ? { toolChoice: 'required' as const } : { toolChoice: 'auto' as const },
             maxTokens: 4000,
@@ -1129,7 +1316,7 @@ If your tools are not working, say:
                 system: fullSystem,
                 messages: trimFu,
                 tools: effectiveTools,
-                stopWhen: stepCountIs(4),
+                stopWhen: stepCountIs(6),
                 maxTokens: 4000,
                 abortSignal: signal,
               });

@@ -10,6 +10,9 @@ interface BridgeConnection {
   username: string;
   connectedAt: Date;
   lastPing: Date;
+  lastPong: Date;
+  pingTimer?: NodeJS.Timeout;
+  pongTimer?: NodeJS.Timeout;
 }
 
 interface PendingRequest {
@@ -40,10 +43,27 @@ const MAX_BG_LOG_LINES = 500;
 const MAX_BG_PROCESSES_PER_USER = 5;
 const backgroundProcesses = new Map<string, BackgroundProcessRecord>();
 
-// Map: userId â†’ active bridge connection
+const BRIDGE_PING_INTERVAL = 20_000;
+const BRIDGE_PONG_TIMEOUT = 10_000;
+
+interface QueuedRequest {
+  type: string;
+  payload: unknown;
+  resolve: (v: unknown) => void;
+  reject: (e: Error) => void;
+  timeoutMs: number;
+  attempts: number;
+  enqueuedAt: number;
+}
+
+const replayQueue = new Map<number, QueuedRequest[]>();
+const MAX_REPLAY_ATTEMPTS = 2;
+const MAX_QUEUE_AGE_MS = 30_000;
+
+// Map: userId → active bridge connection
 const activeBridges = new Map<number, BridgeConnection>();
 
-// Map: pending request id â†’ resolve/reject callbacks (with userId tracking)
+// Map: pending request id → resolve/reject callbacks (with userId tracking)
 const pendingRequests = new Map<string, PendingRequest>();
 
 export function registerBridge(userId: number, username: string, ws: WebSocket): void {
@@ -57,12 +77,15 @@ export function registerBridge(userId: number, username: string, ws: WebSocket):
 
   // Set up the new bridge connection â€” handlers are attached synchronously
   // so they're ready before any async operation (e.g. DB write below).
-  const conn: BridgeConnection = { ws, userId, username, connectedAt: new Date(), lastPing: new Date() };
+  const conn: BridgeConnection = { ws, userId, username, connectedAt: new Date(), lastPing: new Date(), lastPong: new Date() };
   activeBridges.set(userId, conn);
+  startBridgePingLoop(conn);
 
   ws.on('message', (raw) => handleBridgeMessage(userId, raw.toString()));
   ws.on('close', (code, reason) => {
     console.log(`[bridge-manager] Bridge DISCONNECTED for user ${userId} (code=${code}, reason=${reason?.toString() || 'none'})`);
+    if (conn.pingTimer) { clearInterval(conn.pingTimer); conn.pingTimer = undefined; }
+    if (conn.pongTimer) { clearTimeout(conn.pongTimer); conn.pongTimer = undefined; }
     // Only clean up if this ws is still the active connection â€” prevents a
     // stale close handler from a replaced bridge from deleting the new bridge
     // AND from rejecting the new bridge's pending requests.
@@ -74,6 +97,8 @@ export function registerBridge(userId: number, username: string, ws: WebSocket):
   });
   ws.on('error', (err) => {
     console.log(`[bridge-manager] Bridge ERROR for user ${userId}: ${err.message}`);
+    if (conn.pingTimer) { clearInterval(conn.pingTimer); conn.pingTimer = undefined; }
+    if (conn.pongTimer) { clearTimeout(conn.pongTimer); conn.pongTimer = undefined; }
     const current = activeBridges.get(userId);
     if (current && current.ws === ws) {
       activeBridges.delete(userId);
@@ -85,6 +110,23 @@ export function registerBridge(userId: number, username: string, ws: WebSocket):
 
   // Mark user as having ever connected a bridge (fire-and-forget)
   try { getAdapter().run('UPDATE users SET bridge_ever_connected = 1 WHERE id = ?', [userId]); } catch { /* best-effort */ }
+
+  // Replay any queued requests that were buffered while this bridge was offline
+  replayQueuedRequests(userId);
+}
+
+function startBridgePingLoop(conn: BridgeConnection): void {
+  conn.pingTimer = setInterval(() => {
+    if (conn.ws.readyState !== WebSocket.OPEN) return;
+    conn.ws.send(JSON.stringify({ type: 'bridge:ping', ts: Date.now() }));
+    conn.pongTimer = setTimeout(() => {
+      const current = activeBridges.get(conn.userId);
+      if (current && current.ws === conn.ws && current === conn) {
+        console.warn(`[bridge-manager] Pong timeout for user ${conn.userId} — forcing reconnect`);
+        conn.ws.terminate();
+      }
+    }, BRIDGE_PONG_TIMEOUT);
+  }, BRIDGE_PING_INTERVAL);
 }
 
 function handleBridgeMessage(userId: number, raw: string): void {
@@ -97,8 +139,18 @@ function handleBridgeMessage(userId: number, raw: string): void {
 
   const { type, id } = msg as { type: string; id?: string };
 
-  // Update last ping time
   const conn = activeBridges.get(userId);
+
+  // Handle pong from bridge (bidirectional heartbeat acknowledgment)
+  if (type === 'bridge:pong') {
+    if (conn) {
+      conn.lastPong = new Date();
+      if (conn.pongTimer) { clearTimeout(conn.pongTimer); conn.pongTimer = undefined; }
+    }
+    return;
+  }
+
+  // Update last ping time on any message
   if (conn) conn.lastPing = new Date();
 
   if (!id) return;
@@ -198,10 +250,23 @@ function handleBridgeMessage(userId: number, raw: string): void {
  * For one-shot operations (file ops, bash) â€” resolves on bridge:done with
  * accumulated stream output included in the payload.
  */
-export function sendToBridge(userId: number, type: string, payload: unknown, timeoutMs = 30000): Promise<unknown> {
+export function sendToBridge(
+  userId: number,
+  type: string,
+  payload: unknown,
+  timeoutMs = 30000,
+  _attempt = 0,
+): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const conn = activeBridges.get(userId);
+
     if (!conn || conn.ws.readyState !== WebSocket.OPEN) {
+      if (_attempt < MAX_REPLAY_ATTEMPTS && timeoutMs <= 60000) {
+        const queue = replayQueue.get(userId) || [];
+        queue.push({ type, payload, resolve, reject, timeoutMs, attempts: _attempt, enqueuedAt: Date.now() });
+        replayQueue.set(userId, queue);
+        return;
+      }
       reject(new Error('Bridge not connected'));
       return;
     }
@@ -360,6 +425,24 @@ function rejectAllPendingForUser(userId: number, reason: string): void {
     clearTimeout(pending.timeout);
     pending.reject(new Error(reason));
     pendingRequests.delete(id);
+  }
+}
+
+function replayQueuedRequests(userId: number): void {
+  const queue = replayQueue.get(userId) || [];
+  if (queue.length === 0) return;
+
+  replayQueue.delete(userId);
+  const now = Date.now();
+
+  for (const req of queue) {
+    if (now - req.enqueuedAt > MAX_QUEUE_AGE_MS) {
+      req.reject(new Error('Bridge reconnected but request expired'));
+      continue;
+    }
+    sendToBridge(userId, req.type, req.payload, req.timeoutMs, req.attempts + 1)
+      .then(req.resolve)
+      .catch(req.reject);
   }
 }
 

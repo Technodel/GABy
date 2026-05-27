@@ -33,6 +33,8 @@ export interface UserData {
   max_tokens_per_session?: number | null;
   cross_device_memory_enabled?: boolean;
   chat_show_technical_details?: boolean;
+  plan?: string;
+  upgrade_pending?: boolean;
   bridge_connected: boolean;
   bridge_previously_connected?: boolean;
   modes: Mode[];

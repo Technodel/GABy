@@ -326,13 +326,12 @@ const SCHEMA_MIGRATIONS: Migration[] = [
     },
   },
 
-  // â”€â”€ Migration 5: Seed OpenRouter + Gemini fallback API keys â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â”€â”€ Migration 5: Seed OpenRouter fallback API keys â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   {
     version: 5,
-    name: 'Seed OpenRouter and Gemini fallback API keys for fast/smart/pro modes',
+    name: 'Seed OpenRouter fallback API keys for fast/smart/pro modes',
     up: async (adapter) => {
       const openrouterKey = process.env.OPENROUTER_API_KEY || process.env.SUNY_OPENROUTER_KEY;
-      const geminiKey = process.env.GEMINI_API_KEY || process.env.SUNY_GEMINI_KEY;
 
       if (openrouterKey) {
         for (const mode of ['fast', 'smart', 'pro']) {
@@ -344,20 +343,6 @@ const SCHEMA_MIGRATIONS: Migration[] = [
             await adapter.run(
               `INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`,
               ['OpenRouter', openrouterKey, mode, `OpenRouter (fallback)`, 2, mode === 'fast' ? 'deepseek/deepseek-v4-flash' : 'deepseek/deepseek-v4-pro'],
-            );
-          }
-        }
-      }
-      if (geminiKey) {
-        for (const mode of ['fast', 'smart', 'pro']) {
-          const existing = await adapter.get<{ id: number }>(
-            'SELECT id FROM api_keys WHERE provider = ? AND mode = ? AND priority = 3',
-            ['Gemini', mode],
-          );
-          if (!existing) {
-            await adapter.run(
-              `INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)`,
-              ['Gemini', geminiKey, mode, `Gemini (fallback 2)`, 3, 'gemini-2.0-flash'],
             );
           }
         }
@@ -657,6 +642,151 @@ const SCHEMA_MIGRATIONS: Migration[] = [
       }
     },
   },
+
+  // ── Migration 18: User plans (regular / pro) + per-plan feature flags ──────
+  {
+    version: 18,
+    name: 'Add plan column to users, create plan_feature_flags table, seed PRO features',
+    up: async (adapter) => {
+      // Add plan column to users (default 'regular')
+      if (!(await adapter.columnExists('users', 'plan'))) {
+        await adapter.exec("ALTER TABLE users ADD COLUMN plan TEXT NOT NULL DEFAULT 'regular'");
+      }
+
+      // Create plan_feature_flags table
+      await adapter.exec(`
+        CREATE TABLE IF NOT EXISTS plan_feature_flags (
+          key TEXT NOT NULL,
+          plan TEXT NOT NULL,
+          enabled INTEGER NOT NULL DEFAULT 0,
+          label TEXT NOT NULL DEFAULT '',
+          description TEXT NOT NULL DEFAULT '',
+          updated_at TEXT DEFAULT (datetime('now')),
+          PRIMARY KEY (key, plan)
+        );
+      `);
+
+      // Seed PRO-only features (enabled for pro, disabled for regular)
+      const proFeatures: Array<{ key: string; label: string; description: string }> = [
+        {
+          key: 'pf_advanced_visual_portal',
+          label: '🔭 Advanced Visual Portal',
+          description: 'Give your clients a live link to your staging app. They click directly on any part of the UI, describe what they want changed, and SUNy automatically finds the right code and applies the fix — no back-and-forth emails needed.',
+        },
+        {
+          key: 'pf_parallel_agent_swarm',
+          label: '⚡ Parallel Agent Swarm',
+          description: 'SUNy spawns multiple Junior AI agents in parallel to handle massive features simultaneously.',
+        },
+        {
+          key: 'pf_hypothesis_engine',
+          label: '🔬 Parallel Hypothesis Testing',
+          description: 'For tough bugs, SUNy spawns multiple mini-agents with different strategies and picks the best.',
+        },
+        {
+          key: 'pf_scheduled_agents',
+          label: '🚧 Scheduled Agents',
+          description: 'Schedule SUNy to run automated code reviews, audits, and health checks on a timer.',
+        },
+        {
+          key: 'pf_client_portal',
+          label: '🎫 Client Ticket Portal',
+          description: 'Generate secure shareable URLs for clients to submit project requests via SUNy.',
+        },
+      ];
+
+      for (const f of proFeatures) {
+        // PRO plan: all enabled by default
+
+        await adapter.run(
+          `INSERT OR IGNORE INTO plan_feature_flags (key, plan, enabled, label, description) VALUES (?, 'pro', 1, ?, ?)`,
+          [f.key, f.label, f.description],
+        );
+        // Regular plan: disabled by default (except client portal — available to everyone)
+        const regularEnabled = f.key === 'pf_client_portal' ? 1 : 0;
+        await adapter.run(
+          `INSERT OR IGNORE INTO plan_feature_flags (key, plan, enabled, label, description) VALUES (?, 'regular', ?, ?, ?)`,
+          [f.key, regularEnabled, f.label, f.description],
+        );
+      }
+    },
+  },
+
+
+  // -- Migration 21: Update Advanced Visual Portal description to be client-focused
+  {
+    version: 21,
+    name: 'Update pf_advanced_visual_portal description',
+    up: async (adapter) => {
+      const newDesc = 'Give your clients a live link to your staging app. They click directly on any part of the UI, describe what they want changed, and SUNy automatically finds the right code and applies the fix — no back-and-forth emails needed.';
+      await adapter.run(
+        `UPDATE plan_feature_flags SET description = ? WHERE key = 'pf_advanced_visual_portal'`,
+        [newDesc],
+      );
+    },
+  },
+
+  // -- Migration 20: Seed new PRO plan feature flags (push notifications, forecast, budget gate)
+  {
+    version: 20,
+    name: 'Seed PRO plan flags: push_notifications, cost_forecast, budget_gate',
+    up: async (adapter) => {
+      const newFlags = [
+        {
+          key: 'pf_push_notifications',
+          label: '🔔 Push Notifications & Run Receipts',
+          description: 'Browser push notifications when a run completes, with a receipt showing files changed, credits used, and test results.',
+        },
+        {
+          key: 'pf_cost_forecast',
+          label: '📋 Pre-Run Cost Estimate',
+          description: 'Before each run, SUNy estimates the credit cost using your history or a lightweight AI analysis. Token cost billed to user.',
+        },
+        {
+          key: 'pf_budget_gate',
+          label: '🔒 Per-Run Budget Gate',
+          description: 'Set a credit cap per run. SUNy warns at 80%, pauses at 90% offering Budget Mode, Extend, or Stop options.',
+        },
+        {
+          key: 'pf_codebase_health',
+          label: '🏥 Codebase Health Score',
+          description: 'After every session, SUNy scores the health of files it touched (lint, tests, complexity, coverage) and tracks the trend over time.',
+        },
+      ];
+      for (const f of newFlags) {
+        await adapter.run(
+          `INSERT OR IGNORE INTO plan_feature_flags (key, plan, enabled, label, description) VALUES (?, 'pro', 1, ?, ?)`,
+          [f.key, f.label, f.description],
+        );
+        await adapter.run(
+          `INSERT OR IGNORE INTO plan_feature_flags (key, plan, enabled, label, description) VALUES (?, 'regular', 0, ?, ?)`,
+          [f.key, f.label, f.description],
+        );
+      }
+    },
+  },
+
+  // -- Migration 19: Plan upgrade requests
+  {
+    version: 19,
+    name: 'Create plan_upgrade_requests table',
+    up: async (adapter) => {
+      await adapter.exec(`
+        CREATE TABLE IF NOT EXISTS plan_upgrade_requests (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          username TEXT NOT NULL,
+          current_plan TEXT NOT NULL DEFAULT 'regular',
+          requested_plan TEXT NOT NULL DEFAULT 'pro',
+          status TEXT NOT NULL DEFAULT 'pending',
+          note TEXT DEFAULT '',
+          requested_at TEXT DEFAULT (datetime('now')),
+          reviewed_at TEXT DEFAULT NULL,
+          FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+      `);
+    },
+  },
 ];
 
 // â”€â”€ Data seeding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -821,21 +951,7 @@ async function seedData(adapter: DbAdapter): Promise<void> {
         ['OpenRouter', openrouterKey, 'pro', 'ðŸ’Ž Pro â€“ OpenRouter (fallback)', 2, 'deepseek/deepseek-v4-pro'],
       );
     }
-    const geminiKey = process.env.GEMINI_API_KEY || process.env.SUNY_GEMINI_KEY;
-    if (geminiKey) {
-      await adapter.run(
-        'INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)',
-        ['Gemini', geminiKey, 'fast', 'ðŸš€ Fast â€“ Gemini (fallback 2)', 3, 'gemini-2.0-flash'],
-      );
-      await adapter.run(
-        'INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)',
-        ['Gemini', geminiKey, 'smart', 'ðŸ§  Smart â€“ Gemini (fallback 2)', 3, 'gemini-2.0-flash'],
-      );
-      await adapter.run(
-        'INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?, ?, ?, 1, ?, ?, ?)',
-        ['Gemini', geminiKey, 'pro', 'ðŸ’Ž Pro â€“ Gemini (fallback 2)', 3, 'gemini-2.0-flash'],
-      );
-    }
+    // Gemini removed - no API key available
     await adapter.run("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('default_keys_seeded', 'true')");
   }
 
@@ -993,3 +1109,4 @@ export async function runMigrations(adapter: DbAdapter): Promise<void> {
   // 3. Data seeding (idempotent)
   await seedData(adapter);
 }
+

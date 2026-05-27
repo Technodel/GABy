@@ -1,5 +1,5 @@
-import { Send, Square, Image, MessageSquare, Pencil, Mic, MicOff, FileCode } from 'lucide-react';
-import { useRef } from 'react';
+import { Send, Square, Paperclip, MessageSquare, Pencil, Mic, MicOff, Terminal } from 'lucide-react';
+import { useRef, useState } from 'react';
 import type { Message } from '../types';
 
 interface ChatInputProps {
@@ -15,7 +15,6 @@ interface ChatInputProps {
   noBalance: boolean;
   imagePreview: string | null;
   setImagePreview: React.Dispatch<React.SetStateAction<string | null>>;
-  fileInputRef: React.RefObject<HTMLInputElement>;
   inputRef: React.RefObject<HTMLTextAreaElement>;
   inputHistoryIndex: React.MutableRefObject<number>;
   messages: Message[];
@@ -31,12 +30,27 @@ export default function ChatInput(props: ChatInputProps) {
   const {
     input, setInput, balance, walletBalance, thinking, selectedMode,
     activeProject, bridgeConnected, talkMode, noBalance,
-    imagePreview, setImagePreview, fileInputRef, inputRef,
+    imagePreview, setImagePreview, inputRef,
     inputHistoryIndex, messages, sendMessage, toggleTalkMode, wsSend, addMessage,
     isListening, onVoiceToggle,
   } = props;
 
-  const codeFileRef = useRef<HTMLInputElement>(null);
+  const attachRef = useRef<HTMLInputElement>(null);
+  const [showTerminal, setShowTerminal] = useState(false);
+  const [terminalCmd, setTerminalCmd] = useState('');
+  const termInputRef = useRef<HTMLInputElement>(null);
+
+  function runTerminalCommand() {
+    const cmd = terminalCmd.trim();
+    if (!cmd) return;
+    setInput(prev => {
+      const suffix = prev ? '\n' : '';
+      return `${suffix}run shell command: ${cmd}`;
+    });
+    setTerminalCmd('');
+    setShowTerminal(false);
+    setTimeout(() => sendMessage(), 50);
+  }
 
   return (
     <div className="chat-input-area" style={{
@@ -63,6 +77,55 @@ export default function ChatInput(props: ChatInputProps) {
             Main credits are empty. Free talk mode stays on, and paid modes are locked until you top up.
           </div>
         )}
+        {/* Inline terminal input — toggled by the Terminal button */}
+        {showTerminal && (
+          <div style={{
+            display: 'flex', gap: 6, alignItems: 'center',
+            width: '100%', marginBottom: 6,
+            padding: '4px 8px',
+            background: 'var(--bg-secondary)',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--accent)',
+          }}>
+            <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent)', whiteSpace: 'nowrap', fontFamily: 'JetBrains Mono, monospace' }}>$</span>
+            <input
+              ref={termInputRef}
+              type="text"
+              value={terminalCmd}
+              onChange={e => setTerminalCmd(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') { e.preventDefault(); runTerminalCommand(); }
+                if (e.key === 'Escape') { setShowTerminal(false); setTerminalCmd(''); }
+              }}
+              placeholder="Type a shell command... e.g. ls -la"
+              style={{
+                flex: 1, border: 'none', outline: 'none',
+                background: 'transparent', fontSize: 12,
+                fontFamily: 'JetBrains Mono, monospace',
+                color: 'var(--text-primary)',
+              }}
+              autoFocus
+            />
+            <button
+              className="btn btn-sm btn-primary"
+              onClick={runTerminalCommand}
+              disabled={!terminalCmd.trim()}
+              style={{ fontSize: 10, padding: '3px 8px', whiteSpace: 'nowrap' }}
+              title="Run command"
+            >
+              <Terminal size={11} style={{ marginRight: 4 }} />
+              Run
+            </button>
+            <button
+              className="btn btn-sm btn-secondary"
+              onClick={() => { setShowTerminal(false); setTerminalCmd(''); }}
+              style={{ fontSize: 10, padding: '3px 6px' }}
+              title="Close terminal"
+            >
+              ✕
+            </button>
+          </div>
+        )}
         {/* Image preview above textarea */}
         {imagePreview && (
           <div style={{
@@ -84,56 +147,67 @@ export default function ChatInput(props: ChatInputProps) {
             >×</button>
           </div>
         )}
+        {/* Single unified file input — images, PDFs, DOCX, and code/text files */}
         <input
-          ref={codeFileRef}
+          ref={attachRef}
           type="file"
-          accept=".js,.ts,.tsx,.jsx,.mjs,.cjs,.py,.html,.css,.scss,.json,.jsonc,.md,.txt,.sh,.bash,.env,.yaml,.yml,.toml,.rs,.go,.java,.c,.cpp,.h,.rb,.php,.sql,.xml,.csv"
+          accept="image/*,.pdf,.docx,.doc,.js,.ts,.tsx,.jsx,.mjs,.cjs,.py,.html,.css,.scss,.json,.jsonc,.md,.txt,.sh,.bash,.env,.yaml,.yml,.toml,.rs,.go,.java,.c,.cpp,.h,.rb,.php,.sql,.xml,.csv"
           style={{ display: 'none' }}
-          onChange={e => {
+          onChange={async e => {
             const file = e.target.files?.[0];
             if (!file) return;
-            if (file.size > 500 * 1024) {
-              addMessage('system', '⚠️ File is too large for inline upload (max 500 KB). Use file pinning instead.');
-              e.target.value = '';
+            e.target.value = '';
+            const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
+            // Images — pass as vision data
+            if (file.type.startsWith('image/')) {
+              if (selectedMode === 'free') {
+                addMessage('system', '📷 Image analysis requires 🚀 Fast or 🧠 Pro mode.');
+                return;
+              }
+              if (file.size > 10 * 1024 * 1024) {
+                addMessage('system', '⚠️ Image is too large (max 10 MB). Please resize and try again.');
+                return;
+              }
+              const reader = new FileReader();
+              reader.onload = () => setImagePreview(reader.result as string);
+              reader.readAsDataURL(file);
               return;
             }
-            const ext = file.name.split('.').pop() ?? 'text';
+            // PDF / DOCX — server-side text extraction
+            if (ext === 'pdf' || ext === 'docx' || ext === 'doc') {
+              if (file.size > 20 * 1024 * 1024) {
+                addMessage('system', '⚠️ Document is too large (max 20 MB).');
+                return;
+              }
+              addMessage('system', `📄 Parsing **${file.name}**...`);
+              try {
+                const fd = new FormData();
+                fd.append('file', file);
+                const res = await fetch('/api/parse-file', { method: 'POST', credentials: 'include', body: fd });
+                if (!res.ok) { const err = await res.json().catch(() => ({})); addMessage('system', `⚠️ Could not parse file: ${err.error ?? res.statusText}`); return; }
+                const data = await res.json() as { text: string; wordCount: number; pageCount: number | null; truncated: boolean; filename: string };
+                const meta = [data.pageCount ? `${data.pageCount} pages` : null, `${data.wordCount.toLocaleString()} words`, data.truncated ? 'truncated to 40k chars' : null].filter(Boolean).join(', ');
+                const block = `\n📄 **${data.filename}** (${meta}):\n\`\`\`\n${data.text}\n\`\`\``;
+                setInput(prev => prev + block);
+                inputRef.current?.focus();
+              } catch {
+                addMessage('system', '⚠️ Failed to parse document. Please try again.');
+              }
+              return;
+            }
+            // Plain text / code files
+            if (file.size > 500 * 1024) {
+              addMessage('system', '⚠️ File is too large for inline upload (max 500 KB). Use file pinning instead.');
+              return;
+            }
             const reader = new FileReader();
             reader.onload = () => {
               const content = reader.result as string;
-              const block = `\n\`\`\`${ext}\n// ${file.name}\n${content}\n\`\`\``;
+              const block = `\n\`\`\`${ext || 'text'}\n// ${file.name}\n${content}\n\`\`\``;
               setInput(prev => prev + block);
               inputRef.current?.focus();
             };
             reader.readAsText(file);
-            e.target.value = '';
-          }}
-        />
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          style={{ display: 'none' }}
-          onChange={e => {
-            const file = e.target.files?.[0];
-            if (!file) return;
-            if (selectedMode === 'free') {
-              addMessage('system', '📷 Image analysis requires 🚀 Fast or 🧠 Pro mode. Switch to a higher tier to analyze images.');
-              e.target.value = '';
-              return;
-            }
-            if (file.size > 10 * 1024 * 1024) {
-              addMessage('system', '⚠️ Image is too large (max 10 MB). Please resize and try again.');
-              e.target.value = '';
-              return;
-            }
-            const reader = new FileReader();
-            reader.onload = () => {
-              setImagePreview(reader.result as string);
-            };
-            reader.readAsDataURL(file);
-            // Reset so same file can be selected again
-            e.target.value = '';
           }}
         />
         <textarea
@@ -197,28 +271,11 @@ export default function ChatInput(props: ChatInputProps) {
           }}
           style={{ flex: 1, resize: 'none', maxHeight: 120 }}
         />
-        {/* Code file upload button */}
+        {/* Unified attach button — images, PDFs, DOCX, code & text files */}
         <button
           className="btn btn-icon btn-secondary"
-          onClick={() => codeFileRef.current?.click()}
-          title="Attach a code or text file — content will be pasted as a code block"
-          style={{
-            alignSelf: 'flex-end',
-            padding: '10px 12px',
-            background: 'transparent',
-            border: '1px solid var(--border)',
-            color: 'var(--text-muted)',
-            transition: 'all 0.15s',
-          }}
-        >
-          <FileCode size={15} />
-        </button>
-        {/* Image upload button */}
-        <button
-          className="btn btn-icon btn-secondary"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={selectedMode === 'free'}
-          title={selectedMode === 'free' ? 'Image analysis requires Fast or Pro mode' : 'Attach an image for analysis'}
+          onClick={() => attachRef.current?.click()}
+          title="Attach file — images, PDF, Word, or code/text files"
           style={{
             alignSelf: 'flex-end',
             padding: '10px 12px',
@@ -228,7 +285,7 @@ export default function ChatInput(props: ChatInputProps) {
             transition: 'all 0.15s',
           }}
         >
-          <Image size={15} />
+          <Paperclip size={15} />
         </button>
         {/* Talk / Write mode toggle — hidden when free plan enforced by no balance */}
         {!noBalance && (
@@ -255,6 +312,24 @@ export default function ChatInput(props: ChatInputProps) {
             }}
           >
             {talkMode ? <MessageSquare size={15} /> : <Pencil size={15} />}
+          </button>
+        )}
+        {/* Terminal button — execute shell commands via the bridge */}
+        {bridgeConnected && (
+          <button
+            className="btn btn-icon btn-secondary"
+            onClick={() => { setShowTerminal(v => !v); if (!showTerminal) setTimeout(() => termInputRef.current?.focus(), 100); }}
+            title="Run a shell command (Bridge required)"
+            style={{
+              alignSelf: 'flex-end',
+              padding: '10px 12px',
+              background: showTerminal ? 'rgba(108,99,255,0.12)' : 'transparent',
+              border: showTerminal ? '1px solid var(--accent)' : '1px solid var(--border)',
+              color: showTerminal ? 'var(--accent)' : 'var(--text-muted)',
+              transition: 'all 0.15s',
+            }}
+          >
+            <Terminal size={15} />
           </button>
         )}
         {thinking && (

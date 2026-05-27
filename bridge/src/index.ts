@@ -35,17 +35,61 @@ function getStartupScriptPath(): string {
   return path.join(os.homedir(), '.suny', 'startup.sh');
 }
 
+function getSystemdServiceContent(bridgeEntry: string): string {
+  return `[Unit]
+Description=SUNy Bridge
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=node ${bridgeEntry} --silent
+Restart=on-failure
+RestartSec=10
+StartLimitInterval=60
+StartLimitBurst=5
+
+[Install]
+WantedBy=default.target
+`;
+}
+
+function getLaunchdPlistContent(bridgeEntry: string): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>tech.technodel.suny-bridge</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>node</string>
+    <string>${bridgeEntry}</string>
+    <string>--silent</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardErrorPath</key>
+  <string>${os.homedir()}/.suny/bridge-error.log</string>
+  <key>StandardOutPath</key>
+  <string>${os.homedir()}/.suny/bridge.log</string>
+</dict>
+</plist>`;
+}
+
 function installStartup(): void {
   if (process.platform === 'win32') {
     const scriptPath = getStartupScriptPath();
-    const bridgeIndex = path.join(__dirname, 'index.ts');
+    const bridgeEntry = path.resolve(process.argv[1] || path.join(__dirname, 'index.ts'));
     const vbs = `' SUNy Bridge — hidden startup launcher
 ' Installed by: suny-bridge --install-startup
 ' The bridge reads ~/.suny/config.json for token/server.
 
 Dim shell, cmd
 Set shell = CreateObject("WScript.Shell")
-cmd = "node """ + bridgeIndex.replace(/\\/g, '\\\\') + """ --silent"
+cmd = "node """ + bridgeEntry.replace(/\\/g, '\\\\') + """ --silent"
 shell.Run cmd, 0, False
 Set shell = Nothing
 `;
@@ -53,30 +97,56 @@ Set shell = Nothing
     console.log(`✅ Bridge auto-start installed!`);
     console.log(`   Script: ${scriptPath}`);
     console.log(`   The bridge will auto-connect when you log in to Windows.`);
-  } else {
-    // Linux/Mac: create a shell script + crontab entry
+    return;
+  }
+
+  const bridgeEntry = path.resolve(process.argv[1] || path.join(__dirname, 'index.ts'));
+
+  if (process.platform === 'darwin') {
+    // macOS: launchd plist with KeepAlive
+    const plistDir = path.join(os.homedir(), 'Library', 'LaunchAgents');
+    const plistPath = path.join(plistDir, 'tech.technodel.suny-bridge.plist');
+    fs.mkdirSync(plistDir, { recursive: true });
+    fs.writeFileSync(plistPath, getLaunchdPlistContent(bridgeEntry), 'utf8');
+    try {
+      execSync(`launchctl load "${plistPath}" 2>/dev/null || true`);
+    } catch { /* best-effort */ }
+    console.log(`✅ Bridge auto-start installed! (launchd plist: ${plistPath})`);
+    console.log(`   Bridge will auto-start on login and restart if it crashes.`);
+    return;
+  }
+
+  // Linux: systemd --user service with Restart=on-failure
+  const systemdDir = path.join(os.homedir(), '.config', 'systemd', 'user');
+  const servicePath = path.join(systemdDir, 'suny-bridge.service');
+  fs.mkdirSync(systemdDir, { recursive: true });
+  fs.writeFileSync(servicePath, getSystemdServiceContent(bridgeEntry), 'utf8');
+  try {
+    execSync('systemctl --user daemon-reload 2>/dev/null');
+    execSync('systemctl --user enable suny-bridge.service 2>/dev/null');
+    execSync('systemctl --user start suny-bridge.service 2>/dev/null');
+    console.log(`✅ Bridge auto-start installed! (systemd: ${servicePath})`);
+    console.log(`   Bridge will auto-start on login and restart if it crashes.`);
+  } catch {
+    // Fallback: crontab @reboot if systemd unavailable
     const scriptPath = getStartupScriptPath();
-    const bridgeIndex = path.join(__dirname, 'index.ts');
     const sh = `#!/bin/bash
-# SUNy Bridge — auto-start launcher
+# SUNy Bridge — auto-start launcher (crontab fallback)
 cd "${__dirname}"
 node index.ts --silent &
 `;
     fs.mkdirSync(path.dirname(scriptPath), { recursive: true });
     fs.writeFileSync(scriptPath, sh, 'utf8');
     fs.chmodSync(scriptPath, 0o755);
-
     const cronLine = `@reboot ${scriptPath}`;
     try {
       const existingCron = execSync('crontab -l 2>/dev/null || echo ""', { encoding: 'utf8' });
-      if (existingCron.includes(cronLine)) {
-        console.log('✅ Bridge crontab entry already exists. Startup is set up.');
-      } else {
+      if (!existingCron.includes(cronLine)) {
         const newCron = existingCron.trim() + '\n' + cronLine + '\n';
         execSync(`echo "${newCron}" | crontab -`);
-        console.log('✅ Bridge auto-start installed! (crontab @reboot)');
+        console.log(`✅ Bridge auto-start installed! (crontab @reboot fallback)`);
       }
-    } catch (err) {
+    } catch {
       console.log('✅ Startup script created. To enable auto-start, add to your crontab:');
       console.log(`   ${cronLine}`);
     }
@@ -92,21 +162,42 @@ function removeStartup(): void {
     } else {
       console.log('ℹ️  Bridge auto-start was not installed.');
     }
-  } else {
-    const scriptPath = getStartupScriptPath();
-    const cronLine = `@reboot ${scriptPath}`;
-    try {
-      const existingCron = execSync('crontab -l 2>/dev/null || echo ""', { encoding: 'utf8' });
-      const filteredCron = existingCron.split('\n').filter((line: string) => !line.includes(cronLine)).join('\n') + '\n';
-      execSync(`echo "${filteredCron}" | crontab -`);
-      console.log('✅ Bridge crontab entry removed.');
-    } catch (err) {
-      console.log('ℹ️  Could not update crontab:', (err as Error).message);
-    }
-    if (fs.existsSync(scriptPath)) {
-      fs.unlinkSync(scriptPath);
-    }
+    return;
   }
+
+  if (process.platform === 'darwin') {
+    const plistPath = path.join(os.homedir(), 'Library', 'LaunchAgents', 'tech.technodel.suny-bridge.plist');
+    try {
+      execSync(`launchctl unload "${plistPath}" 2>/dev/null || true`);
+    } catch { /* ignore */ }
+    if (fs.existsSync(plistPath)) {
+      fs.unlinkSync(plistPath);
+    }
+    console.log('✅ Bridge launchd plist removed.');
+    return;
+  }
+
+  // Linux: systemd --user
+  const servicePath = path.join(os.homedir(), '.config', 'systemd', 'user', 'suny-bridge.service');
+  try {
+    execSync('systemctl --user stop suny-bridge.service 2>/dev/null');
+    execSync('systemctl --user disable suny-bridge.service 2>/dev/null');
+  } catch { /* ignore */ }
+  if (fs.existsSync(servicePath)) {
+    fs.unlinkSync(servicePath);
+  }
+  // Also clean crontab fallback if present
+  const scriptPath = getStartupScriptPath();
+  const cronLine = `@reboot ${scriptPath}`;
+  try {
+    const existingCron = execSync('crontab -l 2>/dev/null || echo ""', { encoding: 'utf8' });
+    const filteredCron = existingCron.split('\n').filter((line: string) => !line.includes(cronLine)).join('\n') + '\n';
+    execSync(`echo "${filteredCron}" | crontab -`);
+  } catch { /* ignore */ }
+  if (fs.existsSync(scriptPath)) {
+    fs.unlinkSync(scriptPath);
+  }
+  console.log('✅ Bridge auto-start removed.');
 }
 
 function toHttpApiBase(server: string): string {
