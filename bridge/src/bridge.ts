@@ -1,7 +1,7 @@
 import WebSocket from 'ws';
 import { handleExec } from './executor';
 import { handleBrowser } from './browser';
-import { registerPath } from './config';
+import { registerPath, updateConfig } from './config';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -185,10 +185,14 @@ export class SunyBridge {
     this.ws.on('close', (code, reason) => {
       this.clearTimers();
       if (code === 4001) {
-        this.log('[SUNy Bridge] Authentication failed (code 4001).');
-        this.startTokenRefreshFlow();
-        // Keep waiting for a fresh token until the user explicitly disconnects.
-        return;
+        this.log('[SUNy Bridge] Authentication failed (code 4001). Token expired or invalid.');
+        // Clear expired token from config so user can reconnect with fresh token
+        updateConfig({ token: undefined });
+        this.log('[SUNy Bridge] Cleared expired token from config.');
+        this.log('[SUNy Bridge] To reconnect, get a new setup code from the web app and run:');
+        this.log('[SUNy Bridge]   suny-bridge start --code SUNY-XXXXX-XXXXX');
+        this.stopped = true;
+        process.exit(1);
       }
       if (!this.stopped) {
         this.log(`[SUNy Bridge] Disconnected (code ${code}). Reconnecting in ${this.reconnectDelay / 1000}s...`);
