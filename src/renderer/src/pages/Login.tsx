@@ -198,22 +198,12 @@ export default function Login({ onLogin }: LoginProps) {
         }
       `}</style>
 
-      {/* Hero — compact, centered logo + title only */}
-      <div className="login-hero" style={{ textAlign: 'center', padding: '18px 20px 10px', background: `linear-gradient(180deg, rgba(${glowRgb},0.08) 0%, transparent 100%)` }}>
-        <div className="login-hero-circle" style={{
-          width: 120, height: 120, borderRadius: '50%', background: '#000000', margin: '0 auto 10px',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
-          boxShadow: '0 0 60px rgba(255, 170, 0, 0.35), 0 0 20px rgba(255, 200, 51, 0.2)',
-          border: '1px solid rgba(255, 180, 50, 0.15)'
-        }}>
-          <img className="login-hero-logo" src="/SUNy.png" alt="SUNy" style={{ width: '100%', height: '100%', objectFit: 'contain', transform: 'scale(1.6)', display: 'block' }} />
-        </div>
-        <h1 className="login-hero-title" style={{ fontSize: 32, fontWeight: 800, margin: 0, letterSpacing: '-1px' }}>SUNy</h1>
-        <p className="login-hero-subtitle" style={{ fontSize: 14, fontWeight: 600, color: 'var(--accent)', marginTop: 2, marginBottom: 0 }}>Smart Unstoppable Navigator</p>
-      </div>
-
-      {/* 3-column: Login | Pricing | Right (empty for now) */}
-      <div className="login-columns" style={{ flex: 1, display: 'flex', gap: 28, padding: '20px 48px 40px', maxWidth: 1400, margin: '0 auto', width: '100%', boxSizing: 'border-box', alignItems: 'flex-start' }}>
+      {/* ── Top section: login LEFT, hero centered RIGHT ── */}
+      <div className="login-top-row" style={{
+        display: 'flex', alignItems: 'flex-start', gap: 40,
+        padding: '40px 48px 0', maxWidth: 1400, margin: '0 auto', width: '100%', boxSizing: 'border-box',
+        background: `linear-gradient(180deg, rgba(${glowRgb},0.08) 0%, transparent 100%)`,
+      }}>
 
         {/* LEFT: Login + privacy */}
         <div className="login-card-col" style={{ width: '100%', maxWidth: 380, flexShrink: 0 }}>
@@ -296,8 +286,36 @@ export default function Login({ onLogin }: LoginProps) {
           </div>
         </div>
 
+        {/* CENTER: Hero — logo + text */}
+        <div className="login-hero" style={{ flex: 1, textAlign: 'center', padding: '8px 20px 36px' }}>
+          <div className="login-hero-circle" style={{
+            width: 440, height: 440, borderRadius: '50%', background: '#000000', margin: '0 auto 24px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+            boxShadow: '0 0 120px rgba(255, 170, 0, 0.35), 0 0 40px rgba(255, 200, 51, 0.2)',
+            border: '1px solid rgba(255, 180, 50, 0.15)'
+          }}>
+            <img className="login-hero-logo" src="/SUNy.png" alt="SUNy" style={{ width: '100%', height: '100%', objectFit: 'contain', transform: 'scale(1.6)', display: 'block' }} />
+          </div>
+          <h1 className="login-hero-title" style={{ fontSize: 52, fontWeight: 800, margin: 0, letterSpacing: '-1px' }}>SUNy</h1>
+          <p className="login-hero-subtitle" style={{ fontSize: 24, fontWeight: 600, color: 'var(--accent)', marginTop: 4, marginBottom: 14 }}>Smart Unstoppable Navigator</p>
+          <p className="login-hero-copy" style={{ fontSize: 16, color: 'var(--text-secondary)', maxWidth: 620, margin: '0 auto', lineHeight: 1.75 }}>
+            Your unstoppable AI companion. Give SUNy a target {'—'} it maps out the path, handles the complex work, and polishes everything until it&apos;s perfect. No complicated instructions, just results. We added the &quot;y&quot; because it&apos;s your friendly digital builder!
+          </p>
+        </div>
+
+        {/* RIGHT: reserved for future content */}
+        <div className="login-col-right" style={{ width: 340, flexShrink: 0 }} />
+
+      </div>
+
+      {/* ── Below: Pricing | Features ── */}
+      <div className="login-columns" style={{ flex: 1, display: 'flex', gap: 28, padding: '40px 48px 64px', maxWidth: 1400, margin: '0 auto', width: '100%', boxSizing: 'border-box', alignItems: 'flex-start' }}>
+
+        {/* Spacer to align with login card width above */}
+        <div style={{ width: 380, flexShrink: 0 }} />
+
         {/* CENTER: Pricing */}
-        <div className="login-col-pricing" style={{ flex: 1, minWidth: 220, display: 'none' }}>
+        <div className="login-col-pricing" style={{ flex: 1, minWidth: 220 }}>
           <h2 style={{ fontSize: 19, fontWeight: 700, marginBottom: 6 }}>{'\ud83d\udcb0'} Pricing</h2>
           <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>
             No subscriptions. Pay only when SUNy does real work.
@@ -354,8 +372,28 @@ export default function Login({ onLogin }: LoginProps) {
           )}
         </div>
 
-        {/* RIGHT: reserved for future content */}
-        <div className="login-col-about" style={{ flex: 1, minWidth: 0 }} />
+        {/* RIGHT: What is SUNy — features list */}
+        <div className="login-col-about" style={{ flex: 1, minWidth: 0 }}>
+          <h2 style={{ fontSize: 19, fontWeight: 700, marginBottom: 6 }}>{'👋'} What is SUNy?</h2>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20, lineHeight: 1.6 }}>
+            The coding buddy you always wished you had {'—'} one that never gets tired, never judges, and doesn&apos;t stop until the job is done.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {features.map(f => (
+              <div key={f.title} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <span style={{ fontSize: 20, flexShrink: 0, marginTop: 2 }}>{f.icon}</span>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 3 }}>{f.title}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{f.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="login-cta-row" style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+            <a href="/about" className="btn btn-secondary" style={{ textDecoration: 'none', flex: 1, justifyContent: 'center' }}>About SUNy</a>
+            <a href="/contact" className="btn btn-secondary" style={{ textDecoration: 'none', flex: 1, justifyContent: 'center' }}>Contact Team</a>
+          </div>
+        </div>
 
       </div>
 
