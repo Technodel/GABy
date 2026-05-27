@@ -109,6 +109,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
   const lastUserMessageRef = useRef<string>('');
   const [queuedPrompt, setQueuedPrompt] = useState<{ text: string; payload: any; status: 'queued' | 'interrupting'; timeLeft: number } | null>(null);
   const queueTimerRef = useRef<number | null>(null);
+  const forecastTimeoutRef = useRef<number | null>(null);
 
   // -- Queued Prompt Handling --
   useEffect(() => {
@@ -1286,8 +1287,14 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       if (msg.event === 'suny:forecast_loading') {
         setForecastLoading(true);
         setForecastEstimate(null);
+        // Auto-clear after 15s if server never sends estimate (prevents stuck UI)
+        if (forecastTimeoutRef.current) window.clearTimeout(forecastTimeoutRef.current);
+        forecastTimeoutRef.current = window.setTimeout(() => {
+          setForecastLoading(false);
+        }, 15000);
         return;
       } else if (msg.event === 'suny:pre_run_estimate') {
+        if (forecastTimeoutRef.current) window.clearTimeout(forecastTimeoutRef.current);
         setForecastLoading(false);
         // Handle null/invalid estimate (e.g., when no models available or forecast failed)
         if (msg.lowCredits == null || msg.highCredits == null) {
@@ -1658,6 +1665,10 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       setStreamingContent('');
       streamingContentRef.current = '';
       activeProofIdRef.current = null;
+      // Reset forecast loading state to prevent stuck "Estimating run cost..."
+      if (forecastTimeoutRef.current) window.clearTimeout(forecastTimeoutRef.current);
+      setForecastLoading(false);
+      setForecastEstimate(null);
       if (activeProject) {
         loadProjectStateFromServer(activeProject.id).then(remote => {
           if (remote && remote.messages.length > 0) setMessages(remote.messages);
@@ -1667,7 +1678,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
     onDisconnect: () => { setBridgeConnected(false); },
   });
 
-  useEffect(() => { loadUserData(); loadProjects(); return () => clearThinkingTimeout(); }, []);
+  useEffect(() => { loadUserData(); loadProjects(); return () => { clearThinkingTimeout(); if (forecastTimeoutRef.current) window.clearTimeout(forecastTimeoutRef.current); }; }, []);
 
   // Bridge status resilience: poll /api/bridge/status every 30s as a fallback
   // in case a WS bridge:connected/disconnected event is missed (e.g. tab was
@@ -1859,6 +1870,11 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       addMessage('system', '🔌 Bridge is offline — reconnect it from the top bar, then send your message again. SUNy cannot access files or run commands without it.');
       return;
     }
+
+    // Clear any stuck forecast loading state before sending new message
+    if (forecastTimeoutRef.current) window.clearTimeout(forecastTimeoutRef.current);
+    setForecastLoading(false);
+    setForecastEstimate(null);
 
     setInput('');
     inputHistoryIndex.current = -1;
