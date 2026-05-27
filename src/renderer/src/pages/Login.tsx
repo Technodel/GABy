@@ -52,6 +52,10 @@ function getGlowColor(): string {
 const glowRgb = getGlowColor();
 
 export default function Login({ onLogin }: LoginProps) {
+  const [theme, setTheme] = useState<'pro' | 'suny' | 'matrix'>(() => {
+    try { const s = localStorage.getItem('suny_ui_theme'); return (s === 'pro' || s === 'suny' || s === 'matrix') ? s : 'pro'; }
+    catch { return 'pro'; }
+  });
   const [tab, setTab] = useState<'user' | 'signup'>('user');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -70,6 +74,16 @@ export default function Login({ onLogin }: LoginProps) {
     fetch('/api/contact').then(r => r.ok ? r.json() : null).then(d => { if (d) setContact(d); }).catch(() => {});
     fetch('/api/plan-features-public').then(r => r.ok ? r.json() : {}).then((d: { flags?: PlanFeatureFlag[] } | PlanFeatureFlag[]) => { if (!Array.isArray(d) && d?.flags) setPlanFlags(d.flags); else if (Array.isArray(d)) setPlanFlags(d); }).catch(() => {});
   }, []);
+
+  function switchTheme(t: 'pro' | 'suny' | 'matrix') {
+    setTheme(t);
+    localStorage.setItem('suny_ui_theme', t);
+    document.body.classList.remove('theme-matrix', 'theme-pro', 'theme-suny', 'light-mode');
+    document.documentElement.classList.remove('theme-matrix', 'theme-pro', 'theme-suny');
+    if (t === 'pro') document.body.classList.add('theme-pro');
+    else if (t === 'suny') document.body.classList.add('theme-suny');
+    else document.body.classList.add('theme-matrix');
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -132,16 +146,31 @@ export default function Login({ onLogin }: LoginProps) {
     { icon: '\u26a0\ufe0f', title: 'Human Checkpoint Gates', desc: 'SUNy pauses before irreversible steps and waits for your approval \u2014 you stay in control of every consequential decision.' },
   ];
 
-  // Dynamically append PRO-only features from the API (only those enabled for PRO but not regular)
-  const _regularKeys = new Set(planFlags.filter(f => f.plan === 'regular' && f.enabled).map(f => f.key));
-  const _proOnlyFeatures = planFlags
-    .filter(f => f.plan === 'pro' && f.enabled && !_regularKeys.has(f.key))
-    .map(f => ({ icon: '\u26a1', title: `${f.label} \u26a1PRO`, desc: f.description }));
-
-  const features = [...BASE_FEATURES, ..._proOnlyFeatures];
+  const features = BASE_FEATURES;
 
   return (
     <div className="login-page" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text-primary)', display: 'flex', flexDirection: 'column' }}>
+      {/* ── Theme switcher: top-right ── */}
+      <div style={{ position: 'fixed', top: 12, right: 16, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, zIndex: 1000 }}>
+        <div style={{ display: 'flex', gap: 4 }}>
+          {(['pro', 'suny', 'matrix'] as const).map(t => (
+            <button key={t} onClick={() => switchTheme(t)}
+              style={{
+                padding: '3px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                borderRadius: 6, border: `1px solid ${theme === t ? 'var(--accent)' : 'var(--border)'}`,
+                background: theme === t ? 'var(--accent)' : 'var(--surface)',
+                color: theme === t ? '#fff' : 'var(--text-secondary)',
+                textTransform: 'capitalize', transition: 'all 0.15s', letterSpacing: '0.3px',
+                opacity: theme === t ? 1 : 0.7,
+              }}>
+              {t === 'pro' ? '⚡Pro' : t === 'suny' ? '☀️SUNy' : '💻Matrix'}
+            </button>
+          ))}
+        </div>
+        <div style={{ fontSize: 10, color: 'var(--text-muted)', opacity: 0.6, letterSpacing: '0.2px' }}>
+          Try other themes that could meet your style &amp; mood
+        </div>
+      </div>
       <style>{`
         /* ── Top row: login + hero ── */
         .login-top-row {
