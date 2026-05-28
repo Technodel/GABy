@@ -25,8 +25,8 @@ interface SidebarContentProps {
   expandedDirs: Set<string>;
   setExpandedDirs: React.Dispatch<React.SetStateAction<Set<string>>>;
   loadFileBrowser: (projectId: number) => void;
-  bridgeConnected: boolean;
-  setShowBridgeTip: React.Dispatch<React.SetStateAction<boolean>>;
+  selectedFolder: FileSystemDirectoryHandle | null;
+  onSelectFolder: () => void;
   setShowNewProject: React.Dispatch<React.SetStateAction<boolean>>;
   blueprintEntries: BlueprintEntry[];
   loadBlueprintEntries: (projectId: number) => void;
@@ -74,7 +74,7 @@ export default function SidebarContent(props: SidebarContentProps) {
     projectSpend, memories, setMemories, saveMemories,
     confirmClearMemories, setConfirmClearMemories,
     showFileBrowser, setShowFileBrowser, fileBrowser, expandedDirs, setExpandedDirs,
-    loadFileBrowser, bridgeConnected, setShowBridgeTip, setShowNewProject,
+    loadFileBrowser, selectedFolder, onSelectFolder, setShowNewProject,
     blueprintEntries, loadBlueprintEntries,
     projectRules, setShowRulesEditor, setRulesEditorContent,
     setShowPersonaEditor, setPersonaEditorContent,
@@ -109,10 +109,10 @@ export default function SidebarContent(props: SidebarContentProps) {
               <button
                 className="btn btn-icon btn-secondary btn-sm"
                 onClick={() => {
-                  if (!bridgeConnected) { setShowBridgeTip(true); return; }
+                  if (!selectedFolder) { onSelectFolder(); return; }
                   setShowFileBrowser(v => { const next = !v; if (!v && activeProject) loadFileBrowser(activeProject.id); return next; });
                 }}
-                title={showFileBrowser ? 'Hide file browser' : (bridgeConnected ? 'Show file browser' : 'Bridge required — click to connect')}
+                title={showFileBrowser ? 'Hide file browser' : (selectedFolder ? 'Show file browser' : 'Select folder to browse files')}
               >
                 {showFileBrowser ? <FolderOpen size={12} /> : <Folder size={12} />}
               </button>
@@ -414,7 +414,7 @@ export default function SidebarContent(props: SidebarContentProps) {
         )}
 
         {/* Live Dev Server section */}
-        {activeProject && bridgeConnected && (
+        {activeProject && selectedFolder && (
           <div style={{ borderTop: '1px solid var(--border)', marginTop: 4 }}>
             <div style={{ padding: '12px 12px 8px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
@@ -443,7 +443,7 @@ export default function SidebarContent(props: SidebarContentProps) {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <button className="btn btn-secondary btn-sm"
                     style={{ fontSize: 11, padding: '4px 10px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-                    onClick={() => { if (!bridgeConnected) { setShowBridgeTip(true); return; } startDevServer(); }}
+                    onClick={() => { if (!selectedFolder) { onSelectFolder(); return; } startDevServer(); }}
                     disabled={devServerLoading}>
                     <Play size={11} />
                     {devServerLoading ? 'Starting...' : 'Start Dev Server'}

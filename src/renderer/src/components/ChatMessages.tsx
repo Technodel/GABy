@@ -18,7 +18,7 @@ interface ChatMessagesProps {
   projectStateReady: boolean;
   globalIntroLine: string;
   projects: Project[];
-  bridgeConnected: boolean;
+  selectedFolder: FileSystemDirectoryHandle | null;
   expandedRunIds: Set<number>;
   msgEndRef: React.RefObject<HTMLDivElement>;
   clearChat: () => void;
@@ -34,7 +34,7 @@ interface ChatMessagesProps {
   archiveGlobalTab: (tabId: string) => void;
   deleteArchivedTab: (tabId: string) => void;
   renameGlobalTab: (tabId: string, name: string) => void;
-  setShowBridgeTip: React.Dispatch<React.SetStateAction<boolean>>;
+  onSelectFolder: () => void;
   openProject: (project: Project) => void;
   copyProofReportToClipboard: (run: ProofRun) => void;
   setExpandedRunIds: React.Dispatch<React.SetStateAction<Set<number>>>;
@@ -45,11 +45,11 @@ export default function ChatMessages(props: ChatMessagesProps) {
   const {
     messages, activeProject, thinking, streamingContent, thinkingStatus,
     proofRuns, globalTabs, activeTabId, renamingTabId, renamingTabValue,
-    deleteConfirmTabId, globalIntroLine, projects, bridgeConnected,
+    deleteConfirmTabId, globalIntroLine, projects, selectedFolder,
     expandedRunIds, msgEndRef,
     clearChat, onDeleteMessage, onRegenerateMessage, onEditMessage, setRenamingTabId, setRenamingTabValue, setDeleteConfirmTabId,
     switchGlobalTab, closeGlobalTab, addGlobalTab, archiveGlobalTab,
-    setShowBridgeTip, openProject, copyProofReportToClipboard, setExpandedRunIds, toolLabel, renameGlobalTab,
+    onSelectFolder, openProject, copyProofReportToClipboard, setExpandedRunIds, toolLabel, renameGlobalTab,
   } = props;
 
   const [hoveredMsgId, setHoveredMsgId] = useState<number | null>(null);
@@ -215,24 +215,24 @@ export default function ChatMessages(props: ChatMessagesProps) {
               </p>
               <ol style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7, paddingLeft: 20, margin: 0 }}>
                 <li>
-                  <strong>Install the Bridge</strong> on your computer so I can read & edit files locally.{' '}
+                  <strong>Select a folder</strong> using the file picker so I can read & edit files locally.{' '}
                   <button
-                    onClick={() => setShowBridgeTip(true)}
+                    onClick={() => onSelectFolder()}
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', fontSize: 12, padding: 0, textDecoration: 'underline' }}
-                  >Show me how</button>
+                  >Select folder</button>
                 </li>
-                <li><strong>Register a project</strong> — point the Bridge at any folder on your machine.</li>
+                <li><strong>Register a project</strong> — create a project and link it to your folder.</li>
                 <li><strong>Ask me anything</strong> — "fix this bug", "add a login page", "explain this code". I'll handle the rest.</li>
               </ol>
             </div>
           )}
-          {!bridgeConnected && (
+          {!selectedFolder && (
             <p style={{ fontSize: 12, color: 'var(--text-muted)', opacity: 0.7 }}>
               <button
-                onClick={() => setShowBridgeTip(true)}
+                onClick={() => onSelectFolder()}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', fontSize: 12, padding: 0, textDecoration: 'underline' }}
               >
-                Connect the Bridge
+                Select a folder
               </button>{' '}to unlock file editing and shell commands.
             </p>
           )}

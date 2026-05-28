@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Home, Eraser, BarChart2, HelpCircle, Settings, Phone, LogOut, Ticket } from 'lucide-react';
+import { Home, Eraser, BarChart2, HelpCircle, Settings, Phone, LogOut, Ticket, FolderOpen } from 'lucide-react';
 import BalanceBadge from './BalanceBadge';
-import BridgeStatusBadge from './BridgeStatusBadge';
 import ModeSelector from './ModeSelector';
 import type { Mode, Project, ProjectSpend } from '../types';
 
 interface TopBarProps {
-  userData: { id: number; username: string; balance: number; wallet_balance: number; wallet_auto_spend: boolean; selected_mode: string; max_tokens_per_session?: number | null; cross_device_memory_enabled?: boolean; chat_show_technical_details?: boolean; bridge_connected: boolean; modes: Mode[] } | null;
+  userData: { id: number; username: string; balance: number; wallet_balance: number; wallet_auto_spend: boolean; selected_mode: string; max_tokens_per_session?: number | null; cross_device_memory_enabled?: boolean; chat_show_technical_details?: boolean; modes: Mode[] } | null;
   activeProject: Project | null;
   activeSpend: ProjectSpend | null;
   balance: number;
@@ -16,7 +15,7 @@ interface TopBarProps {
   noBalance: boolean;
   routingReason: string | null;
   resolvedMode: string;
-  bridgeConnected: boolean;
+  selectedFolder: FileSystemDirectoryHandle | null;
   sessLimit: number | null;
   sessUsed: number;
   messagesLength: number;
@@ -26,7 +25,7 @@ interface TopBarProps {
   onOpenSettings: (section?: string, notice?: string) => void;
   navigate: (path: string) => void;
   handleLogout: () => void;
-  setShowBridgeTip: React.Dispatch<React.SetStateAction<boolean>>;
+  onSelectFolder: () => void;
   setShowUsage: (v: boolean) => void;
   loadUsageStats: (days: number) => void;
   usageDays: number;
@@ -54,9 +53,9 @@ export default function TopBar(props: TopBarProps) {
   const {
     userData, activeProject, activeSpend, balance, walletBalance,
     selectedMode, modes, noBalance, routingReason, resolvedMode,
-    bridgeConnected, sessLimit, sessUsed, messagesLength,
+    selectedFolder, sessLimit, sessUsed, messagesLength,
     toggleSidebar, changeMode, clearChat, onOpenSettings, navigate,
-    handleLogout, setShowBridgeTip, setShowUsage, loadUsageStats, usageDays, setShowHelp,
+    handleLogout, onSelectFolder, setShowUsage, loadUsageStats, usageDays, setShowHelp,
     isMobile, uiTheme, setUiTheme, userPlan,
   } = props;
 
@@ -193,15 +192,14 @@ export default function TopBar(props: TopBarProps) {
           </button>
         )}
         {!isMobile && (
-          <BridgeStatusBadge connected={bridgeConnected} onClick={async () => {
-            if (bridgeConnected) {
-              if (!confirm('🔌 Disconnect the SUNy Bridge?\n\nSUNy will no longer be able to read/write files or run commands on your machine. You can reconnect by clicking the bridge button again.')) return;
-              try {
-                await fetch('/api/bridge/disconnect', { method: 'POST', credentials: 'include' });
-              } catch { /* ignore */ }
-            }
-            setShowBridgeTip(t => !t);
-          }} />
+          <button
+            className="btn btn-icon btn-secondary"
+            onClick={onSelectFolder}
+            title={selectedFolder ? '📁 Folder selected' : '📁 Click to select project folder'}
+            style={{ color: selectedFolder ? 'var(--success)' : 'var(--text-muted)' }}
+          >
+            <FolderOpen size={15} />
+          </button>
         )}
         {isMobile && (
           <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginRight: 4 }}>

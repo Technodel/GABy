@@ -3,7 +3,6 @@ import {
   HelpCircle, X, BarChart2, User, FileText, Trash2, RotateCcw,
   FolderOpen, Sparkles, ChevronRight, ChevronDown, Play, Copy,
 } from 'lucide-react';
-import BridgeInstallInstructions from '../BridgeInstallInstructions';
 
 // ── Shared types ────────────────────────────────────────────────────────────
 
@@ -20,26 +19,27 @@ export interface Memory {
 
 export interface UsageDay { day: string; input_tokens: number; output_tokens: number; charged_cost: number; }
 export interface UsageMode { mode: string; input_tokens: number; output_tokens: number; charged_cost: number; }
-export interface UsageTotals { input_tokens: number; output_tokens: number; charged_cost: number; }
+export interface UsageTotals { input_tokens: number; output_tokens: number; charged_cost: number; cache_read_tokens?: number; }
 
-// ── Bridge Connect Modal ─────────────────────────────────────────────────────
+// ── Folder Select Modal ─────────────────────────────────────────────────────
 
-interface BridgeModalProps {
-  bridgeConnected: boolean;
+interface FolderModalProps {
+  selectedFolder: FileSystemDirectoryHandle | null;
   onClose: () => void;
+  onSelectFolder: () => void;
 }
 
-export function BridgeModal({ bridgeConnected, onClose }: BridgeModalProps) {
+export function FolderModal({ selectedFolder, onClose, onSelectFolder }: FolderModalProps) {
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
-        {bridgeConnected ? (
+        {selectedFolder ? (
           <>
             <div style={{ textAlign: 'center', padding: '12px 0 8px' }}>
-              <div style={{ fontSize: 32, marginBottom: 6 }}>🟢</div>
-              <h3 style={{ margin: '0 0 6px', fontSize: 17 }}>Bridge connected!</h3>
+              <div style={{ fontSize: 32, marginBottom: 6 }}>�</div>
+              <h3 style={{ margin: '0 0 6px', fontSize: 17 }}>Folder selected!</h3>
               <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                SUNy can now read &amp; write files, run shell commands, fix lint errors, and auto-commit.
+                SUNy can now read &amp; write files in your selected folder.
               </p>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
@@ -48,26 +48,30 @@ export function BridgeModal({ bridgeConnected, onClose }: BridgeModalProps) {
           </>
         ) : (
           <>
-            <h3 style={{ margin: '0 0 4px', fontSize: 17 }}>🔌 Connect the Bridge</h3>
+            <h3 style={{ margin: '0 0 4px', fontSize: 17 }}>� Select a Folder</h3>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, margin: '0 0 6px' }}>
-              The Bridge is a small background process that runs on <strong>your computer</strong>.
+              Use the browser file picker to select your project folder.
               SUNy needs it to <strong>create files, edit code, and run commands</strong>.
             </p>
             <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
               <div style={{ flex: 1, background: 'var(--bg-secondary)', borderRadius: 8, padding: '10px 12px' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Without Bridge</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Without Folder</div>
                 {['💬 Chat & answer questions', '🧠 Code review & analysis', '📋 Architecture advice'].map(t => (
                   <div key={t} style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 3 }}>{t}</div>
                 ))}
               </div>
               <div style={{ flex: 1, background: 'rgba(108,99,255,0.07)', border: '1px solid rgba(108,99,255,0.2)', borderRadius: 8, padding: '10px 12px' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.4px' }}>With Bridge ✨</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.4px' }}>With Folder ✨</div>
                 {['✏️ Create & edit files', '⚡ Run shell commands', '🔧 Auto-fix lint errors', '📦 Git auto-commit'].map(t => (
                   <div key={t} style={{ fontSize: 12, color: 'var(--text-primary)', marginBottom: 3 }}>{t}</div>
                 ))}
               </div>
             </div>
-            <BridgeInstallInstructions autoCopy />
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 14 }}>
+              <button className="btn btn-primary" onClick={onSelectFolder}>
+                📁 Select Project Folder
+              </button>
+            </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
               <button className="btn btn-secondary" onClick={onClose}>Close</button>
             </div>
@@ -371,7 +375,7 @@ export function UsageDashboardModal({
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 10, marginBottom: 20 }}>
             {[
               { label: 'Total Tokens', value: ((usageTotals.input_tokens + usageTotals.output_tokens) / 1000).toFixed(1) + 'K' },
-              { label: 'Cache Hits', value: (usageTotals.cache_read_tokens / 1000).toFixed(1) + 'K' },
+              { label: 'Cache Hits', value: ((usageTotals.cache_read_tokens ?? 0) / 1000).toFixed(1) + 'K' },
               { label: 'Total Spent', value: '$' + usageTotals.charged_cost.toFixed(4) },
               { label: 'Remaining Credits', value: (balance + walletBalance).toFixed(4) },
               { label: 'Remaining Session Tokens', value: sessLimit == null ? 'Unlimited' : Math.max(0, sessLimit - sessUsed).toLocaleString() },

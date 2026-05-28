@@ -1901,11 +1901,6 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
       addMessage('system', 'Auto-Execute is OFF for this project. SUNy will describe each action and ask for your confirmation before executing.');
     }
 
-    if (effectiveProjectId && !bridgeConnected) {
-      addMessage('system', '🔌 Bridge is offline — reconnect it from the top bar, then send your message again. SUNy cannot access files or run commands without it.');
-      return;
-    }
-
     // Clear any stuck forecast loading state before sending new message
     if (forecastTimeoutRef.current) window.clearTimeout(forecastTimeoutRef.current);
     setForecastLoading(false);
@@ -2526,7 +2521,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
                     if (!selectedFolder) { selectProjectFolder(); return; }
                     setShowFileBrowser(v => { const next = !v; if (!v && activeProject) loadFileBrowser(activeProject.id); return next; });
                   }}
-                  title={showFileBrowser ? 'Hide file browser' : (bridgeConnected ? 'Show file browser' : 'Bridge required � click to connect')}
+                  title={showFileBrowser ? 'Hide file browser' : (selectedFolder ? 'Show file browser' : 'Select folder to browse files')}
                 >
                   {showFileBrowser ? <FolderOpen size={12} /> : <Folder size={12} />}
                 </button>
@@ -3105,7 +3100,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
           )}
 
           {/* Live Server section */}
-          {activeProject && !isMobile && bridgeConnected && (
+          {activeProject && !isMobile && selectedFolder && (
             <div style={{ borderTop: '1px solid var(--border)', marginTop: 4 }}>
               <div style={{ padding: '12px 12px 8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
@@ -3145,7 +3140,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
                     <button
                       className="btn btn-secondary btn-sm"
                       style={{ fontSize: 11, padding: '4px 10px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-                      onClick={() => { if (!bridgeConnected) { setShowBridgeTip(true); return; } startDevServer(); }}
+                      onClick={() => { if (!selectedFolder) { selectProjectFolder(); return; } startDevServer(); }}
                       disabled={devServerLoading}
                     >
                       <Play size={11} />
@@ -3253,7 +3248,8 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
             projectStateReady={projectStateReady}
             globalIntroLine={globalIntroLine}
             projects={projects}
-            bridgeConnected={bridgeConnected}
+            selectedFolder={selectedFolder}
+            onSelectFolder={selectProjectFolder}
             expandedRunIds={expandedRunIds}
             msgEndRef={msgEndRef}
             clearChat={clearChat}
@@ -3269,7 +3265,6 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
             archiveGlobalTab={archiveGlobalTab}
             deleteArchivedTab={deleteArchivedTab}
             renameGlobalTab={renameGlobalTab}
-            setShowBridgeTip={setShowBridgeTip}
             openProject={openProject}
             copyProofReportToClipboard={copyProofReportToClipboard}
             setExpandedRunIds={setExpandedRunIds}
