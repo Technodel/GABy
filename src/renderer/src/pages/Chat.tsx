@@ -1964,10 +1964,12 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
   async function createProject() {
     if (!newProjectName.trim() || !newProjectPath.trim()) return;
     const trimmedPath = newProjectPath.trim();
-    const isAbsolute = /^[A-Za-z]:[\\//]/.test(trimmedPath) || trimmedPath.startsWith('/') || /^\\\\/.test(trimmedPath);
-    if (!isAbsolute) {
-      setNewProjectPathError('Please enter the full path to your project folder, like D:\\Projects\\MyApp');
-      return;
+    if (!selectedFolder) {
+      const isAbsolute = /^[A-Za-z]:[\\//]/.test(trimmedPath) || trimmedPath.startsWith('/') || /^\\\\/.test(trimmedPath);
+      if (!isAbsolute) {
+        setNewProjectPathError('Please enter the full path to your project folder, like D:\\Projects\\MyApp');
+        return;
+      }
     }
     setNewProjectPathError('');
     const res = await fetch('/api/projects', {
@@ -3820,6 +3822,13 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
                     if (!newProjectName.trim() || !newProjectPath.trim()) {
                       setNewProjectPathError('Please fill in all fields.');
                       return;
+                    }
+                    if (!selectedFolder) {
+                      const isAbsolute = /^[A-Za-z]:[\\//]/.test(newProjectPath.trim()) || newProjectPath.trim().startsWith('/') || /^\\\\/.test(newProjectPath.trim());
+                      if (!isAbsolute) {
+                        setNewProjectPathError('Please enter the full path to your project folder, like D:\\Projects\\MyApp');
+                        return;
+                      }
                     }
                     const fullPath = newProjectPath.replace(/\\/g, '/') + '/' + newProjectName.trim().replace(/\s+/g, '-').toLowerCase();
                     await fetch('/api/projects', {
