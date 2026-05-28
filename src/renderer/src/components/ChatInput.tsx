@@ -10,7 +10,6 @@ interface ChatInputProps {
   thinking: boolean;
   selectedMode: string;
   activeProject: { id: number; name: string; local_path: string; persona?: string | null } | null;
-  bridgeConnected: boolean;
   talkMode: boolean;
   noBalance: boolean;
   imagePreview: string | null;
@@ -44,7 +43,7 @@ const PLACEHOLDERS = [
 export default function ChatInput(props: ChatInputProps) {
   const {
     input, setInput, balance, walletBalance, thinking, selectedMode,
-    activeProject, bridgeConnected, talkMode, noBalance,
+    activeProject, talkMode, noBalance,
     imagePreview, setImagePreview, inputRef,
     inputHistoryIndex, messages, sendMessage, toggleTalkMode, wsSend, addMessage,
     isListening, onVoiceToggle,
@@ -230,7 +229,7 @@ export default function ChatInput(props: ChatInputProps) {
           ref={inputRef}
           value={input}
           onChange={e => { setInput(e.target.value); inputHistoryIndex.current = -1; }}
-          placeholder={activeProject && !bridgeConnected ? 'Bridge offline — I can still reason, explain, and review code! Type your question...' : PLACEHOLDERS[placeholderIdx]}
+          placeholder={PLACEHOLDERS[placeholderIdx]}
           rows={2}
           spellCheck={false}
           autoCorrect="off"
@@ -333,16 +332,15 @@ export default function ChatInput(props: ChatInputProps) {
         {/* Terminal button — always visible, disabled when bridge offline */}
         <button
           className="btn btn-icon btn-secondary"
-          onClick={() => { if (!bridgeConnected) return; setShowTerminal(v => !v); if (!showTerminal) setTimeout(() => termInputRef.current?.focus(), 100); }}
-          title={bridgeConnected ? 'Run a shell command' : 'Bridge offline — connect bridge to use terminal'}
-          disabled={!bridgeConnected}
+          onClick={() => { setShowTerminal(v => !v); if (!showTerminal) setTimeout(() => termInputRef.current?.focus(), 100); }}
+          title='Run a shell command'
           style={{
             alignSelf: 'flex-end',
             padding: '10px 12px',
             background: showTerminal ? 'rgba(108,99,255,0.12)' : 'transparent',
             border: showTerminal ? '1px solid var(--accent)' : '1px solid var(--border)',
-            color: bridgeConnected ? (showTerminal ? 'var(--accent)' : 'var(--text-muted)') : 'var(--text-muted)',
-            opacity: bridgeConnected ? 1 : 0.4,
+            color: showTerminal ? 'var(--accent)' : 'var(--text-muted)',
+            opacity: 1,
             transition: 'all 0.15s',
           }}
         >

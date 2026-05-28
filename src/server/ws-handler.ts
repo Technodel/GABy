@@ -926,7 +926,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       clearSessionSpend(sessionId);
       const forecastPlanAllowed = isPlanFeatureEnabled('pf_cost_forecast', userPlan);
       const budgetPlanAllowed = isPlanFeatureEnabled('pf_budget_gate', userPlan);
-      if (!talkMode && isForecastEnabled(userId) && forecastPlanAllowed) {
+      if (!talkMode && effectiveMode !== 'free' && isForecastEnabled(userId) && forecastPlanAllowed) {
         try {
           userClientManager.pushToUser(userId, 'suny:forecast_loading', {});
           // We need a model reference � use the primary model from the mode
@@ -960,7 +960,12 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
               walletBalance: await billing.getUserWalletBalance(userId),
               mode: effectiveMode,
             });
-            // UI card handles approval - no server-side checkpoint needed
+            // Wait for user to approve or cancel via the Run/Cancel buttons
+            const approved = await userClientManager.waitForCheckpoint(userId, 'Cost Estimate', 'Review the estimated cost and click Run to proceed or Cancel to abort.');
+            if (!approved) {
+              userClientManager.pushChatContent(userId, 'suny:stream_end', { content: '', sess_used: null, sess_limit: null, iterations: 0 });
+              return;
+            }
           } else {
             // No models available - clear forecast loading state and proceed
             userClientManager.pushToUser(userId, 'suny:pre_run_estimate', null);

@@ -1669,7 +1669,9 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
       setForecastEstimate(null);
       if (activeProject) {
         loadProjectStateFromServer(activeProject.id).then(remote => {
-          if (remote && remote.messages.length > 0) setMessages(remote.messages);
+          if (remote && remote.messages.length > 0) {
+            setMessages(prev => prev.length === 0 ? remote.messages : prev);
+          }
         }).catch(() => {});
       }
     },
