@@ -571,6 +571,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
   const [newProjectName, setNewProjectName] = useState('');
   const [newProjectPath, setNewProjectPath] = useState('');
   const [newProjectPathError, setNewProjectPathError] = useState('');
+  const [newProjectFolderPicked, setNewProjectFolderPicked] = useState(false);
 
   // -- Create-from-scratch mode ---------------------------------------------
   const [newProjectMode, setNewProjectMode] = useState<'link' | 'scratch'>('link');
@@ -1964,7 +1965,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
   async function createProject() {
     if (!newProjectName.trim() || !newProjectPath.trim()) return;
     const trimmedPath = newProjectPath.trim();
-    if (!selectedFolder) {
+    if (!newProjectFolderPicked) {
       const isAbsolute = /^[A-Za-z]:[\\//]/.test(trimmedPath) || trimmedPath.startsWith('/') || /^\\\\/.test(trimmedPath);
       if (!isAbsolute) {
         setNewProjectPathError('Please enter the full path to your project folder, like D:\\Projects\\MyApp');
@@ -1984,6 +1985,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
       setNewProjectName('');
       setNewProjectPath('');
       setNewProjectPathError('');
+      setNewProjectFolderPicked(false);
     } else {
       const data = await res.json().catch(() => ({}));
       const msg = data?.details?.fieldErrors?.local_path?.[0] || data?.error || 'Failed to create project';
@@ -3674,7 +3676,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
 
       {/* New Project Modal */}
       {showNewProject && (
-        <div className="modal-overlay" onClick={() => { setShowNewProject(false); setNewProjectMode('link'); setScratchDescription(''); }}>
+        <div className="modal-overlay" onClick={() => { setShowNewProject(false); setNewProjectMode('link'); setScratchDescription(''); setNewProjectFolderPicked(false); }}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <h3 className="modal-title">New Project</h3>
 
@@ -3722,6 +3724,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
                     const handle = await selectProjectFolder();
                     if (handle) {
                       setNewProjectPath(handle.name);
+                      setNewProjectFolderPicked(true);
                       if (!newProjectName) setNewProjectName(handle.name);
                     }
                   }}
@@ -3781,7 +3784,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
                     type="button"
                     style={{ whiteSpace: 'nowrap', marginBottom: 0 }}
                     title="Browse parent folder"
-                    onClick={async () => { const h = await selectProjectFolder(); if (h) setNewProjectPath(h.name); }}
+                    onClick={async () => { const h = await selectProjectFolder(); if (h) { setNewProjectPath(h.name); setNewProjectFolderPicked(true); } }}
                   >
                     Browse
                   </button>
@@ -3811,7 +3814,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
             </div>
             )}
             <div style={{ display: 'flex', gap: 8, marginTop: 20, justifyContent: 'flex-end' }}>
-              <button className="btn btn-secondary" onClick={() => { setShowNewProject(false); setNewProjectMode('link'); setScratchDescription(''); }}>Cancel</button>
+              <button className="btn btn-secondary" onClick={() => { setShowNewProject(false); setNewProjectMode('link'); setScratchDescription(''); setNewProjectFolderPicked(false); }}>Cancel</button>
               {newProjectMode === 'link' ? (
                 <button className="btn btn-primary" onClick={createProject}>Create with SUNy</button>
               ) : (
@@ -3823,7 +3826,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
                       setNewProjectPathError('Please fill in all fields.');
                       return;
                     }
-                    if (!selectedFolder) {
+                    if (!newProjectFolderPicked) {
                       const isAbsolute = /^[A-Za-z]:[\\//]/.test(newProjectPath.trim()) || newProjectPath.trim().startsWith('/') || /^\\\\/.test(newProjectPath.trim());
                       if (!isAbsolute) {
                         setNewProjectPathError('Please enter the full path to your project folder, like D:\\Projects\\MyApp');
