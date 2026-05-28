@@ -912,10 +912,9 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       }
 
       // Run the full agent loop
-      // Start "Did you know?" timer � fires every 60s for long tasks
+      // Start "Did you know?" timer — fires every 60s for long tasks
       const stopDidYouKnow = startDidYouKnowTimer(userId, currentAbortController.signal);
       const maxTurnMs = projectPath ? 180_000 : 70_000;
-      let timedOutByGuard = false;
       const turnTimeout = setTimeout(() => {
         if (currentAbortController && !currentAbortController.signal.aborted) {
           timedOutByGuard = true;
@@ -978,6 +977,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       }
 
       let result;
+      let timedOutByGuard = false;
       try {
         // Budget gate callbacks (only attached when budget gate is enabled + plan allows)
         const budgetCap = (isBudgetGateEnabled(userId) && budgetPlanAllowed) ? getBudgetPerRun(userId) : null;
