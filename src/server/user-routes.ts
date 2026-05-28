@@ -388,10 +388,7 @@ function isAbsolutePath(p: string): boolean {
 
 const CreateProjectSchema = z.object({
   name: z.string().min(1).max(100),
-  local_path: z.string().min(1).max(500).refine(
-    isAbsolutePath,
-    { message: 'Please enter the full path to your project folder, like D:\\Projects\\MyApp' }
-  ),
+  local_path: z.string().min(1).max(500),
 });
 
 router.post('/projects', (req: Request, res: Response) => {
