@@ -4,7 +4,16 @@ import { readConfig, updateConfig } from './config';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { execSync } from 'child_process';
+import { execSync, exec } from 'child_process';
+import http from 'http';
+
+const SETUP_PORT = 15567;
+const SETUP_TIMEOUT = 5 * 60 * 1000;
+
+interface SetupResult {
+  token: string;
+  server: string;
+}
 
 function parseArgs(): { token?: string; code?: string; server?: string; register?: string; silent?: boolean; installStartup?: boolean; removeStartup?: boolean } {
   const args = process.argv.slice(2);
@@ -226,6 +235,86 @@ async function redeemSetupCode(server: string, code: string): Promise<string> {
   }
 
   return data.token;
+}
+
+/**
+ * UI-based auto-setup: Opens browser, waits for user to approve in web UI
+ */
+function runUiSetup(serverUrl: string): Promise<SetupResult> {
+  return new Promise((resolve, reject) => {
+    const callbackUrl = `http://localhost:${SETUP_PORT}/callback`;
+    const webSetupUrl = `${toHttpApiBase(serverUrl)}/bridge-setup?callback=${encodeURIComponent(callbackUrl)}`;
+
+    console.log('[SUNy Bridge] Opening browser for setup...');
+    console.log(`[SUNy Bridge] If browser doesn't open, visit: ${webSetupUrl}`);
+
+    // Open browser
+    try {
+      const cmd = process.platform === 'win32' ? `start "" "${webSetupUrl}"` :
+        process.platform === 'darwin' ? `open "${webSetupUrl}"` : `xdg-open "${webSetupUrl}"`;
+      exec(cmd);
+    } catch {
+      // Ignore browser open failure
+    }
+
+    // Start local HTTP server to receive token
+    const httpServer = http.createServer((req, res) => {
+      // CORS headers
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+      if (req.method === 'OPTIONS') {
+        res.writeHead(200);
+        res.end();
+        return;
+      }
+
+      if (req.url === '/callback' && req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => body += chunk);
+        req.on('end', () => {
+          try {
+            const data = JSON.parse(body) as { token?: string; server?: string };
+            if (data.token && data.server) {
+              res.writeHead(200, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ success: true }));
+              httpServer.close();
+              resolve({ token: data.token, server: data.server });
+            } else {
+              res.writeHead(400);
+              res.end(JSON.stringify({ error: 'Missing token' }));
+            }
+          } catch {
+            res.writeHead(400);
+            res.end(JSON.stringify({ error: 'Invalid JSON' }));
+          }
+        });
+        return;
+      }
+
+      // Status page
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end(`<!DOCTYPE html>
+<html><head><title>SUNy Bridge Setup</title>
+<style>body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);}
+.box{background:white;padding:40px;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.3);text-align:center;max-width:400px;}
+h1{color:#333;margin-bottom:20px;}.spinner{width:50px;height:50px;border:4px solid #f3f3f3;border-top:4px solid #667eea;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 20px;}
+@keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
+p{color:#666;line-height:1.6;}</style></head>
+<body><div class="box"><div class="spinner"></div><h1>Waiting for SUNy...</h1><p>Please click "Connect Bridge" in the browser window that opened.</p></div></body></html>`);
+    });
+
+    httpServer.listen(SETUP_PORT, () => {
+      console.log(`[SUNy Bridge] Waiting for connection... (5 minute timeout)`);
+    });
+
+    // Timeout
+    setTimeout(() => {
+      httpServer.close();
+      reject(new Error('Setup timed out. Please try again.'));
+    }, SETUP_TIMEOUT);
+  });
 }
 
 async function main(): Promise<void> {

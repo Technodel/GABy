@@ -136,7 +136,7 @@ export default function Login({ onLogin }: LoginProps) {
     { icon: '\ud83d\udcc5', title: 'Message timelines', desc: 'Every chat turn is stamped to the second, and replies can open compact task reports with duration, tokens, cost, and a human-time estimate.' },
     { icon: '\ud83d\udcc8', title: 'Checkpoint timeline', desc: 'Every turn creates a restore point, so you can roll back to any earlier working version without losing momentum.' },
     { icon: '\ud83c\udfdb\ufe0f', title: 'Freeze Brain', desc: 'Pin a project to a saved memory snapshot so SUNy keeps using the same blueprint and behavioral rules until you unfreeze it.' },
-    { icon: '\ud83d\udd17', title: 'Local Bridge', desc: 'A tiny background agent on your machine lets SUNy edit real local files \u2014 nothing is uploaded to any cloud.' },
+    { icon: '📁', title: 'Local File Access', desc: 'Select your project folder in the browser. SUNy can read and edit files directly with your permission — no installation needed.' },
     { icon: '\ud83e\udde0', title: 'Composable Behavior Profiles', desc: 'SUNy composes past interactions, learned rules, project context, and active skills into weighted behavior profiles. Smarter, more focused guidance without verbose memory dumps.' },
     { icon: '\ud83d\udd17', title: 'Client Tickets', desc: 'Generate a secure URL for clients. Fast/Smart plans include text-based AI intake forms to gather requirements.' },
     { icon: '\ud83d\udcb0', title: 'Pay as you go', desc: 'Add credits and spend them on AI tasks. No subscriptions. No waste. You only pay for what SUNy actually does.' },
@@ -150,27 +150,6 @@ export default function Login({ onLogin }: LoginProps) {
 
   return (
     <div className="login-page" style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--text-primary)', display: 'flex', flexDirection: 'column' }}>
-      {/* ── Theme switcher: top-left ── */}
-      <div style={{ position: 'fixed', top: 12, left: 16, display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2, zIndex: 1000 }}>
-        <div style={{ display: 'flex', gap: 4 }}>
-          {(['pro', 'suny', 'matrix'] as const).map(t => (
-            <button key={t} onClick={() => switchTheme(t)}
-              style={{
-                padding: '3px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
-                borderRadius: 6, border: `1px solid ${theme === t ? 'var(--accent)' : 'var(--border)'}`,
-                background: theme === t ? 'var(--accent)' : 'var(--surface)',
-                color: theme === t ? '#fff' : 'var(--text-secondary)',
-                textTransform: 'capitalize', transition: 'all 0.15s', letterSpacing: '0.3px',
-                opacity: theme === t ? 1 : 0.7,
-              }}>
-              {t === 'pro' ? '⚡Pro' : t === 'suny' ? '☀️SUNy' : '💻Matrix'}
-            </button>
-          ))}
-        </div>
-        <div style={{ fontSize: 10, color: 'var(--text-muted)', opacity: 0.6, letterSpacing: '0.2px' }}>
-          Try other themes that could meet your style &amp; mood
-        </div>
-      </div>
       <style>{`
         /* ── Top row: login + hero ── */
         .login-top-row {
@@ -242,6 +221,22 @@ export default function Login({ onLogin }: LoginProps) {
         {/* LEFT: Login + privacy */}
         <div className="login-card-col">
           <div className="card">
+            {/* Theme buttons - top right of card */}
+            <div style={{ display: 'flex', gap: 4, marginBottom: 12, justifyContent: 'flex-end' }}>
+              {(['pro', 'suny', 'matrix'] as const).map(t => (
+                <button key={t} onClick={() => switchTheme(t)}
+                  style={{
+                    padding: '3px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+                    borderRadius: 6, border: `1px solid ${theme === t ? 'var(--accent)' : 'var(--border)'}`,
+                    background: theme === t ? 'var(--accent)' : 'var(--surface)',
+                    color: theme === t ? '#fff' : 'var(--text-secondary)',
+                    textTransform: 'capitalize', transition: 'all 0.15s', letterSpacing: '0.3px',
+                    opacity: theme === t ? 1 : 0.7,
+                  }}>
+                  {t === 'pro' ? '⚡Pro' : t === 'suny' ? '☀️SUNy' : '💻Matrix'}
+                </button>
+              ))}
+            </div>
             <div style={{ display: 'flex', marginBottom: 20, borderBottom: '1px solid var(--border)' }}>
               {(['user', 'signup'] as const).map(t => (
                 <button key={t} onClick={() => { setTab(t); setError(''); }}

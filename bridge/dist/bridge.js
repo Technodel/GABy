@@ -61,14 +61,39 @@ class SunyBridge {
         this.stopped = false;
         /** Tracks whether we've already registered for startup auto-launch */
         this.startupRegistered = false;
+        /** Whether this is the first successful connection (for first-time setup msg) */
+        this.isFirstConnection = true;
         /** Whether we are currently in the "waiting for a new token" recovery phase */
         this.awaitingTokenRefresh = false;
         this.tokenRefreshAttempts = 0;
         this.tokenRefreshTimer = null;
+        this.refreshToken = null;
+        this.tokenRefreshScheduled = false;
         this.token = token;
         this.server = server;
         this.silent = options.silent ?? false;
         this.log = this.silent ? () => { } : console.log;
+        this.refreshToken = this.loadRefreshToken();
+    }
+    setRefreshToken(rt) {
+        this.refreshToken = rt;
+        const rtFile = path.join(os.homedir(), '.suny', 'refresh_token.json');
+        try {
+            fs.mkdirSync(path.dirname(rtFile), { recursive: true });
+            fs.writeFileSync(rtFile, JSON.stringify({ refreshToken: rt }), 'utf8');
+        }
+        catch { /* best-effort */ }
+    }
+    loadRefreshToken() {
+        try {
+            const rtFile = path.join(os.homedir(), '.suny', 'refresh_token.json');
+            if (fs.existsSync(rtFile)) {
+                const data = JSON.parse(fs.readFileSync(rtFile, 'utf8'));
+                return data.refreshToken || null;
+            }
+        }
+        catch { /* ignore */ }
+        return null;
     }
     start() {
         this.stopped = false;
@@ -98,6 +123,57 @@ class SunyBridge {
         }
         this.startupRegistered = true;
     }
+    scheduleProactiveTokenRefresh() {
+        if (this.tokenRefreshScheduled)
+            return;
+        try {
+            const parts = this.token.split('.');
+            const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+            const expiresAt = payload.exp * 1000;
+            const refreshAt = expiresAt - (2 * 24 * 60 * 60 * 1000);
+            let delay = Math.max(0, refreshAt - Date.now());
+            // Cap to max safe 32-bit signed integer (~24.8 days) to avoid TimeoutOverflowWarning
+            const MAX_SAFE_DELAY = 2147483647;
+            if (delay > MAX_SAFE_DELAY) {
+                delay = MAX_SAFE_DELAY;
+            }
+            this.tokenRefreshScheduled = true;
+            setTimeout(() => this.proactiveTokenRefresh(), delay);
+            this.log(`[SUNy Bridge] Token refresh scheduled in ${Math.round(Math.min(delay, refreshAt - Date.now()) / 3600000)}h`);
+        }
+        catch { /* ignore parse errors */ }
+    }
+    async proactiveTokenRefresh() {
+        const rt = this.refreshToken || this.loadRefreshToken();
+        if (!rt) {
+            this.startTokenRefreshFlow();
+            return;
+        }
+        try {
+            const serverUrl = this.server
+                .replace(/^wss:\/\//, 'https://')
+                .replace(/^ws:\/\//, 'http://')
+                .replace('/bridge', '');
+            const resp = await fetch(`${serverUrl}/api/bridge/refresh-token`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ refreshToken: rt }),
+            });
+            if (!resp.ok)
+                throw new Error(`HTTP ${resp.status}`);
+            const data = await resp.json();
+            this.token = data.token;
+            this.setRefreshToken(data.refreshToken);
+            this.tokenRefreshScheduled = false;
+            this.scheduleProactiveTokenRefresh();
+            this.log('[SUNy Bridge] Token refreshed automatically ✓');
+            this.ws?.close();
+        }
+        catch (err) {
+            this.log('[SUNy Bridge] Auto-refresh failed, retrying in 1h:', err);
+            setTimeout(() => this.proactiveTokenRefresh(), 3600000);
+        }
+    }
     updateToken(newToken) {
         this.token = newToken;
         this.awaitingTokenRefresh = false;
@@ -113,9 +189,10 @@ class SunyBridge {
         }
     }
     connect() {
-        const url = `${this.server}/bridge?token=${encodeURIComponent(this.token)}`;
+        const url = `${this.server}/bridge`;
         try {
-            this.ws = new ws_1.default(url);
+            // Send token via Sec-WebSocket-Protocol header (avoids leaking JWT in URL/query strings)
+            this.ws = new ws_1.default(url, [this.token]);
         }
         catch (err) {
             this.log('[SUNy Bridge] Failed to create connection:', err);
@@ -126,11 +203,15 @@ class SunyBridge {
             this.log('[SUNy Bridge] Connected to SUNy server ✓');
             this.reconnectDelay = RECONNECT_DELAY;
             this.startHeartbeat();
-            // Auto-register startup on first successful connection
-            // so the bridge comes back after reboot without user intervention.
-            // This is silent — user doesn't need to know about --install-startup.
             if (!this.startupRegistered) {
                 this.registerStartup();
+            }
+            // Schedule proactive token refresh before expiry
+            this.scheduleProactiveTokenRefresh();
+            // Show first-time setup instructions
+            if (this.isFirstConnection) {
+                this.showFirstTimeSetup();
+                this.isFirstConnection = false;
             }
         });
         this.ws.on('message', (raw) => {
@@ -139,10 +220,14 @@ class SunyBridge {
         this.ws.on('close', (code, reason) => {
             this.clearTimers();
             if (code === 4001) {
-                this.log('[SUNy Bridge] Authentication failed (code 4001).');
-                this.startTokenRefreshFlow();
-                // Keep waiting for a fresh token until the user explicitly disconnects.
-                return;
+                this.log('[SUNy Bridge] Authentication failed (code 4001). Token expired or invalid.');
+                // Clear expired token from config so user can reconnect with fresh token
+                (0, config_1.updateConfig)({ token: undefined });
+                this.log('[SUNy Bridge] Cleared expired token from config.');
+                this.log('[SUNy Bridge] To reconnect, get a new setup code from the web app and run:');
+                this.log('[SUNy Bridge]   suny-bridge start --code SUNY-XXXXX-XXXXX');
+                this.stopped = true;
+                process.exit(1);
             }
             if (!this.stopped) {
                 this.log(`[SUNy Bridge] Disconnected (code ${code}). Reconnecting in ${this.reconnectDelay / 1000}s...`);
@@ -180,7 +265,7 @@ class SunyBridge {
             return;
         }
         if (type === 'bridge:ping') {
-            this.send({ type: 'bridge:pong' });
+            this.send({ type: 'bridge:pong', ts: payload?.ts });
             return;
         }
         // Register a project directory path so the sandbox allows file operations
@@ -211,6 +296,80 @@ class SunyBridge {
         this.heartbeatTimer = setInterval(() => {
             this.send({ type: 'bridge:ping' });
         }, HEARTBEAT_INTERVAL);
+    }
+    /**
+     * Display comprehensive first-time setup instructions
+     * Includes: auto-start, permissions, Windows Defender exclusion, always-on info
+     */
+    showFirstTimeSetup() {
+        if (this.silent)
+            return;
+        const isWin = process.platform === 'win32';
+        const startupPath = isWin
+            ? path.join(os.homedir(), 'AppData', 'Roaming', 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup', 'SUNyBridge.vbs')
+            : path.join(os.homedir(), '.suny', 'startup.sh');
+        this.log('');
+        this.log('╔══════════════════════════════════════════════════════════════════╗');
+        this.log('║           🌟 SUNy Bridge First-Time Setup Complete 🌟            ║');
+        this.log('╚══════════════════════════════════════════════════════════════════╝');
+        this.log('');
+        this.log('📌 IMPORTANT: The bridge is now connected and ready!');
+        this.log('');
+        this.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        this.log(' 1️⃣  AUTO-START ON WINDOWS LOGIN (Recommended)');
+        this.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        this.log('    To make bridge start automatically when Windows boots:');
+        this.log('');
+        this.log('    Option A - One-time setup command:');
+        this.log('        suny-bridge --install-startup');
+        this.log('');
+        this.log('    Option B - Manual startup folder:');
+        this.log(`        Copy shortcut to: ${startupPath}`);
+        this.log('');
+        this.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        this.log(' 2️⃣  WINDOWS DEFENDER / ANTIVIRUS (If files not accessible)');
+        this.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        this.log('    If bridge cannot access project files, add exclusion for:');
+        this.log('');
+        this.log('        Folder: %USERPROFILE%\\.suny');
+        this.log('        Or run PowerShell as Admin:');
+        this.log('        Add-MpPreference -ExclusionPath "~\\.suny"');
+        this.log('');
+        this.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        this.log(' 3️⃣  ALWAYS-ON & AUTO-RECONNECT FEATURES');
+        this.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        this.log('    ✓ Auto-reconnect on connection loss (5s-60s backoff)');
+        this.log('    ✓ Heartbeat every 30s to detect dead connections');
+        this.log('    ✓ Auto-reconnect after network/WiFi issues');
+        this.log('    ✓ Auto-startup on Windows login (after enabling)');
+        this.log('    ✓ Automatic token refresh before expiry (30 days)');
+        this.log('');
+        this.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        this.log(' 4️⃣  FULL ACCESS PERMISSIONS');
+        this.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        this.log('    The bridge can now access:');
+        this.log('      • All files in registered project directories');
+        this.log('      • Terminal/command execution');
+        this.log('      • Browser automation (via puppeteer)');
+        this.log('      • File read/write operations');
+        this.log('');
+        this.log('    To register a new project:');
+        this.log('        suny-bridge --register "C:\\path\\to\\project"');
+        this.log('');
+        this.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        this.log(' 5️⃣  KEEP BRIDGE RUNNING');
+        this.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+        this.log('    For 24/7 operation:');
+        this.log('    • Run in background:  suny-bridge start --silent');
+        this.log('    • Or install startup: suny-bridge --install-startup');
+        this.log('');
+        this.log('    The bridge will stay connected and auto-reconnect to any');
+        this.log('    network changes, server restarts, or temporary disconnects.');
+        this.log('');
+        this.log('╔══════════════════════════════════════════════════════════════════╗');
+        this.log('║  🚀 SUNy Bridge is ready! Your AI companion has full access.      ║');
+        this.log('╚══════════════════════════════════════════════════════════════════╝');
+        this.log('');
     }
     scheduleReconnect() {
         this.reconnectTimer = setTimeout(() => {

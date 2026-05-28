@@ -243,6 +243,13 @@ function parseShellCommand(input) {
             continue;
         }
         if (ch === '\\' && !inSingle && !inDouble) {
+            // On Windows, backslash is a path separator, not an escape character
+            // Only treat it as escape if followed by a quote or space
+            const nextChar = input[i + 1];
+            if (process.platform === 'win32' && nextChar && !/[\s'"]/.test(nextChar)) {
+                current += ch; // Preserve backslash for Windows paths like C:\Users
+                continue;
+            }
             escapeNext = true;
             continue;
         }

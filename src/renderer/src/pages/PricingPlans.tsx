@@ -39,7 +39,7 @@ const PLAN_FEATURES: Record<string, { name: string; features: string[]; highligh
     highlight: 'Popular',
     features: [
       'Everything in Free',
-      'Bridge Access (Read/Edit/Delete files)',
+      'Local File Access (Read/Edit/Delete files via browser)',
       'Executes actions automatically',
       'Pay-as-you-go token pricing',
     ],

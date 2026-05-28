@@ -1050,15 +1050,16 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           const modelEntries = await Promise.race([modelsPromise, modelsTimeout]).catch(() => []);
           if (modelEntries.length > 0) {
             const firstEntry = modelEntries[0];
-            // Add 10s timeout to prevent forecast from hanging forever
+            // Add 30s timeout to prevent forecast from hanging forever
             const forecastPromise = buildForecast(
               userId, projectId ?? null, sessionId, effectiveMode,
               msg.message as string, firstEntry.model, firstEntry.provider,
             );
             const timeoutPromise = new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error('Forecast timeout')), 10000)
+              setTimeout(() => reject(new Error('Forecast timeout')), 30000)
             );
             const forecast = await Promise.race([forecastPromise, timeoutPromise]);
+            const billing = await import('./billing');
             userClientManager.pushToUser(userId, 'suny:pre_run_estimate', {
               lowCredits: forecast.lowCredits,
               highCredits: forecast.highCredits,
@@ -1066,7 +1067,8 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
               estimatedSteps: forecast.estimatedSteps,
               confidence: forecast.confidence,
               basedOn: forecast.basedOn,
-              currentBalance: await (await import('./billing')).getUserBalance(userId),
+              currentBalance: await billing.getUserBalance(userId),
+              walletBalance: await billing.getUserWalletBalance(userId),
               mode: effectiveMode,
             });
             // UI card handles approval - no server-side checkpoint needed

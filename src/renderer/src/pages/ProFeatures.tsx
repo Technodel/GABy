@@ -237,7 +237,7 @@ export default function ProFeatures() {
                   { label: 'Reasoning Modes', regular: 'All 4 (Free, Fast, Smart, Pro)', pro: 'All 4 (Free, Fast, Smart, Pro)', proHighlight: false },
                   { label: 'Auto Mode', regular: '✓', pro: '✓', proHighlight: false },
                   { label: 'Pay-per-use Credits', regular: '✓', pro: '✓', proHighlight: false },
-                  { label: 'Local Bridge', regular: '✓', pro: '✓', proHighlight: false },
+                  { label: 'Local File Access', regular: '✓', pro: '✓', proHighlight: false },
                   { label: 'AI Memories & Style Learning', regular: '✓', pro: '✓', proHighlight: false },
                   { label: 'Git Checkpoints & Rollback', regular: '✓', pro: '✓', proHighlight: false },
                   { label: 'PRO-Exclusive Features', regular: '—', pro: proOnlyFeatures.length > 0 ? `✓ All ${proOnlyFeatures.length} PRO features (see below)` : '✓ All PRO features', proHighlight: true },

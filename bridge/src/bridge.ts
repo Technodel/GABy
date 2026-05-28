@@ -29,6 +29,8 @@ export class SunyBridge {
   private stopped = false;
   /** Tracks whether we've already registered for startup auto-launch */
   private startupRegistered = false;
+  /** Whether this is the first successful connection (for first-time setup msg) */
+  private isFirstConnection = true;
   /** Whether we are currently in the "waiting for a new token" recovery phase */
   private awaitingTokenRefresh = false;
   private tokenRefreshAttempts = 0;
@@ -104,10 +106,15 @@ export class SunyBridge {
       const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
       const expiresAt = payload.exp * 1000;
       const refreshAt = expiresAt - (2 * 24 * 60 * 60 * 1000);
-      const delay = Math.max(0, refreshAt - Date.now());
+      let delay = Math.max(0, refreshAt - Date.now());
+      // Cap to max safe 32-bit signed integer (~24.8 days) to avoid TimeoutOverflowWarning
+      const MAX_SAFE_DELAY = 2147483647;
+      if (delay > MAX_SAFE_DELAY) {
+        delay = MAX_SAFE_DELAY;
+      }
       this.tokenRefreshScheduled = true;
       setTimeout(() => this.proactiveTokenRefresh(), delay);
-      this.log(`[SUNy Bridge] Token refresh scheduled in ${Math.round(delay / 3600000)}h`);
+      this.log(`[SUNy Bridge] Token refresh scheduled in ${Math.round(Math.min(delay, refreshAt - Date.now()) / 3600000)}h`);
     } catch { /* ignore parse errors */ }
   }
 
@@ -176,6 +183,12 @@ export class SunyBridge {
 
       // Schedule proactive token refresh before expiry
       this.scheduleProactiveTokenRefresh();
+
+      // Show first-time setup instructions
+      if (this.isFirstConnection) {
+        this.showFirstTimeSetup();
+        this.isFirstConnection = false;
+      }
     });
 
     this.ws.on('message', (raw) => {
@@ -276,6 +289,81 @@ export class SunyBridge {
     this.heartbeatTimer = setInterval(() => {
       this.send({ type: 'bridge:ping' });
     }, HEARTBEAT_INTERVAL);
+  }
+
+  /**
+   * Display comprehensive first-time setup instructions
+   * Includes: auto-start, permissions, Windows Defender exclusion, always-on info
+   */
+  private showFirstTimeSetup(): void {
+    if (this.silent) return;
+    const isWin = process.platform === 'win32';
+    const startupPath = isWin
+      ? path.join(os.homedir(), 'AppData', 'Roaming', 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'Startup', 'SUNyBridge.vbs')
+      : path.join(os.homedir(), '.suny', 'startup.sh');
+
+    this.log('');
+    this.log('╔══════════════════════════════════════════════════════════════════╗');
+    this.log('║           🌟 SUNy Bridge First-Time Setup Complete 🌟            ║');
+    this.log('╚══════════════════════════════════════════════════════════════════╝');
+    this.log('');
+    this.log('📌 IMPORTANT: The bridge is now connected and ready!');
+    this.log('');
+    this.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    this.log(' 1️⃣  AUTO-START ON WINDOWS LOGIN (Recommended)');
+    this.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    this.log('    To make bridge start automatically when Windows boots:');
+    this.log('');
+    this.log('    Option A - One-time setup command:');
+    this.log('        suny-bridge --install-startup');
+    this.log('');
+    this.log('    Option B - Manual startup folder:');
+    this.log(`        Copy shortcut to: ${startupPath}`);
+    this.log('');
+    this.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    this.log(' 2️⃣  WINDOWS DEFENDER / ANTIVIRUS (If files not accessible)');
+    this.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    this.log('    If bridge cannot access project files, add exclusion for:');
+    this.log('');
+    this.log('        Folder: %USERPROFILE%\\.suny');
+    this.log('        Or run PowerShell as Admin:');
+    this.log('        Add-MpPreference -ExclusionPath "~\\.suny"');
+    this.log('');
+    this.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    this.log(' 3️⃣  ALWAYS-ON & AUTO-RECONNECT FEATURES');
+    this.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    this.log('    ✓ Auto-reconnect on connection loss (5s-60s backoff)');
+    this.log('    ✓ Heartbeat every 30s to detect dead connections');
+    this.log('    ✓ Auto-reconnect after network/WiFi issues');
+    this.log('    ✓ Auto-startup on Windows login (after enabling)');
+    this.log('    ✓ Automatic token refresh before expiry (30 days)');
+    this.log('');
+    this.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    this.log(' 4️⃣  FULL ACCESS PERMISSIONS');
+    this.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    this.log('    The bridge can now access:');
+    this.log('      • All files in registered project directories');
+    this.log('      • Terminal/command execution');
+    this.log('      • Browser automation (via puppeteer)');
+    this.log('      • File read/write operations');
+    this.log('');
+    this.log('    To register a new project:');
+    this.log('        suny-bridge --register "C:\\path\\to\\project"');
+    this.log('');
+    this.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    this.log(' 5️⃣  KEEP BRIDGE RUNNING');
+    this.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    this.log('    For 24/7 operation:');
+    this.log('    • Run in background:  suny-bridge start --silent');
+    this.log('    • Or install startup: suny-bridge --install-startup');
+    this.log('');
+    this.log('    The bridge will stay connected and auto-reconnect to any');
+    this.log('    network changes, server restarts, or temporary disconnects.');
+    this.log('');
+    this.log('╔══════════════════════════════════════════════════════════════════╗');
+    this.log('║  🚀 SUNy Bridge is ready! Your AI companion has full access.      ║');
+    this.log('╚══════════════════════════════════════════════════════════════════╝');
+    this.log('');
   }
 
   private scheduleReconnect(): void {

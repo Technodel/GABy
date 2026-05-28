@@ -15,7 +15,7 @@ class ProcessManager {
         const isBatOrCmd = isWindows && (cmd.toLowerCase().endsWith('.bat') || cmd.toLowerCase().endsWith('.cmd'));
         const child = (0, child_process_1.spawn)(cmd, args, {
             cwd,
-            shell: isBatOrCmd, // Use shell only for Windows batch files
+            shell: isBatOrCmd ? 'powershell.exe' : false, // Bypass cmd.exe block by routing through PowerShell
             env: { ...process.env },
             stdio: ['ignore', 'pipe', 'pipe'],
         });

@@ -33,6 +33,9 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const bridge_1 = require("./bridge");
 const config_1 = require("./config");
@@ -40,6 +43,9 @@ const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
 const os = __importStar(require("os"));
 const child_process_1 = require("child_process");
+const http_1 = __importDefault(require("http"));
+const SETUP_PORT = 15567;
+const SETUP_TIMEOUT = 5 * 60 * 1000;
 function parseArgs() {
     const args = process.argv.slice(2);
     const result = {};
@@ -68,17 +74,59 @@ function getStartupScriptPath() {
     }
     return path.join(os.homedir(), '.suny', 'startup.sh');
 }
+function getSystemdServiceContent(bridgeEntry) {
+    return `[Unit]
+Description=SUNy Bridge
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=node ${bridgeEntry} --silent
+Restart=on-failure
+RestartSec=10
+StartLimitInterval=60
+StartLimitBurst=5
+
+[Install]
+WantedBy=default.target
+`;
+}
+function getLaunchdPlistContent(bridgeEntry) {
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>tech.technodel.suny-bridge</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>node</string>
+    <string>${bridgeEntry}</string>
+    <string>--silent</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardErrorPath</key>
+  <string>${os.homedir()}/.suny/bridge-error.log</string>
+  <key>StandardOutPath</key>
+  <string>${os.homedir()}/.suny/bridge.log</string>
+</dict>
+</plist>`;
+}
 function installStartup() {
     if (process.platform === 'win32') {
         const scriptPath = getStartupScriptPath();
-        const bridgeIndex = path.join(__dirname, 'index.ts');
+        const bridgeEntry = path.resolve(process.argv[1] || path.join(__dirname, 'index.ts'));
         const vbs = `' SUNy Bridge — hidden startup launcher
 ' Installed by: suny-bridge --install-startup
 ' The bridge reads ~/.suny/config.json for token/server.
 
 Dim shell, cmd
 Set shell = CreateObject("WScript.Shell")
-cmd = "node """ + bridgeIndex.replace(/\\/g, '\\\\') + """ --silent"
+cmd = "node """ + bridgeEntry.replace(/\\/g, '\\\\') + """ --silent"
 shell.Run cmd, 0, False
 Set shell = Nothing
 `;
@@ -86,13 +134,40 @@ Set shell = Nothing
         console.log(`✅ Bridge auto-start installed!`);
         console.log(`   Script: ${scriptPath}`);
         console.log(`   The bridge will auto-connect when you log in to Windows.`);
+        return;
     }
-    else {
-        // Linux/Mac: create a shell script + crontab entry
+    const bridgeEntry = path.resolve(process.argv[1] || path.join(__dirname, 'index.ts'));
+    if (process.platform === 'darwin') {
+        // macOS: launchd plist with KeepAlive
+        const plistDir = path.join(os.homedir(), 'Library', 'LaunchAgents');
+        const plistPath = path.join(plistDir, 'tech.technodel.suny-bridge.plist');
+        fs.mkdirSync(plistDir, { recursive: true });
+        fs.writeFileSync(plistPath, getLaunchdPlistContent(bridgeEntry), 'utf8');
+        try {
+            (0, child_process_1.execSync)(`launchctl load "${plistPath}" 2>/dev/null || true`);
+        }
+        catch { /* best-effort */ }
+        console.log(`✅ Bridge auto-start installed! (launchd plist: ${plistPath})`);
+        console.log(`   Bridge will auto-start on login and restart if it crashes.`);
+        return;
+    }
+    // Linux: systemd --user service with Restart=on-failure
+    const systemdDir = path.join(os.homedir(), '.config', 'systemd', 'user');
+    const servicePath = path.join(systemdDir, 'suny-bridge.service');
+    fs.mkdirSync(systemdDir, { recursive: true });
+    fs.writeFileSync(servicePath, getSystemdServiceContent(bridgeEntry), 'utf8');
+    try {
+        (0, child_process_1.execSync)('systemctl --user daemon-reload 2>/dev/null');
+        (0, child_process_1.execSync)('systemctl --user enable suny-bridge.service 2>/dev/null');
+        (0, child_process_1.execSync)('systemctl --user start suny-bridge.service 2>/dev/null');
+        console.log(`✅ Bridge auto-start installed! (systemd: ${servicePath})`);
+        console.log(`   Bridge will auto-start on login and restart if it crashes.`);
+    }
+    catch {
+        // Fallback: crontab @reboot if systemd unavailable
         const scriptPath = getStartupScriptPath();
-        const bridgeIndex = path.join(__dirname, 'index.ts');
         const sh = `#!/bin/bash
-# SUNy Bridge — auto-start launcher
+# SUNy Bridge — auto-start launcher (crontab fallback)
 cd "${__dirname}"
 node index.ts --silent &
 `;
@@ -102,16 +177,13 @@ node index.ts --silent &
         const cronLine = `@reboot ${scriptPath}`;
         try {
             const existingCron = (0, child_process_1.execSync)('crontab -l 2>/dev/null || echo ""', { encoding: 'utf8' });
-            if (existingCron.includes(cronLine)) {
-                console.log('✅ Bridge crontab entry already exists. Startup is set up.');
-            }
-            else {
+            if (!existingCron.includes(cronLine)) {
                 const newCron = existingCron.trim() + '\n' + cronLine + '\n';
                 (0, child_process_1.execSync)(`echo "${newCron}" | crontab -`);
-                console.log('✅ Bridge auto-start installed! (crontab @reboot)');
+                console.log(`✅ Bridge auto-start installed! (crontab @reboot fallback)`);
             }
         }
-        catch (err) {
+        catch {
             console.log('✅ Startup script created. To enable auto-start, add to your crontab:');
             console.log(`   ${cronLine}`);
         }
@@ -127,23 +199,43 @@ function removeStartup() {
         else {
             console.log('ℹ️  Bridge auto-start was not installed.');
         }
+        return;
     }
-    else {
-        const scriptPath = getStartupScriptPath();
-        const cronLine = `@reboot ${scriptPath}`;
+    if (process.platform === 'darwin') {
+        const plistPath = path.join(os.homedir(), 'Library', 'LaunchAgents', 'tech.technodel.suny-bridge.plist');
         try {
-            const existingCron = (0, child_process_1.execSync)('crontab -l 2>/dev/null || echo ""', { encoding: 'utf8' });
-            const filteredCron = existingCron.split('\n').filter((line) => !line.includes(cronLine)).join('\n') + '\n';
-            (0, child_process_1.execSync)(`echo "${filteredCron}" | crontab -`);
-            console.log('✅ Bridge crontab entry removed.');
+            (0, child_process_1.execSync)(`launchctl unload "${plistPath}" 2>/dev/null || true`);
         }
-        catch (err) {
-            console.log('ℹ️  Could not update crontab:', err.message);
+        catch { /* ignore */ }
+        if (fs.existsSync(plistPath)) {
+            fs.unlinkSync(plistPath);
         }
-        if (fs.existsSync(scriptPath)) {
-            fs.unlinkSync(scriptPath);
-        }
+        console.log('✅ Bridge launchd plist removed.');
+        return;
     }
+    // Linux: systemd --user
+    const servicePath = path.join(os.homedir(), '.config', 'systemd', 'user', 'suny-bridge.service');
+    try {
+        (0, child_process_1.execSync)('systemctl --user stop suny-bridge.service 2>/dev/null');
+        (0, child_process_1.execSync)('systemctl --user disable suny-bridge.service 2>/dev/null');
+    }
+    catch { /* ignore */ }
+    if (fs.existsSync(servicePath)) {
+        fs.unlinkSync(servicePath);
+    }
+    // Also clean crontab fallback if present
+    const scriptPath = getStartupScriptPath();
+    const cronLine = `@reboot ${scriptPath}`;
+    try {
+        const existingCron = (0, child_process_1.execSync)('crontab -l 2>/dev/null || echo ""', { encoding: 'utf8' });
+        const filteredCron = existingCron.split('\n').filter((line) => !line.includes(cronLine)).join('\n') + '\n';
+        (0, child_process_1.execSync)(`echo "${filteredCron}" | crontab -`);
+    }
+    catch { /* ignore */ }
+    if (fs.existsSync(scriptPath)) {
+        fs.unlinkSync(scriptPath);
+    }
+    console.log('✅ Bridge auto-start removed.');
 }
 function toHttpApiBase(server) {
     if (server.startsWith('wss://'))
@@ -170,6 +262,80 @@ async function redeemSetupCode(server, code) {
         throw new Error(data.error || `Setup code activation failed (${response.status})`);
     }
     return data.token;
+}
+/**
+ * UI-based auto-setup: Opens browser, waits for user to approve in web UI
+ */
+function runUiSetup(serverUrl) {
+    return new Promise((resolve, reject) => {
+        const callbackUrl = `http://localhost:${SETUP_PORT}/callback`;
+        const webSetupUrl = `${toHttpApiBase(serverUrl)}/bridge-setup?callback=${encodeURIComponent(callbackUrl)}`;
+        console.log('[SUNy Bridge] Opening browser for setup...');
+        console.log(`[SUNy Bridge] If browser doesn't open, visit: ${webSetupUrl}`);
+        // Open browser
+        try {
+            const cmd = process.platform === 'win32' ? `start "" "${webSetupUrl}"` :
+                process.platform === 'darwin' ? `open "${webSetupUrl}"` : `xdg-open "${webSetupUrl}"`;
+            (0, child_process_1.exec)(cmd);
+        }
+        catch {
+            // Ignore browser open failure
+        }
+        // Start local HTTP server to receive token
+        const httpServer = http_1.default.createServer((req, res) => {
+            // CORS headers
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+            res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+            if (req.method === 'OPTIONS') {
+                res.writeHead(200);
+                res.end();
+                return;
+            }
+            if (req.url === '/callback' && req.method === 'POST') {
+                let body = '';
+                req.on('data', chunk => body += chunk);
+                req.on('end', () => {
+                    try {
+                        const data = JSON.parse(body);
+                        if (data.token && data.server) {
+                            res.writeHead(200, { 'Content-Type': 'application/json' });
+                            res.end(JSON.stringify({ success: true }));
+                            httpServer.close();
+                            resolve({ token: data.token, server: data.server });
+                        }
+                        else {
+                            res.writeHead(400);
+                            res.end(JSON.stringify({ error: 'Missing token' }));
+                        }
+                    }
+                    catch {
+                        res.writeHead(400);
+                        res.end(JSON.stringify({ error: 'Invalid JSON' }));
+                    }
+                });
+                return;
+            }
+            // Status page
+            res.writeHead(200, { 'Content-Type': 'text/html' });
+            res.end(`<!DOCTYPE html>
+<html><head><title>SUNy Bridge Setup</title>
+<style>body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);}
+.box{background:white;padding:40px;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,0.3);text-align:center;max-width:400px;}
+h1{color:#333;margin-bottom:20px;}.spinner{width:50px;height:50px;border:4px solid #f3f3f3;border-top:4px solid #667eea;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 20px;}
+@keyframes spin{0%{transform:rotate(0deg);}100%{transform:rotate(360deg);}}
+p{color:#666;line-height:1.6;}</style></head>
+<body><div class="box"><div class="spinner"></div><h1>Waiting for SUNy...</h1><p>Please click "Connect Bridge" in the browser window that opened.</p></div></body></html>`);
+        });
+        httpServer.listen(SETUP_PORT, () => {
+            console.log(`[SUNy Bridge] Waiting for connection... (5 minute timeout)`);
+        });
+        // Timeout
+        setTimeout(() => {
+            httpServer.close();
+            reject(new Error('Setup timed out. Please try again.'));
+        }, SETUP_TIMEOUT);
+    });
 }
 async function main() {
     const args = parseArgs();
@@ -204,11 +370,16 @@ async function main() {
         token = await redeemSetupCode(server, args.code);
         (0, config_1.updateConfig)({ token, server });
     }
+    // No token? Start UI-based auto-setup for non-technical users
+    if (!token && !args.silent) {
+        console.log('[SUNy Bridge] First-time setup starting...');
+        const result = await runUiSetup(server);
+        token = result.token;
+        (0, config_1.updateConfig)({ token, server: result.server });
+        console.log('[SUNy Bridge] Setup complete! Connecting...');
+    }
     if (!token) {
-        if (!args.silent) {
-            console.error('[SUNy Bridge] No token provided. Run with --token <JWT> or --code <SETUP_CODE>');
-            console.error('  Example: suny-bridge start --code SUNY-XXXXX-XXXXX --server wss://suny.technodel.tech');
-        }
+        console.error('[SUNy Bridge] Setup required. Please visit https://suny.technodel.tech to connect your bridge.');
         process.exit(1);
     }
     const bridge = new bridge_1.SunyBridge(token, server, { silent: args.silent });

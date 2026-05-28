@@ -20,9 +20,10 @@
 const BLOCKED_KEYS = new Set([
   'model', 'modelName', 'modelId', 'model_name', 'model_id',
   'provider', 'providerName', 'provider_name',
-  'inputTokens', 'outputTokens', 'totalTokens', 'contextTokens',
-  'input_tokens', 'output_tokens', 'total_tokens', 'context_tokens',
-  'tokens', 'token_count', 'tokenCount',
+  // Token fields are USER-FACING metrics (shown in project report), not technical secrets
+  // 'inputTokens', 'outputTokens', 'totalTokens', 'contextTokens',
+  // 'input_tokens', 'output_tokens', 'total_tokens', 'context_tokens',
+  // 'tokens', 'token_count', 'tokenCount',
   'rawCost', 'chargedCost', 'costBreakdown', 'costPerToken',
   'raw_cost', 'charged_cost', 'cost_breakdown', 'cost_per_token',
   'apiKey', 'api_key', 'apiKeyId', 'api_key_id',

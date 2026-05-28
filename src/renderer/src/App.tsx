@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-route
 import { useState, useEffect } from 'react';
 import Login from './pages/Login';
 import BridgeSetup from './pages/BridgeSetup';
+import BridgeCallbackSetup from './pages/BridgeCallbackSetup';
 import Chat from './pages/Chat';
 import UserSettings from './pages/UserSettings';
 import About from './pages/About';
@@ -93,6 +94,7 @@ function AppRoutes() {
     <Routes>
       {/* Public */}
       <Route path="/login" element={auth === 'none' ? <Login onLogin={() => { checkAuth(); }} /> : <Navigate to={auth === 'admin' ? '/admin/users' : '/'} />} />
+      <Route path="/bridge-setup" element={<BridgeCallbackSetup />} />
       <Route path="/about" element={<About />} />
       <Route path="/what-is-suny" element={<WhatIsSUNy />} />
       <Route path="/contact" element={<ContactUs />} />

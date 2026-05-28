@@ -218,6 +218,16 @@ export async function getUserBalance(userId: number): Promise<number> {
 }
 
 /**
+ * Get a user's bot wallet balance.
+ * Returns only the number — nothing else.
+ */
+export async function getUserWalletBalance(userId: number): Promise<number> {
+  const db = getAdapter();
+  const user = await db.get('SELECT wallet_balance FROM users WHERE id = ?', [userId]) as { wallet_balance: number } | undefined;
+  return user?.wallet_balance ?? 0;
+}
+
+/**
  * Translate internal token limit to a user-friendly label.
  * Raw token numbers are NEVER shown to users.
  */

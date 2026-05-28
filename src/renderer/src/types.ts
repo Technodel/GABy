@@ -35,8 +35,6 @@ export interface UserData {
   chat_show_technical_details?: boolean;
   plan?: string;
   upgrade_pending?: boolean;
-  bridge_connected: boolean;
-  bridge_previously_connected?: boolean;
   modes: Mode[];
 }
 
@@ -74,7 +72,6 @@ export interface ProofRun {
 export interface ChatProps {
   onLogout: () => void;
   onOpenSettings: (section?: 'general' | 'wallet', notice?: string) => void;
-  onBridgeOffline: () => void;
 }
 
 export interface FileNode {

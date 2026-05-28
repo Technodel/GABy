@@ -10,9 +10,9 @@ import {
 // â”€â”€â”€ sanitizeForUser (full sanitization: keys + string patterns) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 describe('sanitizeForUser', () => {
-  it('should strip blocked keys from objects', () => {
+  it('should strip blocked keys from objects but allow user-facing metrics like tokens', () => {
     const result = sanitizeForUser({ message: 'hello', model: 'gpt-4', inputTokens: 150 });
-    expect(result).toEqual({ message: 'hello' });
+    expect(result).toEqual({ message: 'hello', inputTokens: 150 }); // tokens are user-facing metrics
   });
 
   it('should replace model names in strings', () => {

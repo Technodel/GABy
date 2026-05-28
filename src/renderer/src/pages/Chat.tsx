@@ -7,8 +7,7 @@ import { useWebSocket } from '../hooks/useWebSocket';
 import { useNavigate } from 'react-router-dom';
 import BalanceBadge from '../components/BalanceBadge';
 import ModeSelector from '../components/ModeSelector';
-import BridgeInstallInstructions from '../components/BridgeInstallInstructions';
-import BridgeStatusBadge from '../components/BridgeStatusBadge';
+// File access via Browser File System Access API - no bridge needed
 import TopBar from '../components/TopBar';
 import SidebarContent from '../components/SidebarContent';
 import ChatMessages from '../components/ChatMessages';
@@ -67,7 +66,7 @@ function UpgradePROButton({ plan, upgradePending }: { plan?: string; upgradePend
 }
 
 // -- File browser tree node --------------------------------------------------
-export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: ChatProps) {
+export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
   const navigate = useNavigate();
   const [userData, setUserData] = useState<UserData | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -79,9 +78,9 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
   const [streamingContent, setStreamingContent] = useState('');
   const streamingContentRef = useRef('');
   const [thinkingStatus, setThinkingStatus] = useState('');
-  const [bridgeConnected, setBridgeConnected] = useState(false);
-  const [bridgePreviouslyConnected, setBridgePreviouslyConnected] = useState(false);
-  const [showBridgeTip, setShowBridgeTip] = useState(false);
+  // File System Access API - selected project folder
+  const [selectedFolder, setSelectedFolder] = useState<FileSystemDirectoryHandle | null>(null);
+  const [folderPath, setFolderPath] = useState<string>('');
   const [showTopUp, setShowTopUp] = useState(false);
   const [topUpAmount, setTopUpAmount] = useState('5');
   const [topUpNote, setTopUpNote] = useState('');
@@ -97,7 +96,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
   const [forecastEstimate, setForecastEstimate] = useState<{
     lowCredits: number; highCredits: number; historicalSamples: number;
     estimatedSteps: number; confidence: string; basedOn: string;
-    currentBalance: number; mode: string;
+    currentBalance: number; walletBalance: number; mode: string;
   } | null>(null);
   const [forecastLoading, setForecastLoading] = useState(false);
   const [budgetWarning, setBudgetWarning] = useState<{ spent: number; cap: number; pct: number } | null>(null);
@@ -1308,6 +1307,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
             confidence: msg.confidence as string,
             basedOn: msg.basedOn as string,
             currentBalance: msg.currentBalance as number,
+            walletBalance: (msg.walletBalance as number) ?? 0,
             mode: msg.mode as string,
           });
         }
@@ -1650,9 +1650,6 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         if (msg.wallet_balance !== undefined) setWalletBalance(msg.wallet_balance as number);
         if (msg.sess_used !== undefined) setSessUsed(msg.sess_used as number);
         if (msg.sess_limit !== undefined) setSessLimit(msg.sess_limit as number | null);
-      } else if (msg.event === 'bridge:connected') {
-        clearThinkingTimeout();
-        setBridgeConnected(true);
       }
     },
     onConnect: () => {
@@ -1675,28 +1672,68 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
         }).catch(() => {});
       }
     },
-    onDisconnect: () => { setBridgeConnected(false); },
   });
 
   useEffect(() => { loadUserData(); loadProjects(); return () => { clearThinkingTimeout(); if (forecastTimeoutRef.current) window.clearTimeout(forecastTimeoutRef.current); }; }, []);
 
-  // Bridge status resilience: poll /api/bridge/status every 30s as a fallback
-  // in case a WS bridge:connected/disconnected event is missed (e.g. tab was
-  // backgrounded). Cheap (single bool fetch) and keeps the badge accurate.
-  useEffect(() => {
-    let cancelled = false;
-    const tick = async () => {
-      try {
-        const res = await fetch('/api/bridge/status', { credentials: 'include' });
-        if (!cancelled && res.ok) {
-          const data = await res.json();
-          if (typeof data.connected === 'boolean') setBridgeConnected(data.connected);
-        }
-      } catch { /* ignore transient network errors */ }
-    };
-    const id = setInterval(tick, 30_000);
-    return () => { cancelled = true; clearInterval(id); };
-  }, []);
+  // File System Access API - request folder access
+  async function selectProjectFolder() {
+    try {
+      const handle = await window.showDirectoryPicker();
+      setSelectedFolder(handle);
+      setFolderPath(handle.name);
+      // Store permission for later use
+      localStorage.setItem('suny_project_folder', handle.name);
+      return handle;
+    } catch (err) {
+      console.log('Folder selection cancelled');
+      return null;
+    }
+  }
+
+  // Read file content via File System Access API
+  async function readLocalFile(filePath: string): Promise<string | null> {
+    if (!selectedFolder) return null;
+    try {
+      const parts = filePath.split('/').filter(Boolean);
+      let currentHandle: FileSystemDirectoryHandle = selectedFolder;
+      
+      for (let i = 0; i < parts.length - 1; i++) {
+        currentHandle = await currentHandle.getDirectoryHandle(parts[i]);
+      }
+      
+      const fileName = parts[parts.length - 1];
+      const fileHandle = await currentHandle.getFileHandle(fileName);
+      const file = await fileHandle.getFile();
+      return await file.text();
+    } catch (err) {
+      console.error('Failed to read file:', err);
+      return null;
+    }
+  }
+
+  // Write file content via File System Access API
+  async function writeLocalFile(filePath: string, content: string): Promise<boolean> {
+    if (!selectedFolder) return false;
+    try {
+      const parts = filePath.split('/').filter(Boolean);
+      let currentHandle: FileSystemDirectoryHandle = selectedFolder;
+      
+      for (let i = 0; i < parts.length - 1; i++) {
+        currentHandle = await currentHandle.getDirectoryHandle(parts[i], { create: true });
+      }
+      
+      const fileName = parts[parts.length - 1];
+      const fileHandle = await currentHandle.getFileHandle(fileName, { create: true });
+      const writable = await fileHandle.createWritable();
+      await writable.write(content);
+      await writable.close();
+      return true;
+    } catch (err) {
+      console.error('Failed to write file:', err);
+      return false;
+    }
+  }
   useEffect(() => { msgEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, thinking]);
   // Focus input when thinking state changes (message sent or response received)
   useEffect(() => {
@@ -1727,8 +1764,6 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
       setBalance(data.balance);
       setWalletBalance(data.wallet_balance);
       setSelectedMode(data.selected_mode);
-      setBridgeConnected(data.bridge_connected);
-      setBridgePreviouslyConnected(Boolean(data.bridge_previously_connected));
       setCrossDeviceMemoryEnabled(Boolean(data.cross_device_memory_enabled));
       setShowTechnicalDetails(Boolean(data.chat_show_technical_details));
       setGlobalAutoApprove(data.auto_approve !== false);
@@ -2374,20 +2409,18 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
             </button>
           )}
           {!isMobile && (
-            <BridgeStatusBadge
-              connected={bridgeConnected}
-              onClick={async () => {
-                if (bridgeConnected) {
-                  if (!confirm('⚠️ Disconnect the SUNy Bridge?\n\nSUNy will no longer be able to read/write files or run commands on your machine. You can reconnect by clicking the bridge button again.')) return;
-                  try {
-                    await fetch('/api/bridge/disconnect', { method: 'POST', credentials: 'include' });
-                    setBridgeConnected(false);
-                  } catch { /* ignore */ }
-                } else {
-                  setShowBridgeTip(t => !t);
-                }
+            <button
+              className="btn btn-icon btn-secondary"
+              onClick={selectProjectFolder}
+              title={selectedFolder ? `Project: ${folderPath}` : 'Select project folder'}
+              style={{
+                background: selectedFolder ? 'var(--success)' : undefined,
+                color: selectedFolder ? '#000' : undefined,
               }}
-            />
+            >
+              <FolderOpen size={15} />
+              {selectedFolder && <span style={{ marginLeft: 4, fontSize: 10 }}>{folderPath.slice(0, 8)}...</span>}
+            </button>
           )}
           {isMobile && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginRight: 4 }}>
@@ -2490,7 +2523,7 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                 <button
                   className="btn btn-icon btn-secondary btn-sm"
                   onClick={() => {
-                    if (!bridgeConnected) { setShowBridgeTip(true); return; }
+                    if (!selectedFolder) { selectProjectFolder(); return; }
                     setShowFileBrowser(v => { const next = !v; if (!v && activeProject) loadFileBrowser(activeProject.id); return next; });
                   }}
                   title={showFileBrowser ? 'Hide file browser' : (bridgeConnected ? 'Show file browser' : 'Bridge required � click to connect')}
@@ -3408,7 +3441,13 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                   </div>
                 </div>
                 <div style={{ background: 'var(--surface)', borderRadius: 6, padding: '6px 10px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>YOUR BALANCE</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>BOT WALLET</div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: forecastEstimate.walletBalance < forecastEstimate.highCredits ? 'var(--error)' : 'var(--success)', fontFamily: 'monospace' }}>
+                    ${forecastEstimate.walletBalance.toFixed(4)}
+                  </div>
+                </div>
+                <div style={{ background: 'var(--surface)', borderRadius: 6, padding: '6px 10px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>GENERAL BALANCE</div>
                   <div style={{ fontSize: 14, fontWeight: 600, color: forecastEstimate.currentBalance < forecastEstimate.highCredits ? 'var(--error)' : 'var(--success)', fontFamily: 'monospace' }}>
                     ${forecastEstimate.currentBalance.toFixed(4)}
                   </div>
@@ -3422,8 +3461,11 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
                   </div>
                 )}
               </div>
-              {forecastEstimate.currentBalance < forecastEstimate.lowCredits && (
-                <div style={{ fontSize: 11, color: 'var(--error)', marginBottom: 8 }}>⚠️ Balance may be insufficient for this run.</div>
+              {(forecastEstimate.walletBalance < forecastEstimate.lowCredits && forecastEstimate.currentBalance < forecastEstimate.lowCredits) && (
+                <div style={{ fontSize: 11, color: 'var(--error)', marginBottom: 8 }}>⚠️ Both bot wallet and general balance are insufficient for this run.</div>
+              )}
+              {(forecastEstimate.walletBalance < forecastEstimate.lowCredits && forecastEstimate.currentBalance >= forecastEstimate.lowCredits) && (
+                <div style={{ fontSize: 11, color: 'var(--warning)', marginBottom: 8 }}>⚠️ Bot wallet insufficient. Will use general balance.</div>
               )}
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
@@ -3480,7 +3522,6 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
             thinking={thinking}
             selectedMode={selectedMode}
             activeProject={activeProject}
-            bridgeConnected={bridgeConnected}
             talkMode={talkMode}
             noBalance={noBalance}
             imagePreview={imagePreview}
@@ -3497,58 +3538,6 @@ export default function Chat({ onLogout, onOpenSettings, onBridgeOffline }: Chat
           />
         </div>
       </div>
-
-      {/* Bridge connect modal */}
-      {showBridgeTip && (
-        <div className="modal-overlay" onClick={() => setShowBridgeTip(false)}>
-          <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
-            {bridgeConnected ? (
-              <>
-                <div style={{ textAlign: 'center', padding: '12px 0 8px' }}>
-                  <div style={{ fontSize: 32, marginBottom: 6 }}>?</div>
-                  <h3 style={{ margin: '0 0 6px', fontSize: 17 }}>Bridge connected!</h3>
-                  <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                    SUNy can now read &amp; write files, run shell commands, fix lint errors, and auto-commit.
-                  </p>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
-                  <button className="btn btn-primary" onClick={() => setShowBridgeTip(false)}>Close</button>
-                </div>
-              </>
-            ) : (
-              <>
-                <h3 style={{ margin: '0 0 4px', fontSize: 17 }}>🔌 Connect the Bridge</h3>
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, margin: '0 0 6px' }}>
-                  The Bridge is a small background process that runs on <strong>your computer</strong>.
-                  SUNy needs it to <strong>create files, edit code, and run commands</strong>.
-                </p>
-
-                {/* Capability comparison */}
-                <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-                  <div style={{ flex: 1, background: 'var(--bg-secondary)', borderRadius: 8, padding: '10px 12px' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.4px' }}>Without Bridge</div>
-                    {['💬 Chat & answer questions', '🔍 Code review & analysis', '🏛️ Architecture advice'].map(t => (
-                      <div key={t} style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 3 }}>{t}</div>
-                    ))}
-                  </div>
-                  <div style={{ flex: 1, background: 'rgba(108,99,255,0.07)', border: '1px solid rgba(108,99,255,0.2)', borderRadius: 8, padding: '10px 12px' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.4px' }}>With Bridge ⚡</div>
-                    {['✏️ Create & edit files', '⚙️ Run shell commands', '🔧 Auto-fix lint errors', '📝 Git auto-commit'].map(t => (
-                      <div key={t} style={{ fontSize: 12, color: 'var(--text-primary)', marginBottom: 3 }}>{t}</div>
-                    ))}
-                  </div>
-                </div>
-
-                <BridgeInstallInstructions autoCopy previouslyConnected={bridgePreviouslyConnected} />
-
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
-                  <button className="btn btn-secondary" onClick={() => setShowBridgeTip(false)}>Close</button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Top-up request modal */}
       {showTopUp && (
