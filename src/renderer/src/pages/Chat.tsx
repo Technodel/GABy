@@ -2403,20 +2403,6 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
               }} />
             </button>
           )}
-          {!isMobile && (
-            <button
-              className="btn btn-icon btn-secondary"
-              onClick={selectProjectFolder}
-              title={selectedFolder ? `Project: ${folderPath}` : 'Select project folder'}
-              style={{
-                background: selectedFolder ? 'var(--success)' : undefined,
-                color: selectedFolder ? '#000' : undefined,
-              }}
-            >
-              <FolderOpen size={15} />
-              {selectedFolder && <span style={{ marginLeft: 4, fontSize: 10 }}>{folderPath.slice(0, 8)}...</span>}
-            </button>
-          )}
           {isMobile && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginRight: 4 }}>
               {['matrix', 'pro', 'suny'].map(t => (
@@ -2514,18 +2500,6 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
               Projects
             </span>
             <div style={{ display: 'flex', gap: 4 }}>
-              {activeProject && (
-                <button
-                  className="btn btn-icon btn-secondary btn-sm"
-                  onClick={() => {
-                    if (!selectedFolder) { selectProjectFolder(); return; }
-                    setShowFileBrowser(v => { const next = !v; if (!v && activeProject) loadFileBrowser(activeProject.id); return next; });
-                  }}
-                  title={showFileBrowser ? 'Hide file browser' : (selectedFolder ? 'Show file browser' : 'Select folder to browse files')}
-                >
-                  {showFileBrowser ? <FolderOpen size={12} /> : <Folder size={12} />}
-                </button>
-              )}
               <button className="btn btn-icon btn-secondary btn-sm" onClick={() => { setNewProjectMode('link'); setScratchDescription(''); setShowNewProject(true); }} title="New project">
                 <Plus size={13} />
               </button>
@@ -3428,27 +3402,15 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
                   {forecastEstimate.confidence} confidence · {forecastEstimate.basedOn === 'history' ? `${forecastEstimate.historicalSamples} past runs` : forecastEstimate.basedOn === 'llm_estimate' ? 'AI estimate' : 'default estimate'}
                 </span>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 8 }}>
-                <div style={{ background: 'var(--surface)', borderRadius: 6, padding: '6px 10px', textAlign: 'center' }}>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                <div style={{ background: 'var(--surface)', borderRadius: 6, padding: '6px 10px', textAlign: 'center', flex: 1 }}>
                   <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>ESTIMATED COST</div>
                   <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'monospace' }}>
                     ${forecastEstimate.lowCredits.toFixed(4)}–${forecastEstimate.highCredits.toFixed(4)}
                   </div>
                 </div>
-                <div style={{ background: 'var(--surface)', borderRadius: 6, padding: '6px 10px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>BOT WALLET</div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: forecastEstimate.walletBalance < forecastEstimate.highCredits ? 'var(--error)' : 'var(--success)', fontFamily: 'monospace' }}>
-                    ${forecastEstimate.walletBalance.toFixed(4)}
-                  </div>
-                </div>
-                <div style={{ background: 'var(--surface)', borderRadius: 6, padding: '6px 10px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>GENERAL BALANCE</div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: forecastEstimate.currentBalance < forecastEstimate.highCredits ? 'var(--error)' : 'var(--success)', fontFamily: 'monospace' }}>
-                    ${forecastEstimate.currentBalance.toFixed(4)}
-                  </div>
-                </div>
                 {forecastEstimate.estimatedSteps > 0 && (
-                  <div style={{ background: 'var(--surface)', borderRadius: 6, padding: '6px 10px', textAlign: 'center' }}>
+                  <div style={{ background: 'var(--surface)', borderRadius: 6, padding: '6px 10px', textAlign: 'center', flex: 1 }}>
                     <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 2 }}>EST. STEPS</div>
                     <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'monospace' }}>
                       ~{forecastEstimate.estimatedSteps}
@@ -3456,12 +3418,6 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
                   </div>
                 )}
               </div>
-              {(forecastEstimate.walletBalance < forecastEstimate.lowCredits && forecastEstimate.currentBalance < forecastEstimate.lowCredits) && (
-                <div style={{ fontSize: 11, color: 'var(--error)', marginBottom: 8 }}>⚠️ Both bot wallet and general balance are insufficient for this run.</div>
-              )}
-              {(forecastEstimate.walletBalance < forecastEstimate.lowCredits && forecastEstimate.currentBalance >= forecastEstimate.lowCredits) && (
-                <div style={{ fontSize: 11, color: 'var(--warning)', marginBottom: 8 }}>⚠️ Bot wallet insufficient. Will use general balance.</div>
-              )}
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
                   className="btn btn-primary btn-sm"
@@ -3760,12 +3716,12 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
                 {/* Primary: big folder pick button */}
                 <button
                   type="button"
-                  onClick={() => {
-                    pickFolderPath((picked) => {
-                      setNewProjectPath(picked);
-                      const parts = picked.replace(/\\/g, '/').split('/').filter(Boolean);
-                      if (!newProjectName) setNewProjectName(parts[parts.length - 1] || '');
-                    });
+                  onClick={async () => {
+                    const handle = await selectProjectFolder();
+                    if (handle) {
+                      setNewProjectPath(handle.name);
+                      if (!newProjectName) setNewProjectName(handle.name);
+                    }
                   }}
                   style={{
                     width: '100%',
@@ -3780,7 +3736,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
                   onMouseLeave={e => ((e.currentTarget as HTMLElement).style.borderColor = 'var(--border)')}
                 >
                   <FolderOpen size={22} style={{ color: 'var(--accent)' }} />
-                  <span style={{ fontSize: 13 }}>{newProjectPath ? newProjectPath : 'Click to choose a folder'}</span>
+                  <span style={{ fontSize: 13 }}>{selectedFolder ? (selectedFolder.name + ' (selected)') : 'Click to choose a folder'}</span>
                 </button>
                 {/* Fallback: manual text input */}
                 <div style={{ display: 'flex', gap: 8 }}>
@@ -3823,7 +3779,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
                     type="button"
                     style={{ whiteSpace: 'nowrap', marginBottom: 0 }}
                     title="Browse parent folder"
-                    onClick={() => pickFolderPath(setNewProjectPath)}
+                    onClick={async () => { const h = await selectProjectFolder(); if (h) setNewProjectPath(h.name); }}
                   >
                     Browse
                   </button>

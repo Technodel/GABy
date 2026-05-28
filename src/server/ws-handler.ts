@@ -6,8 +6,6 @@ import { getAdapter } from './db';
 import { env } from '../shared/env';
 import { verifyToken } from './auth';
 import { userClientManager } from './user-client-manager';
-import { handleBridgeUpgrade } from './bridge-routes';
-import { isBridgeConnected, registerPathForUser, killBridgeRequest, sendToBridge } from './bridge-manager';
 import { scanForInjection, initializeInjectionGuardTable } from './injection-guard';
 import { AgentMessage } from './agent';
 import { hasSufficientBalance, deductUsage } from './billing';
@@ -43,7 +41,7 @@ import { buildStaticSystemPrompt } from './prompt-factory';
 
 
 export function attachWebSockets(server: http.Server) {
-  // â”€â”€ WebSocket server â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── WebSocket server ───────────────────────────────────────────────────────────
 
 
 
@@ -52,12 +50,7 @@ const wss = new WebSocketServer({ noServer: true });
   const url = new URL(req.url || '', `http://localhost`);
   const pathname = url.pathname;
 
-  if (pathname === '/bridge') {
-    // Bridge agent connections (local agent on user's machine)
-    wss.handleUpgrade(req, socket, head, (ws) => {
-      handleBridgeUpgrade(ws, req);
-    });
-  } else if (pathname === '/ws') {
+  if (pathname === '/ws') {
     // Browser client connections (user's browser tab)
     wss.handleUpgrade(req, socket, head, (ws) => {
       handleUserClientUpgrade(ws, req);
@@ -67,7 +60,7 @@ const wss = new WebSocketServer({ noServer: true });
   }
 });
 
-// â”€â”€ WebSocket rate limiting: per-user, shared across connections â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── WebSocket rate limiting: per-user, shared across connections ────────────
 const WS_RATE_LIMIT = 20;            // max messages
 const WS_RATE_WINDOW_MS = 60_000;    // per 60 seconds
 const wsRateBuckets = new Map<number, number[]>();
@@ -114,20 +107,12 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
   userClientManager.register(userId, ws);
   ws.send(JSON.stringify({ event: 'connected', message: 'SUNy is ready!' }));
 
-  // Push current bridge status so the UI doesn't show "disconnected" on page refresh
-  try {
-    const { isBridgeConnected } = require('./bridge-manager');
-    if (isBridgeConnected(userId)) {
-      userClientManager.pushToUser(userId, 'bridge:connected', { connected: true });
-    }
-  } catch { /* best-effort — bridge-manager might not be loaded yet */ }
-
-  // â”€â”€ Track active requests for cancellation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Track active requests for cancellation ──────────────────────────────
   let currentAbortController: AbortController | null = null;
   let isProcessing = false;
   let queuedMessage: Buffer | null = null;
 
-  // â”€â”€ WebSocket close: abort any in-flight request â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── WebSocket close: abort any in-flight request ────────────────────────
   // Without this, a disconnected user stays in "thinking" forever because
   // the agent loop keeps running and pushChatContent silently fails (WS gone).
   ws.on('close', () => {
@@ -146,7 +131,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
     // Rate limit check
     if (!checkWsRateLimit(userId)) {
       userClientManager.pushChatContent(userId, 'suny:stream_end', {
-        content: "Too many messages — please slow down a bit! 😊",
+        content: "Too many messages � please slow down a bit! ??",
         sess_used: null,
         sess_limit: null,
         iterations: 0,
@@ -159,7 +144,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
     // Handle cancel request
     if (msg.type === 'chat:cancel') {
       if (currentAbortController) {
-        const cancelMessage = pickRandom('cancel', "Got it — I've stopped! What's next? 😊");
+        const cancelMessage = pickRandom('cancel', "Got it � I've stopped! What's next? ??");
         currentAbortController.abort(new Error('Request cancelled by user'));
         currentAbortController = null;
         isProcessing = false;
@@ -169,8 +154,6 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           sess_limit: null,
           iterations: 0,
         });
-        // Also tell the bridge to kill any running process
-        killBridgeRequest(userId, (msg.requestId as string) || '');
       }
       return;
     }
@@ -212,7 +195,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
 
     
 
-    // â”€â”€ Injection guard: scan user message for prompt injection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Injection guard: scan user message for prompt injection ──────────
     try {
       const msgText = String(msg.message ?? '');
       if (msgText.length > 0) {
@@ -237,7 +220,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       }
     } catch { /* best-effort */ }
 
-    // â”€â”€ Task interruption behavior: read user preference â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── Task interruption behavior: read user preference ──────────────
     if (isProcessing) {
       let behavior = 'interrupt';
       try {
@@ -246,7 +229,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       } catch { /* best-effort */ }
 
       if (behavior === 'queue') {
-        // Queue behind current task — don't abort, just enqueue
+        // Queue behind current task � don't abort, just enqueue
         queuedMessage = raw;
         return;
       }
@@ -256,7 +239,6 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       if (currentAbortController) {
         currentAbortController.abort(new Error('Request superseded by newer user message'));
         currentAbortController = null;
-        killBridgeRequest(userId, (msg.requestId as string) || '');
       }
       queuedMessage = raw;
       userClientManager.pushToUser(userId, 'suny:narration', {
@@ -311,7 +293,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         });
       }
 
-      // Generate routing reason (why this tier was selected — no model names)
+      // Generate routing reason (why this tier was selected � no model names)
       let routingReason = '';
       if (dailyLimitReached) {
         routingReason = 'Daily token limit reached';
@@ -349,7 +331,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         }
       }
 
-      // â”€â”€ Session-level token cap â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // ── Session-level token cap ──────────────────────────────────────
       if (userRow?.max_tokens_per_session && userRow.max_tokens_per_session > 0) {
         const sessStats = await db.get(
           'SELECT COALESCE(SUM(input_tokens + output_tokens), 0) as total_used FROM usage_log WHERE user_id = ? AND session_id = ?',
@@ -357,7 +339,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         ) as { total_used: number };
         const remaining = userRow.max_tokens_per_session - sessStats.total_used;
         if (remaining <= 0) {
-          const limitMessage = pickRandom('session_limit', "You've reached the session token limit. Start a new session to continue! 😊");
+          const limitMessage = pickRandom('session_limit', "You've reached the session token limit. Start a new session to continue! ??");
           userClientManager.pushToUser(userId, 'suny:narration', {
             message: limitMessage,
           });
@@ -371,25 +353,10 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         }
       }
 
-      const bridgeOnline = isBridgeConnected(userId);
       const requestedProjectId = msg.projectId as number | undefined;
 
-      // ── Bridge offline guard ────────────────────────────────────────────────
-      // If the user has an active project and the bridge is not connected, stop
-      // immediately — don't burn time in the agent loop only to fail at the first
-      // file/shell tool call. Respond right away and bail out.
-      if (requestedProjectId && !bridgeOnline) {
-        const offlineMsg = '🔌 The bridge is offline — I can\'t access your files or run commands right now.\n\nClick the **bridge pill** in the top bar to reconnect, then send your message again and I\'ll jump straight in!';
-        userClientManager.pushChatContent(userId, 'suny:stream_end', {
-          content: offlineMsg,
-          sess_used: 0,
-          sess_limit: null,
-          iterations: 0,
-        });
-        return;
-      }
 
-      // Load plan info once — used in system prompt
+      // Load plan info once � used in system prompt
       interface PricingMode { mode: string; display_name: string; description: string; }
       const pricingModes = await db.all('SELECT mode, display_name, description FROM pricing_modes ORDER BY id') as PricingMode[];
 
@@ -407,7 +374,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           projectPersona = proj?.persona ?? null;
           projectAutoExecuteOverride = proj?.auto_execute_override ?? null;
         } catch {
-          // Column may not exist on older DBs — fall back to query without it
+          // Column may not exist on older DBs � fall back to query without it
           const proj = await db.get('SELECT local_path, persona FROM projects WHERE id = ? AND user_id = ?', [projectId, userId]) as { local_path: string; persona: string | null } | undefined;
           projectPath = proj?.local_path;
           projectPersona = proj?.persona ?? null;
@@ -417,13 +384,13 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       const effectiveAutoExecute = projectAutoExecuteOverride === null
         ? userAutoApprove
         : projectAutoExecuteOverride === 1;
-      // Only force talk mode for credit/limit issues — never override the user's explicit Write Mode toggle
+      // Only force talk mode for credit/limit issues � never override the user's explicit Write Mode toggle
       const autoExecuteOff = !effectiveAutoExecute && !freeTalkOnly && !requestedTalkMode;
 
       // Fetch training/behavioral data async
       const trainingLoadResult = await loadTrainingAndRules({ userId, projectRoot: projectPath });
 
-      // â”€â”€ Freeze Brain: if this project is pinned to a memory snapshot,
+      // ── Freeze Brain: if this project is pinned to a memory snapshot,
       // load it and use its captured blueprint + behavioral rules instead
       // of live tables. Lets users lock SUNy's behavior to a known-good
       // moment without disabling memory entirely.
@@ -445,7 +412,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
               [proj.frozen_snapshot_uid, userId]
             ) as FrozenSnapshot | null;
           }
-        } catch { /* column missing â†’ treat as unfrozen */ }
+        } catch { /* column missing → treat as unfrozen */ }
       }
       if (frozenSnapshot?.behavioral_rules_json) {
         try {
@@ -453,34 +420,33 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           if (Array.isArray(rules) && rules.length > 0) {
             const wins = rules.filter(r => r.category === 'win');
             const mistakes = rules.filter(r => r.category === 'mistake');
-            const lines = ['', '=== 🧊 FROZEN BEHAVIORAL RULES (snapshot: ' + frozenSnapshot.label + ') ==='];
+            const lines = ['', '=== ?? FROZEN BEHAVIORAL RULES (snapshot: ' + frozenSnapshot.label + ') ==='];
             if (wins.length > 0) {
               lines.push('[Always:]');
-              for (const r of wins) lines.push(`  âœ“ ${r.rule_text}`);
+              for (const r of wins) lines.push(`  ✓ ${r.rule_text}`);
             }
             if (mistakes.length > 0) {
               lines.push('[Avoid:]');
-              for (const r of mistakes) lines.push(`  âœ— ${r.rule_text}`);
+              for (const r of mistakes) lines.push(`  ✗ ${r.rule_text}`);
             }
             trainingLoadResult.behavioralBlock = lines.join('\n');
             console.log(`[freeze] Behavioral rules pinned to snapshot ${frozenSnapshot.uid}`);
           }
-        } catch { /* malformed JSON â†’ fall through to live rules */ }
+        } catch { /* malformed JSON → fall through to live rules */ }
       }
 
       const systemLines = buildStaticSystemPrompt({
-        bridgeOnline,
         projectPath,
         getSkillIndex,
         trainingLoadResult
       });
 
-      // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-      // BOUNDARY: above is the STATIC prefix (byte-identical across calls â†’
+      // ─────────────────────────────────────────────────────────────────────
+      // BOUNDARY: above is the STATIC prefix (byte-identical across calls →
       // DeepSeek/Anthropic prompt-prefix caching kicks in here).
       // Below this point, only push DYNAMIC, per-user/per-project content.
       // Do NOT inject template-literal data into the array above this line.
-      // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // ─────────────────────────────────────────────────────────────────────
 
       if (showTechnicalDetails) {
         systemLines.push(
@@ -505,7 +471,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           '=== TALK MODE BEHAVIOR ===',
           'Talk mode is ON: do not execute file/shell actions.',
           'CRITICAL: Do NOT open any response by announcing that you are in Talk Mode, that you cannot edit files, or that the user should switch modes. Never use a greeting that mentions mode restrictions.',
-          'Silently respect the mode. Only mention it if the user explicitly asks you to create/edit/run/build something — in that case explain what you would do and mention Write Mode briefly at the end.',
+          'Silently respect the mode. Only mention it if the user explicitly asks you to create/edit/run/build something � in that case explain what you would do and mention Write Mode briefly at the end.',
         );
       }
       if (autoExecuteOff) {
@@ -521,9 +487,9 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         systemLines.push(`The user's name is ${displayName}. Address them by name occasionally in a warm, friendly way.`);
       }
 
-      // â”€â”€ Inject user memories (global preferences/rules) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-      // Memories saved via Settings â†’ SUNy's Memory should act as standing rules
-      // for every conversation — both global chat and inside projects.
+      // ── Inject user memories (global preferences/rules) ────────────────
+      // Memories saved via Settings → SUNy's Memory should act as standing rules
+      // for every conversation � both global chat and inside projects.
       try {
         const memSettingScoped = await db.get('SELECT value FROM app_settings WHERE key = ?', [`user_${userId}_memory_enabled`]) as { value: string } | undefined;
         const memSettingGlobal = await db.get("SELECT value FROM app_settings WHERE key = 'memory_enabled'", []) as { value: string } | undefined;
@@ -537,7 +503,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
             systemLines.push(
               '',
               '=== USER PREFERENCES & STANDING RULES ===',
-              'The user saved these notes in Settings â†’ SUNy\'s Memory. Treat them as standing rules that always apply (in chat and inside projects). Follow them on every response unless they conflict with safety policy.',
+              'The user saved these notes in Settings → SUNy\'s Memory. Treat them as standing rules that always apply (in chat and inside projects). Follow them on every response unless they conflict with safety policy.',
               ...userMemories.map(m => `- ${m.content}`),
             );
             console.log(`[index] Injected ${userMemories.length} user memories into system prompt`);
@@ -558,7 +524,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         );
       }
 
-      // ── User plan context ─────────────────────────────────────────────────
+      // -- User plan context -------------------------------------------------
       const userPlan: string = userRow?.plan ?? 'regular';
       const isProUser = userPlan === 'pro';
       {
@@ -587,25 +553,25 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       userClientManager.pushToUser(userId, 'suny:thinking', {});
       userClientManager.pushToUser(userId, 'suny:preparation_step', { step: 'Preparing context...' });
 
-      // (projectPath/projectId/projectPersona are resolved above — before systemLines construction)
+      // (projectPath/projectId/projectPersona are resolved above � before systemLines construction)
 
       // Inject custom persona if set for this project
       if (projectPersona) {
         systemLines.push('', '=== PERSONA ===', projectPersona);
       }
 
-      // Global chat mode — user has no project open; inject project awareness
+      // Global chat mode � user has no project open; inject project awareness
       if (!projectId && projectNames && projectNames.length > 0) {
         systemLines.push(
           '',
           '=== GLOBAL CONTEXT ===',
           `The user is in the global chat view (no specific project open). Their registered projects are: ${projectNames.join(', ')}.`,
-          'You may discuss these projects at a high level — architecture, planning, questions, etc.',
+          'You may discuss these projects at a high level � architecture, planning, questions, etc.',
           'If the user asks you to perform file edits, run commands, or make code changes in a specific project, politely let them know they need to click that project in the left sidebar to open its dedicated workspace first.',
         );
       }
 
-      // No projects at all — user hasn't created one yet
+      // No projects at all � user hasn't created one yet
       if (!projectId && (!projectNames || projectNames.length === 0)) {
         systemLines.push(
           '',
@@ -615,29 +581,16 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           '  1. Click the project icon in the left sidebar to open the project panel.',
           '  2. Click "New Project" to register their project folder.',
           '  3. Enter a name and the full local path (e.g. D:\\Projects\\MyApp).',
-          '  4. Ensure the bridge is connected (green pill indicator in the top bar).',
+          '  4. Open or create a project from the sidebar once the folder is selected.',
           'Then, once a project is selected, you can scan and analyze it.',
         );
       }
 
-      // Register the project path with the bridge so the sandbox allows file operations.
-      // We attempt registration regardless of `isBridgeConnected()` — the sendToBridge call
-      // internally checks WebSocket readyState and gives a clear error if the bridge is down.
-      if (projectPath) {
-        try {
-          console.log(`[index] Registering project path with bridge: ${projectPath}`);
-          await registerPathForUser(userId, projectPath);
-          console.log(`[index] Project path registered successfully`);
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : 'Unknown error';
-          console.warn(`[index] Failed to register project path: ${msg}`);
-        }
-      }
       // Inject SUNy Code Conscience blueprint memory (design context from past turns)
       if (projectPath) {
         userClientManager.pushToUser(userId, 'suny:preparation_step', { step: 'Loading project memory...' });
         if (frozenSnapshot?.blueprint_json) {
-          // 🧊 Freeze Brain — use blueprint captured in the snapshot instead of live
+          // ?? Freeze Brain � use blueprint captured in the snapshot instead of live
           try {
             const entries = JSON.parse(frozenSnapshot.blueprint_json) as Array<{ category: string; intent: string; summary: string; affected_files?: string | null }>;
             if (Array.isArray(entries) && entries.length > 0) {
@@ -649,14 +602,14 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
                 return `[${i + 1}] ${tag}\n    Intent: ${e.intent}\n    Summary: ${e.summary}\n` + (files ? `    Files: ${files}\n` : '');
               }).join('\n');
               systemLines.push(
-                `\n\n=== 🧊 SUNy CODE CONSCIENCE — FROZEN MEMORY (snapshot: ${frozenSnapshot.label}) ===\n` +
+                `\n\n=== ?? SUNy CODE CONSCIENCE � FROZEN MEMORY (snapshot: ${frozenSnapshot.label}) ===\n` +
                 'The following design decisions are pinned from a saved snapshot. Live blueprint is ignored.\n\n' +
                 sections +
                 '\n=== END FROZEN MEMORY ===',
               );
               console.log(`[freeze] Blueprint pinned to snapshot ${frozenSnapshot.uid}`);
             }
-          } catch { /* malformed â†’ fall back to live blueprint */ }
+          } catch { /* malformed → fall back to live blueprint */ }
         } else {
           const blueprintCtx = await getBlueprintContext({ userId, projectId, maxEntries: 5 });
           if (blueprintCtx) {
@@ -677,7 +630,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         }
       }
 
-      // â”€â”€ Phase 5: Presence Engineering â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // ── Phase 5: Presence Engineering ──────────────────────────────
       // Injects conversation flow, error vulnerability, attention awareness,
       // and celebration cues into the system prompt.
       {
@@ -685,7 +638,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         const presencePrompt = await getPresenceInjection(
           userId,
           profile?.lastTaskDuration ?? 0,
-          0, // changedFiles not known yet — will be updated post-turn
+          0, // changedFiles not known yet � will be updated post-turn
           !profile || profile.totalTasksCompleted === 0,
           false,
         );
@@ -693,9 +646,9 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         console.log('[index] Presence engineering injected');
       }
 
-      // â”€â”€ Pinned files: inject contents into system prompt â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // ── Pinned files: inject contents into system prompt ─────────────────
       // Injected BEFORE repo map so static pinned content stays in the cached
-      // prefix. DeepSeek caches automatically on common prefix — repo map
+      // prefix. DeepSeek caches automatically on common prefix � repo map
       // (which changes every turn) would shift pinned positions and break cache.
       if (projectPath && projectId) {
         try {
@@ -723,10 +676,10 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         }
       }
 
-      // Repo map is now available as the get_repo_map tool — no longer auto-injected.
+      // Repo map is now available as the get_repo_map tool � no longer auto-injected.
       // The agent calls it on-demand only when it needs to locate files, saving tokens.
 
-      // â”€â”€ Vector context: semantic chunk retrieval â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // ── Vector context: semantic chunk retrieval ──────────────────────────
       if (projectPath && projectId && isFeatureEnabled('ff_vector_context')) {
         try {
           const chunks = await searchChunks(msg.message as string, projectId, 8);
@@ -739,7 +692,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         }
       }
 
-      // â”€â”€ Phase 3.1: Project Digest (first connect only) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // ── Phase 3.1: Project Digest (first connect only) ──────────────────
       // Auto-reads README, package.json, tsconfig.json and caches result.
       if (projectPath) {
         try {
@@ -755,7 +708,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           console.warn('[index] Project digest failed:', (err as Error).message);
         }
 
-        // â”€â”€ Phase 3.2: Architecture Graph â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Phase 3.2: Architecture Graph ─────────────────────────────────
         try {
           const graph = buildArchitectureGraph(projectPath);
           if (graph.length > 0) {
@@ -766,7 +719,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           console.warn('[index] Architecture graph failed:', (err as Error).message);
         }
 
-        // â”€â”€ Phase 3.4: Health Check on Resume â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Phase 3.4: Health Check on Resume ─────────────────────────────
         try {
           const health = runHealthCheck(projectPath);
           if (health.hasUncommittedChanges || health.hasFailingTests) {
@@ -778,7 +731,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         }
       }
 
-      // â”€â”€ Phase 3.3: Design Intent injection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // ── Phase 3.3: Design Intent injection ───────────────────────────
       // Inject previously-learned user style/architecture preferences.
       try {
         const intentPrompt = await getDesignIntentsPrompt(userId);
@@ -790,7 +743,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         console.warn('[index] Design intents failed:', (err as Error).message);
       }
 
-      // â”€â”€ Phase 4.3: Interaction Pattern Analysis â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // ── Phase 4.3: Interaction Pattern Analysis ───────────────────────
       // Analyze repeated error patterns and inject learnings.
       try {
         const patterns = await analyzeInteractionPatterns(userId);
@@ -828,7 +781,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           console.log('[index] Project rules injected');
         }
 
-        // â”€â”€ Background code index â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Background code index ─────────────────────────────────────────
         // Index the project on first access (fire-and-forget, non-blocking).
         if (isFeatureEnabled('ff_code_index')) {
           const indexKey = `indexed:${projectPath}`;
@@ -851,7 +804,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
                       if (!grouped.has(f)) grouped.set(f, []);
                       grouped.get(f)!.push(`${r.symbol?.symbolName} (${r.symbol?.symbolType}, line ${r.symbol?.lineStart})`);
                     }
-                    const lines = ['# Auto-generated project map — SUNy code index', ''];
+                    const lines = ['# Auto-generated project map � SUNy code index', ''];
                     for (const [file, symbols] of grouped) {
                       lines.push(`## ${file}`);
                       for (const s of symbols) lines.push(`- ${s}`);
@@ -870,7 +823,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           }
         }
 
-        // â”€â”€ Background vector chunk index â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Background vector chunk index ─────────────────────────────────
         // Runs after code_index (or independently for non-TS files).
         if (isFeatureEnabled('ff_vector_context') && projectId) {
           const chunkKey = `chunk_indexed:${projectPath}`;
@@ -912,7 +865,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           );
         }
       }
-      // â”€â”€ Project lock (prevents concurrent mutations) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // ── Project lock (prevents concurrent mutations) ─────────────────
       const projectLockHeld = projectPath && projectId
         ? await acquireLock(projectId, userId, sessionId)
         : true;
@@ -923,20 +876,20 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         // Track whether this session has already seen a lock message
         const isRepeat = lockMessagesSent.has(sessionId);
         lockMessagesSent.add(sessionId);
-        // Only push system_error toast on first occurrence — avoid spamming the user
+        // Only push system_error toast on first occurrence � avoid spamming the user
         if (!isRepeat) {
           userClientManager.pushToUser(userId, 'suny:system_error', {
-            message: `⚠️ This project is locked by **${holder}** since ${when}. Please wait for their session to finish, or ask an admin to release the lock.`,
+            message: `?? This project is locked by **${holder}** since ${when}. Please wait for their session to finish, or ask an admin to release the lock.`,
           });
         }
         // Embed lock details in the error message so the catch block can surface them.
         const detail = `LOCK_HOLDER:${holder}|LOCKED_AT:${when}|REPEAT:${isRepeat ? '1' : '0'}`;
         throw new Error(`Project is locked by another session (${detail})`);
       }
-      // Lock acquired successfully — clear any stale repeat tracking
+      // Lock acquired successfully � clear any stale repeat tracking
       lockMessagesSent.delete(sessionId);
 
-      // â”€â”€ Log session start â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // ── Log session start ────────────────────────────────────────────
       logOperation({
         userId,
         projectId: projectId ?? null,
@@ -946,84 +899,20 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         detail: String(msg.message ?? '').slice(0, 200),
       });
 
-      // â”€â”€ Scan intent pre-check: handle "scan/analyze/explore" when project or bridge missing â”€â”€
-      // If the user asks to scan/analyze/explore but conditions aren't right, give clear
-      // guidance instead of sending the AI into an empty-output loop with hallucinations.
+      // -- Scan intent pre-check: guide user when no project is selected --
       const msgText = String(msg.message ?? '');
       const hasScanIntent = /\b(scan|analyze|explore|look at|check out|list|show me)\b/i.test(msgText) &&
         /\b(project|codebase|repo|folder|directory|root|src)\b/i.test(msgText);
-      if (hasScanIntent && projectPath && isBridgeConnected(userId)) {
-        // Project selected + bridge connected — do a direct bridge scan for reliability,
-        // then append the result to the system prompt so the AI can analyze it further.
-        try {
-          const scanText = await quickProjectScan(userId, projectPath);
-          // Inject scan result directly, don't send to agent loop — this is instant
-          userClientManager.pushChatContent(userId, 'suny:stream_end', {
-            content: scanText + '\n\n> ðŸ’¡ Want to dive deeper? Tell me which folder or file to explore and I can analyze it further.',
-            sess_used: null,
-            sess_limit: null,
-            iterations: 0,
-          });
-          return;
-        } catch (err) {
-          // Direct scan failed — show a clear error instead of falling through
-          // to the agent loop (which produces empty conversational filler).
-          const reason = err instanceof Error ? err.message : 'Unknown reason';
-          console.warn(`[index] quickProjectScan failed: ${reason}`);
-          userClientManager.pushChatContent(userId, 'suny:stream_end', {
-            content: `I tried to scan your project but ran into an issue: **${reason}**.\n\n` +
-              'This usually means the bridge lost its connection or the project path is not accessible.\n\n' +
-              'Try these steps:\n' +
-              '1. Make sure the bridge is connected (green pill indicator).\n' +
-              '2. Re-select your project from the sidebar.\n' +
-              '3. Ask me to scan again.',
-            sess_used: null,
-            sess_limit: null,
-            iterations: 0,
-          });
-          return;
-        }
-      }
-      if (hasScanIntent && projectPath && !isBridgeConnected(userId)) {
-        // Project selected but bridge offline — tell user to connect the bridge
-        userClientManager.pushChatContent(userId, 'suny:stream_end', {
-          content: 'I found your project "' + projectPath + '" but the **bridge is currently offline** (red pill indicator).\n\n' +
-            'To scan and work with files, the bridge needs to be running on your machine:\n' +
-            '1. Click the bridge pill in the top bar.\n' +
-            '2. Download and run the bridge if you haven\'t already.\n' +
-            '3. Wait for the pill to turn green.\n\n' +
-            'Once connected, just say "scan my project" and I\'ll dive right in! 🚀',
-          sess_used: null,
-          sess_limit: null,
-          iterations: 0,
-        });
-        return;
-      }
       if (hasScanIntent && !projectPath) {
-        // No project selected — guide user to create/select one.
-        // We do NOT attempt quickProjectScan() here because:
-        //   1. process.cwd() is the SERVER's directory, not the user's machine.
-        //   2. The bridge runs on the user's machine — server paths don't exist there.
-        //   3. Scanning without a project gives the AI no file tools â†’ empty output loop.
-        //   4. The bridge status is irrelevant without a project to scan.
         userClientManager.pushChatContent(userId, 'suny:stream_end', {
-          content: 'I\'d love to scan your project, but first you need to select a project to work with.\n\n' +
-            '1. Click the **project icon** in the left sidebar to open the project panel.\n' +
-            (isBridgeConnected(userId)
-              ? '2. Select an existing project or click "New Project" to register your folder.\n\n' +
-                'Once a project is selected (it will appear in the sidebar), just say "scan this project" and I\'ll dive right in! 🚀'
-              : '2. Click "New Project" to register your project folder with its local path.\n' +
-                '3. Make sure the **bridge** is connected (green pill indicator in the top bar).\n\n' +
-                'Once both are ready, just say "scan my project" and I\'ll dive right in! 🚀'),
-          sess_used: null,
-          sess_limit: null,
-          iterations: 0,
+          content: 'I\'d love to scan your project! First, please open or create a project from the sidebar.',
+          sess_used: null, sess_limit: null, iterations: 0,
         });
         return;
       }
 
-      // Run the full agent loop (AI â†” bridge tool calls â†’ AI â†’ ...)
-      // Start "Did you know?" timer — fires every 60s for long tasks
+      // Run the full agent loop
+      // Start "Did you know?" timer � fires every 60s for long tasks
       const stopDidYouKnow = startDidYouKnowTimer(userId, currentAbortController.signal);
       const maxTurnMs = projectPath ? 180_000 : 70_000;
       let timedOutByGuard = false;
@@ -1033,14 +922,14 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           currentAbortController.abort(new Error(`TURN_TIMEOUT_${maxTurnMs}`));
         }
       }, maxTurnMs);
-      // ── Pre-run forecast gate ──────────────────────────────────────────────
+      // -- Pre-run forecast gate ----------------------------------------------
       clearSessionSpend(sessionId);
       const forecastPlanAllowed = isPlanFeatureEnabled('pf_cost_forecast', userPlan);
       const budgetPlanAllowed = isPlanFeatureEnabled('pf_budget_gate', userPlan);
       if (!talkMode && isForecastEnabled(userId) && forecastPlanAllowed) {
         try {
           userClientManager.pushToUser(userId, 'suny:forecast_loading', {});
-          // We need a model reference — use the primary model from the mode
+          // We need a model reference � use the primary model from the mode
           const { getModelsForMode } = await import('./agent');
           // Wrap getModelsForMode in 5s timeout to prevent hanging
           const modelsPromise = getModelsForMode(effectiveMode);
@@ -1131,7 +1020,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           const loopMsg = loopErr instanceof Error ? loopErr.message : String(loopErr);
           if (loopMsg === 'BUDGET_STOP') {
             userClientManager.pushChatContent(userId, 'suny:stream_end', {
-              content: '🛑 Run stopped at budget limit. Work completed up to this point has been saved.',
+              content: '?? Run stopped at budget limit. Work completed up to this point has been saved.',
               sess_used: null, sess_limit: null, iterations: 0,
             });
             isProcessing = false;
@@ -1164,7 +1053,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         });
       }
 
-      // â”€â”€ Post-turn: extract blueprint memory for SUNy Code Conscience â”€â”€â”€â”€â”€
+      // ── Post-turn: extract blueprint memory for SUNy Code Conscience ─────
       try {
         const changedFiles = result.changedFiles ?? [];
         let turnSummary: string;
@@ -1192,19 +1081,19 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           console.log(`[blueprint] Stored entry: ${changedFiles.length} files changed, ${result.content.length} chars response`);
         }
 
-        // â”€â”€ Phase 2.2: Blueprint â†’ Rule Pipeline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Phase 2.2: Blueprint → Rule Pipeline ──────────────────────
         // When blueprint memory detects repeated patterns (same file 3+ times),
         // auto-generate behavioral rules.
         try {
           const ruleResult = await generateRulesFromPatterns({ userId, projectId: projectId ?? null });
           if (ruleResult.generated > 0) {
-            console.log(`[blueprintâ†’rule] ${ruleResult.reason}`);
+            console.log(`[blueprint→rule] ${ruleResult.reason}`);
           }
         } catch (ruleErr) {
-          console.warn('[blueprintâ†’rule] Pattern detection error:', (ruleErr as Error).message);
+          console.warn('[blueprint→rule] Pattern detection error:', (ruleErr as Error).message);
         }
 
-        // â”€â”€ Phase 2.4: Cross-Project Persona Memory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Phase 2.4: Cross-Project Persona Memory ────────────────────
         // Track user preferences (verbosity, formality, framework choices)
         // so they carry across projects.
         try {
@@ -1221,7 +1110,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           console.warn('[cross-project-persona] Update error:', (personaErr as Error).message);
         }
 
-        // â”€â”€ Phase 3.3: Design Intent Tracker â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── Phase 3.3: Design Intent Tracker ───────────────────────────
         // Harvest explicit user design preferences from conversation.
         try {
           const intentResult = await processDesignIntents(userId, msg.message as string);
@@ -1232,11 +1121,11 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           console.warn('[design-intent] Extraction error:', (intentErr as Error).message);
         }
       } catch (bpErr) {
-        // Blueprint extraction is best-effort — never block the main flow
+        // Blueprint extraction is best-effort � never block the main flow
         console.warn('[blueprint] Extraction error:', (bpErr as Error).message);
       }
 
-      // â”€â”€ Post-turn: Goal tracker — update active goal with turn evidence â”€â”€
+      // ── Post-turn: Goal tracker � update active goal with turn evidence ──
       if (projectId && isFeatureEnabled('ff_goal_tracker') && result.changedFiles?.length) {
         try {
           const activeGoal = getCurrentGoal(userId, projectId);
@@ -1254,7 +1143,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         }
       }
 
-      // â”€â”€ Post-turn: Change Guardian drift detection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // ── Post-turn: Change Guardian drift detection ─────────────────────
       if (result.changedFiles?.length) {
         try {
           // Filter to TypeScript files only (snapshot only captures .ts/.tsx)
@@ -1270,7 +1159,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
               if (unintentional.length > 0) {
                 const names = unintentional.map(c => `\`${c.name}\``).join(', ');
                 userClientManager.pushToUser(userId, 'suny:narration', {
-                  message: `ðŸ§  Code Conscience: detected ${unintentional.length} change(s) that may drift from intent — ${names}`,
+                  message: `🧠 Code Conscience: detected ${unintentional.length} change(s) that may drift from intent � ${names}`,
                 });
               }
             } else {
@@ -1282,7 +1171,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         }
       }
 
-      // â”€â”€ Phase 4: Verification Obsession â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // ── Phase 4: Verification Obsession ──────────────────────────────
       if (result.changedFiles?.length && projectPath) {
         // 4.1: Silent code review of changed files
         try {
@@ -1302,7 +1191,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
             // Push validation failure as a narration to the user
             if (!validation.typeCheckPassed) {
               userClientManager.pushToUser(userId, 'suny:narration', {
-                message: `⚠️ TypeScript: ${validation.typeCheckErrors} error(s) detected after changes`,
+                message: `?? TypeScript: ${validation.typeCheckErrors} error(s) detected after changes`,
               });
             }
             console.log(`[verify] Post-merge validation: ${valMsg.slice(0, 200)}`);
@@ -1333,7 +1222,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         } catch {}
       }
 
-      // â”€â”€ Phase 5: Presence profile update â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // ── Phase 5: Presence profile update ────────────────────────────
       try {
         await updatePresenceProfile(
           userId,
@@ -1359,7 +1248,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           userClientManager.pushToUser(userId, 'suny:budget_exceeded', {
             spent: sessionTotal,
             cap: budgetCap,
-            message: `Run spent $${sessionTotal.toFixed(4)} — exceeded your $${budgetCap.toFixed(4)} per-run budget.`,
+            message: `Run spent $${sessionTotal.toFixed(4)} � exceeded your $${budgetCap.toFixed(4)} per-run budget.`,
           });
         }
       } catch (billErr) {
@@ -1396,7 +1285,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       const steps = result.proofSummary.steps ?? 1;
       const durationMinutes = Math.max(0, result.proofSummary.durationMs / 60000);
 
-      // â”€â”€ Record success metric â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      // ── Record success metric ─────────────────────────────────────────
       try {
         recordAgentTurn({
           userId,
@@ -1487,7 +1376,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       // User-initiated cancel is already handled upstream and should not emit a second generic error.
       // Timeouts must continue through the error path so the client receives a stream_end message.
       if (isAbortLike && !isTurnTimeout) return;
-      // All other errors — always respond so the client never gets stuck in thinking state
+      // All other errors � always respond so the client never gets stuck in thinking state
       let friendly = pickRandom('error', pickNonRepeatingFallback(userId, ERROR_REPLY_FALLBACKS));
       let errorCategory = 'unknown';
       if (errMsg.includes('No active API key')) { friendly = 'The AI service is not available right now. Please contact support.'; errorCategory = 'no_key'; }
@@ -1502,13 +1391,13 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         const when = whenMatch ? whenMatch[1] : 'unknown time';
         const isRepeat = repeatMatch && repeatMatch[1] === '1';
         if (isRepeat) {
-          friendly = `🔧’ Still locked by **${holder}**. The lock auto-expires after 5 minutes of inactivity.`;
+          friendly = `??� Still locked by **${holder}**. The lock auto-expires after 5 minutes of inactivity.`;
         } else {
-          friendly = `🔧’ This project is locked by **${holder}** since ${when}.\n\n` +
+          friendly = `??� This project is locked by **${holder}** since ${when}.\n\n` +
             'Only one session can work on a project at a time to prevent conflicts.\n' +
             'Options:\n' +
-            'â€¢ Wait for their session to finish (the lock auto-expires after 5 minutes of inactivity).\n' +
-            'â€¢ If this is a stale lock from a crashed session, ask an admin to clear it from the project_locks table.';
+            '• Wait for their session to finish (the lock auto-expires after 5 minutes of inactivity).\n' +
+            '• If this is a stale lock from a crashed session, ask an admin to clear it from the project_locks table.';
         }
         errorCategory = 'lock';
       }
@@ -1517,46 +1406,18 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         friendly = 'AI provider is temporarily unavailable right now. Please retry in a few seconds.';
         errorCategory = 'api_error';
       }
-      // Deterministic fallback: when the user asks to scan/explore/analyze but the
-      // agent loop failed (regardless of error type), perform a direct bridge-based
-      // root scan. This covers the case where the AI hallucinates paths, produces
-      // empty output, or hits a runtime error during scanning.
-      const msgText = String(msg.message ?? '').toLowerCase();
-      const isScanIntent = /\b(scan|analyze|explore|look at|check)\b.*\b(project|codebase|repo|folder|directory|root)\b|\bscan\b/.test(msgText);
-      if (isScanIntent && projectPath && isBridgeConnected(userId) && errorCategory !== 'lock') {
-        try {
-          const scanText = await quickProjectScan(userId, projectPath);
-          userClientManager.pushChatContent(userId, 'suny:stream_end', {
-            content: scanText,
-            sess_used: null,
-            sess_limit: null,
-            iterations: 0,
-          });
-          return;
-        } catch (scanErr) {
-          // Direct scan also failed — override the generic friendly message
-          // with a clear, actionable error so the user knows what to do.
-          const reason = scanErr instanceof Error ? scanErr.message : 'Unknown reason';
-          console.warn(`[index] Catch-block quickProjectScan also failed: ${reason}`);
-          friendly = `I tried to scan your project both ways but ran into an issue: **${reason}**.\n\n` +
-            'Check that:\n' +
-            '1. The bridge is connected (green pill).\n' +
-            '2. Your project path is correct and accessible.\n' +
-            '3. Try re-selecting your project from the sidebar.';
-          errorCategory = 'scan_failed';
-        }
-      }
+      const msgText2 = String(msg.message ?? '').toLowerCase();
+      const isScanIntent = /\b(scan|analyze|explore|look at|check)\b.*\b(project|codebase|repo|folder|directory|root)\b|\bscan\b/.test(msgText2);
       if (isScanIntent && !projectPath) {
-        // No project selected — give clear guidance instead of a confusing error
         friendly = 'I tried to scan but no project is currently selected. Please click the project icon in the left sidebar, select or create a project, then ask me to scan again.';
         errorCategory = 'no_project';
       }
       // Also handle the old specific error for backward compatibility
       if (errMsg.toLowerCase().includes('await is not defined')) {
-        friendly = 'I hit a temporary execution issue while scanning. I can still do a direct scan for you now — say: scan root, scan src, or scan bridge.';
+        friendly = 'I hit a temporary execution issue while scanning. I can still do a direct scan for you now � say: scan root, scan src, or scan bridge.';
         errorCategory = 'runtime';
       }
-      if (errMsg.toLowerCase().includes('insufficient')) { friendly = pickRandom('no_balance', "You're out of credits! Reach out and we'll top you right up 😊"); errorCategory = 'credits'; }
+      if (errMsg.toLowerCase().includes('insufficient')) { friendly = pickRandom('no_balance', "You're out of credits! Reach out and we'll top you right up ??"); errorCategory = 'credits'; }
       if (errMsg.toLowerCase().includes('rate') && errMsg.toLowerCase().includes('limit')) { errorCategory = 'rate_limit'; }
       if (errMsg.includes('ALL PROVIDERS EXHAUSTED')) {
         friendly = pickNonRepeatingFallback(userId, EXHAUSTED_REPLY_FALLBACKS);
@@ -1581,7 +1442,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       } catch { /* metrics must not crash the server */ }
 
       console.error('[chat:error]', err instanceof Error ? err.stack || err.message : err);
-      // Include the real error message for debugging — the user/test needs to
+      // Include the real error message for debugging � the user/test needs to
       // know what actually broke, not just "internal hiccup". The friendly message
       // is shown for known patterns; unknown errors reveal their real message
       // so the test suite can diagnose tool failures vs API failures vs config.
@@ -1599,7 +1460,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       currentAbortController = null;
     }
 
-    // â”€â”€ Queued message re-dispatch (AiderDesk-style interruption) â”€â”€
+    // ── Queued message re-dispatch (AiderDesk-style interruption) ──
     if (queuedMessage) {
       const nextRaw = queuedMessage;
       queuedMessage = null;
