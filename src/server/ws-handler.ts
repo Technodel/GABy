@@ -945,7 +945,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         // Track whether this session has already seen a lock message
         const isRepeat = lockMessagesSent.has(sessionId);
         lockMessagesSent.add(sessionId);
-        // Only push system_error toast on first occurrence � avoid spamming the user
+        // Only push system_error toast on first occurrence  avoid spamming the user
         if (!isRepeat) {
           userClientManager.pushToUser(userId, 'suny:system_error', {
             message: `?? This project is locked by **${holder}** since ${when}. Please wait for their session to finish, or ask an admin to release the lock.`,
@@ -955,7 +955,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         const detail = `LOCK_HOLDER:${holder}|LOCKED_AT:${when}|REPEAT:${isRepeat ? '1' : '0'}`;
         throw new Error(`Project is locked by another session (${detail})`);
       }
-      // Lock acquired successfully � clear any stale repeat tracking
+      // Lock acquired successfully  clear any stale repeat tracking
       lockMessagesSent.delete(sessionId);
 
       // ── Log session start ────────────────────────────────────────────
@@ -984,6 +984,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       // Start "Did you know?" timer — fires every 60s for long tasks
       const stopDidYouKnow = startDidYouKnowTimer(userId, currentAbortController.signal);
       const maxTurnMs = projectPath ? 180_000 : 70_000;
+      let timedOutByGuard = false;
       const turnTimeout = setTimeout(() => {
         if (currentAbortController && !currentAbortController.signal.aborted) {
           timedOutByGuard = true;
@@ -997,7 +998,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       if (!talkMode && effectiveMode !== 'free' && isForecastEnabled(userId) && forecastPlanAllowed) {
         try {
           userClientManager.pushToUser(userId, 'suny:forecast_loading', {});
-          // We need a model reference � use the primary model from the mode
+          // We need a model reference  use the primary model from the mode
           const { getModelsForMode } = await import('./agent');
           // Wrap getModelsForMode in 5s timeout to prevent hanging
           const modelsPromise = getModelsForMode(effectiveMode);
@@ -1046,7 +1047,6 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       }
 
       let result;
-      let timedOutByGuard = false;
       try {
         // Budget gate callbacks (only attached when budget gate is enabled + plan allows)
         const budgetCap = (isBudgetGateEnabled(userId) && budgetPlanAllowed) ? getBudgetPerRun(userId) : null;

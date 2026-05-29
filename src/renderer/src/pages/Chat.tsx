@@ -1372,17 +1372,17 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
         setVectorIndexStats({ chunks: data.chunks, files: data.files, projectId: data.projectId });
       } else if (msg.event === 'suny:preparation_step') {
         setThinkingStatus(pickStatusVariant('prep', [
-          'Getting everything ready�',
-          'Setting up the best approach�',
-          'Preparing your answer now�',
-          'Organizing the next steps�',
-          'Lining up what needs to happen�',
-          'Getting this ready for you�',
-          'Starting with the essentials�',
-          'Putting the plan in motion�',
-          'Collecting what I need first�',
-          'Preparing a clean run�',
-        ], 'Preparing your answer�'));
+          'Getting everything ready...',
+          'Setting up the best approach...',
+          'Preparing your answer now...',
+          'Organizing the next steps...',
+          'Lining up what needs to happen...',
+          'Getting this ready for you...',
+          'Starting with the essentials...',
+          'Putting the plan in motion...',
+          'Collecting what I need first...',
+          'Preparing a clean run...',
+        ], 'Preparing your answer...'));
       } else if (msg.event === 'suny:done') {
         clearThinkingTimeout();
         setThinking(false);
