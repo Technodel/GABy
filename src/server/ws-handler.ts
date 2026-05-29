@@ -9,7 +9,7 @@ import { userClientManager } from './user-client-manager';
 import { scanForInjection, initializeInjectionGuardTable } from './injection-guard';
 import { AgentMessage } from './agent';
 import { hasSufficientBalance, deductUsage } from './billing';
-import { runAgentLoop, clearLoopDetector } from './agent-loop';
+import { runAgentLoop, clearLoopDetector, classifyAutoMode } from './agent-loop';
 import { withUserQueue } from './user-queue';
 import { initializeDesignIntentTable, getDesignIntentsPrompt, processDesignIntents } from './design-intent';
 import { hookSystem } from './hook-system';
@@ -1018,6 +1018,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
             );
             const forecast = await Promise.race([forecastPromise, timeoutPromise]);
             const billing = await import('./billing');
+            const recommendedMode = classifyAutoMode(msg.message as string);
             userClientManager.pushToUser(userId, 'suny:pre_run_estimate', {
               lowCredits: forecast.lowCredits,
               highCredits: forecast.highCredits,
@@ -1028,6 +1029,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
               currentBalance: await billing.getUserBalance(userId),
               walletBalance: await billing.getUserWalletBalance(userId),
               mode: effectiveMode,
+              recommendedMode: recommendedMode,
             });
             // Wait for user to approve or cancel via the Run/Cancel buttons (silent=true so we don't emit duplicate generic checkpoint UI)
             const approved = await userClientManager.waitForCheckpoint(userId, 'Cost Estimate', 'Review the estimated cost and click Run to proceed or Cancel to abort.', true);

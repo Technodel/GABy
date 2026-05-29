@@ -94,9 +94,16 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
 
   const [checkpoint, setCheckpoint] = useState<{ label: string; details: string } | null>(null);
   const [forecastEstimate, setForecastEstimate] = useState<{
-    lowCredits: number; highCredits: number; historicalSamples: number;
-    estimatedSteps: number; confidence: string; basedOn: string;
-    currentBalance: number; walletBalance: number; mode: string;
+    lowCredits: number;
+    highCredits: number;
+    historicalSamples: number;
+    estimatedSteps: number;
+    confidence: 'high' | 'medium' | 'low';
+    basedOn: 'history' | 'llm_estimate' | 'fallback';
+    currentBalance: number;
+    walletBalance: number;
+    mode: string;
+    recommendedMode?: string;
   } | null>(null);
   const [forecastLoading, setForecastLoading] = useState(false);
   const [budgetWarning, setBudgetWarning] = useState<{ spent: number; cap: number; pct: number } | null>(null);
@@ -237,7 +244,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
     try { return localStorage.getItem('suny_sounds_enabled') !== 'false'; } catch { return true; }
   }
 
-  // Shared AudioContext � persisted via useRef so it survives re-renders.
+  // Shared AudioContext  persisted via useRef so it survives re-renders.
   // Browser autoplay policy suspends new AudioContexts not created from user gestures.
   // We resume on first user interaction (keydown/mousedown) so sounds from WebSocket
   // events (not user gestures) still play.
@@ -321,7 +328,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
           osc.start(now); osc.stop(now + 0.18);
           break;
       }
-      // Don't close the shared context � let the oscillators finish naturally
+      // Don't close the shared context  let the oscillators finish naturally
     } catch { /* AudioContext may be unavailable */ }
   }
 
@@ -540,7 +547,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
     if (!requestStartedAtRef.current) requestStartedAtRef.current = Date.now();
     thinkingTimedOutRef.current = false;
     thinkingTimeoutRef.current = setTimeout(() => {
-      // No response for 5 min � cancel and notify. (Long installs/builds can take
+      // No response for 5 min  cancel and notify. (Long installs/builds can take
       // 2-3 minutes silently between narrations, so we use a generous window.)
       setThinking(false);
       setStreamingContent('');
@@ -608,7 +615,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
       if (!explicitTheme || explicitTheme === 'matrix') {
         const fromDarkMode = localStorage.getItem('suny_dark_mode');
         if (!fromDarkMode || fromDarkMode !== 'false') {
-          // No explicit theme � default to PRO on mobile
+          // No explicit theme  default to PRO on mobile
           const t = 'pro';
           setUiTheme(t);
           localStorage.setItem('suny_ui_theme', t);
@@ -831,7 +838,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
     if (run.toolCalls.length > 0) {
       report += `Tools Used:\n`;
       run.toolCalls.forEach(tool => {
-        report += `  � ${toolLabel(tool)}\n`;
+        report += `   ${toolLabel(tool)}\n`;
       });
       report += `\n`;
     }
@@ -1305,11 +1312,12 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
             highCredits: msg.highCredits as number,
             historicalSamples: msg.historicalSamples as number,
             estimatedSteps: msg.estimatedSteps as number,
-            confidence: msg.confidence as string,
-            basedOn: msg.basedOn as string,
+            confidence: msg.confidence as 'high' | 'medium' | 'low',
+            basedOn: msg.basedOn as 'history' | 'llm_estimate' | 'fallback',
             currentBalance: msg.currentBalance as number,
             walletBalance: (msg.walletBalance as number) ?? 0,
             mode: msg.mode as string,
+            recommendedMode: msg.recommendedMode as string | undefined,
           });
         }
         return;
@@ -3434,7 +3442,15 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
                   </div>
                 )}
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
+              
+              {forecastEstimate.recommendedMode && forecastEstimate.mode === 'fast' && (forecastEstimate.recommendedMode === 'smart' || forecastEstimate.recommendedMode === 'pro') && (
+                <div style={{ marginTop: 12, padding: '10px 12px', background: 'rgba(255, 165, 0, 0.1)', border: '1px solid rgba(255, 165, 0, 0.3)', borderRadius: 6, fontSize: '0.85rem' }}>
+                  ⚠️ <strong>High Complexity Task</strong><br/>
+                  This request looks too complex for Fast mode. We strongly recommend clicking Cancel and switching to <strong>Smart</strong> or <strong>Pro</strong> mode before running to prevent the task from failing midway.
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
                 <button
                   className="btn btn-primary btn-sm"
                   onClick={() => { wsSend({ type: 'checkpoint:approve' }); setForecastEstimate(null); }}
