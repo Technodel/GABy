@@ -148,6 +148,7 @@ class UserClientManager {
         resolve(decision);
       });
       this.pushToUser(userId, 'suny:budget_gate', { spent, cap, pct: spent / cap });
+    });
   }
 
   /**

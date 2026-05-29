@@ -421,6 +421,7 @@ async function startup() {
     () => { try { require('./user-model').initializeUserModelTable(); } catch {} },
     () => { try { require('./health-scorer').initializeHealthTable(); } catch {} },
     () => { try { require('./entity-store').initializeEntityStore(); } catch {} },
+    () => { try { require('./failure-memory').initializeFailureMemoryTable(); } catch {} },
   ];
   await Promise.allSettled(tableInits.map(fn => fn()));
 
