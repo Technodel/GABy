@@ -15,6 +15,9 @@ class UserClientManager {
   private clients = new Map<number, WebSocket>();
   private checkpoints = new Map<number, CheckpointResolver>();
   private budgetGates = new Map<number, BudgetGateResolver>();
+  /** Messages buffered while the user's WS is offline — flushed on reconnect. */
+  private offlineBuffer = new Map<number, string[]>();
+  private readonly MAX_BUFFER = 200; // max buffered events per user
 
   register(userId: number, ws: WebSocket): void {
     // Close the previous connection if any (handles StrictMode double-connect)
@@ -23,6 +26,15 @@ class UserClientManager {
       existing.close(1000, 'replaced_by_new_connection');
     }
     this.clients.set(userId, ws);
+
+    // Flush any messages buffered while the user was offline
+    const buffered = this.offlineBuffer.get(userId);
+    if (buffered && buffered.length > 0) {
+      for (const msg of buffered) {
+        if (ws.readyState === WebSocket.OPEN) ws.send(msg);
+      }
+      this.offlineBuffer.delete(userId);
+    }
 
     ws.on('close', () => {
       if (this.clients.get(userId) === ws) this.clients.delete(userId);
@@ -39,20 +51,28 @@ class UserClientManager {
    */
   pushToUser(userId: number, event: string, payload: Record<string, unknown>): void {
     const ws = this.clients.get(userId);
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    ws.send(buildUserEvent(event, payload));
+    const msg = buildUserEvent(event, payload);
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(msg);
+    } else {
+      // Buffer the message for when the user reconnects
+      const buf = this.offlineBuffer.get(userId) ?? [];
+      if (buf.length < this.MAX_BUFFER) buf.push(msg);
+      this.offlineBuffer.set(userId, buf);
+    }
   }
 
-  /**
-   * Push chat content to the user's active browser tab.
-   * Uses lightweight sanitization (keys only, no string patterns).
-   * Use for AI conversational content: stream chunks, final responses.
-   * This allows the AI to freely use model/provider names in natural language.
-   */
   pushChatContent(userId: number, event: string, payload: Record<string, unknown>): void {
     const ws = this.clients.get(userId);
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    ws.send(buildChatEvent(event, payload));
+    const msg = buildChatEvent(event, payload);
+    if (ws && ws.readyState !== WebSocket.OPEN) {
+      // Buffer AI response chunks so they arrive on reconnect
+      const buf = this.offlineBuffer.get(userId) ?? [];
+      if (buf.length < this.MAX_BUFFER) buf.push(msg);
+      this.offlineBuffer.set(userId, buf);
+      return;
+    }
+    if (ws) ws.send(msg);
   }
 
   /**

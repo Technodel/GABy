@@ -174,14 +174,15 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
   let isProcessing = false;
   let queuedMessage: Buffer | null = null;
 
-  // ── WebSocket close: abort any in-flight request ────────────────────────
-  // Without this, a disconnected user stays in "thinking" forever because
-  // the agent loop keeps running and pushChatContent silently fails (WS gone).
+  // ── WebSocket close: keep the agent loop alive ──────────────────────────
+  // When the browser disconnects (tab closed, PC shutdown, connection lost),
+  // we do NOT abort the in-flight agent task. Instead, userClientManager will
+  // buffer any events the agent emits while the user is offline and flush them
+  // the moment the user reconnects. This gives SUNy true session resilience.
+  // We only abort if the user explicitly sends 'cancel' over the WS.
   ws.on('close', () => {
-    if (currentAbortController) {
-      currentAbortController.abort(new Error('cancelled_by_disconnect'));
-      currentAbortController = null;
-    }
+    // Do NOT call currentAbortController.abort() here.
+    // The agent loop keeps running; buffered events will be flushed on reconnect.
     isProcessing = false;
     queuedMessage = null;
     // Clean up per-user rate bucket and loop detector to prevent unbounded memory growth
