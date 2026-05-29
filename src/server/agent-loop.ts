@@ -1,4 +1,4 @@
-﻿/**
+/**
  * SUNy Agent Loop -- uses Vercel AI SDK streamText with native tool calling.
  *
  * Architecture:
@@ -26,7 +26,6 @@ import { createFileDiscoveryTool } from './file-discovery';
 import { createSelfHealTool } from './error-corrector';
 import { mcpManager } from './mcp-manager';
 import { userClientManager } from './user-client-manager';
-import { isBridgeConnected } from './bridge-manager';
 import { invalidateRepoMap, buildRepoMap } from './repo-map';
 import { searchCodeIndex, findImporters } from './code-index';
 import { gitAutoCommit, createCheckpoint } from './git-manager';
@@ -180,6 +179,7 @@ export interface AgentLoopRequest {
   imageData?: string;        // base64-encoded image for vision/multimodal analysis
   sessionId: string;
   talkMode?: boolean;
+  autoExecuteOverride?: boolean | null;
   signal?: AbortSignal;
   onChunk?: (chunk: string) => void;
   /** Budget gate — called at 80% (warn) and 90% (gate) of budgetCapCredits */
@@ -415,9 +415,8 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
     { role: 'user' as const, content: userContent },
   ];
 
-  // Determine edit format (needs bridgeConnected, must come before fullSystem)
-  const bridgeConnected = isBridgeConnected(userId);
-  const editFormat = (bridgeConnected && projectPath && !talkMode) ? await getEditFormat() : 'tool-call';
+  // Determine edit format (needs true, must come before fullSystem)
+    const editFormat = (projectPath && !talkMode) ? await getEditFormat() : 'tool-call';
 
   // For text-based formats (diff / whole), drop tool calls and inject format instructions
   const textFormat = editFormat === 'diff' || editFormat === 'whole';
@@ -447,6 +446,18 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
   let fullSystem = architectPlanSystem ?? (projectPath
     ? `${systemPrompt}${formatSystemAddition}\n\n<WorkingDirectory>${projectPath}</WorkingDirectory>\nAll relative file paths are resolved against this directory.`
     : systemPrompt + formatSystemAddition);
+
+  // --- Antigravity Planning Mode ---
+  if (!req.talkMode && (resolvedMode === 'smart' || resolvedMode === 'pro') && req.autoExecuteOverride !== true) {
+    fullSystem += `\n\n<planning_mode>
+CRITICAL INSTRUCTION: You are in Planning Mode because this is a complex task.
+Before you make ANY code changes using file_write or file_edit, you MUST:
+1. Research the codebase using grep_search, list_dir, and file_read.
+2. Present your detailed implementation plan as a normal chat message (using markdown) so the user can easily read it.
+3. THEN, immediately use the request_checkpoint tool with a short 1-sentence summary in the details field to formally ask for approval.
+4. Wait for the user to approve the checkpoint. If approved, you may proceed with the edits.
+</planning_mode>`;
+  }
 
   // Ã¢â€â‚¬Ã¢â€â‚¬ Runtime skill classification: inject relevant skill instructions Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   // Identify which engineering skill applies to this specific task and inject
@@ -517,7 +528,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
 
   const mcpToolsAvailable = mcpManager.availableToolCount > 0;
   const tools = await (async () => {
-    if (bridgeConnected && projectPath && !talkMode) {
+    if (projectPath && !talkMode) {
       const powerTools = createPowerTools({
         userId,
         projectPath,
@@ -647,13 +658,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
           branch_name: z.string().describe('Name for the new branch/worktree (e.g. "suny/fix-auth-flow")'),
         }),
         execute: async (input: { branch_name: string }) => {
-          const { sendToBridge } = await import('./bridge-manager');
-          const worktreePath = `.worktrees/${input.branch_name.replace(/\//g, '-')}`;
-          const result = await sendToBridge(userId, {
-            type: 'shell',
-            command: `git worktree add -b "${input.branch_name}" "${worktreePath}" HEAD 2>&1 || git worktree add "${worktreePath}" "${input.branch_name}" 2>&1`,
-            cwd: projectPath,
-          });
+          
           const out = typeof result === 'object' && result !== null && 'stdout' in result ? String((result as {stdout: string}).stdout) : String(result);
           if (out.includes('already exists') || out.includes('Preparing worktree')) {
             return `Worktree created at ${worktreePath} on branch ${input.branch_name}. All changes will be isolated here.`;
@@ -669,10 +674,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
           delete_after_merge: z.boolean().default(true).describe('Whether to delete the worktree and branch after merging'),
         }),
         execute: async (input: { branch_name: string; delete_after_merge: boolean }) => {
-          const { sendToBridge } = await import('./bridge-manager');
-          const worktreePath = `.worktrees/${input.branch_name.replace(/\//g, '-')}`;
-          let out = '';
-          const merge = await sendToBridge(userId, { type: 'shell', command: `git merge --no-ff "${input.branch_name}" -m "Merge ${input.branch_name} via SUNy worktree" 2>&1`, cwd: projectPath });
+          
           out += typeof merge === 'object' && merge !== null && 'stdout' in merge ? String((merge as {stdout:string}).stdout) : String(merge);
           if (input.delete_after_merge) {
             const cleanup = await sendToBridge(userId, { type: 'shell', command: `git worktree remove "${worktreePath}" --force 2>&1 && git branch -d "${input.branch_name}" 2>&1`, cwd: projectPath });
@@ -699,7 +701,53 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
         update_user_model: createUserModelTool(userId),
       };
 
-      let merged = { ...alwaysTools, ...powerTools, ...extraTools };
+      const activeSkillNames = getActiveSkills(userMessage).map(s => s.name.toLowerCase());
+      const msgLower = userMessage.toLowerCase();
+
+      // Core Tools (Always injected when bridge is connected)
+      let merged: Record<string, any> = { 
+        ...alwaysTools,
+        file_read: powerTools.file_read,
+        file_edit: powerTools.file_edit,
+        file_write: powerTools.file_write,
+        list_dir: powerTools.list_dir,
+        grep_search: powerTools.grep_search,
+        path_exists: powerTools.path_exists,
+        request_checkpoint: extraTools.request_checkpoint,
+        read_symbols: extraTools.read_symbols,
+        find_files: extraTools.find_files,
+        code_search: extraTools.code_search,
+        save_memory: extraTools.save_memory,
+        recall_memories: extraTools.recall_memories,
+      };
+
+      // Dynamic Category: Server & Processes
+      if (activeSkillNames.includes('backend') || activeSkillNames.includes('debugging') || msgLower.includes('server') || msgLower.includes('start') || msgLower.includes('run')) {
+        if (powerTools.start_server) merged.start_server = powerTools.start_server;
+        if (powerTools.stop_server) merged.stop_server = powerTools.stop_server;
+        if (powerTools.read_server_logs) merged.read_server_logs = powerTools.read_server_logs;
+        if (powerTools.list_servers) merged.list_servers = powerTools.list_servers;
+        if (powerTools.run_background_command) merged.run_background_command = powerTools.run_background_command;
+      }
+
+      // Dynamic Category: Git & Worktrees
+      if (activeSkillNames.includes('version_control') || activeSkillNames.includes('refactor') || msgLower.includes('git') || msgLower.includes('branch') || msgLower.includes('worktree')) {
+        if (extraTools.create_worktree) merged.create_worktree = extraTools.create_worktree;
+        if (extraTools.merge_worktree) merged.merge_worktree = extraTools.merge_worktree;
+      }
+
+      // Dynamic Category: Delegation & Agents
+      if (activeSkillNames.includes('architecture') || activeSkillNames.includes('testing') || msgLower.includes('subagent') || msgLower.includes('delegate')) {
+        if (powerTools.invoke_subagent) merged.invoke_subagent = powerTools.invoke_subagent;
+        if (extraTools.delegate_subtask) merged.delegate_subtask = extraTools.delegate_subtask;
+        if (extraTools.delegate_swarm) merged.delegate_swarm = extraTools.delegate_swarm;
+      }
+
+      // Dynamic Category: Bash Fallback
+      if (activeSkillNames.includes('devops') || activeSkillNames.includes('debugging') || msgLower.includes('bash') || msgLower.includes('terminal')) {
+        if (powerTools.bash) merged.bash = powerTools.bash;
+      }
+
       if (mcpToolsAvailable) {
         const mcpTools = mcpManager.getTools();
         merged = { ...merged, ...mcpTools };
@@ -707,11 +755,13 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
           console.log(`[agent-loop] Merged ${Object.keys(mcpTools).length} MCP tool(s) into toolset`);
         }
       }
+      
+      console.log(`[agent-loop] JIT Context Engine: Masked tools from ${Object.keys({...alwaysTools, ...powerTools, ...extraTools}).length} down to ${Object.keys(merged).length} active tools.`);
       return merged;
     }
     // Bridge offline, no project, or talk mode — still provide web tools
     const reasons: string[] = [];
-    if (!bridgeConnected) reasons.push('bridge offline');
+    if (false) reasons.push('bridge offline');
     if (!projectPath) reasons.push('no project path');
     if (talkMode) reasons.push('talk mode');
     console.log(`[agent-loop] Full tools unavailable (${reasons.join(', ') || 'unknown'}); web_search + url_fetch only`);
@@ -730,7 +780,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
   // different strategies on isolated git branches (gated by ff_hypothesis_engine).
   // Each strategy runs independently. The winner's branch is merged, losers discarded.
   // Emits suny:hypothesis_winner event for the frontend.
-  if (isFeatureEnabled('ff_hypothesis_engine') && bridgeConnected && projectPath && !talkMode && projectId && userMessage.length > 80 && modelEntries.length > 0 && classifyAutoMode(userMessage) !== 'free') {
+  if (isFeatureEnabled('ff_hypothesis_engine') && projectPath && !talkMode && projectId && userMessage.length > 80 && modelEntries.length > 0 && classifyAutoMode(userMessage) !== 'free') {
     try {
       const primaryModel = modelEntries[0].model as LanguageModel;
       // Resolve Pro model for reasoning-heavy hypothesis strategies
@@ -762,7 +812,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
   // ultra-explicit directive at the very END of the system prompt
   // (immediately before the user message) is where models pay most
   // attention and is hardest to overlook.
-  if (!textFormat && !talkMode && bridgeConnected && projectPath) {
+  if (!textFormat && !talkMode && projectPath) {
     const toolNames = Object.keys(effectiveTools || {});
     if (toolNames.length > 0) {
       fullSystem += `
@@ -792,7 +842,7 @@ If your tools are not working, say:
   userClientManager.pushToUser(userId, 'suny:stream_start', {});
 
   // Create a git checkpoint BEFORE any file changes so the user can roll back
-  if (bridgeConnected && projectPath && !talkMode) {
+  if (projectPath && !talkMode) {
     createCheckpoint(userId, projectPath, userMessage).catch(() => {});
   }
 
@@ -875,7 +925,7 @@ If your tools are not working, say:
       // without ever calling a tool. When the user is clearly asking SUNy to
       // look at the project, force step 0 to make a tool call. Subsequent
       // steps return to 'auto' so the model can synthesize the final answer.
-      const projectTurn = bridgeConnected && !!projectPath && !talkMode && toolCount > 0;
+      const projectTurn = !!projectPath && !talkMode && toolCount > 0;
       // DeepSeek under our 60KB+ system prompt has been observed narrating
       // "Let me check..." / "Got it running!" without ever calling a tool.
       // In a project context the right answer is almost always grounded in a
@@ -1063,7 +1113,7 @@ If your tools are not working, say:
       // this is a coding task, re-invoke with a stronger tool mandate rather
       // than silently returning empty output. Retry up to 2 times.
       const isEmptyOutput = fullText.length === 0 && toolCallNames.size === 0;
-      const isCodingTask = bridgeConnected && projectPath && !talkMode;
+      const isCodingTask = projectPath && !talkMode;
       if (isEmptyOutput && isCodingTask) {
         console.warn('[agent-loop] AUTO-RETRY: empty output with no tools — re-invoking with stronger mandate');
         userClientManager.pushToUser(userId, 'suny:stage', { stage: 'processing', label: 'Model produced empty output — retrying...' });
@@ -1530,7 +1580,7 @@ If your tools are not working, say:
       // Ã¢â€â‚¬Ã¢â€â‚¬ Architect mode: plan Ã¢â€ â€™ execute Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
       // First pass (above) was the planning pass. Now run a second pass that
       // actually applies edits using diff format (or tool-call if tools available).
-      if (editFormat === 'architect' && projectPath && bridgeConnected) {
+      if (editFormat === 'architect' && projectPath && true) {
         userClientManager.pushToUser(userId, 'suny:stage', { stage: 'executing', label: 'Plan ready — now executing...' });
         userClientManager.pushToUser(userId, 'suny:narration', {
           message: narrateMessage('Plan ready — now executing...', 'plan'),
@@ -2026,7 +2076,7 @@ If your tools are not working, say:
 
       // ── P3: Agent-action memory capture ─────────────────────────────────
       // Store a blueprint entry recording what the agent did this turn
-      if (projectId && bridgeConnected && fullText && !talkMode) {
+      if (projectId && fullText && !talkMode) {
         try {
           const toolList = Array.from(toolCallNames);
           const changedList = Array.from(changedFiles);

@@ -1,13 +1,16 @@
 import { ChildProcess, spawn } from 'child_process';
+import { EventEmitter } from 'events';
 
 interface ManagedProcess {
   process: ChildProcess;
   cwd: string;
   command: string;
+  userId?: number;
+  projectPath?: string;
   startedAt: Date;
 }
 
-class ProcessManager {
+class ProcessManager extends EventEmitter {
   private processes = new Map<string, ManagedProcess>();
 
   /**
@@ -20,7 +23,9 @@ class ProcessManager {
     args: string[],
     cwd: string,
     onData: (line: string, stream: 'stdout' | 'stderr') => void,
-    onDone: (exitCode: number) => void
+    onDone: (exitCode: number) => void,
+    userId?: number,
+    projectPath?: string
   ): void {
     const isWindows = process.platform === 'win32';
     const isBatOrCmd = isWindows && (cmd.toLowerCase().endsWith('.bat') || cmd.toLowerCase().endsWith('.cmd'));
@@ -32,7 +37,7 @@ class ProcessManager {
       stdio: ['ignore', 'pipe', 'pipe'],
     });
 
-    this.processes.set(id, { process: child, cwd, command: cmd, startedAt: new Date() });
+    this.processes.set(id, { process: child, cwd, command: cmd, userId, projectPath, startedAt: new Date() });
 
     child.stdout.on('data', (data: Buffer) => {
       for (const line of data.toString().split('\n')) {
@@ -42,7 +47,14 @@ class ProcessManager {
 
     child.stderr.on('data', (data: Buffer) => {
       for (const line of data.toString().split('\n')) {
-        if (line.trim()) onData(line, 'stderr');
+        if (line.trim()) {
+          onData(line, 'stderr');
+          // Watchdog Crash Detection
+          const lower = line.toLowerCase();
+          if (lower.includes('syntaxerror:') || lower.includes('typeerror:') || lower.includes('err_module_not_found') || lower.includes('[vite] internal server error') || lower.includes('fatal error:')) {
+            this.emit('processCrash', { id, command: cmd, cwd, error: line.trim(), userId, projectPath });
+          }
+        }
       }
     });
 

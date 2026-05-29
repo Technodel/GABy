@@ -311,6 +311,7 @@ export interface HypothesisRunnerInput {
   /** Optional stronger model for reasoning-heavy strategies (test_first, from_scratch) */
   proModel?: LanguageModel;
   signal?: AbortSignal;
+  mode?: string;
 }
 
 export interface HypothesisRunnerOutput {
@@ -349,7 +350,12 @@ const STRATEGY_CONFIGS: Record<string, { prompt: string; steps: number }> = {
  * Falls back to non-branch execution if git operations fail.
  */
 export async function runHypothesisStrategies(input: HypothesisRunnerInput): Promise<HypothesisRunnerOutput> {
-  const { userId, projectId, projectPath, userMessage, fullSystem, rawMessages, primaryModel, proModel, signal } = input;
+  const { userId, projectId, projectPath, userMessage, fullSystem, rawMessages, primaryModel, proModel, signal, mode } = input;
+
+  // Rate Limiting: Disable expensive parallel hypothesis loops for lower tiers
+  if (mode === 'free' || mode === 'fast') {
+    return { bestText: '', bestStrategy: '', bestScore: 0, hypBlock: '' };
+  }
 
   const strategies = selectStrategies(userMessage);
   if (strategies.length < 2) {

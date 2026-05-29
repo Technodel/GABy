@@ -209,6 +209,9 @@ export async function executeScheduledAgent(agent: ScheduledAgent): Promise<Sche
       history: [],
       userMessage: agent.prompt,
       sessionId: `scheduled_${agent.id}`,
+      budgetCapCredits: 0.25, // Stop at $0.25 to prevent runaway background agents
+      onBudgetWarning: () => {},
+      onBudgetGate: async () => 'stop', // Auto-stop when cap reached
     });
 
     const finishedAt = new Date().toISOString();

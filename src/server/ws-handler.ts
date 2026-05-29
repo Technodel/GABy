@@ -1,4 +1,4 @@
-﻿import http from 'http';
+import http from 'http';
 import path from 'path';
 import { WebSocket, WebSocketServer } from 'ws';
 import crypto from 'crypto';
@@ -38,7 +38,69 @@ import { updateCrossProjectPersona } from './cross-project-learning';
 import { recordBenchmarkRun } from './benchmark';
 import { indexProject } from './code-index';
 import { buildStaticSystemPrompt } from './prompt-factory';
+import { processManager } from './process-manager';
+import { getCheckpointsByUser, rollbackWithRecord } from './checkpoint-manager';
 
+import { z } from 'zod';
+
+const ChatWebSocketMessageSchema = z.object({
+  type: z.string(),
+  message: z.string().optional(),
+  newCap: z.number().optional(),
+  projectId: z.number().optional(),
+  projectPath: z.string().optional(),
+  options: z.record(z.unknown()).optional(),
+  files: z.array(z.string()).optional(),
+  mode: z.string().optional(),
+  featureFlags: z.record(z.unknown()).optional(),
+}).passthrough();
+
+// ── Zero-Downtime Watchdog ────────────────────────────────────────────────────
+// Listens for fatal dev-server crashes emitted by processManager.
+// When detected: auto-rolls back to the last safe checkpoint and pushes
+// the error into the active agent session so SUNy can self-correct silently.
+(function bootstrapWatchdog() {
+  const recentlyCrashed = new Set<string>(); // debounce per processId
+  processManager.on('processCrash', async (event: { id: string; command: string; cwd: string; error: string; userId?: number; projectPath?: string }) => {
+    const { id, error, userId, projectPath } = event;
+    if (recentlyCrashed.has(id)) return; // act once per crash burst
+    recentlyCrashed.add(id);
+    setTimeout(() => recentlyCrashed.delete(id), 15_000); // 15s cooldown
+
+    console.warn(`[watchdog] Crash detected in process ${id}: ${error.slice(0, 120)}`);
+
+    if (!userId || !projectPath) {
+      console.warn('[watchdog] Missing userId/projectPath — cannot auto-rollback.');
+      return;
+    }
+
+    try {
+      const checkpoints = await getCheckpointsByUser(userId, undefined, 1);
+      if (!checkpoints.length) {
+        console.warn('[watchdog] No checkpoints found — skipping rollback.');
+        return;
+      }
+      const latest = checkpoints[0];
+      const result = await rollbackWithRecord(userId, projectPath, latest.id);
+
+      if (result.success) {
+        console.log(`[watchdog] Auto-rolled back to "${latest.label}" (${result.sha.slice(0, 7)})`);
+        userClientManager.pushChatContent(userId, 'suny:system_message', {
+          message: `🛡️ **Watchdog Auto-Rollback**: Dev server crashed with: \`${error.slice(0, 200)}\`\n\nI automatically rolled back to checkpoint **"${latest.label}"** to restore your working state. Analysing the error now...`,
+        });
+        userClientManager.pushChatContent(userId, 'suny:watchdog_crash', {
+          error,
+          checkpoint: latest.label,
+          sha: result.sha,
+        });
+      } else {
+        console.error(`[watchdog] Rollback failed: ${result.message}`);
+      }
+    } catch (err) {
+      console.error('[watchdog] Error during auto-rollback:', (err as Error).message);
+    }
+  });
+})();
 
 export function attachWebSockets(server: http.Server) {
   // ── WebSocket server ───────────────────────────────────────────────────────────
@@ -139,7 +201,10 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       return;
     }
     let msg: Record<string, unknown>;
-    try { msg = JSON.parse(raw.toString()); } catch { return; }
+    try { 
+      const parsed = JSON.parse(raw.toString()); 
+      msg = ChatWebSocketMessageSchema.parse(parsed);
+    } catch { return; }
 
     // Handle cancel request
     if (msg.type === 'chat:cancel') {
@@ -613,6 +678,9 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         } else {
           const blueprintCtx = await getBlueprintContext({ userId, projectId, maxEntries: 5 });
           if (blueprintCtx) {
+            if (blueprintCtx.length > 50000) {
+              blueprintCtx = blueprintCtx.slice(0, 50000) + '\n... [Blueprint truncated to conserve tokens]';
+            }
             systemLines.push(blueprintCtx);
             const summary = await getBlueprintSummary({ userId, projectId });
             if (summary) systemLines.push(summary);
@@ -1012,6 +1080,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           imageData: msg.imageData as string | undefined,
           sessionId,
           talkMode,
+          autoExecuteOverride: projectAutoExecuteOverride === 1,
           signal: currentAbortController!.signal,
           onChunk: (chunk) => {
             userClientManager.pushChatContent(userId, 'suny:stream_chunk', { chunk });

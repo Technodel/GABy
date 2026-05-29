@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Plus, Trash2, Settings, LogOut, Edit3, RotateCcw, X, BarChart2, User, HelpCircle, Sparkles, Home, Eraser, Phone, ChevronRight, ChevronDown, FolderOpen, Folder, Play, FileText, GitBranch, Archive, ArchiveRestore, Link, Check, Rocket, ShieldCheck, Undo, Brain, MessageSquare, BookOpen, CheckCircle, Lock, Eye, Globe, Wrench, Users } from 'lucide-react';
 
 import ReportBadgeButton, { ReportMetrics } from '../components/ReportBadgeButton';
@@ -1331,6 +1331,16 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
         return;
       } else if (msg.event === 'suny:checkpoint') {
         setCheckpoint({ label: msg.label as string, details: msg.details as string });
+        return;
+      } else if (msg.event === 'suny:system_message') {
+        // Generic system-injected messages (e.g. Watchdog notifications)
+        addMessage('system', msg.message as string);
+        return;
+      } else if (msg.event === 'suny:watchdog_crash') {
+        // Watchdog auto-rollback — show a distinctive UI card
+        addMessage('system', `🛡️ **Watchdog triggered** — rolled back to checkpoint **"${msg.checkpoint as string}"** (${(msg.sha as string).slice(0, 7)})`);
+        // Refresh checkpoint list so the UI timeline updates
+        loadCheckpoints();
         return;
       } else if (msg.event === 'suny:narration') {
         lastNarrationRef.current = msg.message as string;

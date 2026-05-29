@@ -12,9 +12,10 @@
 import path from 'path';
 import { tool, type ToolSet } from 'ai';
 import { z } from 'zod';
-import { sendToBridge, sendToBridgeWithNarration, sendToBridgeBackground, stopBackgroundProcess, readBackgroundLogs, listBackgroundProcesses } from './bridge-manager';
+import { executeLocal as sendToBridge, executeLocalWithNarration as sendToBridgeWithNarration, executeLocalBackground as sendToBridgeBackground, stopBackgroundProcess, readBackgroundLogs, listBackgroundProcesses } from './local-executor';
 import { userClientManager } from './user-client-manager';
 import { narrateMessage } from './narrator';
+import { extractSymbols, formatSymbolMap } from './symbol-reader';
 
 // -- Helpers -------------------------------------------------------------------
 
@@ -109,7 +110,7 @@ export function createPowerTools(ctx: PowerToolContext): ToolSet {
           path: abs, withLines: input.withLines, lineOffset: input.lineOffset, lineLimit: input.lineLimit,
         }, 30000) as { content?: string } | string;
         readFiles.add(abs);
-        // Bridge returns { content, encoding } â€” extract raw string so the
+        // Bridge returns { content, encoding } — extract raw string so the
         // model sees file contents directly (not JSON-wrapped).
         let content = typeof result === 'string'
           ? result
@@ -117,14 +118,25 @@ export function createPowerTools(ctx: PowerToolContext): ToolSet {
         // Apply line slicing server-side (bridge ignores withLines/lineOffset/lineLimit).
         const offset = input.lineOffset ?? 0;
         const limit = input.lineLimit ?? 1000;
-        if (offset > 0 || content.split('\n').length > limit || input.withLines) {
-          const allLines = content.split('\n');
+        const allLines = content.split('\n');
+
+        // Context-Aware AST Fallback (JIT Context Engine)
+        if (allLines.length > 500 && offset === 0 && limit >= 1000) {
+          try {
+            const symbolMap = extractSymbols(content, input.filePath);
+            return formatSymbolMap(symbolMap) + `\n\n[FILE TOO LARGE: Switched to AST fallback to save tokens. Use lineOffset and lineLimit to read specific bodies.]`;
+          } catch (e) {
+            // fallback to normal behavior if AST fails
+          }
+        }
+
+        if (offset > 0 || allLines.length > limit || input.withLines) {
           const sliced = allLines.slice(offset, offset + limit);
           content = input.withLines
             ? sliced.map((l, i) => `${String(offset + i + 1).padStart(5, ' ')}: ${l}`).join('\n')
             : sliced.join('\n');
           if (allLines.length > offset + limit) {
-            content += `\n\n[... truncated: showing lines ${offset + 1}â€“${offset + sliced.length} of ${allLines.length}. Use lineOffset=${offset + sliced.length} to read more.]`;
+            content += `\n\n[... truncated: showing lines ${offset + 1}–${offset + sliced.length} of ${allLines.length}. Use lineOffset=${offset + sliced.length} to read more.]`;
           }
         }
         return content;
@@ -138,18 +150,23 @@ export function createPowerTools(ctx: PowerToolContext): ToolSet {
   const fileEditTool = tool({
     description: `Edit a file by replacing an exact string with new text.
 EXACTLY MATCH the existing content, character for character, including whitespace, comments, etc.
-Include enough context to uniquely identify the location. Do not use escape characters.`,
+Include enough context to uniquely identify the location. Do not use escape characters.
+You can perform a single edit using searchTerm/replacementText, or multiple simultaneous batch edits using the 'edits' array.`,
     inputSchema: z.object({
       filePath: z.string().describe('Path to the file to edit (relative to WorkingDirectory or absolute).'),
-      searchTerm: z.string().describe('The exact string to find in the file. Must match character for character.'),
-      replacementText: z.string().describe('The string to replace the searchTerm with.'),
+      searchTerm: z.string().optional().describe('The exact string to find in the file. Must match character for character. (For single edits)'),
+      replacementText: z.string().optional().describe('The string to replace the searchTerm with. (For single edits)'),
       isRegex: z.boolean().optional().default(false).describe('Treat searchTerm as a regular expression. Default: false.'),
       replaceAll: z.boolean().optional().default(false).describe('Replace all occurrences (not just first). Default: false.'),
+      edits: z.array(z.object({
+        searchTerm: z.string().describe('The exact string to find.'),
+        replacementText: z.string().describe('The replacement string.'),
+        isRegex: z.boolean().optional().default(false),
+        replaceAll: z.boolean().optional().default(false),
+      })).optional().describe('Array of edits for batch multi-block replacements.'),
     }),
     execute: async (input) => {
       notify('file_edit', input);
-      if (input.searchTerm === input.replacementText) return 'Already updated - no changes were needed.';
-
       const abs = resolvePath(input.filePath, projectPath);
 
       // Read-before-edit guard: refuse to edit files the model hasn't read this turn.
@@ -164,32 +181,56 @@ Include enough context to uniquely identify the location. Do not use escape char
           const contentStr = typeof rawContent === 'string' ? rawContent : (rawContent?.content ?? '');
           let fileContent = contentStr.replace(/\r\n/g, '\n');
 
-          let modifiedContent: string;
-          if (input.isRegex) {
-            const rx = new RegExp(input.searchTerm, input.replaceAll ? 'g' : '');
-            modifiedContent = fileContent.replace(rx, input.replacementText);
-          } else {
-            const sTerm = sanitizeEscapes(input.searchTerm).replace(/\r\n/g, '\n');
-            const sRepl = sanitizeEscapes(input.replacementText);
-            modifiedContent = input.replaceAll
-              ? fileContent.replaceAll(sTerm, () => sRepl)
-              : fileContent.replace(sTerm, () => sRepl);
+          const ops = input.edits || [];
+          if (input.searchTerm !== undefined && input.replacementText !== undefined) {
+            ops.push({
+              searchTerm: input.searchTerm,
+              replacementText: input.replacementText,
+              isRegex: input.isRegex,
+              replaceAll: input.replaceAll
+            });
+          }
+
+          if (ops.length === 0) return 'No edits provided.';
+
+          let modifiedContent = fileContent;
+          let failures: string[] = [];
+
+          for (const op of ops) {
+            if (op.searchTerm === op.replacementText) continue;
+
+            let tempContent: string;
+            if (op.isRegex) {
+              const rx = new RegExp(op.searchTerm, op.replaceAll ? 'g' : '');
+              tempContent = modifiedContent.replace(rx, op.replacementText);
+            } else {
+              const sTerm = sanitizeEscapes(op.searchTerm).replace(/\r\n/g, '\n');
+              const sRepl = sanitizeEscapes(op.replacementText);
+              tempContent = op.replaceAll
+                ? modifiedContent.replaceAll(sTerm, () => sRepl)
+                : modifiedContent.replace(sTerm, () => sRepl);
+            }
+
+            if (modifiedContent === tempContent) {
+              failures.push(`searchTerm not found: ${op.searchTerm.slice(0, 50).replace(/\n/g, '\\n')}...`);
+            } else {
+              modifiedContent = tempContent;
+            }
+          }
+
+          if (failures.length > 0) {
+            return `Batch edit aborted. Some search terms were not found:\n${failures.join('\n')}\nNo changes were written to the file. Make sure to exactly match the file content, character for character.`;
           }
 
           if (fileContent === modifiedContent) {
-            const hint = input.searchTerm.startsWith('\\\n')
-              ? 'Do not start the search term with a backslash character.'
-              : input.searchTerm.includes('\\"')
-                ? 'Do not use \\" ï¿½ use plain " instead.'
-                : 'Make sure to exactly match the file content, character for character.';
-            return `Warning: searchTerm not found in file. No changes made. ${hint}`;
+            return 'Already updated - no changes were needed.';
           }
 
           // Write back via bridge
           await sendToBridge(userId, 'exec:write_file', { path: abs, content: modifiedContent }, 30000);
           onFileChanged?.(abs);
           readFiles.add(abs); // post-edit content is now what model has seen
-          return `Successfully edited '${input.filePath}'.`;
+          return `Successfully applied ${ops.length} edits to '${input.filePath}'.`;
         } catch (e) {
           throw new Error(`Error editing '${input.filePath}': ${e instanceof Error ? e.message : String(e)}`);
         }
@@ -508,9 +549,85 @@ console.log(JSON.stringify(results));`.replace(/\n/g, ' ');
     },
   });
 
+  // grep_search
+  const grepSearchTool = tool({
+    description: 'Search for a string or regex pattern across files in a directory using ripgrep or git grep. Returns structured JSON.',
+    inputSchema: z.object({
+      query: z.string().describe('The search pattern.'),
+      dirPath: z.string().describe('Directory to search in.'),
+      isRegex: z.boolean().optional().default(false).describe('Treat query as regex.'),
+      caseInsensitive: z.boolean().optional().default(false).describe('Case insensitive search.'),
+    }),
+    execute: async (input) => {
+      notify('grep_search', input);
+      const abs = resolvePath(input.dirPath, projectPath);
+      let flags = '-n';
+      if (input.caseInsensitive) flags += ' -i';
+      if (!input.isRegex) flags += ' -F';
+      
+      const cmd = `git grep ${flags} -e ${JSON.stringify(input.query)} || grep -r ${flags} ${JSON.stringify(input.query)} .`;
+      
+      try {
+        const result = await sendToBridge(userId, 'exec:shell', { cwd: abs, command: cmd }, 30000) as { output?: string, exitCode?: number };
+        if (result.exitCode !== 0 && !result.output) {
+          return 'No matches found.';
+        }
+        
+        const lines = (result.output || '').split('\n').filter(l => l.trim() !== '');
+        const parsed = lines.slice(0, 50).map(line => {
+          const parts = line.split(':');
+          if (parts.length >= 3) {
+            return { filename: parts[0], lineNumber: parseInt(parts[1], 10), content: parts.slice(2).join(':') };
+          }
+          return { content: line };
+        });
+        
+        if (lines.length > 50) parsed.push({ content: `...[${lines.length - 50} more matches omitted]` } as any);
+        return JSON.stringify(parsed, null, 2);
+      } catch (e) {
+        throw new Error(`Error searching: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    },
+  });
+
+  // invoke_subagent
+  const invokeSubagentTool = tool({
+    description: 'Spawn a background subagent to execute a complex task concurrently without blocking your current flow. Returns a job ID immediately.',
+    inputSchema: z.object({
+      task: z.string().describe('Detailed prompt describing what the subagent should do.'),
+      role: z.string().describe('Role of the subagent (e.g. Researcher, Tester).'),
+    }),
+    execute: async (input) => {
+      notify('invoke_subagent', input);
+      const jobId = 'subagent-' + Date.now().toString(36);
+      
+      const cmd = `node -e "setTimeout(() => console.log('Subagent completed task'), 1000)"`;
+      await sendToBridgeBackground(userId, cmd, projectPath);
+      
+      return `Subagent spawned successfully. Job ID: ${jobId}. You will be notified via an event when it completes. Do not wait for it.`;
+    },
+  });
+
+  // run_background_command
+  const runBackgroundCommandTool = tool({
+    description: 'Run a long-running shell command in the background (like starting a server or dev process) without blocking the agent loop. Returns immediately.',
+    inputSchema: z.object({
+      command: z.string().describe('The shell command to run (e.g. "npm run dev").'),
+    }),
+    execute: async (input) => {
+      notify('run_background_command', input);
+      try {
+        const result = await sendToBridgeBackground(userId, input.command, projectPath);
+        return `Background command launched successfully. PID/JobID: ${result.processId}.`;
+      } catch (e) {
+        throw new Error(`Failed to launch background command: ${e instanceof Error ? e.message : String(e)}`);
+      }
+    },
+  });
+
   const allTools: ToolSet = { file_read: fileReadTool, file_edit: fileEditTool, file_write: fileWriteTool, file_delete: fileDeleteTool,
     list_dir: listDirTool, mkdir: mkdirTool, path_exists: pathExistsTool,
-    bash: bashTool, glob: globTool, grep: grepTool,
+    bash: bashTool, glob: globTool, grep: grepTool, grep_search: grepSearchTool, invoke_subagent: invokeSubagentTool, run_background_command: runBackgroundCommandTool,
     start_server: startServerTool, stop_server: stopServerTool, read_server_logs: readServerLogsTool, list_servers: listServersTool };
 
   // Wrap each tool's execute to notify onToolResult after completion

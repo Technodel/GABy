@@ -1226,6 +1226,13 @@ export async function runMigrations(adapter: DbAdapter): Promise<void> {
   await createFoundationTables(adapter);
 
   // 2. Versioned schema migrations
+  SCHEMA_MIGRATIONS.sort((a, b) => a.version - b.version);
+  for (let i = 1; i < SCHEMA_MIGRATIONS.length; i++) {
+    if (SCHEMA_MIGRATIONS[i].version <= SCHEMA_MIGRATIONS[i-1].version) {
+      throw new Error(`Migration ordering error: Duplicate version ${SCHEMA_MIGRATIONS[i].version}`);
+    }
+  }
+
   const currentVersion = await adapter.getSchemaVersion();
   for (const migration of SCHEMA_MIGRATIONS) {
     if (migration.version > currentVersion) {

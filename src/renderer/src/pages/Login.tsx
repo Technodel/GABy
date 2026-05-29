@@ -143,7 +143,10 @@ export default function Login({ onLogin }: LoginProps) {
     { icon: '\ud83e\udde0', title: 'AI Learns Your Style', desc: 'SUNy silently builds a structured profile of your preferences, constraints, and working style. Every session it\'s a little more tuned to you.' },
     { icon: '\ud83d\udcbe', title: 'AI Memories Panel', desc: 'Full transparency \u2014 see exactly what the AI has saved about you, and delete anything you don\'t want it to remember.' },
     { icon: '\ud83c\udf3f', title: 'Git Worktree Isolation', desc: 'For risky changes, SUNy works in an isolated branch, verifies everything passes, then merges \u2014 your main branch is never touched until the work is proven.' },
-    { icon: '\u26a0\ufe0f', title: 'Human Checkpoint Gates', desc: 'SUNy pauses before irreversible steps and waits for your approval \u2014 you stay in control of every consequential decision.' },
+    { icon: '⚠️', title: 'Human Checkpoint Gates', desc: 'SUNy pauses before irreversible steps and waits for your approval — you stay in control of every consequential decision.' },
+    { icon: '⚡', title: 'JIT Token Saver', desc: 'Same task, lower cost. SUNy uses up to 60% fewer tokens per run via Dynamic Tool Masking, AST auto-fallback, and batch file edits — without sacrificing any results.' },
+    { icon: '🛡️', title: 'Zero-Downtime Watchdog', desc: 'If a code edit crashes your dev server, SUNy auto-rolls back to the last safe checkpoint in milliseconds and self-corrects silently.' },
+    { icon: '🔄', title: 'Session Resilience', desc: 'Close the browser, shut down your PC — SUNy remembers everything. Pick up exactly where you left off on next login. Nothing is ever lost.' },
   ];
 
   const features = BASE_FEATURES;

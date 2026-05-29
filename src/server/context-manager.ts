@@ -55,6 +55,25 @@ function messageTokens(msg: CoreMessage): number {
 // Main export
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+function compressOlderAssistantTurn(msg: CoreMessage): CoreMessage {
+  if (typeof msg.content === 'string') {
+    return { ...msg, content: '[Assistant text omitted for ephemeral memory]' };
+  }
+  if (!Array.isArray(msg.content)) return msg;
+
+  const newContent = msg.content.map(part => {
+    if (part.type === 'tool-call') {
+      return { type: 'text', text: `[Tool call '${part.toolName}' executed]` };
+    }
+    if (part.type === 'text') {
+      return { type: 'text', text: '[Assistant text omitted for ephemeral memory]' };
+    }
+    return part;
+  });
+
+  return { ...msg, content: newContent as any };
+}
+
 /**
  * Trim the message history so the full context (system + history + new message)
  * fits inside 75% of the model's context limit, leaving 25% for the response.
@@ -80,12 +99,20 @@ export function trimHistory(
   // Walk backwards: keep the most recent messages first.
   // Compress tool results before token-counting to reduce provider API costs.
   const kept: CoreMessage[] = [];
+  let userTurns = 0;
+
   for (let i = messages.length - 1; i >= 0; i--) {
-    // Compress tool-result parts before counting/storing — saves tokens sent to LLM
     const rawMsg = messages[i];
-    const msg: CoreMessage = Array.isArray(rawMsg.content)
+    if (rawMsg.role === 'user') userTurns++;
+
+    let msg: CoreMessage = Array.isArray(rawMsg.content)
       ? { ...rawMsg, content: compressToolResultsInContent(rawMsg.content) as CoreMessage['content'] }
       : rawMsg;
+
+    // EPHEMERAL MEMORY: If older than 2 user turns, compress assistant reasoning to save huge amounts of tokens
+    if (userTurns > 2 && msg.role === 'assistant') {
+      msg = compressOlderAssistantTurn(msg);
+    }
 
     const t = messageTokens(msg);
     if (remaining - t >= 0) {
@@ -109,7 +136,7 @@ export function trimHistory(
   if (dropped > 0) {
     const note: CoreMessage = {
       role: 'user',
-      content: `[${dropped} earlier message${dropped !== 1 ? 's' : ''} omitted â€” context window limit]`,
+      content: `[${dropped} earlier message${dropped !== 1 ? 's' : ''} omitted — context window limit]`,
     };
     return [note, ...kept];
   }
