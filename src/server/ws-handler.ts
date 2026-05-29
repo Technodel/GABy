@@ -316,6 +316,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
     isProcessing = true;
     const turnStart = Date.now();
     currentAbortController = new AbortController();
+    let timedOutByGuard = false;
     try {
       const db = getAdapter();
       const userRow = await db.get('SELECT selected_mode, max_tokens_per_session, display_name, plan FROM users WHERE id = ?', [userId]) as { selected_mode: string; max_tokens_per_session: number | null; display_name: string | null; plan: string | null } | undefined;
@@ -984,7 +985,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       // Start "Did you know?" timer — fires every 60s for long tasks
       const stopDidYouKnow = startDidYouKnowTimer(userId, currentAbortController.signal);
       const maxTurnMs = projectPath ? 180_000 : 70_000;
-      let timedOutByGuard = false;
+      timedOutByGuard = false;
       const turnTimeout = setTimeout(() => {
         if (currentAbortController && !currentAbortController.signal.aborted) {
           timedOutByGuard = true;
