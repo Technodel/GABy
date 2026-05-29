@@ -177,7 +177,7 @@ export function autoNarrate(rawMessage: string): string {
   if (lower.includes('running') && (lower.includes('test') || lower.includes('spec'))) {
     return narrateMessage(rawMessage, 'test_running');
   }
-  if (lower.includes('edit') || lower.includes('write') || lower.includes('update') || lower.includes('creat') && lower.includes('file')) {
+  if ((lower.includes('edit') || lower.includes('write') || lower.includes('update') || lower.includes('creat')) && lower.includes('file')) {
     return narrateMessage(rawMessage, 'file_edit');
   }
   if (lower.includes('search') || lower.includes('read') || lower.includes('look') || lower.includes('explor')) {

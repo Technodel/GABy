@@ -32,7 +32,8 @@ export async function executeLocal(userId: number, type: string, payload: Record
         return { exists: fs.existsSync(payload.path), success: true };
       case 'exec:shell':
         return new Promise((resolve, reject) => {
-          exec(payload.command, { cwd: payload.cwd, maxBuffer: 1024 * 1024 * 10 }, (err, stdout, stderr) => {
+          const execTimeout = timeout || 120_000; // default 2 min timeout
+          exec(payload.command, { cwd: payload.cwd, maxBuffer: 1024 * 1024 * 10, timeout: execTimeout }, (err, stdout, stderr) => {
             resolve({
               exitCode: err ? (err as any).code || 1 : 0,
               success: !err,
@@ -84,9 +85,16 @@ export async function stopBackgroundProcess(userId: number, processId: string) {
 }
 
 export function readBackgroundLogs(userId: number, processId: string, lines: number) {
-  return { found: true, logs: 'Logs not available in local mock.', status: 'running', command: 'unknown' };
+  const info = processManager.getProcessInfo(processId);
+  if (!info) return { found: false, logs: '', status: 'not_found', command: 'unknown' };
+  return {
+    found: true,
+    logs: `Process ${processId} (${info.command}) started at ${info.startedAt.toISOString()}. Status: ${info.running ? 'running' : 'exited'}.`,
+    status: info.running ? 'running' : 'exited',
+    command: info.command,
+  };
 }
 
 export function listBackgroundProcesses(userId: number) {
-  return [];
+  return processManager.listAll(userId);
 }

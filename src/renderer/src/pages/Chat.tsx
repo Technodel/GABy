@@ -1674,14 +1674,18 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
     onConnect: () => {
       // Reload user data on reconnect to prevent stale state during deploy
       loadUserData().catch(() => {});
-      // Reset stale state on reconnect � avoids forever-spinning thinking indicator
-      clearThinkingTimeout();
-      setThinking(false);
-      setThinkingStatus('');
-      setStreamingContent('');
-      streamingContentRef.current = '';
-      activeProofIdRef.current = null;
-      // Reset forecast loading state to prevent stuck "Estimating run cost..."
+      // Only reset thinking/streaming state if no response events arrived
+      // recently — prevents a WiFi blip from wiping a valid in-flight response.
+      const staleSinceMs = Date.now() - lastResponseEvent.current;
+      if (staleSinceMs > 30_000) {
+        clearThinkingTimeout();
+        setThinking(false);
+        setThinkingStatus('');
+        setStreamingContent('');
+        streamingContentRef.current = '';
+        activeProofIdRef.current = null;
+      }
+      // Always reset forecast loading state to prevent stuck "Estimating run cost..."
       if (forecastTimeoutRef.current) window.clearTimeout(forecastTimeoutRef.current);
       setForecastLoading(false);
       setForecastEstimate(null);

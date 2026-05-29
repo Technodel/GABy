@@ -677,7 +677,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
             }
           } catch { /* malformed → fall back to live blueprint */ }
         } else {
-          const blueprintCtx = await getBlueprintContext({ userId, projectId, maxEntries: 5 });
+          let blueprintCtx = await getBlueprintContext({ userId, projectId, maxEntries: 5 });
           if (blueprintCtx) {
             if (blueprintCtx.length > 50000) {
               blueprintCtx = blueprintCtx.slice(0, 50000) + '\n... [Blueprint truncated to conserve tokens]';
@@ -1262,7 +1262,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
 
         // 4.2: Post-merge validation (type check + test check)
         try {
-          const validation = postMergeValidation(projectPath);
+          const validation = await postMergeValidation(projectPath);
           if (!validation.typeCheckPassed || validation.testsPassed === false) {
             const valMsg = formatValidationForPrompt(validation);
             // Push validation failure as a narration to the user
@@ -1538,10 +1538,19 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
     }
 
     // ── Queued message re-dispatch (AiderDesk-style interruption) ──
+    // Guard against infinite loops: if a re-dispatched message itself errors
+    // and queues another message, limit to 2 re-dispatches per connection.
     if (queuedMessage) {
       const nextRaw = queuedMessage;
       queuedMessage = null;
-      setImmediate(async () => { ws.emit('message', nextRaw); });
+      if (!ws.__reDispatchCount) ws.__reDispatchCount = 0;
+      if (ws.__reDispatchCount < 2) {
+        ws.__reDispatchCount++;
+        setImmediate(async () => { ws.emit('message', nextRaw); });
+      } else {
+        console.warn('[ws-handler] Re-dispatch limit reached — dropping queued message to prevent loop');
+        ws.__reDispatchCount = 0;
+      }
     }
   });
 }

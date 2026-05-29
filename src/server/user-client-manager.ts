@@ -53,7 +53,7 @@ class UserClientManager {
     const ws = this.clients.get(userId);
     const msg = buildUserEvent(event, payload);
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(msg);
+      try { ws.send(msg); } catch { /* WS in transitional state — drop gracefully */ }
     } else {
       // Buffer the message for when the user reconnects
       const buf = this.offlineBuffer.get(userId) ?? [];
@@ -65,14 +65,14 @@ class UserClientManager {
   pushChatContent(userId: number, event: string, payload: Record<string, unknown>): void {
     const ws = this.clients.get(userId);
     const msg = buildChatEvent(event, payload);
-    if (ws && ws.readyState !== WebSocket.OPEN) {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
       // Buffer AI response chunks so they arrive on reconnect
       const buf = this.offlineBuffer.get(userId) ?? [];
       if (buf.length < this.MAX_BUFFER) buf.push(msg);
       this.offlineBuffer.set(userId, buf);
       return;
     }
-    if (ws) ws.send(msg);
+    try { ws.send(msg); } catch { /* WS in transitional state — drop gracefully */ }
   }
 
   /**
@@ -96,17 +96,21 @@ class UserClientManager {
    */
   waitForCheckpoint(userId: number, label: string, details: string, silent: boolean = false): Promise<boolean> {
     return new Promise((resolve) => {
-      this.checkpoints.set(userId, resolve);
-      if (!silent) {
-        this.pushToUser(userId, 'suny:checkpoint', { label, details });
-      }
       // Auto-approve after 5 min if user doesn't respond
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         if (this.checkpoints.has(userId)) {
           this.checkpoints.delete(userId);
           resolve(true);
         }
       }, 5 * 60_000);
+      // Wrap resolve to clear the timer when user responds
+      this.checkpoints.set(userId, (approved: boolean) => {
+        clearTimeout(timer);
+        resolve(approved);
+      });
+      if (!silent) {
+        this.pushToUser(userId, 'suny:checkpoint', { label, details });
+      }
     });
   }
 
@@ -132,15 +136,18 @@ class UserClientManager {
    */
   waitForBudgetGate(userId: number, spent: number, cap: number): Promise<'continue' | 'budget_mode' | 'extend' | 'stop'> {
     return new Promise((resolve) => {
-      this.budgetGates.set(userId, resolve);
-      this.pushToUser(userId, 'suny:budget_gate', { spent, cap, pct: spent / cap });
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         if (this.budgetGates.has(userId)) {
           this.budgetGates.delete(userId);
           resolve('budget_mode');
         }
       }, 5 * 60_000);
-    });
+      // Wrap resolve to clear the timer when user responds
+      this.budgetGates.set(userId, (decision: 'continue' | 'budget_mode' | 'extend' | 'stop') => {
+        clearTimeout(timer);
+        resolve(decision);
+      });
+      this.pushToUser(userId, 'suny:budget_gate', { spent, cap, pct: spent / cap });
   }
 
   /**

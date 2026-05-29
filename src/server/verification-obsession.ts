@@ -247,7 +247,7 @@ export function formatCodeReviewForPrompt(review: CodeReviewResult): string {
  * Run a lightweight post-merge validation: TypeScript compilation check.
  * Best-effort â€” does not block the main flow.
  */
-export function postMergeValidation(projectPath: string): ValidationResult {
+export async function postMergeValidation(projectPath: string): Promise<ValidationResult> {
   const result: ValidationResult = {
     typeCheckPassed: true,
     typeCheckErrors: 0,
@@ -257,12 +257,15 @@ export function postMergeValidation(projectPath: string): ValidationResult {
     crashOutput: '',
   };
 
+  const { exec } = require('child_process');
+  const { promisify } = require('util');
+  const execAsync = promisify(exec);
+
   // Check if tsconfig.json exists â€” if so, run tsc --noEmit
   const tsconfigPath = path.join(projectPath, 'tsconfig.json');
   if (fs.existsSync(tsconfigPath)) {
     try {
-      const { execSync } = require('child_process');
-      execSync('npx tsc --noEmit --pretty false 2>&1', {
+      await execAsync('npx tsc --noEmit --pretty false 2>&1', {
         cwd: projectPath,
         encoding: 'utf-8',
         timeout: 30000,
@@ -287,8 +290,7 @@ export function postMergeValidation(projectPath: string): ValidationResult {
 
     if (hasVitest) {
       try {
-        const { execSync } = require('child_process');
-        execSync('npx vitest run --reporter=json 2>&1', {
+        await execAsync('npx vitest run --reporter=json 2>&1', {
           cwd: projectPath,
           encoding: 'utf-8',
           timeout: 60000,
@@ -302,8 +304,7 @@ export function postMergeValidation(projectPath: string): ValidationResult {
       }
     } else if (hasJest) {
       try {
-        const { execSync } = require('child_process');
-        execSync('npx jest --json --passWithNoTests 2>&1', {
+        await execAsync('npx jest --json --passWithNoTests 2>&1', {
           cwd: projectPath,
           encoding: 'utf-8',
           timeout: 60000,

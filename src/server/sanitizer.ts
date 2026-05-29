@@ -132,22 +132,22 @@ export function friendlyError(err: unknown): string {
   const lowerMsg = message.toLowerCase();
 
   if (lowerMsg.includes('invalid_api_key') || lowerMsg.includes('401') || lowerMsg.includes('unauthorized')) {
-    return "SUNy is having a bit of trouble connecting. We're on it! ðŸ”§";
+    return "SUNy is having a bit of trouble connecting. We're on it!";
   }
   if (lowerMsg.includes('rate_limit') || lowerMsg.includes('429') || lowerMsg.includes('too many')) {
-    return 'SUNy needs a quick breather â€” try again in a moment ðŸ˜„';
+    return "SUNy needs a quick breather \u2014 try again in a moment!";
   }
   if (lowerMsg.includes('balance') || lowerMsg.includes('credit') || lowerMsg.includes('insufficient')) {
-    return "Looks like you're out of credits! Reach out and we'll top you up ðŸ˜Š";
+    return "Looks like you're out of credits! Reach out and we'll top you up.";
   }
   if (lowerMsg.includes('timeout') || lowerMsg.includes('timed out')) {
-    return "SUNy is taking a bit longer than usual â€” hang tight or try again! â³";
+    return "SUNy is taking a bit longer than usual \u2014 hang tight or try again!";
   }
   if (lowerMsg.includes('network') || lowerMsg.includes('econnrefused') || lowerMsg.includes('enotfound')) {
-    return "Having a little trouble reaching the network. Let's try that again! ðŸŒ";
+    return "Having a little trouble reaching the network. Let's try that again!";
   }
 
-  return 'Hmm, something unexpected happened. SUNy is already trying again! ðŸ’ª';
+  return "Hmm, something unexpected happened. SUNy is already trying again!";
 }
 
 /**

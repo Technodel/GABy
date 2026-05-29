@@ -100,6 +100,33 @@ class ProcessManager extends EventEmitter {
   isRunning(id: string): boolean {
     return this.processes.has(id);
   }
+
+  getProcessInfo(id: string): { command: string; cwd: string; startedAt: Date; running: boolean; userId?: number; projectPath?: string } | null {
+    const managed = this.processes.get(id);
+    if (!managed) return null;
+    return {
+      command: managed.command,
+      cwd: managed.cwd,
+      startedAt: managed.startedAt,
+      running: !managed.process.killed && managed.process.exitCode === null,
+      userId: managed.userId,
+      projectPath: managed.projectPath,
+    };
+  }
+
+  listAll(userId?: number): Array<{ processId: string; status: string; command: string; startedAt: string }> {
+    const result: Array<{ processId: string; status: string; command: string; startedAt: string }> = [];
+    for (const [id, managed] of this.processes) {
+      if (userId !== undefined && managed.userId !== userId) continue;
+      result.push({
+        processId: id,
+        status: (!managed.process.killed && managed.process.exitCode === null) ? 'running' : 'exited',
+        command: managed.command,
+        startedAt: managed.startedAt.toISOString(),
+      });
+    }
+    return result;
+  }
 }
 
 export const processManager = new ProcessManager();
