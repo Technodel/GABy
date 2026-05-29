@@ -1467,6 +1467,9 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
           ])}_`);
           playSound('error');
         }
+      } else if (msg.event === 'suny:tool_start') {
+        const toolName = String(msg.tool ?? 'unknown_tool');
+        setThinkingStatus(`Running ${toolName}...`);
       } else if (msg.event === 'suny:tool_call') {
         const toolName = String(msg.tool ?? 'unknown_tool');
         pushToolToProof(toolName);
@@ -1503,7 +1506,10 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
         finishActiveProof('completed');
         playSound('receive');
         // Prefer server-provided final content; fall back to what was streamed live, then to last narration
-        const finalContent = (msg.content as string)?.trim() || streamingContentRef.current || lastNarrationRef.current;
+        let finalContent = (msg.content as string)?.trim() || streamingContentRef.current || lastNarrationRef.current;
+        if (msg.error_message) {
+          finalContent = finalContent ? `${finalContent}\n\n**Error:** ${msg.error_message}` : String(msg.error_message);
+        }
         if (finalContent) {
           const rawReport = msg.turn_report as Record<string, unknown> | undefined;
           const report = rawReport && typeof rawReport.durationMs === 'number'
