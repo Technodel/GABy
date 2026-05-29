@@ -94,10 +94,12 @@ class UserClientManager {
    * Pause the agent loop and ask the user to approve or abort.
    * Resolves true (proceed) or false (abort). Times out after 5 minutes.
    */
-  waitForCheckpoint(userId: number, label: string, details: string): Promise<boolean> {
+  waitForCheckpoint(userId: number, label: string, details: string, silent: boolean = false): Promise<boolean> {
     return new Promise((resolve) => {
       this.checkpoints.set(userId, resolve);
-      this.pushToUser(userId, 'suny:checkpoint', { label, details });
+      if (!silent) {
+        this.pushToUser(userId, 'suny:checkpoint', { label, details });
+      }
       // Auto-approve after 5 min if user doesn't respond
       setTimeout(() => {
         if (this.checkpoints.has(userId)) {

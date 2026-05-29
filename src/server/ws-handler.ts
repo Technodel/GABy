@@ -1028,8 +1028,8 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
               walletBalance: await billing.getUserWalletBalance(userId),
               mode: effectiveMode,
             });
-            // Wait for user to approve or cancel via the Run/Cancel buttons
-            const approved = await userClientManager.waitForCheckpoint(userId, 'Cost Estimate', 'Review the estimated cost and click Run to proceed or Cancel to abort.');
+            // Wait for user to approve or cancel via the Run/Cancel buttons (silent=true so we don't emit duplicate generic checkpoint UI)
+            const approved = await userClientManager.waitForCheckpoint(userId, 'Cost Estimate', 'Review the estimated cost and click Run to proceed or Cancel to abort.', true);
             if (!approved) {
               userClientManager.pushChatContent(userId, 'suny:stream_end', { content: '', sess_used: null, sess_limit: null, iterations: 0 });
               return;
