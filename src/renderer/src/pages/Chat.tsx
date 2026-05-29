@@ -1576,33 +1576,33 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
       } else if (msg.event === 'suny:lint_running') {
         pushCheckToProof('Lint check started');
         setThinkingStatus(pickStatusVariant('lint_running', [
-          'Doing a quick quality check�',
-          'Scanning for small issues�',
-          'Checking for fixable problems�',
-          'Running a code quality pass�',
-          'Looking for anything to clean up�',
-          'Reviewing for warnings and errors�',
-          'Making sure everything is neat�',
-        ], 'Checking for issues�'));
+          'Doing a quick quality check...',
+          'Scanning for small issues...',
+          'Checking for fixable problems...',
+          'Running a code quality pass...',
+          'Looking for anything to clean up...',
+          'Reviewing for warnings and errors...',
+          'Making sure everything is neat...',
+        ], 'Checking for issues...'));
       } else if (msg.event === 'suny:lint_errors') {
         pushCheckToProof(`Lint found ${msg.errorCount as number} error(s) on pass ${msg.attempt as number}`);
         const lintErrorStatus = pickStatusVariant('lint_errors', [
-          'I found {count} issue(s). Fixing them now (round {attempt})�',
-          '{count} issue(s) spotted. Cleaning this up (round {attempt})�',
-          'Found {count} thing(s) to fix. Working on it (round {attempt})�',
-          'A few issues showed up ({count}). Repairing now (round {attempt})�',
-        ], 'I found {count} issue(s). Fixing now (round {attempt})�');
+          'I found {count} issue(s). Fixing them now (round {attempt})...',
+          '{count} issue(s) spotted. Cleaning this up (round {attempt})...',
+          'Found {count} thing(s) to fix. Working on it (round {attempt})...',
+          'A few issues showed up ({count}). Repairing now (round {attempt})...',
+        ], 'I found {count} issue(s). Fixing now (round {attempt})...');
         setThinkingStatus(lintErrorStatus
           .replace('{count}', String(msg.errorCount as number))
           .replace('{attempt}', String(msg.attempt as number)));
       } else if (msg.event === 'suny:lint_passed') {
         pushCheckToProof('Lint passed');
         setThinkingStatus(pickStatusVariant('lint_passed', [
-          'Great news � quality checks passed ?',
-          'Looks clean now ?',
-          'All quality checks are clear ?',
-          'Nice � no remaining quality issues ?',
-        ], 'Quality checks passed ?'));
+          'Great news — quality checks passed ✅',
+          'Looks clean now ✅',
+          'All quality checks are clear ✅',
+          'Nice — no remaining quality issues ✅',
+        ], 'Quality checks passed ✅'));
         playSound('success');
       } else if (msg.event === 'suny:test_running') {
         pushCheckToProof(
@@ -1612,24 +1612,24 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
         );
         setThinkingStatus((msg.attempt as number) === 0
           ? pickStatusVariant('test_running', [
-              'Running checks to confirm everything works�',
-              'Testing the latest changes�',
-              'Validating behavior now�',
-              'Checking that everything still works�',
-              'Running reliability checks�',
-            ], 'Running checks�')
+              'Running checks to confirm everything works...',
+              'Testing the latest changes...',
+              'Validating behavior now...',
+              'Checking that everything still works...',
+              'Running reliability checks...',
+            ], 'Running checks...')
           : pickStatusVariant('test_rerun', [
-              `Trying the checks again (round ${(msg.attempt as number) + 1})�`,
-              `Re-checking after fixes (round ${(msg.attempt as number) + 1})�`,
-              `Running another validation pass (round ${(msg.attempt as number) + 1})�`,
-            ], `Running checks again (round ${(msg.attempt as number) + 1})�`));
+              `Trying the checks again (round ${(msg.attempt as number) + 1})...`,
+              `Re-checking after fixes (round ${(msg.attempt as number) + 1})...`,
+              `Running another validation pass (round ${(msg.attempt as number) + 1})...`,
+            ], `Running checks again (round ${(msg.attempt as number) + 1})...`));
       } else if (msg.event === 'suny:test_errors') {
         pushCheckToProof(`Tests found ${msg.failCount as number} failure(s) on attempt ${msg.attempt as number}`);
         const testErrorStatus = pickStatusVariant('test_errors', [
-          '{count} check(s) failed. Fixing now (round {attempt})�',
-          'I found {count} failing check(s). Repairing them (round {attempt})�',
-          '{count} issue(s) remain in validation. Working through them (round {attempt})�',
-        ], '{count} check(s) failed. Fixing now (round {attempt})�');
+          '{count} check(s) failed. Fixing now (round {attempt})...',
+          'I found {count} failing check(s). Repairing them (round {attempt})...',
+          '{count} issue(s) remain in validation. Working through them (round {attempt})...',
+        ], '{count} check(s) failed. Fixing now (round {attempt})...');
         setThinkingStatus(testErrorStatus
           .replace('{count}', String(msg.failCount as number))
           .replace('{attempt}', String(msg.attempt as number)));
@@ -1637,16 +1637,16 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
         pushCheckToProof('Tests passed');
         setThinkingStatus((msg.attempt as number) === 0
           ? pickStatusVariant('test_passed', [
-              'Everything checked out ?',
-              'All validations passed ?',
-              'Looks good � checks are green ?',
-              'Done � all checks passed ?',
-            ], 'All checks passed ?')
+              'Everything checked out ✅',
+              'All validations passed ✅',
+              'Looks good — checks are green ✅',
+              'Done — all checks passed ✅',
+            ], 'All checks passed ✅')
           : pickStatusVariant('test_passed_retry', [
-              `All checks are passing now ? (fixed in ${msg.attempt as number} round(s))`,
-              `Great, it passes after ${msg.attempt as number} fix round(s) ?`,
-              `Resolved and verified ? (${msg.attempt as number} correction round(s))`,
-            ], `All checks are passing now ? (${msg.attempt as number} rounds)`));
+              `All checks are passing now ✅ (fixed in ${msg.attempt as number} round(s))`,
+              `Great, it passes after ${msg.attempt as number} fix round(s) ✅`,
+              `Resolved and verified ✅ (${msg.attempt as number} correction round(s))`,
+            ], `All checks are passing now ✅ (${msg.attempt as number} rounds)`));
       } else if (msg.event === 'suny:test_gave_up') {
         pushCheckToProof('Tests still failing after retries');
         finishActiveProof('failed');
@@ -1655,7 +1655,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
       } else if (msg.event === 'suny:lint_gave_up') {
         pushCheckToProof(`Lint still failing after retries (${msg.errorCount as number} error(s))`);
         finishActiveProof('failed');
-        addMessage('system', `?? ${msg.errorCount} lint error(s) remain after ${3} fix attempts using \`${msg.command}\`.\n\n💡 **Tip:** You can ask SUNy: *"Fix the remaining lint errors"* or run \`${msg.command}\` in your terminal to see the full output.`);
+        addMessage('system', `⚠️ ${msg.errorCount} lint error(s) remain after ${3} fix attempts using \`${msg.command}\`.\n\n💡 **Tip:** You can ask SUNy: *"Fix the remaining lint errors"* or run \`${msg.command}\` in your terminal to see the full output.`);
       } else if (msg.event === 'suny:balance') {
         setBalance(msg.balance as number);
         if (msg.wallet_balance !== undefined) setWalletBalance(msg.wallet_balance as number);
