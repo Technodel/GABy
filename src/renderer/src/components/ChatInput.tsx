@@ -332,8 +332,10 @@ export default function ChatInput(props: ChatInputProps) {
         {/* Terminal button — always visible */}
         <button
           className="btn btn-icon btn-secondary"
-          onClick={() => { setShowTerminal(v => !v); if (!showTerminal) setTimeout(() => termInputRef.current?.focus(), 100); }}
-          title='Run a shell command'
+          onClick={() => {
+            window.alert('Powershell execution is currently unavailable in the Web version. It will be available soon in the SUNy Desktop App and VS Code Extension.');
+          }}
+          title='Powershell execution is only available for Desktop version and VS Code mode'
           style={{
             alignSelf: 'flex-end',
             padding: '10px 12px',
