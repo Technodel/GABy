@@ -171,11 +171,12 @@ export default function ProFeatures() {
                   {p && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 8 }}>
                       <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                        In: {p.savings_pct ? <s style={{ opacity: 0.6, marginRight: 4 }}>{fmtPrice(p.original_input_price_per_1m)}</s> : null}
+                        In: {p.original_input_price_per_1m ? <s style={{ opacity: 0.6, marginRight: 4 }}>{fmtPrice(p.original_input_price_per_1m)}</s> : null}
                         <strong>{fmtPrice(p.input_price_per_1m)}</strong>
                       </span>
                       <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                        Out: <strong>{fmtPrice(p.output_price_per_1m)}</strong>
+                        Out: {p.original_output_price_per_1m ? <s style={{ opacity: 0.6, marginRight: 4 }}>{fmtPrice(p.original_output_price_per_1m)}</s> : null}
+                        <strong>{fmtPrice(p.output_price_per_1m)}</strong>
                       </span>
                     </div>
                   )}

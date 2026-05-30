@@ -252,7 +252,7 @@ export default function PricingPlans() {
                           borderRadius: 20, padding: '3px 10px',
                           fontSize: 11, fontWeight: 700, color: '#10b981',
                         }}>
-                          ✦ {pm.savings_pct}% less than original AI model
+                          ✦ Up to {pm.savings_pct}% less than original AI model
                         </div>
                       )}
                     </div>

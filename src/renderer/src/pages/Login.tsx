@@ -436,7 +436,7 @@ export default function Login({ onLogin }: LoginProps) {
                       borderRadius: 20, padding: '2px 8px',
                       fontSize: 10, fontWeight: 700, color: '#10b981',
                     }}>
-                      ✦ {m.savings_pct}% less than direct AI model
+                      ✦ Up to {m.savings_pct}% less than original AI model
                     </div>
                   )}
                 </div>

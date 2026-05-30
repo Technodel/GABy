@@ -71,7 +71,8 @@ router.get('/pricing-public', (_req: Request, res: Response) => {
     // Compute effective input price assuming 80% cache hit rate.
     // Cache reads are billed to user at 0.60x input rate (see billing.ts).
     // Effective = 20% fresh tokens + 80% cached at 0.60x = markup × (0.20 + 0.80×0.60) = markup × 0.68
-    const effectiveInput1M = finalInput * 0.68;
+    // Add 5% tolerance to effective price shown to user for credibility and honesty
+    const effectiveInput1M = finalInput * 0.68 * 1.05;
 
     // savings_pct: how much cheaper SUNy is vs going directly to the AI model.
     // Positive = cheaper. null = not cheaper (don't show badge).
