@@ -46,30 +46,55 @@ router.get('/pricing-public', (_req: Request, res: Response) => {
     markup_formula: string;
   }>;
   const enriched = modes.map(m => {
+    // Original provider price (what user would pay using the AI model directly)
+    const originalInput1M = m.input_token_base_cost * 1_000_000;
+    const originalOutput1M = m.output_token_base_cost * 1_000_000;
+
     // Compute display price per 1M tokens with markup applied — only the final
     // user-facing price is returned, never the raw base cost or formula.
-    let priceInput1M = m.input_token_base_cost * 1_000_000;
-    let priceOutput1M = m.output_token_base_cost * 1_000_000;
+    let priceInput1M = originalInput1M;
+    let priceOutput1M = originalOutput1M;
     try {
       priceInput1M = evaluate(m.markup_formula, {
-        cost: priceInput1M, input_tokens: 1_000_000, output_tokens: 0,
+        cost: originalInput1M, input_tokens: 1_000_000, output_tokens: 0,
         cache_write_tokens: 0, cache_read_tokens: 0,
       }) as number;
       priceOutput1M = evaluate(m.markup_formula, {
-        cost: priceOutput1M, input_tokens: 0, output_tokens: 1_000_000,
+        cost: originalOutput1M, input_tokens: 0, output_tokens: 1_000_000,
         cache_write_tokens: 0, cache_read_tokens: 0,
       }) as number;
     } catch { /* fallback to base */ }
+
+    const finalInput = typeof priceInput1M === 'number' && !isNaN(priceInput1M) ? priceInput1M : originalInput1M;
+    const finalOutput = typeof priceOutput1M === 'number' && !isNaN(priceOutput1M) ? priceOutput1M : originalOutput1M;
+
+    // Compute effective input price assuming 80% cache hit rate.
+    // Cache reads are billed to user at 0.60x input rate (see billing.ts).
+    // Effective = 20% fresh tokens + 80% cached at 0.60x = markup × (0.20 + 0.80×0.60) = markup × 0.68
+    const effectiveInput1M = finalInput * 0.68;
+
+    // savings_pct: how much cheaper SUNy is vs going directly to the AI model.
+    // Positive = cheaper. null = not cheaper (don't show badge).
+    let savings_pct: number | null = null;
+    if (originalInput1M > 0) {
+      const pct = Math.round((1 - effectiveInput1M / originalInput1M) * 100);
+      if (pct > 0) savings_pct = pct;
+    }
+
     return {
       mode: m.mode,
       display_name: m.display_name,
       description: m.description,
-      input_price_per_1m: typeof priceInput1M === 'number' && !isNaN(priceInput1M) ? priceInput1M : m.input_token_base_cost * 1_000_000,
-      output_price_per_1m: typeof priceOutput1M === 'number' && !isNaN(priceOutput1M) ? priceOutput1M : m.output_token_base_cost * 1_000_000,
+      input_price_per_1m: finalInput,
+      output_price_per_1m: finalOutput,
+      original_input_price_per_1m: originalInput1M,
+      original_output_price_per_1m: originalOutput1M,
+      savings_pct, // null when no saving, or % when SUNy is cheaper
     };
   });
   res.json(enriched);
 });
+
 
 router.use(requireAuth);
 

@@ -12,6 +12,7 @@ interface PricingMode {
   output_token_base_cost: number;
   input_price_per_1m: number;
   output_price_per_1m: number;
+  savings_pct?: number | null;
 }
 
 interface PlanFeatureFlag {
@@ -426,6 +427,18 @@ export default function Login({ onLogin }: LoginProps) {
                     <div><span style={{ color: 'var(--text-muted)' }}>Input: </span><span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{m.mode === 'free' ? '$0' : `${fmtCost(m.input_price_per_1m / 1_000_000)}/1M`}</span></div>
                     <div><span style={{ color: 'var(--text-muted)' }}>Output: </span><span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{m.mode === 'free' ? '$0' : `${fmtCost(m.output_price_per_1m / 1_000_000)}/1M`}</span></div>
                   </div>
+                  {m.mode !== 'free' && m.savings_pct != null && m.savings_pct > 0 && (
+                    <div style={{
+                      marginTop: 6,
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      background: 'rgba(16,185,129,0.12)',
+                      border: '1px solid rgba(16,185,129,0.35)',
+                      borderRadius: 20, padding: '2px 8px',
+                      fontSize: 10, fontWeight: 700, color: '#10b981',
+                    }}>
+                      ✦ {m.savings_pct}% less than direct AI model
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

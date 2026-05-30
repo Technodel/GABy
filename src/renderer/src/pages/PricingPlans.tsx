@@ -7,6 +7,9 @@ interface PricingMode {
   model_id: string;
   input_price_per_1m: number;
   output_price_per_1m: number;
+  original_input_price_per_1m?: number;
+  original_output_price_per_1m?: number;
+  savings_pct?: number | null;
 }
 
 interface ContactInfo {
@@ -42,6 +45,7 @@ const PLAN_FEATURES: Record<string, { name: string; features: string[]; highligh
       'Local File Access (Read/Edit/Delete files via browser)',
       'Executes actions automatically',
       'Pay-as-you-go token pricing',
+      '✨ Token Saving Engine: dedicated caching system makes SUNy cheaper than using the AI model directly',
     ],
   },
   smart: {
@@ -53,6 +57,7 @@ const PLAN_FEATURES: Record<string, { name: string; features: string[]; highligh
       'Local Project Awareness',
       'Uses DeepSeek Pro/Flash & Claude',
       'Pay-as-you-go token pricing',
+      '✨ Token Saving Engine: dedicated caching system makes SUNy cheaper than using the AI model directly',
     ],
   },
   pro: {
@@ -66,6 +71,7 @@ const PLAN_FEATURES: Record<string, { name: string; features: string[]; highligh
       'Cross-Project Pattern Blueprints',
       'Sub-agent delegation capability',
       'Priority support',
+      '✨ Token Saving Engine: dedicated caching system reduces costs vs using the AI model directly',
     ],
   },
   opus: {
@@ -75,7 +81,7 @@ const PLAN_FEATURES: Record<string, { name: string; features: string[]; highligh
       'Complicated high level coding',
       'Zero markup on API costs',
       'Intelligent token caching',
-      'Hybrid model routing',
+      '✨ Token Saving Engine: pay less than official Claude Opus pricing',
     ],
   },
 };
@@ -221,20 +227,34 @@ export default function PricingPlans() {
                       <span style={{ fontSize: 14, color: 'var(--text-muted)', fontWeight: 400, marginLeft: 6 }}>forever</span>
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: 20, fontSize: 12 }}>
-                      <div>
-                        <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 2 }}>Input / 1M tokens</div>
-                        <div style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: 15, color: MODE_ACCENT[mode] }}>
-                          {pm ? fmtPrice(pm.input_price_per_1m) : '—'}
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'center', gap: 20, fontSize: 12 }}>
+                        <div>
+                          <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 2 }}>Input / 1M tokens</div>
+                          <div style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: 15, color: MODE_ACCENT[mode] }}>
+                            {pm ? fmtPrice(pm.input_price_per_1m) : '—'}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 2 }}>Output / 1M tokens</div>
+                          <div style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: 15, color: MODE_ACCENT[mode] }}>
+                            {pm ? fmtPrice(pm.output_price_per_1m) : '—'}
+                          </div>
                         </div>
                       </div>
-                      <div>
-                        <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 2 }}>Output / 1M tokens</div>
-                        <div style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: 15, color: MODE_ACCENT[mode] }}>
-                          {pm ? fmtPrice(pm.output_price_per_1m) : '—'}
+                      {/* Dynamic savings badge — only shown when effective price < original model price */}
+                      {pm?.savings_pct != null && pm.savings_pct > 0 && (
+                        <div style={{
+                          marginTop: 8,
+                          display: 'inline-flex', alignItems: 'center', gap: 4,
+                          background: 'rgba(16,185,129,0.12)',
+                          border: '1px solid rgba(16,185,129,0.35)',
+                          borderRadius: 20, padding: '3px 10px',
+                          fontSize: 11, fontWeight: 700, color: '#10b981',
+                        }}>
+                          ✦ {pm.savings_pct}% less than original AI model
                         </div>
-
-                      </div>
+                      )}
                     </div>
                   )}
                 </div>
