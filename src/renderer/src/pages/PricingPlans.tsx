@@ -76,7 +76,7 @@ const PLAN_FEATURES: Record<string, { name: string; features: string[]; highligh
   },
   opus: {
     name: 'OPUS 4.7',
-    highlight: '0 Extra fees',
+    highlight: '',
     features: [
       'Complicated high level coding',
       'Zero markup on API costs',
@@ -232,12 +232,14 @@ export default function PricingPlans() {
                         <div>
                           <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 2 }}>Input / 1M tokens</div>
                           <div style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: 15, color: MODE_ACCENT[mode] }}>
+                            {pm?.original_input_price_per_1m ? <s style={{ opacity: 0.6, marginRight: 6, fontSize: 13, color: 'var(--text-muted)' }}>{fmtPrice(pm.original_input_price_per_1m)}</s> : null}
                             {pm ? fmtPrice(pm.input_price_per_1m) : '—'}
                           </div>
                         </div>
                         <div>
                           <div style={{ color: 'var(--text-muted)', fontSize: 11, marginBottom: 2 }}>Output / 1M tokens</div>
                           <div style={{ fontFamily: 'monospace', fontWeight: 700, fontSize: 15, color: MODE_ACCENT[mode] }}>
+                            {pm?.original_output_price_per_1m ? <s style={{ opacity: 0.6, marginRight: 6, fontSize: 13, color: 'var(--text-muted)' }}>{fmtPrice(pm.original_output_price_per_1m)}</s> : null}
                             {pm ? fmtPrice(pm.output_price_per_1m) : '—'}
                           </div>
                         </div>

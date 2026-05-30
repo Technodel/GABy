@@ -210,6 +210,18 @@ router.get('/me', (req: Request, res: Response) => {
     modes: (() => {
       const list = (pricing as PricingRow[]).map(p => {
         const keyCount = (db.prepare('SELECT COUNT(*) as cnt FROM api_keys WHERE mode = ? AND is_active = 1').get(p.mode) as { cnt: number }).cnt;
+        const originalInput1M = p.input_token_base_cost * 1_000_000;
+        let finalInput = originalInput1M;
+        try {
+          finalInput = evaluate(p.markup_formula, { cost: originalInput1M, input_tokens: 1_000_000, output_tokens: 0, cache_write_tokens: 0, cache_read_tokens: 0 }) as number;
+        } catch {}
+        const effectiveInput1M = finalInput * 0.68 * 1.05;
+        let savings_pct: number | null = null;
+        if (originalInput1M > 0) {
+          const pct = Math.round((1 - effectiveInput1M / originalInput1M) * 100);
+          if (pct > 0) savings_pct = pct;
+        }
+
         return {
           mode: p.mode,
           display_name: p.display_name,
@@ -217,6 +229,7 @@ router.get('/me', (req: Request, res: Response) => {
           // Never expose formula, token costs, or max_tokens as raw numbers
           session_limit_label: friendlySessionLimit(p.global_max_tokens),
           has_active_key: keyCount > 0,
+          savings_pct,
         };
       });
       // AUTO mode: virtual entry — routes to the best real mode per message

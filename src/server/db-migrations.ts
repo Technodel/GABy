@@ -1208,7 +1208,7 @@ async function seedData(adapter: DbAdapter): Promise<void> {
     if (opusRow === 0) {
       await adapter.run(
         'INSERT INTO pricing_modes (mode, display_name, description, markup_formula, input_token_base_cost, output_token_base_cost, model_id) VALUES (?,?,?,?,?,?,?)',
-        ['opus', '🔮 OPUS 4.7', 'Complicated high level coding (0 Extra fees)', 'cost', 0.000015, 0.000075, 'claude-3-opus-20240229'],
+        ['opus', '🔮 OPUS 4.7', 'Complicated high level coding', 'cost', 0.000015, 0.000075, 'claude-3-opus-20240229'],
       );
     }
     // ensure API key is active for opus mode, using CLAUDE_API_KEY from env
