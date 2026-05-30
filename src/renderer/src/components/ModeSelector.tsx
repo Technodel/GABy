@@ -61,7 +61,7 @@ export default function ModeSelector({ modes, selected, onChange, noBalance = fa
       {/* OPUS 4.7 pill aligned to the right */}
       <button
         onClick={() => onChange('opus')}
-        title="Claude Opus 4.7 - Complicated high level coding (0 fees)"
+        title="Claude Opus 4.7 - Complicated high level coding (0 Extra fees)"
         style={{
           padding: '2px 14px',
           borderRadius: 999,
@@ -82,7 +82,7 @@ export default function ModeSelector({ modes, selected, onChange, noBalance = fa
         }}
       >
         <span>OPUS 4.7</span>
-        <span style={{ fontSize: 9, fontWeight: 500, opacity: 0.8 }}>0 fees</span>
+        <span style={{ fontSize: 9, fontWeight: 500, opacity: 0.8 }}>0 Extra fees</span>
       </button>
     </div>
   );

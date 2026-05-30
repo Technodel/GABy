@@ -70,7 +70,7 @@ const PLAN_FEATURES: Record<string, { name: string; features: string[]; highligh
   },
   opus: {
     name: 'OPUS 4.7',
-    highlight: '0 fees',
+    highlight: '0 Extra fees',
     features: [
       'Complicated high level coding',
       'Zero markup on API costs',
