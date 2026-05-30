@@ -240,6 +240,7 @@ export default function ProFeatures() {
                   { label: 'Local File Access', regular: '✓', pro: '✓', proHighlight: false },
                   { label: 'AI Memories & Style Learning', regular: '✓', pro: '✓', proHighlight: false },
                   { label: 'Git Checkpoints & Rollback', regular: '✓', pro: '✓', proHighlight: false },
+                  { label: 'Token Saving Engine', regular: '✓', pro: '✓', proHighlight: false },
                   { label: 'PRO-Exclusive Features', regular: '—', pro: proOnlyFeatures.length > 0 ? `✓ All ${proOnlyFeatures.length} PRO features (see below)` : '✓ All PRO features', proHighlight: true },
                 ].map((row, idx, arr) => {
                   const isLast = idx === arr.length - 1;

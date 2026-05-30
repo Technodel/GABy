@@ -210,18 +210,19 @@ function EnglishContent() {
         </div>
       </div>
 
-      {/* ── NEW: JIT Token Engine + Watchdog + Resilience ── */}
+      {/* ── NEW: Token Saving Engine + Watchdog + Resilience ── */}
       <div className="card" style={{ marginBottom: 24, borderColor: '#f59e0b', borderWidth: 2, background: 'rgba(245,158,11,0.05)' }}>
-        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 6 }}>⚡ JIT Token Saver — Same Task, Lower Cost</h2>
+        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 6 }}>⚡ Token Saving Engine — Pay Less Than Direct AI Model Pricing</h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.7, marginBottom: 16 }}>
-          SUNy now delivers <strong>identical results using up to 60% fewer tokens</strong> per task — through a multi-layer efficiency engine built directly into its reasoning loop.
+          SUNy's dedicated Token Saving Engine uses <strong>5 optimization strategies</strong> to reduce your token usage on every request — making it cheaper to use SUNy than the original AI models directly.
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
           {[
-            { title: '🎭 Dynamic Tool Masking', desc: 'Instead of passing all 25+ tool schemas on every step, SUNy only injects the tools relevant to the current task phase. A server task gets server tools; a refactor task gets Git tools — nothing else.' },
-            { title: '🌳 AST Auto-Fallback', desc: 'When SUNy tries to read a large file (500+ lines) without specifying a range, the engine automatically returns a compact AST skeleton (functions, classes, line numbers) instead of thousands of raw code tokens.' },
-            { title: '✂️ Batch File Edits', desc: 'Instead of editing one block at a time (10 separate AI steps), SUNy can apply 10 changes to a file in a single atomic turn — instantly collapsing multi-step edits into one.' },
-            { title: '🧠 Context Pruning', desc: 'Old tool results are aggressively compressed after 2 turns. The AI reasons over summaries, not bloated raw outputs — keeping the context window clean and sharp throughout long tasks.' },
+            { title: '🔄 Prompt Caching', desc: 'Repeated context (system prompts, conversation history) is cached at the provider level. Cache hits cost 90% less than fresh tokens — the #1 savings driver.' },
+            { title: '✂️ Tool Schema Pruning', desc: 'Instead of loading all 25+ tool schemas every turn, the engine only includes tools relevant to the current task. A coding task skips web_search; a Q&A skips file_write. Saves ~2,000–4,000 tokens per turn.' },
+            { title: '📦 Conversation Compression', desc: 'Older turns are compressed into concise summaries instead of being dropped entirely. You keep the context, at a fraction of the token cost.' },
+            { title: '🔍 Redundant File Dedup', desc: 'When the same file is read twice in a session, the second read is replaced with a reference to the first — eliminating duplicate content tokens.' },
+            { title: '🧹 Boilerplate Stripping', desc: 'Common AI filler phrases ("Sure!", "I\'ll help you with that") are stripped from assistant history before sending to the model — every token counts.' },
           ].map(f => (
             <div key={f.title} style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(245,158,11,0.25)', background: 'var(--bg)' }}>
               <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{f.title}</h3>
@@ -406,18 +407,19 @@ function ArabicContent() {
         </div>
       </div>
 
-      {/* JIT Token Saver — Arabic */}
+      {/* Token Saving Engine — Arabic */}
       <div className="card" style={{ marginBottom: 24, borderColor: '#f59e0b', borderWidth: 2, background: 'rgba(245,158,11,0.05)' }}>
-        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 6 }}>⚡ موفّر التوكنز الذكي — نفس المهمة، تكلفة أقل</h2>
+        <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 6 }}>⚡ محرك توفير التوكنز — ادفع أقل من تسعير نموذج الذكاء الاصطناعي مباشرة</h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.8, marginBottom: 16 }}>
-          يحقق SUNy الآن <strong>نفس النتائج باستخدام ما يصل إلى 60% من التوكنز أقل</strong> لكل مهمة — من خلال محرك كفاءة متعدد الطبقات مدمج مباشرة في حلقة التفكير الخاصة به.
+          محرك توفير التوكنز المخصص في SUNy يستخدم <strong>5 استراتيجيات تحسين</strong> لتقليل استخدام التوكنز في كل طلب — مما يجعل استخدام SUNy أرخص من استخدام نماذج الذكاء الاصطناعي مباشرة.
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
           {[
-            { title: '🎭 إخفاء الأدوات الديناميكي', desc: 'بدلاً من إرسال جميع مخططات الأدوات في كل خطوة، يحقن SUNy فقط الأدوات المتعلقة بالمرحلة الحالية من المهمة. مهمة الخادم تحصل على أدوات الخادم فقط.' },
-            { title: '🌳 التراجع التلقائي للـ AST', desc: 'عندما يحاول SUNy قراءة ملف كبير (أكثر من 500 سطر) دون تحديد نطاق، يعيد المحرك تلقائياً هيكل AST مضغوط بدلاً من آلاف التوكنز من الكود الخام.' },
-            { title: '✂️ تعديلات الملفات الدفعية', desc: 'بدلاً من تعديل كتلة واحدة في كل مرة (10 خطوات منفصلة)، يستطيع SUNy تطبيق 10 تغييرات على ملف في خطوة واحدة — يقلص التعديلات متعددة الخطوات إلى خطوة واحدة فورياً.' },
-            { title: '🧠 تقليص السياق', desc: 'يتم ضغط نتائج الأدوات القديمة بعد دورتين. يستدل الذكاء الاصطناعي على الملخصات، لا المخرجات الخام المنتفخة — مما يبقي نافذة السياق نظيفة وحادة طوال المهام الطويلة.' },
+            { title: '🔄 التخزين المؤقت للنصوص', desc: 'السياق المتكرر (نصوص النظام، تاريخ المحادثة) يتم تخزينه مؤقتاً عند المزود. نتائج التخزين المؤقت تكلف 90% أقل من التوكنز الجديدة.' },
+            { title: '✂️ تقليم مخططات الأدوات', desc: 'بدلاً من تحميل جميع مخططات الأدوات في كل دورة، يحمّل المحرك فقط الأدوات المتعلقة بالمهمة الحالية. يوفر 2,000-4,000 توكن في كل دورة.' },
+            { title: '📦 ضغط المحادثة', desc: 'الدورات القديمة تُضغط إلى ملخصات مختصرة بدلاً من حذفها بالكامل. تحتفظ بالسياق بجزء بسيط من تكلفة التوكنز.' },
+            { title: '🔍 إزالة تكرار الملفات', desc: 'عند قراءة نفس الملف مرتين في جلسة واحدة، تُستبدل القراءة الثانية بمرجع للأولى — مما يزيل توكنز المحتوى المكررة.' },
+            { title: '🧹 إزالة النصوص الزائدة', desc: 'العبارات التمهيدية الشائعة للذكاء الاصطناعي تُزال من سجل المساعد قبل إرسالها إلى النموذج — كل توكن يُحسب.' },
           ].map(f => (
             <div key={f.title} style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(245,158,11,0.25)', background: 'var(--bg)' }}>
               <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{f.title}</h3>
