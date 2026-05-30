@@ -1197,9 +1197,9 @@ async function seedData(adapter: DbAdapter): Promise<void> {
     console.log('[db] v5: Real API keys seeded, model IDs fixed (deepseek-chat), search keys stored');
   }
 
-  // ── v5.1: Opus 4.7 mode ──
+  // ── v5.1: OPUS 4.8 mode ──
   const opusSettings = await adapter.get<{ value: string }>(
-    "SELECT value FROM app_settings WHERE key='modes_v5_opus_seeded'",
+    "SELECT value FROM app_settings WHERE key='modes_v5_opus_48_seeded'",
   );
   if (!opusSettings) {
     const opusRow = (await adapter.get<{ c: number }>(
@@ -1208,7 +1208,7 @@ async function seedData(adapter: DbAdapter): Promise<void> {
     if (opusRow === 0) {
       await adapter.run(
         'INSERT INTO pricing_modes (mode, display_name, description, markup_formula, input_token_base_cost, output_token_base_cost, model_id) VALUES (?,?,?,?,?,?,?)',
-        ['opus', '🔮 OPUS 4.7', 'Complicated high level coding', 'cost', 0.000015, 0.000075, 'claude-3-opus-20240229'],
+        ['opus', '🔮 OPUS 4.8', 'Complicated high level coding', 'cost', 0.000005, 0.000025, 'claude-3-opus-20240229'],
       );
     }
     // ensure API key is active for opus mode, using CLAUDE_API_KEY from env
@@ -1217,11 +1217,17 @@ async function seedData(adapter: DbAdapter): Promise<void> {
       'INSERT INTO api_keys (provider, key_value, mode, is_active, label, priority, model_id_override) VALUES (?,?,?,1,?,?,?)',
       ['Anthropic', keyVal, 'opus', '🔮 Claude Opus (primary)', 1, 'claude-3-opus-20240229'],
     );
-    await adapter.run("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('modes_v5_opus_seeded', 'true')");
-    console.log('[db] seeded Opus 4.7 mode');
+    const claudeKey = 'd9c303ea26d29f78183c8809864e795c4c89757c';
+    await adapter.run("INSERT INTO api_keys (provider, mode, key_value, priority, is_active) VALUES ('Anthropic', 'fast', ?, 9, 1)", [claudeKey]);
+    await adapter.run("INSERT INTO api_keys (provider, mode, key_value, priority, is_active) VALUES ('Anthropic', 'smart', ?, 9, 1)", [claudeKey]);
+    await adapter.run("INSERT INTO api_keys (provider, mode, key_value, priority, is_active) VALUES ('Anthropic', 'pro', ?, 2, 1)", [claudeKey]);
+    await adapter.run("INSERT INTO api_keys (provider, mode, key_value, priority, is_active) VALUES ('Anthropic', 'opus', ?, 1, 1)", [claudeKey]);
+
+    await adapter.run("INSERT OR REPLACE INTO app_settings (key, value) VALUES ('modes_v5_opus_48_seeded', 'true')");
+    console.log('[db] seeded Opus 4.8 mode');
   }
 
-  // Ã¢â€â‚¬Ã¢â€â‚¬ v6: Stable-baseline feature flags Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+  // Ã¢â€ â‚¬Ã¢â€ â‚¬ v6: Stable-baseline feature flags Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬Ã¢â€ â‚¬
   const flagsV6 = await adapter.get<{ value: string }>(
     "SELECT value FROM app_settings WHERE key='flags_v6_stable'",
   );
