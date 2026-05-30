@@ -66,6 +66,7 @@ import {
 import { storeBlueprintEntry } from './blueprint-memory';
 import { extractAndStoreEntities } from './entity-store';
 import type { AgentMessage } from './agent';
+import { isBridgeConnected } from './bridge-manager';
 
 export { AgentMessage };
 
