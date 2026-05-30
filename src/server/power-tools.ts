@@ -16,6 +16,10 @@ import { executeLocal as sendToBridge, executeLocalWithNarration as sendToBridge
 import { userClientManager } from './user-client-manager';
 import { narrateMessage } from './narrator';
 import { extractSymbols, formatSymbolMap } from './symbol-reader';
+import { compressToolResult } from './tool-result-compressor';
+import { canonicalizePaths } from './path-canonicalizer';
+import { summarizeErrorOutput } from './error-summarizer';
+import { getOrReadFile, invalidateFileInCache } from './session-file-cache';
 
 // -- Helpers -------------------------------------------------------------------
 
@@ -110,11 +114,20 @@ export function createPowerTools(ctx: PowerToolContext): ToolSet {
           path: abs, withLines: input.withLines, lineOffset: input.lineOffset, lineLimit: input.lineLimit,
         }, 30000) as { content?: string } | string;
         readFiles.add(abs);
-        // Bridge returns { content, encoding } — extract raw string so the
-        // model sees file contents directly (not JSON-wrapped).
-        let content = typeof result === 'string'
-          ? result
-          : (result?.content ?? '');
+        
+        let rawStr = typeof result === 'string' ? result : (result?.content ?? '');
+        
+        // Check session file cache
+        // We use Date.now() or 1 as step because we don't have step passed in context easily here,
+        // actually let's just use the length of readFiles as a proxy for step
+        const { content: cachedStr, memoized } = getOrReadFile(userId, abs, readFiles.size);
+        
+        // If memoized, return immediately without line slicing (the agent already knows it)
+        if (memoized) {
+          return cachedStr;
+        }
+
+        let content = cachedStr;
         // Apply line slicing server-side (bridge ignores withLines/lineOffset/lineLimit).
         const offset = input.lineOffset ?? 0;
         const limit = input.lineLimit ?? 1000;
@@ -230,6 +243,7 @@ You can perform a single edit using searchTerm/replacementText, or multiple simu
           await sendToBridge(userId, 'exec:write_file', { path: abs, content: modifiedContent }, 30000);
           onFileChanged?.(abs);
           readFiles.add(abs); // post-edit content is now what model has seen
+          invalidateFileInCache(userId, abs);
           return `Successfully applied ${ops.length} edits to '${input.filePath}'.`;
         } catch (e) {
           throw new Error(`Error editing '${input.filePath}': ${e instanceof Error ? e.message : String(e)}`);
@@ -272,6 +286,7 @@ Modes: 'create_only' (fail if exists), 'overwrite' (replace or create), 'append'
         onFileChanged?.(abs);
         readFiles.add(abs);
         knownNewFiles.add(abs);
+        invalidateFileInCache(userId, abs);
         return `Successfully written to '${input.filePath}'.`;
       } catch (e) {
         throw new Error(`Error writing '${input.filePath}': ${e instanceof Error ? e.message : String(e)}`);
@@ -355,12 +370,16 @@ HTTP server, watcher, or any process that should keep running, use start_server 
         }, input.timeout + 5000) as { exitCode?: number; success?: boolean; output?: string };
         const out = (result?.output ?? '').toString();
         const exit = result?.exitCode ?? 0;
-        // Return a single string the model can reason about. Always include the
-        // exit code so the model knows whether to trust the output.
+        
+        let finalOut = out.trim();
+        if (exit !== 0 && finalOut.length > 500) {
+          finalOut = summarizeErrorOutput(finalOut);
+        }
+
         const header = `[exit=${exit}]`;
-        return out.trim().length === 0
+        return finalOut.length === 0
           ? `${header} (no output)`
-          : `${header}\n${out}`;
+          : `${header}\n${finalOut}`;
       } catch (e) {
         throw new Error(`Error running command: ${e instanceof Error ? e.message : String(e)}`);
       }
@@ -638,7 +657,27 @@ console.log(JSON.stringify(results));`.replace(/\n/g, ' ');
       if (typeof origExecute === 'function') {
         td.execute = async (input: unknown) => {
           try {
-            const result = await origExecute(input);
+            let result = await origExecute(input);
+            
+            // ── TOKEN SAVING ENGINE: PRE-COMPRESS ───────────────────────────────
+            if (typeof result === 'string') {
+              let processedResult = result;
+              
+              // 1. Path Canonicalization
+              processedResult = canonicalizePaths(processedResult, projectPath);
+              
+              // 2. Heavy Tool Output Compression
+              if (['file_read', 'bash', 'grep', 'grep_search', 'web_search', 'url_fetch'].includes(name) && processedResult.length > 2000) {
+                const compressed = compressToolResult(processedResult);
+                const ratio = (1 - compressed.length / processedResult.length) * 100;
+                if (ratio > 15) {
+                  processedResult = compressed;
+                }
+              }
+              
+              result = processedResult;
+            }
+            
             onToolResult(name, input, result, undefined);
             return result;
           } catch (e) {

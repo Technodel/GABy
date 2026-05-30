@@ -14,6 +14,7 @@
 import { streamText, generateText, stepCountIs, tool, type CoreMessage, type LanguageModel } from 'ai';
 import { z } from 'zod';
 import { getModelsForMode, getVisionCapableModels, isCachingEnabled, getEditFormat, classifyTaskType, reorderModelsForProTask } from './agent';
+import { selectToolsForTask } from './tool-selector';
 import { createPowerTools } from './power-tools';
 import { createWebSearchTool } from './web-search';
 import { createUrlFetchTool } from './url-fetch';
@@ -925,11 +926,27 @@ If your tools are not working, say:
       const optimizedSystem = engineResult.systemPrompt;
       let toolsToUse = effectiveTools;
 
-      if (engineResult.prunedTools && effectiveTools) {
-        toolsToUse = { ...effectiveTools };
-        for (const pt of engineResult.prunedTools) {
-          delete toolsToUse[pt];
+      if (effectiveTools) {
+        // 1. Token Saving Engine (Strategy 3 replacements)
+        if (engineResult.prunedTools) {
+          toolsToUse = { ...effectiveTools };
+          for (const pt of engineResult.prunedTools) {
+            delete toolsToUse[pt];
+          }
         }
+        
+        // 2. Tool Definition Lazy Loading
+        const taskType = classifyAutoMode(userMessage, !!imageData, history);
+        const lastToolsUsed = Array.from(toolCallNames).slice(-3);
+        const selectedToolNames = selectToolsForTask(taskType, lastToolsUsed);
+        
+        const lazyLoadedTools: Record<string, any> = {};
+        for (const [name, def] of Object.entries(toolsToUse)) {
+          if (selectedToolNames.includes(name) || name === 'bash' || name === 'file_read') {
+            lazyLoadedTools[name] = def;
+          }
+        }
+        toolsToUse = lazyLoadedTools;
       }
       // ───────────────────────────────────────────────────────────────────────
 
