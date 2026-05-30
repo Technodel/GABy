@@ -1765,7 +1765,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
       return false;
     }
   }
-  useEffect(() => { msgEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, thinking]);
+  useEffect(() => { msgEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, thinking, streamingContent]);
   // Focus input when thinking state changes (message sent or response received)
   useEffect(() => {
     if (prevThinkingRef.current !== thinking) {
