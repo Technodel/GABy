@@ -917,7 +917,7 @@ If your tools are not working, say:
         messages: rawMessagesForProvider,
         systemPrompt: fullSystem ?? '',
         provider,
-        taskType: 'coding', // Could be inferred
+        taskType: classifyAutoMode(userMessage, !!imageData, history),
         allToolNames: effectiveTools ? Object.keys(effectiveTools) : []
       });
 

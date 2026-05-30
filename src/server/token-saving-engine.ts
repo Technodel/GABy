@@ -210,81 +210,67 @@ function pruneToolSchemas(
   }
 }
 
-// ── Strategy 3: Conversation Summary Compression ────────────────────────────
+// ── Strategy 3: Old Tool-Call Metadata Stripping ────────────────────────────
 //
-// For conversations beyond 5 user turns, summarize the oldest 3 turns into
-// a single compressed message instead of dropping them entirely.
-// This preserves more context than context-manager's current drop approach.
+// Assistant tool-call results in history are stored as full JSON including all metadata.
+// After turn 3, that scaffolding is pure noise to the model — it only needs the content.
+// Stripping metadata from messages older than 2 turns saves massive tokens.
 
 function countUserTurns(messages: CoreMessage[]): number {
   return messages.filter(m => m.role === 'user').length;
 }
 
-function compressOldestTurns(messages: CoreMessage[]): { result: CoreMessage[]; stats: TokenSavingStats } {
-  const strategyName = 'ConversationSummaryCompression';
+function stripOldToolMetadata(messages: CoreMessage[]): { result: CoreMessage[]; stats: TokenSavingStats } {
+  const strategyName = 'OldToolMetadataStripping';
   const beforeChars = messages.reduce((sum, m) => sum + messageChars(m), 0);
   const before = estimateTokensLocal(JSON.stringify(messages));
 
   try {
-    const userTurns = countUserTurns(messages);
-
-    // Only activate for conversations beyond 5 user turns
-    if (userTurns <= 5) {
+    const totalUserTurns = countUserTurns(messages);
+    if (totalUserTurns <= 2) {
       return { result: messages, stats: { strategyName, tokensBefore: before, tokensAfter: before, tokensSaved: 0 } };
     }
 
-    // Find the boundary: the index after the first 3 user turns and their responses
-    let turnsSeen = 0;
-    let splitIdx = 0;
-    for (let i = 0; i < messages.length; i++) {
-      if (messages[i].role === 'user') {
-        turnsSeen++;
-        if (turnsSeen >= 3) {
-          // Include the assistant response that follows this user turn
-          splitIdx = i + 1;
-          while (splitIdx < messages.length && messages[splitIdx].role === 'assistant') {
-            splitIdx++;
-          }
-          break;
-        }
-      }
-    }
+    let userTurnsSeen = 0;
+    let totalSaved = 0;
 
-    if (splitIdx === 0 || splitIdx >= messages.length) {
-      return { result: messages, stats: { strategyName, tokensBefore: before, tokensAfter: before, tokensSaved: 0 } };
-    }
-
-    // Extract the old turns to summarize
-    const oldTurns = messages.slice(0, splitIdx);
-    const recentTurns = messages.slice(splitIdx);
-
-    // Build a compact summary of the old turns
-    const summaryParts: string[] = [];
-    for (const msg of oldTurns) {
-      const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+    const result = messages.map(msg => {
       if (msg.role === 'user') {
-        // Keep user requests short
-        const truncated = content.length > 150 ? content.slice(0, 147) + '...' : content;
-        summaryParts.push(`- User asked: ${truncated}`);
-      } else if (msg.role === 'assistant') {
-        // Summarize assistant responses very aggressively
-        if (content.includes('tool-call') || content.includes('toolName')) {
-          summaryParts.push(`- Assistant used tools and responded`);
-        } else {
-          const truncated = content.length > 100 ? content.slice(0, 97) + '...' : content;
-          summaryParts.push(`- Assistant: ${truncated}`);
-        }
+        userTurnsSeen++;
+        return msg;
       }
-    }
 
-    const summaryMessage: CoreMessage = {
-      role: 'user',
-      content: `[Conversation summary — ${oldTurns.length} earlier messages compressed]\n${summaryParts.join('\n')}`,
-    };
+      // If this message is within the last 2 user turns, keep it intact
+      if (totalUserTurns - userTurnsSeen < 2) {
+        return msg;
+      }
 
-    const result = [summaryMessage, ...recentTurns];
+      // Strip tool metadata from older assistant/tool messages
+      let modified = false;
+      const newMsg = { ...msg };
+
+      if (msg.role === 'assistant' && Array.isArray(msg.content)) {
+        newMsg.content = msg.content.filter((part: any) => part.type !== 'tool-call');
+        if (newMsg.content.length === 0) newMsg.content = 'Used tools internally.';
+        modified = true;
+      } else if (msg.role === 'tool' && Array.isArray(msg.content)) {
+        newMsg.content = msg.content.map((part: any) => {
+          if (part.type === 'tool-result') {
+            return { type: 'text', text: typeof part.result === 'string' ? part.result : JSON.stringify(part.result) };
+          }
+          return part;
+        });
+        modified = true;
+      }
+
+      if (modified) {
+        totalSaved += messageChars(msg) - messageChars(newMsg as CoreMessage);
+        return newMsg as CoreMessage;
+      }
+      return msg;
+    });
+
     const after = estimateTokensLocal(JSON.stringify(result));
-
     return { result, stats: { strategyName, tokensBefore: before, tokensAfter: after, tokensSaved: Math.max(0, before - after) } };
   } catch {
     return { result: messages, stats: { strategyName, tokensBefore: before, tokensAfter: before, tokensSaved: 0 } };
@@ -487,9 +473,9 @@ export function optimizeForTokens(opts: TokenSavingEngineOpts): TokenSavingResul
       if (s4.stats.tokensSaved > 0) stats.push(s4.stats);
     }
 
-    // ── 5. Conversation Summary Compression ────────────────────────────
+    // ── 5. Old Tool-Call Metadata Stripping ────────────────────────────
     {
-      const s3 = compressOldestTurns(messages);
+      const s3 = stripOldToolMetadata(messages);
       messages = s3.result;
       if (s3.stats.tokensSaved > 0) stats.push(s3.stats);
     }
