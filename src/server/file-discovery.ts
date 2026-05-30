@@ -10,7 +10,7 @@
 
 import { tool } from 'ai';
 import { z } from 'zod';
-import { sendToBridge, isBridgeConnected } from './bridge-manager';
+
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Discovery methods
@@ -33,89 +33,7 @@ async function discoverFiles(
   description: string,
   filePattern: string,
 ): Promise<DiscoveredFile[]> {
-  if (!isBridgeConnected(userId)) return [];
-
-  const keywords = description
-    .toLowerCase()
-    .replace(/[^a-z0-9\s_-]/g, '')
-    .split(/\s+/)
-    .filter((w) => w.length > 2 && !['the', 'and', 'for', 'are', 'that', 'this', 'with', 'what', 'find', 'look', 'file', 'code'].includes(w));
-
-  if (!keywords.length) return [];
-
-  const results: DiscoveredFile[] = [];
-  const seen = new Set<string>();
-
-  try {
-    // Strategy 1: Find files with matching NAMES (highest relevance)
-    const nameScript = `
-const g=require('glob'); const fs=require('fs');
-const pattern=${JSON.stringify(filePattern)};
-const keywords=${JSON.stringify(keywords)};
-const files=g.globSync(pattern,{cwd:${JSON.stringify(projectPath)},nodir:true,absolute:true});
-const results=[];
-for(const f of files){
-  const base=f.split(/[/\\\\]/).pop().toLowerCase().replace(/\\.[^.]+$/,'');
-  const matchCount=keywords.filter(k=>base.includes(k)).length;
-  if(matchCount>0) results.push({path:require('path').relative(${JSON.stringify(projectPath)},f),score:matchCount});
-}
-results.sort((a,b)=>b.score-a.score);
-console.log(JSON.stringify(results.slice(0,15)));
-`.replace(/\n/g, ' ');
-
-    const nameRaw = await sendToBridge(userId, 'exec:shell', {
-      command: `node -e "${nameScript.replace(/"/g, '\\"')}"`,
-      cwd: projectPath,
-      requiresConfirmation: false,
-    }, 20000) as string;
-
-    try {
-      const nameMatches = JSON.parse(nameRaw.trim()) as Array<{ path: string; score: number }>;
-      for (const m of nameMatches) {
-        if (seen.has(m.path)) continue;
-        seen.add(m.path);
-        results.push({
-          path: m.path,
-          relevance: 'high',
-          reason: `File name matches keywords: ${keywords.filter(k => m.path.toLowerCase().includes(k)).join(', ')}`,
-        });
-      }
-    } catch { /* ignore parse error */ }
-
-    // Strategy 2: Find files with matching CONTENT (medium relevance)
-    const MAX_CONTENT_SCAN = 30;
-    if (results.length < MAX_CONTENT_SCAN) {
-      for (const kw of keywords.slice(0, 3)) {
-        try {
-          const raw = await sendToBridge(userId, 'exec:shell', {
-            command: `grep -rli --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.py" --include="*.go" -m 3 "${kw}" ${JSON.stringify(projectPath)} 2>nul || true`,
-            cwd: projectPath,
-            requiresConfirmation: false,
-          }, 15000) as string;
-
-          if (raw) {
-            const lines = raw.trim().split('\n').filter(Boolean);
-            for (const line of lines) {
-              const relPath = line.replace(projectPath.replace(/\\/g, '/'), '').replace(/^[/\\]/, '') || line;
-              if (seen.has(relPath)) continue;
-              seen.add(relPath);
-              results.push({
-                path: relPath,
-                relevance: 'medium',
-                reason: `Contains keyword "${kw}"`,
-              });
-              if (results.length >= MAX_CONTENT_SCAN) break;
-            }
-          }
-        } catch { /* grep may fail on some files */ }
-      }
-    }
-
-    return results.slice(0, 40);
-  } catch (err) {
-    console.warn('[file-discovery] search error:', (err as Error).message);
-    return results;
-  }
+  return [];
 }
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

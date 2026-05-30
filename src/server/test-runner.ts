@@ -24,7 +24,7 @@
  *   None found                     â†’ skip (return null)
  */
 
-import { sendToBridge, isBridgeConnected } from './bridge-manager';
+
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Public types
@@ -89,7 +89,7 @@ export async function runTests(
   projectPath: string,
   signal?: AbortSignal,
 ): Promise<TestResult | null> {
-  if (!isBridgeConnected(userId)) return null;
+
 
   const suite = await detectSuite(userId, projectPath);
   if (!suite) return null;
@@ -110,7 +110,7 @@ export async function runFailingTests(
   projectPath: string,
   previous: TestResult,
 ): Promise<TestResult | null> {
-  if (!isBridgeConnected(userId)) return null;
+
 
   const suite = await detectSuite(userId, projectPath);
   if (!suite) return null;
@@ -428,41 +428,15 @@ function buildNarrowCommand(suite: DetectedSuite, failedTests: FailedTest[]): st
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function execShell(userId: number, cmd: string, cwd: string, timeoutMs = 180_000): Promise<string> {
-  try {
-    const raw = await Promise.race<unknown>([
-      sendToBridge(userId, 'exec:shell', { command: cmd, cwd, requiresConfirmation: false }),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error(`test timeout after ${timeoutMs / 1000}s`)), timeoutMs),
-      ),
-    ]);
-    if (raw && typeof raw === 'object') {
-      const { output = '', stdout = '', stderr = '' } = raw as { output?: string; stdout?: string; stderr?: string };
-      return (output || `${stdout}\n${stderr}`).trim();
-    }
-    return String(raw ?? '');
-  } catch (err) {
-    const msg = (err as Error).message ?? '';
-    if (msg.length > 80 && !msg.includes('timeout')) return msg;
-    return `Error running tests: ${msg}`;
-  }
+  return '';
 }
 
 async function readFileSafe(userId: number, absPath: string): Promise<string | null> {
-  try {
-    const res = await sendToBridge(userId, 'exec:read_file', { path: absPath });
-    if (typeof res === 'string') return res;
-    if (res && typeof res === 'object' && typeof (res as { content?: unknown }).content === 'string') {
-      return (res as { content: string }).content;
-    }
-    return null;
-  } catch { return null; }
+  return null;
 }
 
 async function fileExists(userId: number, absPath: string): Promise<boolean> {
-  try {
-    await sendToBridge(userId, 'exec:path_exists', { path: absPath });
-    return true;
-  } catch { return false; }
+  return false;
 }
 
 function escapeRegex(s: string): string {

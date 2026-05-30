@@ -742,7 +742,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
     } finally { setDevServerLoading(false); }
   }
 
-  // -- Bridge keyboard shortcut help --------------------------------------------
+  // -- Help / Shortcuts --------------------------------------------------------
   const [showHelp, setShowHelp] = useState(false);
 
   function buildDefaultCollapsedSections(): Record<string, boolean> {
@@ -3155,7 +3155,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
                       {devServerLoading ? 'Starting...' : 'Start Dev Server'}
                     </button>
                     <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                      Dev server shows your app live in browser. Bridge controls file/terminal actions; dev server controls preview only.
+                      Dev server shows your app live in browser.
                     </div>
                   </div>
                 )}
@@ -4161,14 +4161,13 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
               <img src="/SLOGO.png" alt="SUNy" style={{ width: 72, height: 72, borderRadius: '50%', objectFit: 'cover', marginBottom: 10, boxShadow: '0 4px 16px rgba(108,99,255,0.3)' }} />
               <h2 style={{ margin: '0 0 4px', fontSize: 22, fontWeight: 700 }}>Welcome to SUNy!</h2>
               <p style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.6, margin: '0 0 20px' }}>
-                Your personal AI assistant � ask anything, build anything. Here's how to start:
+                Your personal AI assistant  ask anything, build anything. Here's how to start:
               </p>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
               {[
                 { icon: '📁', title: 'Create or open a project', desc: 'Click "+ New" in the sidebar to link a folder on your computer or let SUNy create one from scratch.' },
                 { icon: '💬', title: 'Just talk to SUNy', desc: 'Ask questions, get explanations, request changes. SUNy understands what you want and gets it done.' },
-                { icon: '⚡', title: 'Connect the Bridge for full power', desc: 'The Bridge lets SUNy actually write files and run commands on your machine � one terminal command to set up.' },
               ].map((step, i) => (
                 <div key={i} style={{ display: 'flex', gap: 12, padding: '10px 14px', background: 'var(--bg-secondary)', borderRadius: 8 }}>
                   <span style={{ fontSize: 20, flexShrink: 0 }}>{step.icon}</span>
@@ -4236,7 +4235,6 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
                     { icon: <CheckCircle size={16} />, title: 'Auto-Verify', desc: 'SUNy runs tests and lint in a loop until all errors are resolved.' },
                     { icon: <FileText size={16} />, title: '@file mentions', desc: 'Type @file:path in any message to reference a file directly.' },
                     { icon: <Play size={16} />, title: 'Dev Server', desc: 'Start your dev server from the sidebar and get a clickable URL.' },
-                    { icon: <Lock size={16} />, title: 'Secure Bridge', desc: 'Sandboxed bridge connection for safe file operations.' },
                     { icon: <Eye size={16} />, title: 'Symbol Reader', desc: 'Inspect file structure without reading the whole file content.' },
                     { icon: <Globe size={16} />, title: 'URL Fetch', desc: 'SUNy can fetch web pages and docs on demand during tasks.' },
                     { icon: <Wrench size={16} />, title: 'Auto-Correction', desc: 'Failed code is analyzed and fixed automatically.' },

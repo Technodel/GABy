@@ -15,7 +15,7 @@
 
 import { tool } from 'ai';
 import { z } from 'zod';
-import { sendToBridge } from './bridge-manager';
+
 
 // â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -59,58 +59,40 @@ export async function browserNavigate(
   const start = Date.now();
 
   try {
-    // First try via bridge (Playwright/Puppeteer)
-    const result = await sendToBridge(userId, 'browser:navigate', {
-      url,
-      waitForSelector: options?.waitForSelector,
-      waitMs: options?.waitMs ?? 2000,
-      extractText: options?.extractText ?? true,
-      extractHtml: options?.extractHtml ?? false,
-    }, 60_000);
+    const response = await fetch(url, {
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SUNyBrowser/1.0)' },
+      signal: AbortSignal.timeout(15_000),
+    });
+
+    const html = await response.text();
+
+    // Basic text extraction (strip tags)
+    const text = html
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 50_000);
+
+    const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
 
     return {
       success: true,
-      data: result,
+      data: {
+        url,
+        title: titleMatch ? titleMatch[1].trim() : '',
+        text,
+        html: options?.extractHtml ? html.slice(0, 100_000) : undefined,
+      } as BrowserPageContent,
       durationMs: Date.now() - start,
     };
-  } catch (bridgeErr) {
-    // Fallback: simple fetch + text extraction
-    try {
-      const response = await fetch(url, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; SUNyBrowser/1.0)' },
-        signal: AbortSignal.timeout(15_000),
-      });
-
-      const html = await response.text();
-
-      // Basic text extraction (strip tags)
-      const text = html
-        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-        .replace(/<[^>]+>/g, ' ')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .slice(0, 50_000);
-
-      const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i);
-
-      return {
-        success: true,
-        data: {
-          url,
-          title: titleMatch ? titleMatch[1].trim() : '',
-          text,
-          html: options?.extractHtml ? html.slice(0, 100_000) : undefined,
-        } as BrowserPageContent,
-        durationMs: Date.now() - start,
-      };
-    } catch (fetchErr) {
-      return {
-        success: false,
-        error: `Bridge browser unavailable and fetch fallback failed: ${(fetchErr as Error).message}`,
-        durationMs: Date.now() - start,
-      };
-    }
+  } catch (fetchErr) {
+    return {
+      success: false,
+      error: `Fetch fallback failed: ${(fetchErr as Error).message}`,
+      durationMs: Date.now() - start,
+    };
   }
 }
 
@@ -127,27 +109,11 @@ export async function browserScreenshot(
   },
 ): Promise<BrowserActionResult> {
   const start = Date.now();
-
-  try {
-    const result = await sendToBridge(userId, 'browser:screenshot', {
-      url,
-      fullPage: options?.fullPage ?? false,
-      width: options?.width ?? 1280,
-      height: options?.height ?? 720,
-    }, 60_000);
-
-    return {
-      success: true,
-      data: result as BrowserScreenshot,
-      durationMs: Date.now() - start,
-    };
-  } catch (err) {
-    return {
-      success: false,
-      error: `Screenshot failed: ${(err as Error).message}`,
-      durationMs: Date.now() - start,
-    };
-  }
+  return {
+    success: false,
+    error: 'Screenshot requires bridge browser',
+    durationMs: Date.now() - start,
+  };
 }
 
 /**
@@ -159,25 +125,11 @@ export async function browserEvaluate(
   script: string,
 ): Promise<BrowserActionResult> {
   const start = Date.now();
-
-  try {
-    const result = await sendToBridge(userId, 'browser:evaluate', {
-      url,
-      script,
-    }, 30_000);
-
-    return {
-      success: true,
-      data: result,
-      durationMs: Date.now() - start,
-    };
-  } catch (err) {
-    return {
-      success: false,
-      error: `Script execution failed: ${(err as Error).message}`,
-      durationMs: Date.now() - start,
-    };
-  }
+  return {
+    success: false,
+    error: 'Evaluation requires bridge browser',
+    durationMs: Date.now() - start,
+  };
 }
 
 /**
@@ -194,25 +146,11 @@ export async function browserInteract(
   }>,
 ): Promise<BrowserActionResult> {
   const start = Date.now();
-
-  try {
-    const result = await sendToBridge(userId, 'browser:interact', {
-      url,
-      actions,
-    }, 60_000);
-
-    return {
-      success: true,
-      data: result,
-      durationMs: Date.now() - start,
-    };
-  } catch (err) {
-    return {
-      success: false,
-      error: `Interaction failed: ${(err as Error).message}`,
-      durationMs: Date.now() - start,
-    };
-  }
+  return {
+    success: false,
+    error: 'Interaction requires bridge browser',
+    durationMs: Date.now() - start,
+  };
 }
 
 /**
@@ -223,24 +161,11 @@ export async function browserPdf(
   url: string,
 ): Promise<BrowserActionResult> {
   const start = Date.now();
-
-  try {
-    const result = await sendToBridge(userId, 'browser:pdf', {
-      url,
-    }, 60_000);
-
-    return {
-      success: true,
-      data: result,
-      durationMs: Date.now() - start,
-    };
-  } catch (err) {
-    return {
-      success: false,
-      error: `PDF generation failed: ${(err as Error).message}`,
-      durationMs: Date.now() - start,
-    };
-  }
+  return {
+    success: false,
+    error: 'PDF generation requires bridge browser',
+    durationMs: Date.now() - start,
+  };
 }
 
 // â”€â”€ Tool factory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

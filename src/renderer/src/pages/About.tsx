@@ -270,7 +270,6 @@ function EnglishContent() {
         { icon: 'DAG', title: '📊 Task Dependency Graph', desc: 'Complex tasks are decomposed into dependency-ordered steps. SUNy works the graph -- unblocks nodes, completes leaves first, rolls up to the goal.' },
         { icon: 'CONF', title: '📈 Confidence Scoring', desc: 'SUNy self-reports uncertainty on every turn. Low confidence triggers automatic escalation to a stronger model.' },
         { icon: 'PROJ', title: 'Multiple Projects', desc: 'Work on as many projects as you need. SUNy keeps everything organized and separate.' },
-        { icon: 'PHONE', title: '📱 Remote Control Bridge', desc: 'Step away from your desk without stopping work. Access your SUNy account from your phone, send instructions, and watch it execute codebase tasks natively on your computer.' },
         { icon: 'MEM', title: 'It gets smarter the more you use it', desc: 'SUNy remembers your preferences, your project style, and your past decisions -- so every session feels familiar.' },
         { icon: 'LANG', title: 'Plain English, always', desc: 'No tech jargon. SUNy explains what it is doing in a way that actually makes sense.' },
         { icon: 'BAL', title: "You're in control of your budget", desc: 'Your admin sets a credit balance for you. SUNy shows you what you have left at all times -- no surprise charges.' },

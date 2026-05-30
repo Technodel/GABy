@@ -15,8 +15,7 @@
  */
 
 import path from 'path';
-import { sendToBridge } from './bridge-manager';
-import { isBridgeConnected } from './bridge-manager';
+
 
 interface SymbolMap { [relPath: string]: string[] }
 
@@ -41,7 +40,7 @@ export async function buildRepoMap(
   userMessage: string,
   tokenBudget = 1800,
 ): Promise<string> {
-  if (!isBridgeConnected(userId)) return '';
+
 
   const key = `${userId}|${projectPath}`;
   let entry = cache.get(key);
@@ -201,38 +200,7 @@ const EXTRACTION_SCRIPT = String.raw`
 
 async function extractSymbols(userId: number, projectPath: string): Promise<SymbolMap> {
   const scriptPath = path.join(projectPath, '.suny-repomap.js');
-  try {
-    // Write extraction script to project dir
-    await sendToBridge(userId, 'exec:write_file', {
-      path: scriptPath,
-      content: EXTRACTION_SCRIPT,
-    }, 10_000);
-
-    // Run it â€” pass projectPath as forward-slash for cross-platform compat
-    const normalizedPath = projectPath.replace(/\\/g, '/').replace(/"/g, '\\"');
-    const result = await sendToBridge(userId, 'exec:shell', {
-      command: `node ".suny-repomap.js" "${normalizedPath}"`,
-      cwd: projectPath,
-      requiresConfirmation: false,
-    }, 25_000) as { stdout?: string; stderr?: string; output?: string; exitCode?: number };
-
-    // Bridge returns combined stream output under `output` (not `stdout`).
-    const raw = (result?.output ?? result?.stdout ?? '').trim();
-    if (!raw) {
-      const stderr = (result?.stderr ?? '').trim();
-      throw new Error(`Repomap script produced no output${stderr ? ': ' + stderr.slice(0, 200) : ''}`);
-    }
-    // Output may include status lines before/after the JSON. Extract the first {...} block.
-    const jsonStart = raw.indexOf('{');
-    const jsonEnd = raw.lastIndexOf('}');
-    if (jsonStart === -1 || jsonEnd === -1 || jsonEnd <= jsonStart) {
-      throw new Error(`Repomap output not JSON: ${raw.slice(0, 120)}`);
-    }
-    return JSON.parse(raw.slice(jsonStart, jsonEnd + 1));
-  } finally {
-    // Always clean up temp script
-    sendToBridge(userId, 'exec:delete_file', { path: scriptPath }, 5_000).catch(() => {});
-  }
+  return {};
 }
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

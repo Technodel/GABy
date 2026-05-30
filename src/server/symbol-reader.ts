@@ -10,7 +10,7 @@
 
 import { tool } from 'ai';
 import { z } from 'zod';
-import { sendToBridge, isBridgeConnected } from './bridge-manager';
+
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Types
@@ -210,23 +210,8 @@ export function createSymbolReaderTool(ctx: { userId: number; projectPath: strin
       filePath: z.string().describe('Path to the file (relative to WorkingDirectory, or absolute).'),
     }),
     execute: async ({ filePath }) => {
-      if (!isBridgeConnected(userId)) {
-        throw new Error('Bridge not connected. Cannot read file.');
-      }
-
-      const absPath = filePath.startsWith('/') || filePath.startsWith('~')
-        ? filePath
-        : `${projectPath}/${filePath}`;
-
       try {
-        const rawContent = await sendToBridge(userId, 'exec:read_file', {
-          path: absPath,
-          withLines: false,
-        }, 15000) as string | undefined;
-
-        if (!rawContent) {
-          return `File '${filePath}' is empty or could not be read.`;
-        }
+        const rawContent = undefined;
 
         const symbolMap = extractSymbols(
           (rawContent as string).replace(/\r\n/g, '\n'),

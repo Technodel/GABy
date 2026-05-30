@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ChevronRight, ChevronDown, Plus, FolderOpen, Folder, Trash2, Edit3, User, Play, Check, X, Brain } from 'lucide-react';
 import FileTreeNode from './FileTreeNode';
 import ReportBadgeButton from './ReportBadgeButton';
@@ -449,7 +449,7 @@ export default function SidebarContent(props: SidebarContentProps) {
                     {devServerLoading ? 'Starting...' : 'Start Dev Server'}
                   </button>
                   <div style={{ fontSize: 10, color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                    Dev server shows your app live in browser. Bridge controls file/terminal actions; dev server controls preview only.
+                    Dev server shows your app live in browser.
                   </div>
                 </div>
               )}

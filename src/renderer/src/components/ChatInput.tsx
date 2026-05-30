@@ -329,7 +329,7 @@ export default function ChatInput(props: ChatInputProps) {
             {talkMode ? <MessageSquare size={15} /> : <Pencil size={15} />}
           </button>
         )}
-        {/* Terminal button — always visible, disabled when bridge offline */}
+        {/* Terminal button — always visible */}
         <button
           className="btn btn-icon btn-secondary"
           onClick={() => { setShowTerminal(v => !v); if (!showTerminal) setTimeout(() => termInputRef.current?.focus(), 100); }}

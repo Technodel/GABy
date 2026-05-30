@@ -68,20 +68,32 @@ const PLAN_FEATURES: Record<string, { name: string; features: string[]; highligh
       'Priority support',
     ],
   },
+  opus: {
+    name: 'OPUS 4.7',
+    highlight: '0 fees',
+    features: [
+      'Complicated high level coding',
+      'Zero markup on API costs',
+      'Intelligent token caching',
+      'Hybrid model routing',
+    ],
+  },
 };
 
-const MODE_ICONS: Record<string, string> = { free: '⚡', fast: '🚀', smart: '🧠', pro: '💎' };
+const MODE_ICONS: Record<string, string> = { free: '⚡', fast: '🚀', smart: '🧠', pro: '💎', opus: '🔮' };
 const MODE_ACCENT: Record<string, string> = {
   free: '#10b981',
   fast: '#f59e0b',
   smart: '#3b82f6',
   pro: '#6c63ff',
+  opus: '#a855f7',
 };
 const MODE_BG: Record<string, string> = {
   free: 'rgba(16,185,129,0.08)',
   fast: 'rgba(245,158,11,0.08)',
   smart: 'rgba(59,130,246,0.08)',
   pro: 'rgba(108,99,255,0.08)',
+  opus: 'rgba(168,85,247,0.08)',
 };
 
 export default function PricingPlans() {
@@ -147,7 +159,7 @@ export default function PricingPlans() {
         padding: '32px 24px 48px', maxWidth: 1100, margin: '0 auto',
         flexWrap: 'wrap', alignItems: 'stretch',
       }}>
-        {['free', 'fast', 'smart', 'pro'].map(mode => {
+        {['free', 'fast', 'smart', 'pro', 'opus'].map(mode => {
           const pm = priceMap[mode];
           const plan = PLAN_FEATURES[mode];
           const isFree = mode === 'free';
@@ -284,7 +296,7 @@ export default function PricingPlans() {
         }}>
           {/* Header row */}
           <div style={{
-            display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr',
+            display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr',
             background: 'var(--bg-tertiary, var(--bg-secondary))',
             borderBottom: '2px solid var(--border)',
           }}>
@@ -293,6 +305,7 @@ export default function PricingPlans() {
             <div style={{ padding: '10px 16px', textAlign: 'center', fontWeight: 700, color: '#f59e0b', fontSize: 12 }}>🚀 Fast</div>
             <div style={{ padding: '10px 16px', textAlign: 'center', fontWeight: 700, color: '#3b82f6', fontSize: 12 }}>🧠 Smart</div>
             <div style={{ padding: '10px 16px', textAlign: 'center', fontWeight: 700, color: '#6c63ff', fontSize: 12 }}>💎 Pro</div>
+            <div style={{ padding: '10px 16px', textAlign: 'center', fontWeight: 700, color: '#a855f7', fontSize: 12 }}>🔮 Opus</div>
           </div>
           {[
             {
@@ -301,6 +314,7 @@ export default function PricingPlans() {
               fast: priceMap['fast'] ? fmtPrice(priceMap['fast'].input_price_per_1m) : '—',
               smart: priceMap['smart'] ? fmtPrice(priceMap['smart'].input_price_per_1m) : '—',
               pro: priceMap['pro'] ? fmtPrice(priceMap['pro'].input_price_per_1m) : '—',
+              opus: priceMap['opus'] ? fmtPrice(priceMap['opus'].input_price_per_1m) : '—',
             },
             {
               label: 'Output price / 1M tokens',
@@ -308,26 +322,27 @@ export default function PricingPlans() {
               fast: priceMap['fast'] ? fmtPrice(priceMap['fast'].output_price_per_1m) : '—',
               smart: priceMap['smart'] ? fmtPrice(priceMap['smart'].output_price_per_1m) : '—',
               pro: priceMap['pro'] ? fmtPrice(priceMap['pro'].output_price_per_1m) : '—',
+              opus: priceMap['opus'] ? fmtPrice(priceMap['opus'].output_price_per_1m) : '—',
             },
-            { label: 'Daily message limit', free: '100/day', fast: '500/day', smart: 'Unlimited', pro: 'Unlimited' },
-            { label: 'Token pricing', free: 'Free', fast: 'Per token', smart: 'Per token', pro: 'Per token' },
-            { label: 'Web search', free: '✓', fast: '✓', smart: '✓', pro: '✓' },
-            { label: 'Vision / Image analysis', free: '—', fast: '✓', smart: '✓', pro: '✓' },
-            { label: 'File editing tools', free: '—', fast: '✓', smart: '✓', pro: '✓' },
-            { label: 'Git checkpoints', free: '—', fast: '✓', smart: '✓', pro: '✓' },
-            { label: 'Memory (save/recall)', free: '—', fast: '✓', smart: '✓', pro: '✓' },
-            { label: 'Lint self-correction', free: '—', fast: '✓', smart: '✓', pro: '✓' },
-            { label: 'Extended reasoning steps', free: '—', fast: '—', smart: '✓', pro: '✓' },
-            { label: 'Architecture-aware planning', free: '—', fast: '—', smart: '✓', pro: '✓' },
-            { label: 'Test self-correction', free: '—', fast: '—', smart: '—', pro: '✓ (5 retries)' },
-            { label: 'Hypothesis engine', free: '—', fast: '—', smart: '—', pro: '✓' },
-            { label: 'Self-revision (2nd pass)', free: '—', fast: '—', smart: '—', pro: '✓' },
-            { label: 'Subtask delegation', free: '—', fast: '—', smart: '—', pro: '✓' },
-            { label: 'MCP integration', free: '—', fast: '—', smart: '—', pro: '✓' },
-            { label: 'Priority support', free: '—', fast: '—', smart: '—', pro: '✓' },
+            { label: 'Daily message limit', free: '100/day', fast: '500/day', smart: 'Unlimited', pro: 'Unlimited', opus: 'Unlimited' },
+            { label: 'Token pricing', free: 'Free', fast: 'Per token', smart: 'Per token', pro: 'Per token', opus: 'Per token' },
+            { label: 'Web search', free: '✓', fast: '✓', smart: '✓', pro: '✓', opus: '✓' },
+            { label: 'Vision / Image analysis', free: '—', fast: '✓', smart: '✓', pro: '✓', opus: '✓' },
+            { label: 'File editing tools', free: '—', fast: '✓', smart: '✓', pro: '✓', opus: '✓' },
+            { label: 'Git checkpoints', free: '—', fast: '✓', smart: '✓', pro: '✓', opus: '✓' },
+            { label: 'Memory (save/recall)', free: '—', fast: '✓', smart: '✓', pro: '✓', opus: '✓' },
+            { label: 'Lint self-correction', free: '—', fast: '✓', smart: '✓', pro: '✓', opus: '✓' },
+            { label: 'Extended reasoning steps', free: '—', fast: '—', smart: '✓', pro: '✓', opus: '✓' },
+            { label: 'Architecture-aware planning', free: '—', fast: '—', smart: '✓', pro: '✓', opus: '✓' },
+            { label: 'Test self-correction', free: '—', fast: '—', smart: '—', pro: '✓ (5 retries)', opus: '✓ (5 retries)' },
+            { label: 'Hypothesis engine', free: '—', fast: '—', smart: '—', pro: '✓', opus: '✓' },
+            { label: 'Self-revision (2nd pass)', free: '—', fast: '—', smart: '—', pro: '✓', opus: '✓' },
+            { label: 'Subtask delegation', free: '—', fast: '—', smart: '—', pro: '✓', opus: '✓' },
+            { label: 'MCP integration', free: '—', fast: '—', smart: '—', pro: '✓', opus: '✓' },
+            { label: 'Priority support', free: '—', fast: '—', smart: '—', pro: '✓', opus: '✓' },
           ].map((row, i) => (
             <div key={i} style={{
-              display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr',
+              display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 1fr',
               borderBottom: i < 15 ? '1px solid var(--border)' : 'none',
               background: i % 2 === 0 ? 'var(--bg-secondary)' : 'transparent',
             }}>
@@ -336,6 +351,7 @@ export default function PricingPlans() {
               <div style={{ padding: '10px 16px', textAlign: 'center', color: 'var(--text-muted)' }}>{row.fast}</div>
               <div style={{ padding: '10px 16px', textAlign: 'center', color: '#3b82f6', fontWeight: 500 }}>{row.smart}</div>
               <div style={{ padding: '10px 16px', textAlign: 'center', color: 'var(--accent)', fontWeight: 500 }}>{row.pro}</div>
+              <div style={{ padding: '10px 16px', textAlign: 'center', color: '#a855f7', fontWeight: 500 }}>{row.opus}</div>
             </div>
           ))}
         </div>

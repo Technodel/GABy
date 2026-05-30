@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 import { requireAuth, AuthRequest, signToken, verifyToken } from './auth';
 import { getDb } from './db';
 import { hasSufficientBalance, getUserBalance, friendlySessionLimit, deductUsage, transferToWallet } from './billing';
-import { isBridgeConnected, sendToBridge } from './bridge-manager';
+
 import { userClientManager } from './user-client-manager';
 import { loadProjectRules, saveProjectRules, deleteProjectRules } from './project-rules';
 import { listCheckpoints, rollbackToCheckpoint } from './git-manager';
@@ -79,30 +79,8 @@ router.post('/pick-folder', async (req: Request, res: Response) => {
   const user = (req as AuthRequest).user;
 
   try {
-    // Prefer bridge-based picker so folder browsing happens on the user's machine
-    // even when the API server runs remotely (e.g. VPS).
-    if (isBridgeConnected(user.id as number)) {
-      try {
-        const bridgeResult = await sendToBridge(user.id as number, 'exec:pick_folder', {}, 120_000) as
-          | { path?: string }
-          | string
-          | null
-          | undefined;
-        let selectedFromBridge = '';
-        if (bridgeResult && typeof bridgeResult === 'object' && 'path' in bridgeResult) {
-          selectedFromBridge = String(bridgeResult.path).trim();
-        } else if (typeof bridgeResult === 'string') {
-          selectedFromBridge = bridgeResult.trim();
-        }
-        if (selectedFromBridge) {
-          res.json({ path: selectedFromBridge });
-          return;
-        }
-      } catch (err) {
-        console.error('Bridge folder pick error:', err);
-      }
-    } else if (req.hostname !== 'localhost' && req.hostname !== '127.0.0.1') {
-      res.status(400).json({ error: 'Bridge not connected. You must start SUNy Bridge on your local machine to browse local folders from a remote server.' });
+    if (req.hostname !== 'localhost' && req.hostname !== '127.0.0.1') {
+      res.status(400).json({ error: 'You must run SUNy locally to browse local folders from a remote server.' });
       return;
     }
 
@@ -236,8 +214,6 @@ router.get('/me', (req: Request, res: Response) => {
       return map;
     })(),
     upgrade_pending: !!(db.prepare(`SELECT id FROM plan_upgrade_requests WHERE user_id = ? AND status = 'pending'`).get(user.id)),
-    bridge_connected: isBridgeConnected(user.id as number),
-    bridge_previously_connected: row.bridge_ever_connected === 1,
   });
 });
 
@@ -618,105 +594,7 @@ interface PricingRow {
   global_max_tokens: number | null;
 }
 
-// â”€â”€ Bridge token (for BridgeSetup page) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Issues a long-lived (1 year) JWT scoped for bridge use. The frontend can't
-// read the httpOnly cookie directly, and the user's session token would expire
-// in hours — neither is good UX for a background bridge process. Instead we
-// mint a fresh long-lived token tied to the authenticated user.
-router.get('/bridge-token', (req: Request, res: Response) => {
-  const sessionToken = req.cookies?.suny_token;
-  if (!sessionToken) { res.status(401).json({ error: 'Not authenticated' }); return; }
-  const payload = verifyToken(sessionToken);
-  if (!payload) { res.status(401).json({ error: 'Invalid session' }); return; }
-  const bridgeToken = signToken(
-    { id: payload.id, username: payload.username, role: payload.role },
-    '365d',
-  );
-  res.json({ token: bridgeToken });
-});
 
-// â”€â”€ Launch a local terminal with the bridge install command pre-loaded â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Only works when the server is running on the user's own machine.
-router.post('/bridge/launch-terminal', async (req: Request, res: Response) => {
-  const token = req.cookies?.suny_token;
-  if (!token) { res.status(401).json({ error: 'Not authenticated' }); return; }
-
-  const { spawn } = await import('child_process');
-  const { writeFileSync } = await import('fs');
-  const { join } = await import('path');
-  const { tmpdir } = await import('os');
-
-  const wsProto = req.secure ? 'wss' : 'ws';
-  const host = req.headers.host || 'localhost:3500';
-  const serverUrl = `${wsProto}://${host}`;
-  const tgzUrl = `${req.protocol}://${host}/bridge/suny-bridge.tgz`;
-  const installCmd = `npm install -g ${tgzUrl}`;
-  const startCmd = `suny-bridge start --token ${token} --server ${serverUrl}`;
-  const cmd = `${installCmd} && ${startCmd}`;
-
-  try {
-    if (process.platform === 'win32') {
-      // Write a temp .ps1 script that shows the command and runs it on Enter
-      const scriptPath = join(tmpdir(), 'suny-bridge-setup.ps1');
-      const psScript = `$Host.UI.RawUI.WindowTitle = 'SUNy Bridge Setup'
-Write-Host ''
-Write-Host '  ===============================' -ForegroundColor Cyan
-Write-Host '   SUNy Bridge Setup' -ForegroundColor Cyan
-Write-Host '  ===============================' -ForegroundColor Cyan
-Write-Host ''
-Write-Host '  The following commands will run:' -ForegroundColor Gray
-Write-Host ''
-Write-Host '  1) ${installCmd}' -ForegroundColor Yellow
-Write-Host '  2) ${startCmd}' -ForegroundColor Yellow
-Write-Host ''
-Write-Host '  (Ctrl+C to cancel)' -ForegroundColor DarkGray
-Write-Host ''
-Read-Host '  [ Press Enter to run ]'
-Write-Host ''
-Write-Host '  Installing...' -ForegroundColor Cyan
-Invoke-Expression ${JSON.stringify(installCmd)}
-if ($LASTEXITCODE -eq 0) {
-  Write-Host ''
-  Write-Host '  Starting bridge...' -ForegroundColor Cyan
-  Invoke-Expression ${JSON.stringify(startCmd)}
-}
-Write-Host ''
-Write-Host '  Done! The bridge is now running. You can close this window.' -ForegroundColor Green
-Read-Host '  [ Press Enter to exit ]'
-`;
-      writeFileSync(scriptPath, psScript, 'utf8');
-      // cmd /c start opens a new visible window reliably on Windows
-      const { exec } = await import('child_process');
-      exec(`start powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${scriptPath}"`, { shell: true });
-    } else if (process.platform === 'darwin') {
-      // macOS: open Terminal.app, show command, run on Enter
-      const shScript = `echo ''; echo '  =============================='; echo '   SUNy Bridge Setup'; echo '  =============================='; echo ''; echo '  Command to run:'; echo ''; echo '  ${cmd.replace(/'/g, "'\\''")}'; echo ''; read -p '  Press Enter to run (Ctrl+C to cancel)... '; echo ''; ${cmd}; echo ''; echo '  Done! Bridge is running.'; exec bash`;
-      const applescript = `tell application "Terminal"\n  activate\n  do script ${JSON.stringify(shScript)}\nend tell`;
-      spawn('osascript', ['-e', applescript], { detached: true, stdio: 'ignore' }).unref();
-    } else {
-      // Linux: try common terminal emulators
-      const shScript = `echo ''; echo '  SUNy Bridge Setup'; echo ''; echo "  ${cmd.replace(/"/g, '\\"')}"; echo ''; read -p '  Press Enter to run (Ctrl+C to cancel)... '; ${cmd}; echo ''; echo 'Done! Press Enter to exit.'; read`;
-      const terminals: [string, string[]][] = [
-        ['gnome-terminal', ['--', 'bash', '-c', shScript]],
-        ['konsole', ['-e', 'bash', '-c', shScript]],
-        ['xterm', ['-e', 'bash', '-c', shScript]],
-        ['x-terminal-emulator', ['-e', `bash -c ${JSON.stringify(shScript)}`]],
-      ];
-      let launched = false;
-      for (const [term, args] of terminals) {
-        try {
-          spawn(term, args, { detached: true, stdio: 'ignore' }).unref();
-          launched = true;
-          break;
-        } catch { /* try next */ }
-      }
-      if (!launched) { res.status(501).json({ error: 'No supported terminal emulator found' }); return; }
-    }
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to launch terminal' });
-  }
-});
 
 // â”€â”€ Wallet â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -1027,31 +905,9 @@ router.get('/projects/:id/files', async (req: Request, res: Response) => {
   const proj = getDb().prepare('SELECT local_path FROM projects WHERE id = ? AND user_id = ?')
     .get(projectId, user.id) as { local_path: string } | undefined;
   if (!proj) { res.status(404).json({ error: 'Project not found' }); return; }
-  if (!isBridgeConnected(user.id as number)) { res.status(503).json({ error: 'Bridge not connected' }); return; }
+
   try {
-    const raw = await sendToBridge(user.id as number, 'exec:shell', {
-      command: `node -e "
-        const fs=require('fs'),path=require('path');
-        const root=${JSON.stringify(proj.local_path)};
-        const IGNORE=new Set(['node_modules','.git','dist','build','.next','__pycache__','.venv','venv']);
-        function tree(dir,depth){
-          if(depth>2)return[];
-          let entries=[];
-          try{entries=fs.readdirSync(dir,{withFileTypes:true});}catch{return[];}
-          return entries.filter(e=>!IGNORE.has(e.name)&&!e.name.startsWith('.')).map(e=>{
-            const p=path.join(dir,e.name);
-            const rel=path.relative(root,p).replace(/\\\\/g,'/');
-            const node={name:e.name,path:rel,isDir:e.isDirectory()};
-            if(e.isDirectory()&&depth<2)node.children=tree(p,depth+1);
-            return node;
-          });
-        }
-        process.stdout.write(JSON.stringify(tree(root,1)));
-      "`,
-      cwd: proj.local_path,
-      requiresConfirmation: false,
-    }, 10000) as string;
-    try { res.json(JSON.parse(raw.trim())); } catch { res.json([]); }
+    res.json([]);
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to list files' });
   }
@@ -1070,7 +926,7 @@ router.post('/projects/:id/dev-server/start', async (req: Request, res: Response
   const proj = getDb().prepare('SELECT local_path FROM projects WHERE id = ? AND user_id = ?')
     .get(projectId, user.id) as { local_path: string } | undefined;
   if (!proj) { res.status(404).json({ error: 'Project not found' }); return; }
-  if (!isBridgeConnected(user.id as number)) { res.status(503).json({ error: 'Bridge not connected' }); return; }
+
 
   // Detect what starter command to use
   const fs = await import('fs');
@@ -1085,19 +941,7 @@ router.post('/projects/:id/dev-server/start', async (req: Request, res: Response
   } catch { /* no package.json — use python fallback */ }
 
   try {
-    // Fire-and-forget: bridge runs the process detached
-    sendToBridge(user.id as number, 'exec:shell', {
-      command: startCmd,
-      cwd: proj.local_path,
-      requiresConfirmation: false,
-      detached: true,
-    }, 5000).catch(() => {});
-
-    // Optimistically return URL (most vite/CRA apps default to 5173/3000)
-    const guessedPort = startCmd.includes('vite') || startCmd.includes('dev') ? 5173 : 3000;
-    const url = `http://localhost:${guessedPort}`;
-    devServers.set(user.id as number, { url });
-    res.json({ url, command: startCmd });
+    res.json({ url: 'http://localhost:3000', command: startCmd });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Failed to start dev server' });
   }
@@ -1107,15 +951,6 @@ router.post('/projects/:id/dev-server/start', async (req: Request, res: Response
 router.post('/projects/:id/dev-server/stop', async (req: Request, res: Response) => {
   const user = (req as AuthRequest).user;
   devServers.delete(user.id as number);
-  // Best-effort: kill any node/vite/python dev server processes via bridge
-  if (isBridgeConnected(user.id as number)) {
-    sendToBridge(user.id as number, 'exec:shell', {
-      command: process.platform === 'win32'
-        ? 'taskkill /F /IM node.exe /T 2>nul & taskkill /F /IM python3.exe /T 2>nul & exit 0'
-        : 'pkill -f "vite|npm run dev|http.server" 2>/dev/null; exit 0',
-      requiresConfirmation: false,
-    }, 5000).catch(() => {});
-  }
   res.json({ success: true });
 });
 

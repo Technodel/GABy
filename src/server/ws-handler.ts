@@ -1426,7 +1426,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         iterations: result.iterations,
         proof_summary: result.proofSummary,
         routing_reason: routingReason,
-        resolved_mode: effectiveMode,
+        resolved_mode: msg.mode === 'opus' ? 'opus' : effectiveMode,
         billing_error: billing.billingError,
         turn_report: {
           durationMs: result.proofSummary.durationMs,

@@ -17,7 +17,7 @@
  *   None                â†’ skip
  */
 
-import { sendToBridge, isBridgeConnected } from './bridge-manager';
+
 
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Types
@@ -66,7 +66,7 @@ export async function runLint(
   changedFiles?: string[],
   signal?: AbortSignal,
 ): Promise<LintResult | null> {
-  if (!isBridgeConnected(userId)) return null;
+
 
   const detected = await detectCommand(userId, projectPath, changedFiles);
   if (!detected) return null;
@@ -234,33 +234,13 @@ function parseResult(raw: string, command: string): LintResult {
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function execShell(userId: number, cmd: string, cwd: string): Promise<string> {
-  // Bridge expects `command`, not `cmd`. Result `output` contains combined stream lines.
-  const res = await sendToBridge(userId, 'exec:shell', { command: cmd, cwd, requiresConfirmation: false });
-  if (res && typeof res === 'object') {
-    const { output = '', stdout = '', stderr = '' } = res as { output?: string; stdout?: string; stderr?: string };
-    return (output || `${stdout}\n${stderr}`).trim();
-  }
-  return String(res ?? '');
+  return '';
 }
 
 async function readFileSafe(userId: number, absPath: string): Promise<string | null> {
-  try {
-    const res = await sendToBridge(userId, 'exec:read_file', { path: absPath });
-    if (typeof res === 'string') return res;
-    if (res && typeof res === 'object' && typeof (res as { content?: unknown }).content === 'string') {
-      return (res as { content: string }).content;
-    }
-    return null;
-  } catch {
-    return null;
-  }
+  return null;
 }
 
 async function fileExists(userId: number, absPath: string): Promise<boolean> {
-  try {
-    await sendToBridge(userId, 'exec:path_exists', { path: absPath });
-    return true;
-  } catch {
-    return false;
-  }
+  return false;
 }

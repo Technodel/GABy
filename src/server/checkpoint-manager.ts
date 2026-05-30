@@ -85,17 +85,7 @@ export async function createCheckpointRecord(
     await gitCreateCheckpoint(userId, projectPath, label).catch(() => {});
 
     // Get the latest git SHA
-    let sha = '';
-    try {
-      const { sendToBridge } = require('./bridge-manager');
-      sha = (await sendToBridge(userId, 'exec:shell', {
-        command: 'git rev-parse HEAD',
-        cwd: projectPath,
-        requiresConfirmation: false,
-      }, 5_000) as string).trim();
-    } catch {
-      sha = 'unknown';
-    }
+    let sha = 'unknown';
 
     // Store in DB
     await ensureTable();

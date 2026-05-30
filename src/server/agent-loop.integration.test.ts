@@ -107,9 +107,6 @@ vi.mock('./user-client-manager', () => ({
   },
 }));
 
-vi.mock('./bridge-manager', () => ({
-  isBridgeConnected: vi.fn().mockReturnValue(true),
-}));
 
 vi.mock('./context-manager', () => ({
   trimHistory: vi.fn().mockImplementation((msgs) => msgs),

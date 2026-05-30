@@ -66,7 +66,6 @@ import {
 import { storeBlueprintEntry } from './blueprint-memory';
 import { extractAndStoreEntities } from './entity-store';
 import type { AgentMessage } from './agent';
-import { isBridgeConnected } from './bridge-manager';
 
 export { AgentMessage };
 
@@ -340,6 +339,16 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
 
   // Resolve AUTO Ã¢â€ â€™ real mode via keyword classification
   let resolvedMode = mode === 'auto' ? classifyAutoMode(userMessage, !!imageData, history) : mode;
+
+  // ── Hybrid Routing for OPUS 4.7 ──
+  // If the user selected 'opus' but the task is basic (free/fast), route it to 'fast' to save cost.
+  if (resolvedMode === 'opus') {
+    const taskComplexity = classifyAutoMode(userMessage, !!imageData, history);
+    if (taskComplexity === 'free' || taskComplexity === 'fast') {
+      console.log(`[agent-loop] Hybrid routing (OPUS): task complexity is ${taskComplexity}, downgrading to 'fast' mode.`);
+      resolvedMode = 'fast';
+    }
+  }
 
   // Ã¢â€â‚¬Ã¢â€â‚¬ Anti-hallucination guard Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
   // Free-mode models are too weak to reliably drive the bridge tool calls.
@@ -1657,7 +1666,7 @@ If your tools are not working, say:
         fullText = `**Plan:**\n${fullText}\n\n**Execution:**\n${execText}`;
       }
 
-      // Ã¢â€â‚¬Ã¢â€â‚¬ Apply text-based edit formats Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+      // ── Apply text-based edit formats ──
       if (textFormat && projectPath && fullText) {
         const applyFn = editFormat === 'diff' ? applyDiffFormat : applyWholeFormat;
         const applied = applyFn(fullText, projectPath);
@@ -1666,7 +1675,7 @@ If your tools are not working, say:
             changedFiles.add(r.file.startsWith('/') ? r.file : `${projectPath}/${r.file}`);
             invalidateRepoMap(userId, projectPath);
           } else {
-            console.warn(`[agent-loop] ${editFormat} apply failed: ${r.file} — ${r.error}`);
+            console.warn(`[agent-loop] ${editFormat} apply failed: ${r.file} —  ${r.error}`);
           }
         }
       }
