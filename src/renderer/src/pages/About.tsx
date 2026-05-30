@@ -214,15 +214,13 @@ function EnglishContent() {
       <div className="card" style={{ marginBottom: 24, borderColor: '#f59e0b', borderWidth: 2, background: 'rgba(245,158,11,0.05)' }}>
         <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 6 }}>⚡ Token Saving Engine — Pay Less Than Direct AI Model Pricing</h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.7, marginBottom: 16 }}>
-          SUNy's dedicated Token Saving Engine uses <strong>5 optimization strategies</strong> to reduce your token usage on every request — making it cheaper to use SUNy than the original AI models directly.
+          SUNy's proprietary Token Saving Engine uses an orchestration layer to drastically reduce your token usage on every request — making it fundamentally cheaper to use SUNy than directly querying the original AI models.
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
           {[
-            { title: '🔄 Prompt Caching', desc: 'Repeated context (system prompts, conversation history) is cached at the provider level. Cache hits cost 90% less than fresh tokens — the #1 savings driver.' },
-            { title: '✂️ Tool Schema Pruning', desc: 'Instead of loading all 25+ tool schemas every turn, the engine only includes tools relevant to the current task. A coding task skips web_search; a Q&A skips file_write. Saves ~2,000–4,000 tokens per turn.' },
-            { title: '📦 Conversation Compression', desc: 'Older turns are compressed into concise summaries instead of being dropped entirely. You keep the context, at a fraction of the token cost.' },
-            { title: '🔍 Redundant File Dedup', desc: 'When the same file is read twice in a session, the second read is replaced with a reference to the first — eliminating duplicate content tokens.' },
-            { title: '🧹 Boilerplate Stripping', desc: 'Common AI filler phrases ("Sure!", "I\'ll help you with that") are stripped from assistant history before sending to the model — every token counts.' },
+            { title: '🔄 Dynamic Context Optimization', desc: 'SUNy intelligently manages its memory and history, keeping requests incredibly lean without losing the plot or context of your complex tasks.' },
+            { title: '✂️ Adaptive Capability Routing', desc: 'Instead of loading a heavy, one-size-fits-all payload, the engine seamlessly adapts to the specific task, loading only the exact intelligence and tools needed for the current step.' },
+            { title: '📦 Lossless Execution', desc: 'The engine strips out hidden redundancies and overhead. SUNy delivers the exact same high-quality code and answers while using a fraction of the raw tokens.' },
           ].map(f => (
             <div key={f.title} style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(245,158,11,0.25)', background: 'var(--bg)' }}>
               <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{f.title}</h3>
@@ -411,15 +409,13 @@ function ArabicContent() {
       <div className="card" style={{ marginBottom: 24, borderColor: '#f59e0b', borderWidth: 2, background: 'rgba(245,158,11,0.05)' }}>
         <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 6 }}>⚡ محرك توفير التوكنز — ادفع أقل من تسعير نموذج الذكاء الاصطناعي مباشرة</h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.8, marginBottom: 16 }}>
-          محرك توفير التوكنز المخصص في SUNy يستخدم <strong>5 استراتيجيات تحسين</strong> لتقليل استخدام التوكنز في كل طلب — مما يجعل استخدام SUNy أرخص من استخدام نماذج الذكاء الاصطناعي مباشرة.
+          محرك توفير التوكنز الخاص بـ SUNy يستخدم طبقة تنسيق متطورة لتقليل استخدام التوكنز بشكل جذري في كل طلب — مما يجعل استخدام SUNy أرخص بكثير من الاستعلام المباشر لنماذج الذكاء الاصطناعي الأصلية.
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
           {[
-            { title: '🔄 التخزين المؤقت للنصوص', desc: 'السياق المتكرر (نصوص النظام، تاريخ المحادثة) يتم تخزينه مؤقتاً عند المزود. نتائج التخزين المؤقت تكلف 90% أقل من التوكنز الجديدة.' },
-            { title: '✂️ تقليم مخططات الأدوات', desc: 'بدلاً من تحميل جميع مخططات الأدوات في كل دورة، يحمّل المحرك فقط الأدوات المتعلقة بالمهمة الحالية. يوفر 2,000-4,000 توكن في كل دورة.' },
-            { title: '📦 ضغط المحادثة', desc: 'الدورات القديمة تُضغط إلى ملخصات مختصرة بدلاً من حذفها بالكامل. تحتفظ بالسياق بجزء بسيط من تكلفة التوكنز.' },
-            { title: '🔍 إزالة تكرار الملفات', desc: 'عند قراءة نفس الملف مرتين في جلسة واحدة، تُستبدل القراءة الثانية بمرجع للأولى — مما يزيل توكنز المحتوى المكررة.' },
-            { title: '🧹 إزالة النصوص الزائدة', desc: 'العبارات التمهيدية الشائعة للذكاء الاصطناعي تُزال من سجل المساعد قبل إرسالها إلى النموذج — كل توكن يُحسب.' },
+            { title: '🔄 تحسين السياق الديناميكي', desc: 'يقوم SUNy بإدارة ذاكرته وتاريخه بذكاء، مما يجعل الطلبات خفيفة للغاية دون فقدان سياق مهامك المعقدة.' },
+            { title: '✂️ التوجيه التكيفي للقدرات', desc: 'بدلاً من تحميل حمولة ثقيلة تناسب الجميع، يتكيف المحرك بسلاسة مع المهمة المحددة، ويحمّل فقط الذكاء الدقيق والأدوات المطلوبة للخطوة الحالية.' },
+            { title: '📦 تنفيذ بدون فقدان', desc: 'يقوم المحرك بإزالة التكرارات المخفية والنفقات العامة. يقدم SUNy نفس التعليمات البرمجية والإجابات عالية الجودة مع استخدام جزء بسيط من التوكنز الخام.' },
           ].map(f => (
             <div key={f.title} style={{ padding: '12px 14px', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(245,158,11,0.25)', background: 'var(--bg)' }}>
               <h3 style={{ fontSize: 14, fontWeight: 600, marginBottom: 6 }}>{f.title}</h3>

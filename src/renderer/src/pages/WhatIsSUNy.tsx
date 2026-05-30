@@ -63,7 +63,7 @@ const coreWins = [
   { title: '📦 @suny/sdk Plugin System', text: 'A full TypeScript SDK for building extensions. Custom tools, memory adapters, auth providers, and billing plugins with clean interfaces.' },
   { title: '📸 Rich Checkpoint Manager', text: 'Every change creates a DB-backed checkpoint with tags, file counts, and metadata. Full timeline UI with one-click rollback that works across projects.' },
   { title: '🔄 Integrated Scheduler Engine', text: 'Built-in cron scheduler that runs agent tasks at specified intervals. Hourly, daily, weekly, or custom cron expressions with run logs and failure tracking.' },
-  { title: '⚡ Token Saving Engine', text: 'A multi-layered cost optimization engine that uses Prompt Caching, Tool Schema Pruning, and Context Compression to reduce token usage by up to 60% per task.' },
+  { title: '⚡ Token Saving Engine', text: 'A multi-layered cost optimization engine that uses Dynamic Context Optimization, Adaptive Capability Routing, and Lossless Execution to reduce token usage by up to 60% per task.' },
 ];
 
 export default function WhatIsSUNy() {

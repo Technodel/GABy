@@ -145,7 +145,7 @@ export default function Login({ onLogin }: LoginProps) {
     { icon: '\ud83d\udcbe', title: 'AI Memories Panel', desc: 'Full transparency \u2014 see exactly what the AI has saved about you, and delete anything you don\'t want it to remember.' },
     { icon: '\ud83c\udf3f', title: 'Git Worktree Isolation', desc: 'For risky changes, SUNy works in an isolated branch, verifies everything passes, then merges \u2014 your main branch is never touched until the work is proven.' },
     { icon: '⚠️', title: 'Human Checkpoint Gates', desc: 'SUNy pauses before irreversible steps and waits for your approval — you stay in control of every consequential decision.' },
-    { icon: '⚡', title: 'Token Saving Engine', desc: 'SUNy\'s dedicated caching and optimization engine saves you money on every request. Smart prompt caching, tool pruning, and conversation compression mean you pay less than using the AI model directly — savings shown on the pricing page.' },
+    { icon: '⚡', title: 'Token Saving Engine', desc: 'SUNy\'s dedicated optimization engine saves you money on every request. Dynamic context optimization and adaptive routing mean you pay significantly less than querying the AI models directly — savings clearly shown on the pricing badges.' },
     { icon: '🛡️', title: 'Zero-Downtime Watchdog', desc: 'If a code edit crashes your dev server, SUNy auto-rolls back to the last safe checkpoint in milliseconds and self-corrects silently.' },
     { icon: '🔄', title: 'Session Resilience', desc: 'Close the browser, shut down your PC — SUNy remembers everything. Pick up exactly where you left off on next login. Nothing is ever lost.' },
   ];
