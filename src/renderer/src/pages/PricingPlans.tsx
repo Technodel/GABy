@@ -75,7 +75,7 @@ const PLAN_FEATURES: Record<string, { name: string; features: string[]; highligh
     ],
   },
   opus: {
-    name: 'OPUS 4.7',
+    name: 'OPUS 4.8',
     highlight: '',
     features: [
       'Complicated high level coding',

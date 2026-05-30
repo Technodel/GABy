@@ -342,7 +342,7 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
   // Resolve AUTO Ã¢â€ â€™ real mode via keyword classification
   let resolvedMode = mode === 'auto' ? classifyAutoMode(userMessage, !!imageData, history) : mode;
 
-  // ── Hybrid Routing for OPUS 4.7 ──
+  // ── Hybrid Routing for OPUS 4.8 ──
   // If the user selected 'opus' but the task is basic (free/fast), route it to 'fast' to save cost.
   if (resolvedMode === 'opus') {
     const taskComplexity = classifyAutoMode(userMessage, !!imageData, history);

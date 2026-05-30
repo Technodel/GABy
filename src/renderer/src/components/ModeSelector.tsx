@@ -61,11 +61,11 @@ export default function ModeSelector({ modes, selected, onChange, noBalance = fa
         })}
       </div>
 
-      {/* OPUS 4.7 pill aligned to the right */}
+      {/* OPUS 4.8 pill aligned to the right */}
       {opusMode && (
         <button
           onClick={() => onChange('opus')}
-          title={`Claude Opus 4.7 - ${opusMode.description}`}
+          title={`Claude Opus 4.8 - ${opusMode.description}`}
           style={{
             padding: '2px 14px',
             borderRadius: 999,
@@ -85,7 +85,7 @@ export default function ModeSelector({ modes, selected, onChange, noBalance = fa
             flexShrink: 0
           }}
         >
-          <span>OPUS 4.7</span>
+          <span>OPUS 4.8</span>
           {opusMode.savings_pct ? (
             <span style={{ fontSize: 9, fontWeight: 500, opacity: 0.8 }}>Up to {opusMode.savings_pct}% discount</span>
           ) : null}
