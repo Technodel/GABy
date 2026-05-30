@@ -15,6 +15,9 @@ interface PricingMode {
   description: string;
   input_price_per_1m: number;
   output_price_per_1m: number;
+  original_input_price_per_1m?: number;
+  original_output_price_per_1m?: number;
+  savings_pct?: number | null;
 }
 
 interface UserInfo {
@@ -167,8 +170,13 @@ export default function ProFeatures() {
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 8, lineHeight: 1.5 }}>{d.tier}</div>
                   {p && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 8 }}>
-                      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>In: <strong>{fmtPrice(p.input_price_per_1m)}</strong></span>
-                      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>Out: <strong>{fmtPrice(p.output_price_per_1m)}</strong></span>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                        In: {p.savings_pct ? <s style={{ opacity: 0.6, marginRight: 4 }}>{fmtPrice(p.original_input_price_per_1m)}</s> : null}
+                        <strong>{fmtPrice(p.input_price_per_1m)}</strong>
+                      </span>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                        Out: <strong>{fmtPrice(p.output_price_per_1m)}</strong>
+                      </span>
                     </div>
                   )}
                   <div style={{ fontSize: 11, fontWeight: 600, color: d.color }}>⚡ {d.speed}</div>

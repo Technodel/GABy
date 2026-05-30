@@ -85,7 +85,7 @@ router.get('/pricing-public', (_req: Request, res: Response) => {
       mode: m.mode,
       display_name: m.display_name,
       description: m.description,
-      input_price_per_1m: finalInput,
+      input_price_per_1m: effectiveInput1M,
       output_price_per_1m: finalOutput,
       original_input_price_per_1m: originalInput1M,
       original_output_price_per_1m: originalOutput1M,
