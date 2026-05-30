@@ -30,6 +30,8 @@ import { invalidateRepoMap, buildRepoMap } from './repo-map';
 import { searchCodeIndex, findImporters } from './code-index';
 import { gitAutoCommit, createCheckpoint } from './git-manager';
 import { trimHistory } from './context-manager';
+import { optimizeForTokens, logTokenSavingStats } from './token-saving-engine';
+import { optimizeForTokens, logTokenSavingStats, type TokenSavingStats } from './token-saving-engine';
 import { classifyTask, getActiveSkills } from './skill-loader';
 import { runLint } from './lint-runner';
 import { runTests, runFailingTests, buildTestFixPrompt } from './test-runner';
@@ -910,17 +912,32 @@ If your tools are not working, say:
         } catch { /* best-effort — fall through to plain trim */ }
       }
 
-      // Trim history to fit this provider's context window
-      const messages = trimHistory(rawMessagesForProvider, fullSystem, provider);
-      if (messages.length < rawMessagesForProvider.length) {
-        console.log(`[agent-loop] trimmed history ${rawMessages.length} Ã¢â€ â€™ ${messages.length} msgs for ${provider}`);
+      // ── TOKEN SAVING ENGINE ────────────────────────────────────────────────
+      const engineResult = optimizeForTokens({
+        messages: rawMessagesForProvider,
+        systemPrompt: fullSystem ?? '',
+        provider,
+        taskType: 'coding', // Could be inferred
+        allToolNames: effectiveTools ? Object.keys(effectiveTools) : []
+      });
+
+      const messages = engineResult.messages;
+      const optimizedSystem = engineResult.systemPrompt;
+      let toolsToUse = effectiveTools;
+
+      if (engineResult.prunedTools && effectiveTools) {
+        toolsToUse = { ...effectiveTools };
+        for (const pt of engineResult.prunedTools) {
+          delete toolsToUse[pt];
+        }
       }
+      // ───────────────────────────────────────────────────────────────────────
 
       // Inject Anthropic cache breakpoints when caching is enabled
       const cachingEnabled = await isCachingEnabled();
       const useAnthropicCache = cachingEnabled && provider === 'Anthropic';
       const { messages: finalMessages, useSystemParam } = useAnthropicCache
-        ? buildAnthropicCachedMessages(messages, fullSystem)
+        ? buildAnthropicCachedMessages(messages, optimizedSystem)
         : { messages, useSystemParam: true as const };
 
       // Ã¢â€â‚¬Ã¢â€â‚¬ DIAGNOSTIC: Log model call details Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
@@ -949,9 +966,9 @@ If your tools are not working, say:
 
       const result = streamText({
         model: model as LanguageModel,
-        system: useSystemParam ? fullSystem : undefined,
+        system: useSystemParam ? optimizedSystem : undefined,
         messages: finalMessages,
-        tools: effectiveTools,
+        tools: toolsToUse,
         // AI SDK v5 defaults stopWhen to stepCountIs(1), which kills agentic
         // multi-step flows (e.g. read Ã¢â€ â€™ edit, or write A Ã¢â€ â€™ write B). When the
         // model has tools available we need to let it iterate, otherwise it
@@ -1390,7 +1407,7 @@ If your tools are not working, say:
                 totalOutput += fuResult.usage?.outputTokens ?? 0;
                 console.log(`[agent-loop] FUNCTION-TAG: follow-up produced ${fuText.length} chars`);
               } else {
-                // Model didn't respond — stitch results together as a best-effort answer
+                // Model didn't respond —  stitch results together as a best-effort answer
                 fullText = results.map(r =>
                   `**${r.call.name}**: ${r.result.slice(0, 1000)}`
                 ).join('\n\n');
@@ -1414,9 +1431,9 @@ If your tools are not working, say:
         }
       }
 
-      // Ã¢â€â‚¬Ã¢â€â‚¬ Loop detection: if AI was stuck in a loop, inject self-correction Ã¢â€â‚¬Ã¢â€â‚¬
+      // ── Loop detection: if AI was stuck in a loop, inject self-correction ─────
       if (getLoopDetector(userId).isLoopReported) {
-        const loopMsg = '\n\n[SYSTEM: You were stuck in a repetitive loop. Step back, stop repeating yourself, and try a completely different approach. If you were reading the same files, stop — you already have the information you need.]\n\n';
+        const loopMsg = '\n\n[SYSTEM: You were stuck in a repetitive loop. Step back, stop repeating yourself, and try a completely different approach. If you were reading the same files, stop —  you already have the information you need.]\n\n';
         fullText = loopMsg + fullText;
         getLoopDetector(userId).rearm();
       }
@@ -1437,7 +1454,7 @@ If your tools are not working, say:
       const deepseekUsage = deepseekMeta?.['usage'] as Record<string, number> | undefined;
       totalCacheRead += deepseekUsage?.prompt_cache_hit_tokens ?? 0;
 
-      // Ã¢â€â‚¬Ã¢â€â‚¬ Increment per-user cached-tokens counter Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+      // ── Increment per-user cached-tokens counter ─────────────────────────────
       const stepCacheTokens = (anthropicMeta?.cacheCreationInputTokens ?? 0) +
                                (anthropicMeta?.cacheReadInputTokens ?? 0) +
                                (deepseekUsage?.prompt_cache_hit_tokens ?? 0);
@@ -1452,10 +1469,10 @@ If your tools are not working, say:
                updated_at = datetime('now')`,
             [userId, stepCacheTokens, stepCacheTokens],
           );
-        } catch { /* non-critical — don't fail agent loop for counter update */ }
+        } catch { /* non-critical —  don't fail agent loop for counter update */ }
       }
 
-      // Ã¢â€â‚¬Ã¢â€â‚¬ Phase 2.1: Real-time self-scoring after main response Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+      // ── Phase 2.1: Real-time self-scoring after main response ────────────────
       // Score SUNy's intermediate response immediately, not just at end of turn.
       // This catches drift while the conversation is still fresh.
       if (fullText && userMessage && projectPath) {
@@ -1984,9 +2001,9 @@ If your tools are not working, say:
               framework: testResult.framework,
             });
             // Surface the remaining failures in the chat
-            const remaining = testResult.failedTests.slice(0, 5).map(t => `Ã¢â‚¬Â¢ ${t.name}`).join('\n');
+            const remaining = testResult.failedTests.slice(0, 5).map(t => `• ${t.name}`).join('\n');
             fullText = (testFullText || fullText) +
-              `\n\nÃ¢Å¡Â Ã¯Â¸Â ${testResult.failCount} test(s) still failing after ${testPass} attempt(s):\n${remaining || testResult.output.slice(0, 400)}`;
+              `\n\n⚠  ${testResult.failCount} test(s) still failing after ${testPass} attempt(s):\n${remaining || testResult.output.slice(0, 400)}`;
           }
         } else if (testResult?.passed) {
           testPassed = true;
@@ -2125,6 +2142,10 @@ If your tools are not working, say:
         cacheReadTokens: totalCacheRead,
         iterations: steps || 1,
         resolvedMode,
+      });
+
+      const resultObj = {
+        text: fullText,
         changedFiles: Array.from(changedFiles),
         stepsExhausted,
         apiKeyId,
@@ -2145,6 +2166,13 @@ If your tools are not working, say:
           stepsExhausted,
         },
       };
+
+      // ── LOG TOKEN SAVING STATS ─────────────────────────────────────────────
+      if (engineResult && engineResult.stats) {
+        logTokenSavingStats(engineResult.stats);
+      }
+
+      return resultObj;
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
       const isLast = modelEntries.indexOf(modelEntries.find(m => m.model === model)!) === modelEntries.length - 1;
