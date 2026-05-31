@@ -489,6 +489,8 @@ export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu
 
   let modelEntries = await resolveModelsForTurn(resolvedMode, imageData, userMessage);
 
+  const isVisionRequest = !!imageData;
+
   let lastError: Error = new Error('No models available');
 
   // Track files changed during this turn (for git auto-commit + cache invalidation)
