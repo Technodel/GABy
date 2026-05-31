@@ -57,7 +57,7 @@ function messageTokens(msg: CoreMessage): number {
 
 function compressOlderAssistantTurn(msg: CoreMessage): CoreMessage {
   if (typeof msg.content === 'string') {
-    return { ...msg, content: '[Assistant text omitted for ephemeral memory]' };
+    return { ...msg, content: '[Assistant text omitted for ephemeral memory]' } as CoreMessage;
   }
   if (!Array.isArray(msg.content)) return msg;
 
@@ -106,7 +106,7 @@ export function trimHistory(
     if (rawMsg.role === 'user') userTurns++;
 
     let msg: CoreMessage = Array.isArray(rawMsg.content)
-      ? { ...rawMsg, content: compressToolResultsInContent(rawMsg.content) as CoreMessage['content'] }
+      ? { ...rawMsg, content: compressToolResultsInContent(rawMsg.content) as CoreMessage['content'] } as CoreMessage
       : rawMsg;
 
     // EPHEMERAL MEMORY: If older than 2 user turns, compress assistant reasoning to save huge amounts of tokens
@@ -123,7 +123,7 @@ export function trimHistory(
       const raw = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
       const maxChars = Math.max(100, Math.floor(remaining * 3.5));
       const truncated = raw.slice(0, maxChars) + '\n[...truncated to fit context window...]';
-      kept.unshift({ ...msg, content: truncated });
+      kept.unshift({ ...msg, content: truncated } as CoreMessage);
       break;
     } else {
       // Can't fit this message — stop here (all older messages dropped)

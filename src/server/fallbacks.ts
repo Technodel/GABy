@@ -11,7 +11,7 @@
  *     from './fallbacks';
  */
 
-import { sendToBridge, registerPathForUser } from './bridge-manager';
+import * as fs from 'fs';
 
 export const EMPTY_FINAL_REPLY_FALLBACKS = [
   "Done.",
@@ -70,25 +70,22 @@ export function pickNonRepeatingFallback(userId: number, choices: string[]): str
 }
 
 export async function quickProjectScan(userId: number, projectPath: string): Promise<string> {
-  // Ensure the path is registered with the bridge before listing.
-  // This is a safety net: the path may not be registered if the initial
-  // registration at agent-loop startup failed silently, or if the bridge
-  // reconnected and lost its in-memory path registry.
-  try { await registerPathForUser(userId, projectPath); } catch { /* best-effort */ }
-
-  const raw = await sendToBridge(userId, 'exec:list_dir', { path: projectPath }, 15000);
-  const payload = (raw || {}) as { entries?: Array<{ name: string; isDirectory?: boolean }> };
-  const entries = Array.isArray(payload.entries) ? payload.entries : [];
-  const dirs = entries.filter(e => e?.isDirectory).map(e => e.name).sort();
-  const files = entries.filter(e => !e?.isDirectory).map(e => e.name).sort();
-  const topDirs = dirs.slice(0, 12);
-  const topFiles = files.slice(0, 12);
-
   const lines: string[] = [];
-  lines.push('I scanned your project root successfully.');
-  lines.push(`Found ${dirs.length} folders and ${files.length} files at the top level.`);
-  if (topDirs.length) lines.push(`Folders: ${topDirs.join(', ')}`);
-  if (topFiles.length) lines.push(`Files: ${topFiles.join(', ')}`);
-  lines.push('If you want, I can now scan inside a specific folder (for example: src, bridge, or tests).');
+  try {
+    const entries = await fs.promises.readdir(projectPath, { withFileTypes: true });
+    const dirs = entries.filter(e => e.isDirectory()).map(e => e.name).sort();
+    const files = entries.filter(e => e.isFile()).map(e => e.name).sort();
+    const topDirs = dirs.slice(0, 12);
+    const topFiles = files.slice(0, 12);
+
+    lines.push('I scanned your project root successfully.');
+    lines.push(`Found ${dirs.length} folders and ${files.length} files at the top level.`);
+    if (topDirs.length) lines.push(`Folders: ${topDirs.join(', ')}`);
+    if (topFiles.length) lines.push(`Files: ${topFiles.join(', ')}`);
+    lines.push('If you want, I can now scan inside a specific folder (for example: src, bridge, or tests).');
+  } catch (err) {
+    console.error(`[quickProjectScan] Error reading path ${projectPath}:`, err);
+    lines.push(`I tried to scan the project root at ${projectPath} but encountered an error: ${(err as Error).message}`);
+  }
   return lines.join('\n\n');
 }

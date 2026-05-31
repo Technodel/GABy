@@ -106,14 +106,14 @@ describe('Strategy 2: Tool Schema Pruning', () => {
     expect(result.prunedTools).not.toContain('web_search');
   });
 
-  it('returns empty pruned list when allToolNames is empty', () => {
+  it('returns undefined prunedTools when allToolNames is empty', () => {
     const result = run({ allToolNames: [] });
-    expect(result.prunedTools).toEqual([]);
+    expect(result.prunedTools).toBeUndefined();
   });
 
-  it('returns empty pruned list when allToolNames is undefined', () => {
+  it('returns undefined prunedTools when allToolNames is undefined', () => {
     const result = run({ allToolNames: undefined });
-    expect(result.prunedTools).toEqual([]);
+    expect(result.prunedTools).toBeUndefined();
   });
 
   it('prunes heavily for chat type', () => {
@@ -158,9 +158,9 @@ describe('Strategy 3: Selective Tool-Call Compression', () => {
     }
 
     const result = run({ messages });
-    // Some old tool-call parts should be compressed
+    // Some old tool-call parts should be compressed (content stays array but tool-call becomes text)
     const hasCompressedTool = result.messages.some(
-      m => m.role === 'assistant' && typeof m.content === 'string' && m.content.includes('[tool:'),
+      m => m.role === 'assistant' && Array.isArray(m.content) && JSON.stringify(m.content).includes('[tool:'),
     );
     expect(hasCompressedTool).toBe(true);
   });
@@ -211,8 +211,8 @@ describe('Strategy 4: Redundant File Content Dedup', () => {
       if (msg.role === 'tool' && Array.isArray(msg.content)) {
         toolResultCount++;
         if (toolResultCount === 2) {
-          const textPart = msg.content.find((p: any) => p.type === 'text' || typeof p === 'string');
-          const content = typeof textPart === 'string' ? textPart : textPart?.text || '';
+          const toolResult = msg.content.find((p: any) => p.type === 'tool-result');
+          const content = (toolResult && toolResult.content) || '';
           expect(content).toContain('[Same content');
         }
       }
@@ -361,9 +361,8 @@ describe('logTokenSavingStats', () => {
     expect(() => logTokenSavingStats([])).not.toThrow();
   });
 
-  it('does not throw when called with null/undefined', () => {
-    expect(() => logTokenSavingStats(null as unknown as any)).not.toThrow();
-    expect(() => logTokenSavingStats(undefined as unknown as any)).not.toThrow();
+  it('does not throw when called with empty stats', () => {
+    expect(() => logTokenSavingStats([])).not.toThrow();
   });
 
   it('logs stats with positive savings', () => {

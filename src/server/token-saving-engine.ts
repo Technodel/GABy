@@ -31,9 +31,9 @@ function cleanupCache(): void {
   const now = Date.now();
   if (now - lastCacheCleanup < 60_000) return; // once per minute max
   lastCacheCleanup = now;
-  for (const [key, val] of CROSS_TURN_FILE_CACHE) {
+  CROSS_TURN_FILE_CACHE.forEach((val, key) => {
     if (now - val.timestamp > CROSS_TURN_CACHE_TTL_MS) CROSS_TURN_FILE_CACHE.delete(key);
-  }
+  });
 }
 
 // ── Types ───────────────────────────────────────────────────────────────────
@@ -385,10 +385,10 @@ function deduplicateFileContents(
       });
 
       if (modified) {
-        return { ...msg, content: newContent };
+        return { ...msg, content: newContent } as CoreMessage;
       }
       return msg;
-    });
+    }) as CoreMessage[];
 
     const tokensSaved = estimateTokensLocal(' '.repeat(totalSaved), provider);
     return {

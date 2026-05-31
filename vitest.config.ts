@@ -7,5 +7,8 @@ export default defineConfig({
       '**/dist/**',
       '**/backups/**',
     ],
+    env: {
+      SUNY_SECRET_JWT: 'super-secret-key-change-in-production-123456',
+    },
   },
 });

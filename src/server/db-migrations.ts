@@ -917,6 +917,45 @@ const SCHEMA_MIGRATIONS: Migration[] = [
       console.log('[db] Migration v24: Created suny_widget_config table with default row');
     },
   },
+  {
+    version: 25,
+    name: 'Add key_status_logs table and admin_notification_webhook setting',
+    up: async (adapter) => {
+      await adapter.exec(`
+        CREATE TABLE IF NOT EXISTS key_status_logs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          provider TEXT NOT NULL,
+          error_message TEXT NOT NULL,
+          checked_at TEXT DEFAULT (datetime('now')),
+          resolved INTEGER DEFAULT 0
+        );
+      `);
+      await adapter.run(`
+        INSERT OR IGNORE INTO app_settings (key, value) VALUES ('admin_notification_webhook', NULL);
+      `);
+      console.log('[db] Migration v25: Created key_status_logs table and admin_notification_webhook setting');
+    },
+  },
+  {
+    version: 26,
+    name: 'Seed ff_token_saving feature flag for the token-saving engine',
+    up: async (adapter) => {
+      const existing = await adapter.get<{ value: string }>(
+        "SELECT value FROM feature_flags WHERE key = 'ff_token_saving'",
+      );
+      if (!existing) {
+        await adapter.run(
+          "INSERT INTO feature_flags (key, value, label, description) VALUES ('ff_token_saving', 'on', 'Token-Saving Engine', 'Optimizes messages, system prompt, and tool selection for minimal token usage across 5 strategies')",
+        );
+      } else {
+        // Set default to 'on' for existing installations
+        await adapter.run(
+          "UPDATE feature_flags SET value = 'on' WHERE key = 'ff_token_saving'",
+        );
+      }
+      console.log('[db] Migration v26: Seeded ff_token_saving flag set to on');
+    },
+  },
 ];
 
 // Ã¢â€â‚¬Ã¢â€â‚¬ Data seeding Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬

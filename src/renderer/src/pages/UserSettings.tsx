@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { LogOut } from 'lucide-react';
 import MemoryManager from '../components/MemoryManager';
 
@@ -385,7 +385,7 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
           <h3 style={{ fontWeight: 600, marginBottom: 16 }}>🎨 Look & Feel</h3>
           <div style={{ ...splitRowStyle, marginBottom: 14 }}>
             <div>
-              <div style={{ fontWeight: 500, fontSize: 14 }}>Interface Mode</div>
+              <div style={{ fontWeight: 500, fontSize: 14 }}>Interface Mode <span style={{ fontSize: 10, color: 'var(--text-muted)', marginLeft: 6 }}>(Theme)</span></div>
               <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>Choose between Matrix, SUNY, and Pro</div>
             </div>
             <select

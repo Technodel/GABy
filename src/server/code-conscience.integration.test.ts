@@ -93,7 +93,7 @@ describe('Blueprint Memory â€” integration (real DB)', () => {
     try { db.exec('DELETE FROM blueprint_entries'); } catch { /* table may not exist yet */ }
   });
 
-  it('stores and retrieves entries across multiple turns', () => {
+  it('stores and retrieves entries across multiple turns', async () => {
     const userId = 42;
     const projectId = 100;
     const sessionId = 'int_sess_1';
@@ -123,7 +123,7 @@ describe('Blueprint Memory â€” integration (real DB)', () => {
     });
 
     // Retrieve all entries
-    const  = await getBlueprintEntries({ userId, projectId });
+    const entries = await getBlueprintEntries({ userId, projectId });
     expect(entries).toHaveLength(3);
 
     // Verify they come back in reverse chronological order (most recent first)
@@ -137,18 +137,18 @@ describe('Blueprint Memory â€” integration (real DB)', () => {
     expect(categories).toContain('refactor');
   });
 
-  it('generates context string that can be injected into system prompt', () => {
+  it('generates context string that can be injected into system prompt', async () => {
     const userId = 43;
     const projectId = 101;
 
-    storeBlueprintEntry({
+    await storeBlueprintEntry({
       userId, projectId, sessionId: 's1', turnIndex: 1,
       summary: 'Set up PostgreSQL connection pool',
       intent: 'Configure database',
       affectedFiles: ['src/db.ts'],
     });
 
-    const ctx = getBlueprintContext({ userId, projectId, maxEntries: 5 });
+    const ctx = await getBlueprintContext({ userId, projectId, maxEntries: 5 });
 
     // Context must be a valid injection block
     expect(ctx).toContain('=== SUNy CODE CONSCIENCE â€” DESIGN MEMORY ===');
@@ -160,7 +160,7 @@ describe('Blueprint Memory â€” integration (real DB)', () => {
     expect(ctx.startsWith('\n\n')).toBe(true);
   });
 
-  it('summary aggregates categories correctly', () => {
+  it('summary aggregates categories correctly', async () => {
     const userId = 44;
     const projectId = 102;
 
@@ -175,12 +175,12 @@ describe('Blueprint Memory â€” integration (real DB)', () => {
     expect(summary).toContain('feature add: 1');
   });
 
-  it('does not leak entries across users', () => {
+  it('does not leak entries across users', async () => {
     storeBlueprintEntry({ userId: 100, projectId: 1, sessionId: 's1', turnIndex: 1, summary: 'User 100 design' });
     storeBlueprintEntry({ userId: 200, projectId: 1, sessionId: 's1', turnIndex: 1, summary: 'User 200 design' });
 
-    const  = await getBlueprintEntries({ userId: 100, projectId: 1 });
-    const  = await getBlueprintEntries({ userId: 200, projectId: 1 });
+    const user100Entries = await getBlueprintEntries({ userId: 100, projectId: 1 });
+    const user200Entries = await getBlueprintEntries({ userId: 200, projectId: 1 });
 
     expect(user100Entries).toHaveLength(1);
     expect(user200Entries).toHaveLength(1);

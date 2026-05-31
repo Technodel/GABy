@@ -108,6 +108,13 @@ export function isActivationControllerEnabled(): boolean {
   return isFeatureEnabled('ff_activation_controller');
 }
 
+/**
+ * Check if the token-saving engine is enabled.
+ */
+export function isTokenSavingEnabled(): boolean {
+  return isFeatureEnabled('ff_token_saving');
+}
+
 // ── Plan-level feature flags ────────────────────────────────────────────────
 
 export interface PlanFeatureFlag {

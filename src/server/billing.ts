@@ -109,33 +109,35 @@ export async function deductUsage(
     cacheWriteTokens * inputBase * 1.25 +
     cacheReadTokens * inputBase * 0.10;
 
-  // USER-VISIBLE COST: users get a 40% discount on cache reads (we keep 50% of provider's 90% saving).
-  // Cache reads are billed to the user at 0.6x input rate (vs 0.10x we pay the provider).
-  const userVisibleCost =
+  // USER-VISIBLE COST: user gets a 30% discount on cache reads (they pay 0.7x).
+  const inputCost =
     inputTokens * inputSale +
-    outputTokens * outputSale +
     cacheWriteTokens * inputSale * 1.25 +
-    cacheReadTokens * inputSale * 0.6;
+    cacheReadTokens * inputSale * 0.7;
 
-  // Apply admin markup formula (mathjs expression) â€” applied to the USER-VISIBLE cost,
-  // not the actual provider cost, so the cache discount stays with the platform.
+  const outputCost = outputTokens * outputSale;
+
+  // Apply admin markup formula (mathjs expression) to the INPUT cost only,
+  // because output tokens are never discounted by the provider, and the user 
+  // requested that output tokens remain at original price without markup.
   let chargedCost: number;
   try {
     // Evaluate with a restricted scope — only the named billing variables are
     // visible, preventing formula injection via mathjs built-ins like import().
     const scope = {
-      cost: userVisibleCost,
+      cost: inputCost,
       input_tokens: inputTokens,
       output_tokens: outputTokens,
       cache_write_tokens: cacheWriteTokens,
       cache_read_tokens: cacheReadTokens,
     };
-    chargedCost = evaluate(pricing.markup_formula, scope) as number;
-    if (typeof chargedCost !== 'number' || isNaN(chargedCost) || chargedCost < 0) {
-      chargedCost = userVisibleCost;
+    let markedUpInput = evaluate(pricing.markup_formula, scope) as number;
+    if (typeof markedUpInput !== 'number' || isNaN(markedUpInput) || markedUpInput < 0) {
+      markedUpInput = inputCost;
     }
+    chargedCost = markedUpInput + outputCost;
   } catch {
-    chargedCost = userVisibleCost;
+    chargedCost = inputCost + outputCost;
   }
 
   // Deduct from user balances atomically.

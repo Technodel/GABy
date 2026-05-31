@@ -15,8 +15,8 @@ SUNy is an AI coding sidekick that doesn't just suggest — it executes. Give it
 ### Setup
 
 ```bash
-# 1. Clone and install
-git clone <your-repo-url>
+# 1. Extract and install
+# Extract the provided SUNy folder
 cd suny
 npm install
 cd src/renderer && npm install && cd ../..
@@ -80,7 +80,6 @@ suny/
 │           │   ├── AdminPanel.tsx# Admin dashboard
 │           │   └── ...
 │           └── components/       # Reusable UI components
-├── bridge/              # VS Code extension (IDE bridge client)
 ├── docs/                # Documentation
 ├── DEPLOYMENT.md        # VPS deployment instructions
 ├── nginx.conf           # nginx proxy config with SSL + WebSocket
@@ -129,11 +128,7 @@ Persistent goal stack that survives across sessions. SUNy remembers what it was 
 
 Credit-based with transparent pricing. Admins set balances, users see their remaining credits at all times. No surprise charges.
 
-### 🔌 IDE Bridge
 
-VS Code extension that connects SUNy directly to your editor. Changes appear in real time without copy-paste.
-
----
 
 ## Key Features
 
@@ -156,7 +151,6 @@ VS Code extension that connects SUNy directly to your editor. Changes appear in 
 | **Session Replay** | Full audit trail with replay capability |
 | **Operation Audit** | Every action logged for transparency |
 | **MCP Support** | Model Context Protocol — extensible tool ecosystem |
-| **Bridge Integration** | VS Code plugin for in-editor changes |
 
 ---
 

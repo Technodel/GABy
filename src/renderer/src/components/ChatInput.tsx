@@ -23,6 +23,8 @@ interface ChatInputProps {
   addMessage: (type: 'user' | 'suny' | 'system', content: string, extra?: Record<string, unknown>) => void;
   isListening?: boolean;
   onVoiceToggle?: () => void;
+  autoExecute?: boolean;
+  toggleAutoExecute?: () => void;
 }
 
 const PLACEHOLDERS = [
@@ -46,7 +48,7 @@ export default function ChatInput(props: ChatInputProps) {
     activeProject, talkMode, noBalance,
     imagePreview, setImagePreview, inputRef,
     inputHistoryIndex, messages, sendMessage, toggleTalkMode, wsSend, addMessage,
-    isListening, onVoiceToggle,
+    isListening, onVoiceToggle, autoExecute, toggleAutoExecute,
   } = props;
 
   const attachRef = useRef<HTMLInputElement>(null);
@@ -302,6 +304,27 @@ export default function ChatInput(props: ChatInputProps) {
         >
           <Paperclip size={15} />
         </button>
+        {/* Auto-Execute toggle pill */}
+        {toggleAutoExecute && (
+          <button
+            className="btn btn-icon btn-secondary"
+            onClick={toggleAutoExecute}
+            title={autoExecute ? 'Auto-Execute ON - SUNy will run commands and edits automatically' : 'Auto-Execute OFF - SUNy will ask for permission before running commands or edits'}
+            style={{
+              alignSelf: 'flex-end',
+              padding: '10px 12px',
+              background: autoExecute ? 'rgba(34,197,94,0.12)' : 'transparent',
+              border: autoExecute ? '1px solid rgba(34,197,94,0.5)' : '1px solid var(--border)',
+              color: autoExecute ? 'var(--success,#22c55e)' : 'var(--text-muted)',
+              transition: 'all 0.15s',
+              fontWeight: 700,
+              fontSize: 11,
+              letterSpacing: '0.5px'
+            }}
+          >
+            AUTO
+          </button>
+        )}
         {/* Talk / Write mode toggle — hidden when free plan enforced by no balance */}
         {!noBalance && (
           <button

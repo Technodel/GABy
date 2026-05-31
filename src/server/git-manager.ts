@@ -1,15 +1,27 @@
 /**
- * SUNy Git Manager â€” ported from Aider's repo.py logic.
+ * SUNy Git Manager — ported from Aider's repo.py logic.
  *
  * After every agent step that modifies files, auto-commits the changes to git
  * with a message derived from the user's request.  This gives users a full
- * rollback history of everything SUNy did â€” exactly like Aider.
+ * rollback history of everything SUNy did — exactly like Aider.
  *
  * Non-fatal: git failures are logged but never surface as errors to the user.
  */
 
 import path from 'path';
-import { sendToBridge } from './bridge-manager';
+import { exec } from 'child_process';
+
+function execShellLocal(command: string, cwd: string, timeout = 10000): Promise<string> {
+  return new Promise((resolve, reject) => {
+    exec(command, { cwd, timeout, maxBuffer: 1024 * 1024 * 10 }, (err, stdout, stderr) => {
+      if (err) {
+        reject(new Error(stdout + (stderr ? '\n' + stderr : '') || err.message));
+      } else {
+        resolve(stdout.trim());
+      }
+    });
+  });
+}
 
 // Cache which projects are git repos (avoids repeated git rev-parse calls)
 const gitRepoCache = new Map<string, { isRepo: boolean; checkedAt: number }>();
@@ -22,11 +34,7 @@ async function isGitRepo(userId: number, projectPath: string): Promise<boolean> 
     return cached.isRepo;
   }
   try {
-    await sendToBridge(userId, 'exec:shell', {
-      command: 'git rev-parse --git-dir',
-      cwd: projectPath,
-      requiresConfirmation: false,
-    }, 5_000);
+    await execShellLocal('git rev-parse --git-dir', projectPath, 5000);
     gitRepoCache.set(key, { isRepo: true, checkedAt: Date.now() });
     return true;
   } catch {
@@ -69,22 +77,14 @@ export async function gitAutoCommit(
   try {
     // Stage only the files that were changed (not the whole working tree)
     const quotedFiles = relFiles.map(f => `"${f.replace(/"/g, '\\"')}"`).join(' ');
-    await sendToBridge(userId, 'exec:shell', {
-      command: `git add -- ${quotedFiles}`,
-      cwd: projectPath,
-      requiresConfirmation: false,
-    }, 10_000);
+    await execShellLocal(`git add -- ${quotedFiles}`, projectPath, 10_000);
 
-    // Commit â€” use inline config so no global git identity is required
-    await sendToBridge(userId, 'exec:shell', {
-      command: `git -c user.email="suny@ai" -c user.name="SUNy" commit -m "${commitMsg}" --no-verify`,
-      cwd: projectPath,
-      requiresConfirmation: false,
-    }, 10_000);
+    // Commit — use inline config so no global git identity is required
+    await execShellLocal(`git -c user.email="suny@ai" -c user.name="SUNy" commit -m "${commitMsg}" --no-verify`, projectPath, 10_000);
 
     console.log(`[git] auto-committed ${relFiles.length} file(s): "${commitMsg}"`);
   } catch (err) {
-    // Non-fatal â€” "nothing to commit" also throws, which is fine
+    // Non-fatal — "nothing to commit" also throws, which is fine
     const msg = (err as Error).message || '';
     if (!msg.includes('nothing to commit') && !msg.includes('nothing added')) {
       console.warn('[git] auto-commit failed:', msg.slice(0, 200));
@@ -103,17 +103,13 @@ export async function gitLog(
 ): Promise<string> {
   if (!(await isGitRepo(userId, projectPath))) return '';
   try {
-    return await sendToBridge(userId, 'exec:shell', {
-      command: `git log --oneline -${n}`,
-      cwd: projectPath,
-      requiresConfirmation: false,
-    }, 5_000) as string;
+    return await execShellLocal(`git log --oneline -${n}`, projectPath, 5_000);
   } catch {
     return '';
   }
 }
 
-// â”€â”€ Checkpoints â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// —— Checkpoints —————————————————————————————————————————————————————————————
 
 const CHECKPOINT_PREFIX = 'SUNy checkpoint:';
 
@@ -131,16 +127,8 @@ export async function createCheckpoint(
   try {
     const safeLabel = label.slice(0, 72).replace(/"/g, "'");
     const msg = `${CHECKPOINT_PREFIX} ${safeLabel}`;
-    await sendToBridge(userId, 'exec:shell', {
-      command: `git add -A`,
-      cwd: projectPath,
-      requiresConfirmation: false,
-    }, 8_000);
-    await sendToBridge(userId, 'exec:shell', {
-      command: `git -c user.email="suny@ai" -c user.name="SUNy" commit --allow-empty -m "${msg}" --no-verify`,
-      cwd: projectPath,
-      requiresConfirmation: false,
-    }, 10_000);
+    await execShellLocal(`git add -A`, projectPath, 8_000);
+    await execShellLocal(`git -c user.email="suny@ai" -c user.name="SUNy" commit --allow-empty -m "${msg}" --no-verify`, projectPath, 10_000);
     console.log(`[git] checkpoint created: "${msg}"`);
   } catch (err) {
     console.warn('[git] createCheckpoint failed:', (err as Error).message?.slice(0, 200));
@@ -164,11 +152,7 @@ export async function listCheckpoints(
 ): Promise<CheckpointEntry[]> {
   if (!(await isGitRepo(userId, projectPath))) return [];
   try {
-    const raw = await sendToBridge(userId, 'exec:shell', {
-      command: `git log --oneline --format="%H|||%s|||%ci" -${limit * 3}`,
-      cwd: projectPath,
-      requiresConfirmation: false,
-    }, 5_000) as string;
+    const raw = await execShellLocal(`git log --oneline --format="%H|||%s|||%ci" -${limit * 3}`, projectPath, 5_000);
     const entries: CheckpointEntry[] = [];
     for (const line of raw.split('\n')) {
       const parts = line.split('|||');
@@ -182,11 +166,7 @@ export async function listCheckpoints(
     // Enrich entries with file counts (best-effort, non-blocking)
     for (const entry of entries) {
       try {
-        const countRaw = await sendToBridge(userId, 'exec:shell', {
-          command: `git diff-tree --no-commit-id -r --name-only ${entry.sha}`,
-          cwd: projectPath,
-          requiresConfirmation: false,
-        }, 3_000) as string;
+        const countRaw = await execShellLocal(`git diff-tree --no-commit-id -r --name-only ${entry.sha}`, projectPath, 3_000);
         entry.filesChanged = countRaw.trim().split('\n').filter(Boolean).length;
       } catch {
         // best-effort only
@@ -200,7 +180,7 @@ export async function listCheckpoints(
 
 /**
  * Roll back the project to a specific checkpoint commit.
- * Uses `git reset --hard` â€” destructive, confirms via requiresConfirmation.
+ * Uses `git reset --hard` — destructive.
  */
 export async function rollbackToCheckpoint(
   userId: number,
@@ -209,15 +189,11 @@ export async function rollbackToCheckpoint(
 ): Promise<void> {
   if (!/^[0-9a-f]{7,40}$/i.test(sha)) throw new Error('Invalid SHA');
   if (!(await isGitRepo(userId, projectPath))) throw new Error('Not a git repo');
-  await sendToBridge(userId, 'exec:shell', {
-    command: `git reset --hard ${sha}`,
-    cwd: projectPath,
-    requiresConfirmation: false,
-  }, 15_000);
+  await execShellLocal(`git reset --hard ${sha}`, projectPath, 15_000);
   console.log(`[git] rolled back to ${sha}`);
 }
 
-// â”€â”€ Hypothesis branch isolation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// —— Hypothesis branch isolation —————————————————————————————————————————————
 
 export const HYPOTHESIS_BRANCH_PREFIX = 'suny-hyp/';
 
@@ -235,22 +211,10 @@ export async function gitCreateHypothesisBranch(
   const fullBranch = `${HYPOTHESIS_BRANCH_PREFIX}${branchName}`;
   try {
     // Commit any pending changes first (snapshot)
-    await sendToBridge(userId, 'exec:shell', {
-      command: 'git add -A',
-      cwd: projectPath,
-      requiresConfirmation: false,
-    }, 8_000);
-    await sendToBridge(userId, 'exec:shell', {
-      command: `git -c user.email="suny@ai" -c user.name="SUNy" commit --allow-empty -m "hyp snapshot ${branchName}" --no-verify`,
-      cwd: projectPath,
-      requiresConfirmation: false,
-    }, 10_000);
+    await execShellLocal('git add -A', projectPath, 8_000);
+    await execShellLocal(`git -c user.email="suny@ai" -c user.name="SUNy" commit --allow-empty -m "hyp snapshot ${branchName}" --no-verify`, projectPath, 10_000);
     // Create and switch to hypothesis branch
-    await sendToBridge(userId, 'exec:shell', {
-      command: `git checkout -b "${fullBranch}"`,
-      cwd: projectPath,
-      requiresConfirmation: false,
-    }, 10_000);
+    await execShellLocal(`git checkout -b "${fullBranch}"`, projectPath, 10_000);
     console.log(`[git] Created hypothesis branch: ${fullBranch}`);
     return true;
   } catch (err) {
@@ -269,11 +233,7 @@ export async function gitSwitchBranch(
 ): Promise<boolean> {
   if (!(await isGitRepo(userId, projectPath))) return false;
   try {
-    await sendToBridge(userId, 'exec:shell', {
-      command: `git checkout "${branchName}"`,
-      cwd: projectPath,
-      requiresConfirmation: false,
-    }, 10_000);
+    await execShellLocal(`git checkout "${branchName}"`, projectPath, 10_000);
     return true;
   } catch (err) {
     console.warn(`[git] gitSwitchBranch failed for ${branchName}:`, (err as Error).message?.slice(0, 200));
@@ -293,11 +253,7 @@ export async function gitMergeBranch(
   const fullBranch = branchName.startsWith(HYPOTHESIS_BRANCH_PREFIX) ? branchName : `${HYPOTHESIS_BRANCH_PREFIX}${branchName}`;
   if (!(await isGitRepo(userId, projectPath))) return false;
   try {
-    await sendToBridge(userId, 'exec:shell', {
-      command: `git merge --no-ff -m "Merge hypothesis: ${fullBranch}" "${fullBranch}"`,
-      cwd: projectPath,
-      requiresConfirmation: false,
-    }, 15_000);
+    await execShellLocal(`git merge --no-ff -m "Merge hypothesis: ${fullBranch}" "${fullBranch}"`, projectPath, 15_000);
     console.log(`[git] Merged hypothesis branch: ${fullBranch}`);
     return true;
   } catch (err) {
@@ -317,11 +273,7 @@ export async function gitDeleteBranch(
   const fullBranch = branchName.startsWith(HYPOTHESIS_BRANCH_PREFIX) ? branchName : `${HYPOTHESIS_BRANCH_PREFIX}${branchName}`;
   if (!(await isGitRepo(userId, projectPath))) return false;
   try {
-    await sendToBridge(userId, 'exec:shell', {
-      command: `git branch -D "${fullBranch}"`,
-      cwd: projectPath,
-      requiresConfirmation: false,
-    }, 5_000);
+    await execShellLocal(`git branch -D "${fullBranch}"`, projectPath, 5_000);
     return true;
   } catch (err) {
     console.warn(`[git] gitDeleteBranch failed for ${fullBranch}:`, (err as Error).message?.slice(0, 200));
@@ -338,11 +290,7 @@ export async function gitGetCurrentBranch(
 ): Promise<string> {
   if (!(await isGitRepo(userId, projectPath))) return 'main';
   try {
-    const result = await sendToBridge(userId, 'exec:shell', {
-      command: 'git rev-parse --abbrev-ref HEAD',
-      cwd: projectPath,
-      requiresConfirmation: false,
-    }, 5_000) as string;
+    const result = await execShellLocal('git rev-parse --abbrev-ref HEAD', projectPath, 5_000);
     return result.trim() || 'main';
   } catch {
     return 'main';

@@ -81,6 +81,8 @@ vi.mock('ai', () => {
         toolCalls: mockGenerateConfig.toolCalls ?? [],
       };
     }),
+    tool: vi.fn().mockImplementation((obj) => obj),
+    stepCountIs: vi.fn().mockReturnValue(false),
   };
 });
 
@@ -93,6 +95,26 @@ vi.mock('./agent', () => ({
   getVisionCapableModels: vi.fn().mockReturnValue([]),
   isCachingEnabled: vi.fn().mockReturnValue(false),
   getEditFormat: vi.fn().mockReturnValue(undefined),
+  classifyTaskType: vi.fn().mockReturnValue('coding'),
+  reorderModelsForProTask: vi.fn().mockImplementation((models) => models),
+  getAllActiveKeys: vi.fn().mockResolvedValue([
+    { id: 1, key_value: 'mock-key', provider: 'DeepSeek', model_id_override: 'deepseek-chat', priority: 1 }
+  ]),
+  buildLanguageModel: vi.fn().mockReturnValue({}),
+}));
+
+vi.mock('./model-distribution-engine', () => ({
+  resolveModelsForTier: vi.fn().mockImplementation(async (tier) => {
+    const agent = await import('./agent');
+    const models = agent.getModelsForMode(tier);
+    return models.map((m: any) => ({
+      model: m.model,
+      provider: m.provider,
+      apiKeyId: m.apiKeyId ?? 1,
+      modelId: m.model?.modelId ?? 'mock-model'
+    }));
+  }),
+  handleKeyFailure: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('./feature-flags', () => ({

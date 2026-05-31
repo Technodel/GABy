@@ -19,7 +19,6 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { createGroq } from '@ai-sdk/groq';
 import { createDeepSeek } from '@ai-sdk/deepseek';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import type { LanguageModel } from 'ai';
 import { getAdapter } from './db';
 
@@ -152,9 +151,6 @@ export function buildLanguageModel(key: KeyEntry, modelId: string): LanguageMode
         baseURL: 'https://api-inference.huggingface.co/v1/',
         apiKey: key_value, // HF access token from huggingface.co/settings/tokens
       })(modelId);
-    case 'Google':
-    case 'Gemini':
-      return createGoogleGenerativeAI({ apiKey: key_value })(modelId);
     default:
       return createOpenAI({ apiKey: key_value })(modelId);
   }

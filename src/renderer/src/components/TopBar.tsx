@@ -201,38 +201,36 @@ export default function TopBar(props: TopBarProps) {
             <FolderOpen size={15} />
           </button>
         )}
-        {isMobile && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginRight: 4 }}>
-            {['matrix', 'pro', 'suny'].map(t => (
-              <button
-                key={t}
-                onClick={() => {
-                  setUiTheme(t);
-                  localStorage.setItem('suny_ui_theme', t);
-                  localStorage.setItem('suny_dark_mode', String(t === 'matrix'));
-                  document.body.classList.remove('theme-matrix', 'theme-pro', 'theme-suny', 'light-mode');
-                  document.documentElement.classList.remove('theme-matrix', 'theme-pro', 'theme-suny');
-                  if (t === 'pro') document.body.classList.add('theme-pro');
-                  else if (t === 'suny') document.body.classList.add('theme-suny');
-                  else document.body.classList.add('theme-matrix');
-                }}
-                style={{
-                  background: uiTheme === t ? 'var(--accent)' : 'var(--surface)',
-                  border: `1px solid ${uiTheme === t ? 'var(--accent)' : 'var(--border)'}`,
-                  borderRadius: 4, cursor: 'pointer', padding: '2px 6px',
-                  fontSize: 10, fontWeight: 600, color: uiTheme === t ? '#000' : 'var(--text-muted)',
-                  lineHeight: '1.5',
-                }}
-                title={`${t.charAt(0).toUpperCase() + t.slice(1)} theme`}
-              >
-                {t === 'matrix' ? '🌐' : t === 'pro' ? '⚪' : '🌙'}
-              </button>
-            ))}
-            <span style={{ fontSize: 9, color: 'var(--text-muted)', opacity: 0.5, whiteSpace: 'nowrap', marginLeft: 2 }}>
-              Try other themes &amp; moods
-            </span>
-          </div>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2, marginRight: 4 }}>
+          <span style={{ fontSize: 9, color: 'var(--text-muted)', opacity: 0.7, whiteSpace: 'nowrap', marginRight: 4 }}>
+            Theme:
+          </span>
+          {['matrix', 'pro', 'suny'].map(t => (
+            <button
+              key={t}
+              onClick={() => {
+                setUiTheme(t);
+                localStorage.setItem('suny_ui_theme', t);
+                localStorage.setItem('suny_dark_mode', String(t === 'matrix'));
+                document.body.classList.remove('theme-matrix', 'theme-pro', 'theme-suny', 'light-mode');
+                document.documentElement.classList.remove('theme-matrix', 'theme-pro', 'theme-suny');
+                if (t === 'pro') document.body.classList.add('theme-pro');
+                else if (t === 'suny') document.body.classList.add('theme-suny');
+                else document.body.classList.add('theme-matrix');
+              }}
+              style={{
+                background: uiTheme === t ? 'var(--accent)' : 'var(--surface)',
+                border: `1px solid ${uiTheme === t ? 'var(--accent)' : 'var(--border)'}`,
+                borderRadius: 4, cursor: 'pointer', padding: '2px 6px',
+                fontSize: 10, fontWeight: 600, color: uiTheme === t ? '#000' : 'var(--text-muted)',
+                lineHeight: '1.5',
+              }}
+              title={`${t.charAt(0).toUpperCase() + t.slice(1)} theme`}
+            >
+              {t === 'matrix' ? '🌐' : t === 'pro' ? '⚪' : '🌙'}
+            </button>
+          ))}
+        </div>
         {isRegular && (
           <button
             onClick={upgradeState === 'idle' ? requestUpgrade : undefined}

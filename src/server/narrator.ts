@@ -81,7 +81,7 @@ export function narrateMessage(rawMessage: string, messageType: MessageType, con
       if (filename) {
         const action = rawMessage.toLowerCase().includes('creat') ? 'Creating' :
                        rawMessage.toLowerCase().includes('delet') ? 'Cleaning up' : 'Updating';
-        return `✏️ ${action} ${filename}...`;
+        return `✏️ ${action} \`${filename}\`...`;
       }
       return '✏️ Making improvements to your project files...';
     }
@@ -89,7 +89,7 @@ export function narrateMessage(rawMessage: string, messageType: MessageType, con
     case 'search':
       if (rawMessage.toLowerCase().includes('read') || rawMessage.toLowerCase().includes('open')) {
         const f = extractFilename(rawMessage);
-        if (f) return `👀 Reading ${f} to understand the current code...`;
+        if (f) return `👀 Reading \`${f}\` to understand the code...`;
       }
       return '🔍 Exploring your project files to understand how everything fits together...';
 
@@ -204,10 +204,10 @@ export function autoNarrate(rawMessage: string): string {
 function extractFilename(text: string): string | null {
   // Match common patterns like "editing src/App.tsx" or "writing path/to/file.ts"
   const match = text.match(/(?:edit|write|updat|creat|modif)[^\s]*\s+([^\s]+\.[a-z]+)/i);
-  if (match) return match[1].split('/').pop() || null;
+  if (match) return match[1];
   // Match quoted filenames
   const quoted = text.match(/["']([^"']+\.[a-z]{2,5})["']/i);
-  if (quoted) return quoted[1].split('/').pop() || null;
+  if (quoted) return quoted[1];
   return null;
 }
 
@@ -233,12 +233,6 @@ function extractCompletionSummary(text: string): string {
 }
 
 function sanitizeRawForNarrator(text: string): string {
-  // Strip shell commands, file paths, and technical terms from plan steps
-  return text
-    .replace(/`[^`]+`/g, '...')
-    .replace(/\$\s*[\w-]+[^\n]*/g, '')
-    .replace(/https?:\/\/\S+/g, '[link]')
-    .replace(/\/([\w-]+\/)+[\w.-]+/g, '[file]')
-    .replace(/[A-Z]:\\[^\s]+/g, '[file]')
-    .trim();
+  // Do not strip paths or commands anymore so the user knows what SUNy is really doing
+  return text.trim();
 }
