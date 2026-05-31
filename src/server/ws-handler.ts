@@ -1456,15 +1456,16 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
       const errMsg = err instanceof Error ? err.message : '';
       const isAbortLike = errMsg.includes('cancelled') || errMsg.includes('abort') || errMsg.includes('AbortError');
       const isTurnTimeout = timedOutByGuard || errMsg.includes('TURN_TIMEOUT_');
+      const isUserCancel = errMsg.includes('User cancelled');
       // User-initiated cancel is already handled upstream and should not emit a second generic error.
-      // Timeouts must continue through the error path so the client receives a stream_end message.
-      if (isAbortLike && !isTurnTimeout) return;
-      // All other errors  always respond so the client never gets stuck in thinking state
+      // Timeouts and API aborts must continue through the error path so the client receives a stream_end message.
+      if (isUserCancel) return;
       let friendly = pickRandom('error', pickNonRepeatingFallback(userId, ERROR_REPLY_FALLBACKS));
       let errorCategory = 'unknown';
       if (errMsg.includes('No active API key')) { friendly = 'The AI service is not available right now. Please contact support.'; errorCategory = 'no_key'; }
       if (errMsg.includes('NO_VISION_MODEL_AVAILABLE')) { friendly = 'I\'m a text-only model and can\'t scan images. To analyze images, please add an API key for a vision-capable model (OpenAI, Anthropic, Groq, or OpenRouter) in the admin settings, then try again.'; errorCategory = 'no_vision_model'; }
       if (isTurnTimeout) { friendly = 'This task took too long and was safely stopped. Please try again, or ask in smaller steps.'; errorCategory = 'timeout'; }
+      if (isAbortLike && !isTurnTimeout && !isUserCancel) { friendly = 'The connection to the AI provider timed out or was interrupted. Please try again.'; errorCategory = 'api_error'; }
       if (errMsg.includes('all_providers_failed')) { friendly = 'All configured models for this tier failed.'; errorCategory = 'all_providers_failed'; }
       if (errMsg.includes('Project is locked by another session')) {
         // Extract lock holder details and repeat flag from the structured error message

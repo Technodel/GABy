@@ -23,7 +23,26 @@ export default function ModeSelector({ modes, selected, onChange, noBalance = fa
     <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center', minWidth: 0 }}>
       {/* 4 AI modes pills aligned to the left */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', minWidth: 0 }}>
-        {modes.filter(m => m.mode !== 'opus' && m.mode !== 'auto').map(m => {
+        <button
+          key="auto"
+          onClick={() => onChange('auto')}
+          title="Auto-selects the best AI model for your task based on complexity"
+          style={{
+            padding: '3px 12px',
+            borderRadius: 999,
+            fontSize: 12,
+            fontWeight: selected === 'auto' ? 700 : 500,
+            border: `1px solid ${selected === 'auto' ? 'var(--accent)' : 'var(--border)'}`,
+            background: selected === 'auto' ? 'rgba(108,99,255,0.1)' : 'var(--surface)',
+            color: selected === 'auto' ? 'var(--accent)' : 'var(--text-secondary)',
+            cursor: 'pointer',
+            transition: 'all 0.15s',
+            fontFamily: 'inherit',
+          }}
+        >
+          ✨ Auto
+        </button>
+        {modes.filter(m => m.mode !== 'opus').map(m => {
           const isFreeLike = ['free', 'starter'].includes(m.mode.toLowerCase()) || /free|starter/i.test(m.display_name);
           const displayName = isFreeLike ? '⚡ Free' : m.display_name;
           const noKey = m.has_active_key === false;
