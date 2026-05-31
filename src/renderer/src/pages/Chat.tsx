@@ -171,6 +171,10 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
       addMessage('system', '🎤 Voice input is not supported in this browser. Try Chrome or Edge.');
       return;
     }
+    if (navigator.userAgent.toLowerCase().includes('electron') || navigator.userAgent.toLowerCase().includes('suny')) {
+      addMessage('system', '🎤 Voice input requires Chrome/Edge cloud APIs which are not available in the desktop app. Please use the web interface at http://localhost:3333 for voice dictation.');
+      return;
+    }
     if (isListening && recognitionRef.current) {
       recognitionRef.current.stop();
       return;
@@ -181,14 +185,22 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
     rec.lang = 'en-US';
     rec.onstart = () => setIsListening(true);
     rec.onend = () => setIsListening(false);
-    rec.onerror = () => setIsListening(false);
-    rec.onresult = (e: SpeechRecognitionEvent) => {
+    rec.onerror = (e: any) => {
+      setIsListening(false);
+      addMessage('system', '🎤 Voice input error: ' + (e.error || 'Unknown error. Check microphone permissions.'));
+    };
+    rec.onresult = (e: any) => {
       const transcript = Array.from(e.results).slice(e.resultIndex)
-        .map(r => r[0].transcript).join('');
+        .map((r: any) => r[0].transcript).join('');
       setInput(prev => (prev ? prev + ' ' : '') + transcript);
     };
     recognitionRef.current = rec;
-    rec.start();
+    try {
+      rec.start();
+    } catch (err: any) {
+      addMessage('system', '🎤 Could not start voice recognition: ' + (err.message || String(err)));
+      setIsListening(false);
+    }
   }
 
   // -- Adaptive routing -----------------------------------------------------
@@ -916,11 +928,10 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
       return updated;
     });
     activeProofIdRef.current = null;
-      if (activeProject) {
-        loadProjectStateFromServer(activeProject.id).then(remote => {
-          if (remote && remote.messages.length > 0) setMessages(remote.messages);
-        }).catch(() => {});
-      }
+    // NOTE: Do NOT call loadProjectStateFromServer here!
+    // It races with addMessage in the stream_end handler and overwrites
+    // the freshly-added response with stale server data, causing messages
+    // to "disappear" ~1 second after appearing.
   }
 
   function applyProofSummary(summary: Record<string, unknown>) {
@@ -1453,14 +1464,14 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
         const amt = Number(msg.amount ?? 0);
         const notes = typeof msg.adminNotes === 'string' ? msg.adminNotes : '';
         if (status === 'approved') {
-          addMessage('suny', `? **Top-up approved!** $${amt.toFixed(2)} added to your wallet.${notes ? `\n\n_Note from admin: ${notes}_` : ''}\n\n_${pickNotice('topup-approved', [
+          addMessage('suny', `✅ **Top-up approved!** $${amt.toFixed(2)} added to your wallet.${notes ? `\n\n_Note from admin: ${notes}_` : ''}\n\n_${pickNotice('topup-approved', [
             'Balance updated, so you can keep going.',
             'You are funded again and ready for the next task.',
             'The wallet is topped up and SUNy can continue.',
           ])}_`);
           playSound('success');
         } else {
-          addMessage('suny', `? **Top-up rejected.**${notes ? `\n\n_Reason: ${notes}_` : ' Contact the admin for details.'}\n\n_${pickNotice('topup-rejected', [
+          addMessage('suny', `❌ **Top-up rejected.**${notes ? `\n\n_Reason: ${notes}_` : ' Contact the admin for details.'}\n\n_${pickNotice('topup-rejected', [
             'If you want to keep working, you can stay in free chat for now.',
             'Try again later or ask the admin for help with the balance.',
             'The request did not go through this time, but you can retry later.',
@@ -1469,7 +1480,46 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
         }
       } else if (msg.event === 'suny:tool_start') {
         const toolName = String(msg.tool ?? 'unknown_tool');
-        setThinkingStatus(`Running ${toolName}...`);
+        const input = (msg.input || {}) as Record<string, any>;
+        const getBasename = (p?: string) => {
+          if (!p) return '';
+          const parts = p.split(/[/\\]/);
+          return parts[parts.length - 1];
+        };
+        const pathVal = input.TargetFile || input.AbsolutePath || input.path || input.FilePath || input.filePath || input.DirectoryPath || input.dirPath;
+        const file = getBasename(pathVal);
+        let status = `Running ${toolName}...`;
+        if (toolName === 'file_read' || toolName === 'view_file' || toolName === 'read_file') {
+          status = `👀 Reading ${file ? `\`${file}\`` : 'file'} to understand the code...`;
+        } else if (toolName === 'file_write' || toolName === 'write_to_file') {
+          status = `✏️ Creating ${file ? `\`${file}\`` : 'file'}...`;
+        } else if (toolName === 'file_edit' || toolName === 'replace_file_content' || toolName === 'multi_replace_file_content') {
+          status = `✏️ Updating ${file ? `\`${file}\`` : 'file'}...`;
+        } else if (toolName === 'grep_search' || toolName === 'grep') {
+          status = `🔍 Searching for "${input.Query || input.query || input.searchTerm || ''}" in files...`;
+        } else if (toolName === 'code_search') {
+          status = `🔍 Searching codebase for "${input.query || ''}"...`;
+        } else if (toolName === 'bash' || toolName === 'run_command' || toolName === 'run_background_command') {
+          status = `⚙️ Running: \`${input.CommandLine || input.command || ''}\`...`;
+        } else if (toolName === 'start_server') {
+          status = `🚀 Starting server: \`${input.command || ''}\`...`;
+        } else if (toolName === 'stop_server') {
+          status = `⏹️ Stopping server process ${input.processId || ''}...`;
+        } else if (toolName === 'list_dir') {
+          status = `📁 Scanning folder ${file ? `\`${file}\`` : ''}...`;
+        } else if (toolName === 'find_files' || toolName === 'glob') {
+          status = `🔍 Finding files matching "${input.pattern || input.query || ''}"...`;
+        } else if (toolName === 'request_checkpoint') {
+          status = `🔒 Requesting approval: "${input.label || ''}"...`;
+        } else if (toolName === 'invoke_subagent') {
+          const role = input.Subagents?.[0]?.Role || input.Subagents?.[0]?.TypeName || input.role || '';
+          status = `🧠 Invoking subagent ${role ? `"${role}"` : ''}...`;
+        } else if (toolName === 'web_search') {
+          status = `🌐 Searching the web for "${input.query || ''}"...`;
+        } else if (toolName === 'url_fetch') {
+          status = `🌐 Downloading from ${input.url || input.Url || ''}...`;
+        }
+        setThinkingStatus(status);
       } else if (msg.event === 'suny:tool_call') {
         const toolName = String(msg.tool ?? 'unknown_tool');
         pushToolToProof(toolName);
@@ -1683,7 +1733,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
       // Only reset thinking/streaming state if no response events arrived
       // recently — prevents a WiFi blip from wiping a valid in-flight response.
       const staleSinceMs = Date.now() - lastResponseEvent.current;
-      if (staleSinceMs > 30_000) {
+      if (staleSinceMs > 300_000) {
         clearThinkingTimeout();
         setThinking(false);
         setThinkingStatus('');
@@ -2086,9 +2136,9 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
     if (activeProject && messages.length > 0) {
       const userMsgs = messages.filter(m => m.type === 'user').map(m => m.content);
       const lastUserMsg = userMsgs[userMsgs.length - 1] || '';
-      const title = lastUserMsg.length > 60 ? lastUserMsg.slice(0, 57) + '�' : (lastUserMsg || 'Chat session');
+      const title = lastUserMsg.length > 60 ? lastUserMsg.slice(0, 57) + '...' : (lastUserMsg || 'Chat session');
       // Build a compact summary: last user message + count of messages
-      const summary = `${messages.length} messages � Last asked: "${lastUserMsg.slice(0, 120)}"`;
+      const summary = `${messages.length} messages  Last asked: "${lastUserMsg.slice(0, 120)}"`;
       addMemory(title, summary);
     }
     setMessages([]);
@@ -2102,11 +2152,8 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
     setProofRuns([]);
     setExpandedRunIds(new Set());
     activeProofIdRef.current = null;
-      if (activeProject) {
-        loadProjectStateFromServer(activeProject.id).then(remote => {
-          if (remote && remote.messages.length > 0) setMessages(remote.messages);
-        }).catch(() => {});
-      }
+    // NOTE: Do NOT re-load from server here — we just cleared the chat
+    // intentionally. The useEffect sync will push the empty state.
     if (activeProject) {
       localStorage.removeItem(storageKey(activeProject.id));
     } else {
@@ -2176,7 +2223,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
     const label = (() => {
       const last = messages.filter(m => m.type === 'user').slice(-1)[0];
       const raw = last?.content ?? '';
-      return raw.length > 50 ? raw.slice(0, 47) + '�' : (raw || 'Snapshot');
+      return raw.length > 50 ? raw.slice(0, 47) + '...' : (raw || 'Snapshot');
     })();
     try {
       const res = await fetch('/api/snapshots', {
@@ -2368,7 +2415,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
         {/* CENTER: Mode selector + routing badge */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, justifyContent: 'center' }}>
           {modes.length > 0 && (
-            <ModeSelector modes={modes} selected={selectedMode} onChange={changeMode} noBalance={noBalance} />
+            <ModeSelector modes={modes} selected={selectedMode} onChange={changeMode} noBalance={noBalance} disabledOverall={isProcessing} />
           )}
           
           {/* Connection status */}
@@ -2461,7 +2508,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
                   }}
                   title={`${t.charAt(0).toUpperCase() + t.slice(1)} theme`}
                 >
-                  {t === 'matrix' ? '??' : t === 'pro' ? '?' : '??'}
+                  {t === 'matrix' ? '🌐' : t === 'pro' ? '⚪' : '🌙'}
                 </button>
               ))}
               <span style={{ fontSize: 9, color: 'var(--text-muted)', opacity: 0.5, whiteSpace: 'nowrap', marginLeft: 2 }}>
@@ -3076,7 +3123,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
                 {pinnedFiles.size > 0 && (
                   <div style={{ padding: '4px 12px 4px', borderBottom: '1px solid var(--border)' }}>
                     <div style={{ fontSize: 10, color: 'var(--accent)', fontWeight: 600, marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-                      ?? Pinned ({pinnedFiles.size})
+                      📌 Pinned ({pinnedFiles.size})
                     </div>
                     {[...pinnedFiles].map(fp => (
                       <div key={fp} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 0' }}>
@@ -3508,26 +3555,29 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
             </div>
           )}
           <ChatInput
-            input={input}
-            setInput={setInput}
-            balance={balance}
-            walletBalance={walletBalance}
-            thinking={thinking}
-            selectedMode={selectedMode}
-            activeProject={activeProject}
-            talkMode={talkMode}
-            noBalance={noBalance}
-            imagePreview={imagePreview}
-            setImagePreview={setImagePreview}
-            inputRef={inputRef}
-            inputHistoryIndex={inputHistoryIndex}
-            messages={messages}
-            sendMessage={sendMessage}
-            toggleTalkMode={toggleTalkMode}
-            wsSend={wsSend}
-            addMessage={addMessage}
-            isListening={isListening}
-            onVoiceToggle={toggleVoice}
+            input={input} setInput={setInput}
+            balance={balance} walletBalance={walletBalance}
+            thinking={thinking} selectedMode={selectedMode}
+            activeProject={activeProject} talkMode={talkMode} noBalance={noBalance}
+            imagePreview={imagePreview} setImagePreview={setImagePreview}
+            inputRef={inputRef} inputHistoryIndex={inputHistoryIndex}
+            messages={messages} sendMessage={sendMessage} toggleTalkMode={toggleTalkMode}
+            wsSend={wsSend} addMessage={addMessage}
+            isListening={isListening} onVoiceToggle={toggleVoice}
+            autoExecute={getEffectiveAutoExecute(activeProject?.id)}
+            toggleAutoExecute={() => {
+              if (activeProject) {
+                saveProjectAutoExecuteOverride(!(activeProject.auto_execute_override ?? globalAutoApprove));
+              } else {
+                const newVal = !globalAutoApprove;
+                setGlobalAutoApprove(newVal);
+                fetch('/api/settings', {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ auto_approve: newVal })
+                });
+              }
+            }}
           />
         </div>
       </div>
@@ -3536,7 +3586,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
       {showTopUp && (
         <div className="modal-overlay" onClick={() => { if (!topUpSubmitting) { setShowTopUp(false); setTopUpResult(null); } }}>
           <div className="modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 440 }}>
-            <h3 style={{ margin: '0 0 4px', fontSize: 17 }}>?? Request a top-up</h3>
+            <h3 style={{ margin: '0 0 4px', fontSize: 17 }}>💳 Request a top-up</h3>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, margin: '0 0 14px' }}>
               Submit a top-up request. An admin will review and credit your wallet.
             </p>
@@ -3953,7 +4003,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
               <button className="btn btn-icon btn-secondary" onClick={() => setShowSnapshots(false)}><X size={14} /><Check size={12} /><X size={12} /></button>
             </div>
             {snapshotList.length === 0 ? (
-              <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>No snapshots saved yet. Use the ?? button to capture this chat + memory state.</p>
+              <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>No snapshots saved yet. Use the 📷 button to capture this chat + memory state.</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {snapshotList.map(snap => (
@@ -3966,7 +4016,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
                       <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {snap.label}
                         {snap.kind === 'auto' && <span style={{ marginLeft: 6, fontSize: 10, padding: '1px 5px', borderRadius: 4, background: 'var(--accent)', color: '#fff', opacity: 0.7 }}>AUTO</span>}
-                        {snap.has_memory && <span style={{ marginLeft: 6, fontSize: 10, opacity: 0.6 }}>??</span>}
+                        {snap.has_memory && <span style={{ marginLeft: 6, fontSize: 10, opacity: 0.6 }}>🧠</span>}
                       </div>
                       <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
                         {snap.message_count} msgs{snap.tier ? ` � tier ${snap.tier}` : ''} � {new Date(snap.savedAt).toLocaleString()}
