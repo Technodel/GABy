@@ -406,7 +406,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         ) as { total_used: number };
         const remaining = userRow.max_tokens_per_session - sessStats.total_used;
         if (remaining <= 0) {
-          const limitMessage = pickRandom('session_limit', "You've reached the session token limit. Start a new session to continue! ??");
+          const limitMessage = pickRandom('session_limit', "You've reached the session token limit. Start a new session to continue! 🔄");
           userClientManager.pushToUser(userId, 'suny:narration', {
             message: limitMessage,
           });
@@ -487,7 +487,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
           if (Array.isArray(rules) && rules.length > 0) {
             const wins = rules.filter(r => r.category === 'win');
             const mistakes = rules.filter(r => r.category === 'mistake');
-            const lines = ['', '=== ?? FROZEN BEHAVIORAL RULES (snapshot: ' + frozenSnapshot.label + ') ==='];
+            const lines = ['', '=== ❄️ FROZEN BEHAVIORAL RULES (snapshot: ' + frozenSnapshot.label + ') ==='];
             if (wins.length > 0) {
               lines.push('[Always:]');
               for (const r of wins) lines.push(`  ✓ ${r.rule_text}`);
@@ -949,7 +949,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         // Only push system_error toast on first occurrence  avoid spamming the user
         if (!isRepeat) {
           userClientManager.pushToUser(userId, 'suny:system_error', {
-            message: `?? This project is locked by **${holder}** since ${when}. Please wait for their session to finish, or ask an admin to release the lock.`,
+            message: `🔒 This project is locked by **${holder}** since ${when}. Please wait for their session to finish, or ask an admin to release the lock.`,
           });
         }
         // Embed lock details in the error message so the catch block can surface them.
@@ -981,17 +981,10 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         return;
       }
 
-      // Run the full agent loop
-      // Start "Did you know?" timer — fires every 60s for long tasks
-      const stopDidYouKnow = startDidYouKnowTimer(userId, currentAbortController.signal);
-      const maxTurnMs = projectPath ? 180_000 : 70_000;
-      timedOutByGuard = false;
-      const turnTimeout = setTimeout(() => {
-        if (currentAbortController && !currentAbortController.signal.aborted) {
-          timedOutByGuard = true;
-          currentAbortController.abort(new Error(`TURN_TIMEOUT_${maxTurnMs}`));
-        }
-      }, maxTurnMs);
+      // Timers will be started AFTER the forecast checkpoint
+      let stopDidYouKnow: () => void = () => {};
+      let turnTimeout: NodeJS.Timeout | undefined;
+
       // -- Pre-run forecast gate ----------------------------------------------
       clearSessionSpend(sessionId);
       const forecastPlanAllowed = isPlanFeatureEnabled('pf_cost_forecast', userPlan);
@@ -1051,6 +1044,18 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
 
       let result;
       try {
+        // Run the full agent loop
+        // Start "Did you know?" timer — fires every 60s for long tasks
+        stopDidYouKnow = startDidYouKnowTimer(userId, currentAbortController.signal);
+        const maxTurnMs = projectPath ? 180_000 : 70_000;
+        timedOutByGuard = false;
+        turnTimeout = setTimeout(() => {
+          if (currentAbortController && !currentAbortController.signal.aborted) {
+            timedOutByGuard = true;
+            currentAbortController.abort(new Error(`TURN_TIMEOUT_${maxTurnMs}`));
+          }
+        }, maxTurnMs);
+
         // Budget gate callbacks (only attached when budget gate is enabled + plan allows)
         const budgetCap = (isBudgetGateEnabled(userId) && budgetPlanAllowed) ? getBudgetPerRun(userId) : null;
         const budgetCallbacks = budgetCap ? {
@@ -1496,7 +1501,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         friendly = 'I hit a temporary execution issue while scanning. I can still do a direct scan for you now � say: scan root, scan src, or scan bridge.';
         errorCategory = 'runtime';
       }
-      if (errMsg.toLowerCase().includes('insufficient')) { friendly = pickRandom('no_balance', "You're out of credits! Reach out and we'll top you right up ??"); errorCategory = 'credits'; }
+      if (errMsg.toLowerCase().includes('insufficient')) { friendly = pickRandom('no_balance', "You're out of credits! Reach out and we'll top you right up 🚀"); errorCategory = 'credits'; }
       if (errMsg.toLowerCase().includes('rate') && errMsg.toLowerCase().includes('limit')) { errorCategory = 'rate_limit'; }
       if (errMsg.includes('ALL PROVIDERS EXHAUSTED')) {
         friendly = pickNonRepeatingFallback(userId, EXHAUSTED_REPLY_FALLBACKS);

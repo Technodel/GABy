@@ -29,7 +29,7 @@ Need a credit refill before I can keep going.
 
 [did_you_know]
 Did you know? SUNy auto-commits a checkpoint before risky edits  `git reflog` always has your back.
-Tip: type `/skills` to see every workflow skill loaded for this session.
+
 Did you know? SUNy can run shell commands directly on your machine through the bridge.
 Tip: switch tiers any time  free for quick chat, pro for long autonomous tasks.
 Did you know? SUNy lints and runs tests automatically until the code is green.

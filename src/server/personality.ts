@@ -1,4 +1,4 @@
-﻿/**
+/**
  * SUNy Personality Module
  *
  * Loads suny_status_messages.txt (project root) once at startup and serves
@@ -110,7 +110,7 @@ export function startDidYouKnowTimer(userId: number, signal?: AbortSignal): () =
     const fact = pickRandom('did_you_know');
     if (fact) {
       userClientManager.pushToUser(userId, 'suny:narration', {
-        message: `ðŸ’¡ Did you know? ${fact}`,
+        message: `💡 Did you know? ${fact}`,
       });
     }
   }, 60_000);
