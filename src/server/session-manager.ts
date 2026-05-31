@@ -1278,25 +1278,35 @@ If your tools are not working, say:
       ];
       for await (const delta of result.textStream) {
         textDeltas++;
-        // Removed pure whitespace skip because it collapsed words and lists natively emitted as whitespace-only chunks.
 
+        // Accumulate into toolDescBuffer and check if we should suppress
+        // technical tool-description output (e.g. "Writing web request...")
         toolDescBuffer += delta;
 
-        // When currently suppressing technical output, keep discarding
-        // deltas until we hit a clear end of sentence (continuation text like
-      }
+        // Suppression: model-generated technical chatter before tool calls
+        if (!suppressingTechnical) {
+          for (const pattern of TECHNICAL_PATTERNS) {
+            if (pattern.test(toolDescBuffer)) {
+              suppressingTechnical = true;
+              toolDescBuffer = '';
+              break;
+            }
+          }
+        }
+        if (suppressingTechnical) {
+          // Keep accumulating — if we hit a sentence boundary, stop suppressing
+          if (SENTENCE_BOUNDARY.test(toolDescBuffer)) {
+            suppressingTechnical = false;
+            toolDescBuffer = '';
+          }
+          continue; // Don't send suppressed text to the user
+        }
 
-const RETRY_CHECKPOINT_MESSAGES = [
-  "I'm struggling to get the model to engage with your request. I'd love to keep trying — could you give me the green light for a few more attempts?",
-  "I haven't been able to make headway on this yet, but I'm determined to get it right. May I try a few more times with a fresh approach?",
-  "It looks like I'm hitting a bit of a wall with this task. With your permission, I'd like to put in a few more focused attempts to get things moving.",
-  "I'm having a hard time producing a result, but I'm not ready to give up yet! Would you be comfortable with me running a few more tries?",
-  "I'm sorry for the silence! I'm really keen to crack this for you. Could I have your blessing to try a few more times?"
-];
-
-const pickRetryCheckpointMessage = () => {
-  return RETRY_CHECKPOINT_MESSAGES[Math.floor(Math.random() * RETRY_CHECKPOINT_MESSAGES.length)];
-};
+        // Normal text: accumulate and stream to frontend
+        fullText += delta;
+        if (onChunk) {
+          try { onChunk(delta); } catch { /* best-effort */ }
+        }
 
           // ── Auto-retry on empty/no-tool output ────────────────────────────────────────────────────────────────────────────
       // Phase 1: Up to 2 silent retries (no user prompt).
