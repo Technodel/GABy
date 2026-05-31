@@ -402,6 +402,19 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 import { attachWebSockets } from './ws-handler';
 attachWebSockets(server);
 
+// ── Process-level crash prevention ─────────────────────────────────────
+// Without these handlers, ANY unhandled promise rejection or uncaught
+// exception silently kills the entire Node.js process — leaving the user
+// staring at "working...thinking" with no error message, no stream_end,
+// nothing. These catch-alls log the error and keep the server alive so the
+// ws-handler error handler can send the failure to the user.
+process.on('unhandledRejection', (reason) => {
+  console.error('[process] UNHANDLED REJECTION — without this handler the process would have crashed silently:', reason instanceof Error ? reason.stack || reason.message : reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[process] UNCAUGHT EXCEPTION — without this handler the process would have crashed silently:', err.stack || err.message);
+});
+
 async function startup() {
   // Await DB migrations before accepting any requests — prevents missing-table
   // errors on cold start or slow disks (fix for fire-and-forget race condition).
@@ -436,6 +449,14 @@ async function startup() {
 
   startTaskWorker();
   try { startScheduler(); } catch (e) { console.warn('[scheduler] Failed to start:', (e as Error).message); }
+
+  // Start the background API Key Health Checker
+  try {
+    const { startApiKeyHealthChecker } = require('./model-distribution-engine');
+    startApiKeyHealthChecker();
+  } catch (e) {
+    console.warn('[model-distribution-engine] Failed to start API Key Health Checker:', (e as Error).message);
+  }
 
   server.listen(PORT, () => {
     logger.info({ port: PORT, env: process.env.NODE_ENV || 'development' }, 'SUNy server running');

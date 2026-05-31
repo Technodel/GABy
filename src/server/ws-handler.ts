@@ -1047,7 +1047,7 @@ function handleUserClientUpgrade(ws: WebSocket, req: http.IncomingMessage): void
         // Run the full agent loop
         // Start "Did you know?" timer — fires every 60s for long tasks
         stopDidYouKnow = startDidYouKnowTimer(userId, currentAbortController.signal);
-        const maxTurnMs = projectPath ? 180_000 : 70_000;
+        const maxTurnMs = projectPath ? 600_000 : 70_000;
         timedOutByGuard = false;
         turnTimeout = setTimeout(() => {
           if (currentAbortController && !currentAbortController.signal.aborted) {
