@@ -2415,7 +2415,7 @@ export default function Chat({ onLogout, onOpenSettings }: ChatProps) {
         {/* CENTER: Mode selector + routing badge */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, justifyContent: 'center' }}>
           {modes.length > 0 && (
-            <ModeSelector modes={modes} selected={selectedMode} onChange={changeMode} noBalance={noBalance} disabledOverall={isProcessing} />
+            <ModeSelector modes={modes} selected={selectedMode} onChange={changeMode} noBalance={noBalance} disabledOverall={thinking} />
           )}
           
           {/* Connection status */}
