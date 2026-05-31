@@ -19,6 +19,7 @@ import { createOpenAI } from '@ai-sdk/openai';
 import { createGroq } from '@ai-sdk/groq';
 import { createDeepSeek } from '@ai-sdk/deepseek';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import type { LanguageModel } from 'ai';
 import { getAdapter } from './db';
 
@@ -29,7 +30,7 @@ export interface AgentMessage {
   content: string;
 }
 
-interface KeyEntry {
+export interface KeyEntry {
   id?: number;
   key_value: string;
   provider: string;
@@ -117,8 +118,10 @@ export function buildLanguageModel(key: KeyEntry, modelId: string): LanguageMode
   const { provider, key_value } = key;
   switch (provider) {
     case 'Anthropic':
+      if (!modelId.includes('claude')) modelId = 'claude-3-5-sonnet-20241022';
       return createAnthropic({ apiKey: key_value })(modelId);
     case 'DeepSeek':
+      if (!modelId.includes('deepseek')) modelId = 'deepseek-chat';
       return createDeepSeek({ apiKey: key_value })(modelId);
     case 'Groq':
       return createGroq({ apiKey: key_value })(modelId);
@@ -149,9 +152,17 @@ export function buildLanguageModel(key: KeyEntry, modelId: string): LanguageMode
         baseURL: 'https://api-inference.huggingface.co/v1/',
         apiKey: key_value, // HF access token from huggingface.co/settings/tokens
       })(modelId);
+    case 'Google':
+    case 'Gemini':
+      return createGoogleGenerativeAI({ apiKey: key_value })(modelId);
     default:
       return createOpenAI({ apiKey: key_value })(modelId);
   }
+}
+
+export async function getAllActiveKeys(): Promise<KeyEntry[]> {
+  const db = await getAdapter();
+  return db.all<KeyEntry[]>('SELECT id, provider, mode, key_value, priority, model_id_override FROM api_keys WHERE is_active = 1 ORDER BY priority ASC, id DESC');
 }
 
 /**
