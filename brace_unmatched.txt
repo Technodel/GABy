@@ -1,0 +1,7 @@
+
+Final balance: 3
+
+Unmatched braces (3):
+  Line 336, col 37: ): 'free' | 'fast' | 'smart' | 'pro' {
+  Line 346, col 37:   if (history && history.length > 0) {
+  Line 460, col 84: export async function runAgentLoop(req: AgentLoopRequest): Promise<AgentLoopResu

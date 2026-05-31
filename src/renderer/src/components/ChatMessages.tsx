@@ -233,7 +233,7 @@ export default function ChatMessages(props: ChatMessagesProps) {
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--accent)', fontSize: 12, padding: 0, textDecoration: 'underline' }}
               >
                 Select a folder
-              </button>{' '}to unlock file editing and shell commands.
+              </button>{' '}to unlock file editing.
             </p>
           )}
         </div>

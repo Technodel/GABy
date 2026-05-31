@@ -51,7 +51,7 @@ export function FolderModal({ selectedFolder, onClose, onSelectFolder }: FolderM
             <h3 style={{ margin: '0 0 4px', fontSize: 17 }}>� Select a Folder</h3>
             <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, margin: '0 0 6px' }}>
               Use the browser file picker to select your project folder.
-              SUNy needs it to <strong>create files, edit code, and run commands</strong>.
+              SUNy needs it to <strong>create and edit files</strong>.
             </p>
             <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
               <div style={{ flex: 1, background: 'var(--bg-secondary)', borderRadius: 8, padding: '10px 12px' }}>
@@ -62,7 +62,7 @@ export function FolderModal({ selectedFolder, onClose, onSelectFolder }: FolderM
               </div>
               <div style={{ flex: 1, background: 'rgba(108,99,255,0.07)', border: '1px solid rgba(108,99,255,0.2)', borderRadius: 8, padding: '10px 12px' }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--accent)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.4px' }}>With Folder ✨</div>
-                {['✏️ Create & edit files', '⚡ Run shell commands', '🔧 Auto-fix lint errors', '📦 Git auto-commit'].map(t => (
+                {['✏️ Create & edit files', '🔍 Search project files', '📂 Organize folder structure'].map(t => (
                   <div key={t} style={{ fontSize: 12, color: 'var(--text-primary)', marginBottom: 3 }}>{t}</div>
                 ))}
               </div>

@@ -352,25 +352,6 @@ export default function ChatInput(props: ChatInputProps) {
             {talkMode ? <MessageSquare size={15} /> : <Pencil size={15} />}
           </button>
         )}
-        {/* Terminal button — always visible */}
-        <button
-          className="btn btn-icon btn-secondary"
-          onClick={() => {
-            window.alert('Powershell execution is currently unavailable in the Web version. It will be available soon in the SUNy Desktop App and VS Code Extension.');
-          }}
-          title='Powershell execution is only available for Desktop version and VS Code mode'
-          style={{
-            alignSelf: 'flex-end',
-            padding: '10px 12px',
-            background: showTerminal ? 'rgba(108,99,255,0.12)' : 'transparent',
-            border: showTerminal ? '1px solid var(--accent)' : '1px solid var(--border)',
-            color: showTerminal ? 'var(--accent)' : 'var(--text-muted)',
-            opacity: 1,
-            transition: 'all 0.15s',
-          }}
-        >
-          <Terminal size={15} />
-        </button>
         {onVoiceToggle && (
           <button
             className="btn btn-icon btn-secondary"

@@ -514,7 +514,7 @@ export default function UserSettings({ onBack, onLogout, initialSection = 'gener
             <div>
               <h3 style={{ fontWeight: 600, marginBottom: 4 }}>🧩 Show Technical Details In Chat</h3>
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
-                Keep this OFF for beginner mode (friendly, code-free task updates). Turn ON to show prompts, code blocks, and shell commands.
+                Keep this OFF for beginner mode (friendly, code-free task updates). Turn ON to show prompts, code blocks, and tool executions.
               </p>
             </div>
             <input
